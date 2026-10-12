@@ -42,3 +42,17 @@ def test_districts(client):
     response = client.get("/v1/districts")
     assert response.status_code == 200
     assert response.json() == ["Çankaya", "Kadıköy"]  # Turkish order: Ç < K
+
+
+def test_search_by_ids(client, conn):
+    ids = {row["name"]: row["id"] for row in conn.execute("SELECT id, name FROM venues").fetchall()}
+    wanted = f"{ids['Test Kafe A']},{ids['Test Kafe Ankara']}"
+    assert search(client, ids=wanted) == {"Test Kafe A", "Test Kafe Ankara"}
+
+
+def test_search_with_empty_ids_returns_nothing(client):
+    assert search(client, ids="") == set()
+
+
+def test_search_rejects_bad_ids(client):
+    assert client.get("/v1/venues/search", params={"ids": "1,abc"}).status_code == 422

@@ -10,7 +10,7 @@ from app.config import settings
 from app.db import apply_schema
 
 # (name, category, lon, lat, capacity, neighborhood, district, tags, popularity)
-# Fictional venues for demo purposes only. popularity 0 = always empty.
+# Fictional venues for demo purposes only. popularity 0 = always empty. No night clubs.
 DEMO_VENUES = [
     # Kadıköy
     ("Demo Kafe Moda", "cafe", 29.0260, 40.9840, 40, "Moda", "Kadıköy", ["socializing"], 1.0),
@@ -48,6 +48,14 @@ DEMO_VENUES = [
     ("Demo Kafe Kuzguncuk", "cafe", 29.0310, 41.0370, 25, "Kuzguncuk", "Üsküdar", ["quiet"], 0.5),
     ("Demo Kafe Çengelköy", "cafe", 29.0520, 41.0500, 40, "Çengelköy", "Üsküdar", ["socializing", "quiet"], 0.6),
     ("Demo Cowork Altunizade", "coworking", 29.0440, 41.0220, 90, "Altunizade", "Üsküdar", ["coworking", "quiet"], 0.8),
+    # Restaurants
+    ("Demo Lokanta Kadıköy", "restaurant", 29.0265, 40.9895, 60, "Caferağa", "Kadıköy", ["food"], 1.0),
+    ("Demo Meyhane Moda", "restaurant", 29.0275, 40.9830, 80, "Moda", "Kadıköy", ["food", "socializing"], 0.9),
+    ("Demo Restoran Ortaköy", "restaurant", 29.0280, 41.0480, 90, "Ortaköy", "Beşiktaş", ["food", "socializing"], 1.0),
+    ("Demo Balıkçı Bebek", "restaurant", 29.0445, 41.0785, 50, "Bebek", "Beşiktaş", ["food"], 0.7),
+    ("Demo Lokanta Karaköy", "restaurant", 28.9760, 41.0230, 45, "Kemankeş", "Beyoğlu", ["food"], 1.0),
+    ("Demo Restoran Nişantaşı", "restaurant", 28.9945, 41.0515, 70, "Teşvikiye", "Şişli", ["food", "socializing"], 0.6),
+    ("Demo Kebapçı Üsküdar", "restaurant", 29.0160, 41.0250, 55, "Mimar Sinan", "Üsküdar", ["food"], 0.0),
 ]
 
 

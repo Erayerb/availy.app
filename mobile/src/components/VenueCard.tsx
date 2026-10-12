@@ -4,6 +4,8 @@ import type { Venue } from '../lib/api';
 import { categoryLabel } from '../lib/filters';
 import { directionsUrl, shortLocation } from '../lib/location';
 import { areaStatus, formatRatio, levelStyle } from '../lib/occupancy';
+import { FavoriteButton } from './FavoriteButton';
+import { colors } from '../theme';
 
 export const CARD_WIDTH = 250;
 
@@ -21,9 +23,12 @@ export function VenueCard({ venue, onClose, onLayout }: Props) {
     <View style={styles.card} onLayout={onLayout}>
       <View style={styles.header}>
         <Text style={styles.title}>{venue.name}</Text>
-        <Pressable onPress={onClose} hitSlop={12}>
-          <Text style={styles.close}>✕</Text>
-        </Pressable>
+        <View style={styles.actions}>
+          <FavoriteButton venueId={venue.id} />
+          <Pressable onPress={onClose} hitSlop={12}>
+            <Text style={styles.close}>✕</Text>
+          </Pressable>
+        </View>
       </View>
       <Text style={styles.category}>{categoryLabel(venue.category)}</Text>
 
@@ -51,9 +56,9 @@ const styles = StyleSheet.create({
     width: CARD_WIDTH,
     padding: 14,
     borderRadius: 14,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     gap: 6,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOpacity: 0.2,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
@@ -61,20 +66,21 @@ const styles = StyleSheet.create({
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
   title: { fontSize: 16, fontWeight: '600', flexShrink: 1 },
-  close: { fontSize: 16, color: '#999' },
-  category: { fontSize: 13, color: '#666' },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  close: { fontSize: 16, color: colors.textMuted },
+  category: { fontSize: 13, color: colors.textMuted },
   row: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
   dot: { width: 10, height: 10, borderRadius: 5 },
   level: { fontSize: 14 },
-  ratio: { fontSize: 14, color: '#555', marginLeft: 'auto' },
-  secondary: { fontSize: 13, color: '#444' },
+  ratio: { fontSize: 14, color: colors.textMuted, marginLeft: 'auto' },
+  secondary: { fontSize: 13, color: colors.textMuted },
   button: {
     marginTop: 6,
     paddingVertical: 9,
     borderRadius: 10,
-    backgroundColor: '#1f73e8',
+    backgroundColor: colors.primary,
     alignItems: 'center',
   },
   buttonPressed: { opacity: 0.8 },
-  buttonText: { color: '#fff', fontWeight: '600' },
+  buttonText: { color: colors.onPrimary, fontWeight: '600' },
 });

@@ -31,3 +31,7 @@ def test_average_occupancy_requires_values():
 def test_escape_like():
     assert escape_like("50%_off\\") == "50\\%\\_off\\\\"
     assert escape_like("Kafe") == "Kafe"
+
+
+def test_parse_tags_accepts_food():
+    assert parse_tags("food,quiet") == ["food", "quiet"]

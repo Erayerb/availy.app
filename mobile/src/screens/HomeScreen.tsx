@@ -1,27 +1,17 @@
 import { useMemo, useState } from 'react';
-import {
-  FlatList,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ClearButton } from '../components/ClearButton';
 import { MenuButton } from '../components/MenuButton';
 import { Chip, TagChips } from '../components/TagChips';
-import { VenueTile } from '../components/VenueTile';
+import { VenueGrid } from '../components/VenueGrid';
 import { useDistricts } from '../hooks/useDistricts';
 import { useSearch } from '../hooks/useSearch';
 import type { Venue } from '../lib/api';
 import { toggleSingle, toggleTag, type Tag } from '../lib/filters';
 import { stableShuffle } from '../lib/shuffle';
+import { colors } from '../theme';
 
-const PADDING = 16;
-const GAP = 12;
 // New mixed order each app start, stable while the app is open
 const SESSION_SEED = String(Date.now());
 
@@ -33,8 +23,6 @@ type Props = {
 };
 
 export function HomeScreen({ tags, onTagsChange, onMenu, onOpenVenue }: Props) {
-  const { width } = useWindowDimensions();
-  const tileSize = (width - PADDING * 2 - GAP) / 2;
   const districts = useDistricts();
   const [district, setDistrict] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -80,7 +68,7 @@ export function HomeScreen({ tags, onTagsChange, onMenu, onOpenVenue }: Props) {
           value={query}
           onChangeText={setQuery}
           placeholder="Mekan ara"
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor={colors.placeholder}
           style={styles.searchInput}
           returnKeyType="search"
           autoCorrect={false}
@@ -97,35 +85,21 @@ export function HomeScreen({ tags, onTagsChange, onMenu, onOpenVenue }: Props) {
   );
 
   return (
-    <FlatList
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      data={items}
-      keyExtractor={(v) => String(v.id)}
-      numColumns={2}
-      columnWrapperStyle={styles.columns}
-      ListHeaderComponent={header}
-      ListEmptyComponent={
-        <Text style={error ? styles.error : styles.empty}>
-          {error ?? (loading ? 'Yükleniyor…' : 'Sonuç bulunamadı')}
-        </Text>
-      }
-      renderItem={({ item }) => (
-        <VenueTile venue={item} size={tileSize} onPress={() => onOpenVenue(item)} />
-      )}
-      keyboardShouldPersistTaps="handled"
-      keyboardDismissMode="on-drag"
+    <VenueGrid
+      venues={items}
+      header={header}
+      emptyText={loading ? 'Yükleniyor…' : 'Sonuç bulunamadı'}
+      error={error}
+      onOpenVenue={onOpenVenue}
     />
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  content: { paddingHorizontal: PADDING, paddingTop: 60, paddingBottom: 40, gap: 16 },
   header: { gap: 10 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 6 },
   brand: { fontSize: 26, fontWeight: '700' },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#374151', marginTop: 8 },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.text, marginTop: 8 },
   sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   row: { gap: 8 },
   search: {
@@ -136,12 +110,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 14,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.cream,
   },
   searchIcon: { fontSize: 15 },
-  searchInput: { flex: 1, fontSize: 16, color: '#111827', padding: 0 },
-  searchClear: { fontSize: 15, color: '#6b7280' },
-  columns: { gap: GAP },
-  empty: { textAlign: 'center', color: '#6b7280', marginTop: 24 },
-  error: { textAlign: 'center', color: '#d64545', marginTop: 24 },
+  searchInput: { flex: 1, fontSize: 16, color: colors.text, padding: 0 },
+  searchClear: { fontSize: 15, color: colors.textMuted },
 });

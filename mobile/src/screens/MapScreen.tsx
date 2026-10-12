@@ -11,6 +11,7 @@ import { containsBounds, formatBBox, regionToBounds, type Region } from '../lib/
 import { cardPosition, type Point } from '../lib/cardPosition';
 import { toggleTag, type Tag } from '../lib/filters';
 import { LEVELS, levelStyle } from '../lib/occupancy';
+import { colors } from '../theme';
 
 // Fetch an area twice the visible size so small pans don't trigger a new request
 const QUERY_PADDING = 2;
@@ -69,6 +70,8 @@ type Props = {
   onTagsChange: (tags: Tag[]) => void;
   selectedId: number | null;
   onSelect: (id: number | null) => void;
+  // Tapping the selected dot again closes its card
+  onMarkerPress: (id: number) => void;
   onBack: () => void;
 };
 
@@ -79,6 +82,7 @@ export function MapScreen({
   onTagsChange,
   selectedId,
   onSelect,
+  onMarkerPress,
   onBack,
 }: Props) {
   const window = useWindowDimensions();
@@ -150,7 +154,7 @@ export function MapScreen({
               key={`${venue.id}-${venue.occupancy.level}-${isSelected}`}
               venue={venue}
               selected={isSelected}
-              onSelect={onSelect}
+              onSelect={onMarkerPress}
             />
           );
         })}
@@ -217,13 +221,13 @@ const styles = StyleSheet.create({
   },
   marker: {
     borderWidth: 3,
-    borderColor: '#fff',
-    shadowColor: '#000',
+    borderColor: colors.white,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.3,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
   },
-  markerSelected: { borderColor: '#111827', borderWidth: 4 },
+  markerSelected: { borderColor: colors.text, borderWidth: 4 },
   header: {
     position: 'absolute',
     top: 60,
@@ -245,11 +249,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: colors.surface,
   },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendText: { fontSize: 12 },
   dot: { width: 10, height: 10, borderRadius: 5 },
-  status: { fontSize: 11, color: '#777' },
-  error: { fontSize: 11, color: '#d64545', maxWidth: 140 },
+  status: { fontSize: 11, color: colors.textMuted },
+  error: { fontSize: 11, color: colors.danger, maxWidth: 140 },
 });

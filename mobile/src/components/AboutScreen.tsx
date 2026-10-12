@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { colors } from '../theme';
 
 export function AboutScreen() {
   return (
@@ -15,8 +16,8 @@ export function AboutScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', paddingTop: 130, paddingHorizontal: 24, gap: 12 },
+  container: { flex: 1, backgroundColor: colors.background, paddingTop: 130, paddingHorizontal: 24, gap: 12 },
   title: { fontSize: 28, fontWeight: '700' },
-  text: { fontSize: 16, color: '#333', lineHeight: 22 },
-  note: { fontSize: 14, color: '#888' },
+  text: { fontSize: 16, color: colors.text, lineHeight: 22 },
+  note: { fontSize: 14, color: colors.textMuted },
 });
