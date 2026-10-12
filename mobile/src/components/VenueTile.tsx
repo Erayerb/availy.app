@@ -46,5 +46,5 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
   },
   favorite: { position: 'absolute', top: 6, left: 6 },
-  name: { marginTop: 6, fontSize: 14, fontWeight: '600', color: colors.primary },
+  name: { marginTop: 6, fontSize: 14, fontWeight: '600', color: colors.text },
 });

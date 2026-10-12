@@ -32,3 +32,18 @@ cd mobile && npm start
 ```
 
 Testler: `cd mobile && npm test && npm run typecheck`
+
+## Web demo (GitHub Pages)
+
+`main` dalına her push'ta GitHub Actions uygulamanın web sürümünü üretip yayınlar:
+https://erayerb.github.io/availy.app/
+
+- Backend gerekmez: demo mekanlar uygulamaya gömülür, doluluk tarayıcıda sahte üretilir
+  (`EXPO_PUBLIC_DATA_MODE=static`). Expo Go ve yerel geliştirme yine backend'i kullanır.
+- Demo mekanlar `backend/app/demo_data.py` içinde; web için `python3 backend/scripts/export_demo_venues.py`
+  ile `mobile/src/data/demoVenues.json` üretilir (CI bunu her build'de yapar).
+- Yerelde denemek için:
+
+```bash
+cd mobile && EXPO_PUBLIC_DATA_MODE=static npx expo start --web
+```

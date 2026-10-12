@@ -1,0 +1,63 @@
+# Builds the web version of the mobile app with bundled demo data (no backend
+# needed) and publishes it to GitHub Pages: https://<user>.github.io/<repo>/
+name: Deploy web demo to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Export demo venues from the backend seed data
+        run: python3 backend/scripts/export_demo_venues.py
+
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: Test and typecheck
+        working-directory: mobile
+        run: npm test && npm run typecheck
+
+      - name: Build web app with bundled demo data
+        working-directory: mobile
+        env:
+          EXPO_PUBLIC_DATA_MODE: static
+          EXPO_BASE_URL: /${{ github.event.repository.name }}
+        run: npx expo export --platform web
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: mobile/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

@@ -1,4 +1,6 @@
 import type { Level } from './occupancy';
+import demoVenues from '../data/demoVenues.json';
+import { createStaticApi } from './staticApi';
 
 export type Occupancy = {
   level: Level;
@@ -26,12 +28,16 @@ export type Venue = {
 };
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
+// "static": bundled demo data, no server (GitHub Pages build). Otherwise the backend API.
+const STATIC_DATA = process.env.EXPO_PUBLIC_DATA_MODE === 'static';
+const staticApi = createStaticApi(demoVenues);
 
 export async function fetchVenues(
   bbox: string,
   tags: string[],
   signal?: AbortSignal,
 ): Promise<Venue[]> {
+  if (STATIC_DATA) return staticApi.venuesInBBox(bbox, tags);
   const params = new URLSearchParams({ bbox });
   if (tags.length > 0) params.set('tags', tags.join(','));
   return getJson(`/v1/venues?${params}`, signal);
@@ -43,6 +49,7 @@ export async function searchVenues(
   tags: string[],
   signal?: AbortSignal,
 ): Promise<Venue[]> {
+  if (STATIC_DATA) return staticApi.search(query, district, tags);
   const params = new URLSearchParams({ q: query });
   if (district) params.set('district', district);
   if (tags.length > 0) params.set('tags', tags.join(','));
@@ -50,10 +57,12 @@ export async function searchVenues(
 }
 
 export async function fetchVenuesByIds(ids: number[], signal?: AbortSignal): Promise<Venue[]> {
+  if (STATIC_DATA) return staticApi.search('', null, [], ids);
   return getJson(`/v1/venues/search?${new URLSearchParams({ ids: ids.join(',') })}`, signal);
 }
 
 export async function fetchDistricts(signal?: AbortSignal): Promise<string[]> {
+  if (STATIC_DATA) return staticApi.districts();
   return getJson('/v1/districts', signal);
 }
 

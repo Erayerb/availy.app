@@ -37,6 +37,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  chipText: { fontSize: 13, color: colors.primary, fontWeight: '500' },
+  chipText: { fontSize: 13, color: colors.text, fontWeight: '500' },
   chipTextActive: { color: colors.onPrimary },
 });
