@@ -50,6 +50,8 @@ Wi-Fi sayımı, MAC, check-in ve simülatör kapsam dışı (bkz. docs/architect
 - Tema: kırmızı + krem (mobile/src/theme.ts); logo: krem daire içinde kırmızı @
 - Filtreler: Sosyalleşme, Co-working, Eğlence, Sessizlik, Yemek (restoranlar)
 - Haritada seçili noktaya tekrar basınca kart kapanır
+- Bitti: Web demo + GitHub Pages (.github/workflows/pages.yml, main'e push'ta): Leaflet/OSM harita (VenueMap.web.tsx), demo veri uygulamaya gömülü (EXPO_PUBLIC_DATA_MODE=static), backend gerekmez; Expo Go etkilenmez
+- Not: Demo mekanların tek kaynağı backend/app/demo_data.py; web JSON'u backend/scripts/export_demo_venues.py üretir
 - Sırada: kullanıcıyla belirlenecek
 - Not: Proje test/prototip; amaç kendi telefonundan göstermek, Mac'i yormamak
 - Kararlar: önce polling (30 sn), WebSocket sonra; MVP'de doluluk sahte

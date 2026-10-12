@@ -49,6 +49,6 @@ const styles = StyleSheet.create({
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   toggle: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, paddingVertical: 4 },
-  title: { fontSize: 14, fontWeight: '700', color: colors.primary },
+  title: { fontSize: 14, fontWeight: '700', color: colors.text },
   chevron: { fontSize: 10, color: colors.textMuted },
 });
