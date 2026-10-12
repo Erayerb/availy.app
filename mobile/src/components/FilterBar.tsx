@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Tag } from '../lib/filters';
 import { ClearButton } from './ClearButton';
 import { TagChips } from './TagChips';
+import { colors } from '../theme';
 
 type Props = {
   selected: Tag[];
@@ -38,9 +39,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9,
     borderRadius: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     gap: 10,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOpacity: 0.18,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },
@@ -48,6 +49,6 @@ const styles = StyleSheet.create({
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   toggle: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, paddingVertical: 4 },
-  title: { fontSize: 14, fontWeight: '700', color: '#1f2937' },
-  chevron: { fontSize: 10, color: '#6b7280' },
+  title: { fontSize: 14, fontWeight: '700', color: colors.primary },
+  chevron: { fontSize: 10, color: colors.textMuted },
 });

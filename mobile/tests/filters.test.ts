@@ -3,10 +3,10 @@ import { test } from 'node:test';
 
 import { categoryLabel, TAG_OPTIONS, toggleSingle, toggleTag } from '../src/lib/filters.ts';
 
-test('filter chips are the four purposes in Turkish', () => {
+test('filter chips are the purposes in Turkish', () => {
   assert.deepEqual(
     TAG_OPTIONS.map((o) => o.label),
-    ['Sosyalleşme', 'Co-working', 'Eğlence', 'Sessizlik'],
+    ['Sosyalleşme', 'Co-working', 'Eğlence', 'Sessizlik', 'Yemek'],
   );
 });
 
@@ -20,6 +20,7 @@ test('categoryLabel translates known categories', () => {
   assert.equal(categoryLabel('cafe'), 'Kafe');
   assert.equal(categoryLabel('bar'), 'Bar');
   assert.equal(categoryLabel('library'), 'Kütüphane');
+  assert.equal(categoryLabel('restaurant'), 'Restoran');
   assert.equal(categoryLabel('club'), 'Mekan'); // night clubs are not supported
   assert.equal(categoryLabel('unknown'), 'Mekan');
 });

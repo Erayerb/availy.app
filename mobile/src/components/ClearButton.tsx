@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
+import { colors } from '../theme';
 
 type Props = {
   onPress: () => void;
@@ -20,7 +21,7 @@ export function ClearButton({ onPress, disabled }: Props) {
 }
 
 const styles = StyleSheet.create({
-  button: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: '#1f2937' },
-  disabled: { backgroundColor: '#d1d5db' },
-  text: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  button: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: colors.primary },
+  disabled: { backgroundColor: colors.disabled },
+  text: { color: colors.onPrimary, fontSize: 12, fontWeight: '600' },
 });

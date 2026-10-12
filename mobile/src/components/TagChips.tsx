@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { TAG_OPTIONS, type Tag } from '../lib/filters';
+import { colors } from '../theme';
 
 type Props = {
   selected: Tag[];
@@ -31,11 +32,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 18,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.cream,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border,
   },
-  chipActive: { backgroundColor: '#1f2937', borderColor: '#1f2937' },
-  chipText: { fontSize: 13, color: '#1f2937', fontWeight: '500' },
-  chipTextActive: { color: '#fff' },
+  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { fontSize: 13, color: colors.primary, fontWeight: '500' },
+  chipTextActive: { color: colors.onPrimary },
 });

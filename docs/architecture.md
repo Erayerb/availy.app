@@ -37,8 +37,8 @@ mobile ──GET /v1/venues?bbox=… (30 sn polling)──▶ backend ──▶ 
 - `venues(id, name, category, location geography(Point,4326), capacity int, neighborhood, district, tags text[], created_at)`
   — `location` GIST, `tags` GIN, `district` index
 - `popularity` (0–1): sahte doluluğu ölçekler; 0 = her zaman boş
-- `category`: cafe, bar, coworking, library (gece kulübü yok)
-- `tags` (amaç filtresi): socializing, coworking, entertainment, quiet — bir mekanın birden fazla etiketi olabilir
+- `category`: cafe, bar, coworking, library, restaurant (gece kulübü yok)
+- `tags` (amaç filtresi): socializing, coworking, entertainment, quiet, food — bir mekanın birden fazla etiketi olabilir
 
 ## 5. API uçları (v1)
 
@@ -46,10 +46,10 @@ mobile ──GET /v1/venues?bbox=… (30 sn polling)──▶ backend ──▶ 
 |---|---|---|
 | GET | `/health` | Servis + DB durumu |
 | GET | `/v1/venues?bbox=minLon,minLat,maxLon,maxLat&tags=quiet,coworking` | Haritadaki mekanlar + doluluk + semt yoğunluğu (en fazla 200). `tags` verilirse en az birine uyanlar. |
-| GET | `/v1/venues/search?q=&district=&tags=` | İsimle arama (büyük/küçük harf duyarsız), semt ve amaç filtresi |
+| GET | `/v1/venues/search?q=&district=&tags=&ids=` | İsimle arama (büyük/küçük harf duyarsız), semt, amaç ve id filtresi (favoriler için) |
 | GET | `/v1/districts` | Semt listesi (Türkçe sıralı) |
 
-MVP'de kullanıcı hesabı ve kimlik doğrulama yok.
+MVP'de gerçek kullanıcı hesabı ve kimlik doğrulama yok. Mobilde giriş/kayıt ekranları sahte (prototip); favoriler telefonda saklanır.
 
 ## 6. Docker Compose servisleri
 

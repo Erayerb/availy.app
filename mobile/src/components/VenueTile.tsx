@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Venue } from '../lib/api';
 import { levelStyle } from '../lib/occupancy';
 import { categoryVisual } from '../lib/visuals';
+import { FavoriteButton } from './FavoriteButton';
+import { colors } from '../theme';
 
 type Props = {
   venue: Venue;
@@ -18,6 +20,9 @@ export function VenueTile({ venue, size, onPress }: Props) {
       <View style={[styles.image, { width: size, height: size, backgroundColor: background }]}>
         <Text style={styles.emoji}>{emoji}</Text>
         <View style={[styles.badge, { backgroundColor: levelStyle(venue.occupancy.level).color }]} />
+        <View style={styles.favorite}>
+          <FavoriteButton venueId={venue.id} size={16} floating />
+        </View>
       </View>
       <Text style={styles.name} numberOfLines={2}>
         {venue.name}
@@ -38,7 +43,8 @@ const styles = StyleSheet.create({
     height: 14,
     borderRadius: 7,
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: colors.white,
   },
-  name: { marginTop: 6, fontSize: 14, fontWeight: '600', color: '#1f2937' },
+  favorite: { position: 'absolute', top: 6, left: 6 },
+  name: { marginTop: 6, fontSize: 14, fontWeight: '600', color: colors.primary },
 });

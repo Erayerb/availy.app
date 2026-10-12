@@ -4,6 +4,7 @@ const VISUALS: Record<string, { emoji: string; background: string }> = {
   bar: { emoji: '🍸', background: '#ead7f3' },
   coworking: { emoji: '💻', background: '#d7e8f8' },
   library: { emoji: '📚', background: '#dcf0dc' },
+  restaurant: { emoji: '🍽️', background: '#f8dcd2' },
 };
 
 const FALLBACK = { emoji: '📍', background: '#e5e7eb' };

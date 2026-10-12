@@ -28,7 +28,7 @@ test('stableShuffle does not modify the input', () => {
 });
 
 test('every venue category has a placeholder visual', () => {
-  for (const category of ['cafe', 'bar', 'coworking', 'library']) {
+  for (const category of ['cafe', 'bar', 'coworking', 'library', 'restaurant']) {
     assert.notEqual(categoryVisual(category).emoji, '📍');
   }
   assert.equal(categoryVisual('club').emoji, '📍');

@@ -49,6 +49,10 @@ export async function searchVenues(
   return getJson(`/v1/venues/search?${params}`, signal);
 }
 
+export async function fetchVenuesByIds(ids: number[], signal?: AbortSignal): Promise<Venue[]> {
+  return getJson(`/v1/venues/search?${new URLSearchParams({ ids: ids.join(',') })}`, signal);
+}
+
 export async function fetchDistricts(signal?: AbortSignal): Promise<string[]> {
   return getJson('/v1/districts', signal);
 }
