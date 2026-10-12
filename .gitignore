@@ -1,0 +1,14 @@
+.env
+.DS_Store
+.idea/
+.vscode/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+pgdata/
+*.log
