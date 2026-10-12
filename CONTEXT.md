@@ -8,18 +8,17 @@ kampanya gönderme aracı.
 ## Teknoloji
 - Mobil: Flutter + flutter_map (OpenStreetMap), Riverpod, Dio
 - Backend: Python FastAPI
-- Veritabanı: PostgreSQL + PostGIS, Redis
+- Veritabanı: PostgreSQL + PostGIS (Redis ertelendi)
 - Altyapı: Docker Compose
 
 ## Veri kaynakları
-1. Wi-Fi cihaz sayısı (MVP'de simülatörden gelir)
-2. Kullanıcı check-in'leri (GPS ile mekana en fazla 100 m)
-Kişisel veri saklanmaz; MAC adresleri sunucuda hash'lenir.
+MVP'de gerçek veri toplanmaz; doluluk backend'de sahte üretilir.
+Wi-Fi sayımı, MAC, check-in ve simülatör kapsam dışı (bkz. docs/architecture.md §7).
 
 ## Klasörler
 - backend/ : FastAPI
 - mobile/ : Flutter
-- simulator/ : sahte Wi-Fi veri üreticisi
+- simulator/ : (ertelendi) sahte Wi-Fi veri üreticisi
 - docker/ : Dockerfile ve DB scriptleri
 - docs/ : mimari notlar
 
@@ -32,5 +31,9 @@ Kişisel veri saklanmaz; MAC adresleri sunucuda hash'lenir.
 
 ## Durum
 - Bitti: repo ve klasör yapısı
-- Sırada: Aşama 1 (mimari plan, kod yok)
-- Kararlar: önce polling, WebSocket sonra
+- Bitti: Aşama 1 mimari plan (docs/architecture.md)
+- Bitti: Aşama 2 (docker-compose.yml + docker/db/init.sql, PostGIS çalışıyor)
+- Bitti: Aşama 3 (FastAPI backend, venues şeması, 10 sahte mekan, /health, /v1/venues, 13 test)
+- Bitti: Aşama 4 (sahte doluluk: app/occupancy.py, /v1/venues içinde occupancy alanı, 25 test)
+- Sırada: Aşama 5 (Flutter harita + 30 sn polling; önce Flutter kurulumu)
+- Kararlar: önce polling (30 sn), WebSocket sonra; MVP'de doluluk sahte

@@ -12,3 +12,4 @@ build/
 .flutter-plugins-dependencies
 pgdata/
 *.log
+.pytest_cache/
