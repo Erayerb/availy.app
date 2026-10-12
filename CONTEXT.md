@@ -6,20 +6,19 @@ Gelir modeli (B2B): işletmelere boş saatlerde yakındaki kullanıcıya
 kampanya gönderme aracı.
 
 ## Teknoloji
-- Mobil: Flutter + flutter_map (OpenStreetMap), Riverpod, Dio
+- Mobil: React Native + Expo (TypeScript), react-native-maps; telefonda Expo Go ile çalışır
 - Backend: Python FastAPI
-- Veritabanı: PostgreSQL + PostGIS, Redis
+- Veritabanı: PostgreSQL + PostGIS (Redis ertelendi)
 - Altyapı: Docker Compose
 
 ## Veri kaynakları
-1. Wi-Fi cihaz sayısı (MVP'de simülatörden gelir)
-2. Kullanıcı check-in'leri (GPS ile mekana en fazla 100 m)
-Kişisel veri saklanmaz; MAC adresleri sunucuda hash'lenir.
+MVP'de gerçek veri toplanmaz; doluluk backend'de sahte üretilir.
+Wi-Fi sayımı, MAC, check-in ve simülatör kapsam dışı (bkz. docs/architecture.md §7).
 
 ## Klasörler
 - backend/ : FastAPI
-- mobile/ : Flutter
-- simulator/ : sahte Wi-Fi veri üreticisi
+- mobile/ : Expo (React Native)
+- simulator/ : (ertelendi) sahte Wi-Fi veri üreticisi
 - docker/ : Dockerfile ve DB scriptleri
 - docs/ : mimari notlar
 
@@ -32,5 +31,18 @@ Kişisel veri saklanmaz; MAC adresleri sunucuda hash'lenir.
 
 ## Durum
 - Bitti: repo ve klasör yapısı
-- Sırada: Aşama 1 (mimari plan, kod yok)
-- Kararlar: önce polling, WebSocket sonra
+- Bitti: Aşama 1 mimari plan (docs/architecture.md)
+- Bitti: Aşama 2 (docker-compose.yml + docker/db/init.sql, PostGIS çalışıyor)
+- Bitti: Aşama 3 (FastAPI backend, venues şeması, 10 sahte mekan, /health, /v1/venues, 13 test)
+- Bitti: Aşama 4 (sahte doluluk: app/occupancy.py, /v1/venues içinde occupancy alanı, 25 test)
+- Bitti: Aşama 5 (Expo harita, renkli pinler, alt bilgi kartı, %oran gösterimi, 30 sn polling; iPhone'da çalışıyor)
+- Not: Kişi sayısı gösterilmez ve API'den kaldırıldı; sadece oran
+- Bitti: Ana sayfa (varsayılan ekran): semt seçimi (tek, tekrar basınca kalkar; "✕ Temizle" semt+filtreleri sıfırlar), amaç filtreleri (çoklu, haritayla ortak), mekan arama, 2 sütun kare mekan kartları (türe göre renkli görsel + isim); arama yokken öneriler karışık sırada. Karta dokununca harita o mekanda, bilgi kartı açık açılır
+- Bitti: Harita: geri tuşu (ana sayfaya döner), kendi çizdiğimiz yuvarlak pinler (48px dokunma alanı; iOS'un kendi pin vurgusu başka pine atlıyordu), açılır/kapanır filtre kartı + ✕, pin üstünde bilgi kartı (tür, oran, "Bölge: Yoğun", konum, yol tarifi)
+- Bitti: Sidebar: Ana Sayfa / Harita / Keşfet / Kampanyalar / Hakkında (Keşfet ve Kampanyalar "Yakında")
+- Not: Kart harita callout'u DEĞİL, normal view (callout iOS'ta pin atlamasına ve buton kaymasına yol açıyordu)
+- Not: Seed silmez, sadece eksik demo mekanları ekler; popularity=0 olanlar hep boş. Gece kulübü yok
+- Kararlar: sessizlik mekan türüne göre etiket; bölge yoğunluğu semt bazlı
+- Sırada: kullanıcıyla belirlenecek
+- Not: Proje test/prototip; amaç kendi telefonundan göstermek, Mac'i yormamak
+- Kararlar: önce polling (30 sn), WebSocket sonra; MVP'de doluluk sahte
