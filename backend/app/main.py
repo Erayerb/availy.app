@@ -27,7 +27,6 @@ app = FastAPI(title="Availy API", lifespan=lifespan)
 class OccupancyOut(BaseModel):
     level: Level
     ratio: float
-    people: int
     updated_at: datetime
 
 
@@ -63,6 +62,6 @@ def list_venues(
     venues = find_venues_in_bbox(conn, parsed, settings.max_venues_per_request)
     now = datetime.now(timezone.utc)
     return [
-        {**v, "occupancy": provider.get(v["id"], v["capacity"], now)}
+        {**v, "occupancy": provider.get(v["id"], now)}
         for v in venues
     ]

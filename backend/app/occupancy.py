@@ -18,7 +18,6 @@ class Level(StrEnum):
 class Occupancy:
     level: Level
     ratio: float
-    people: int
     updated_at: datetime
 
 
@@ -35,7 +34,7 @@ def classify(
 
 
 class OccupancyProvider(Protocol):
-    def get(self, venue_id: int, capacity: int, at: datetime) -> Occupancy: ...
+    def get(self, venue_id: int, at: datetime) -> Occupancy: ...
 
 
 # Typical busyness by local hour (0-23): quiet nights, lunch and evening peaks
@@ -63,7 +62,7 @@ class DummyOccupancyProvider:
         self.bucket_seconds = bucket_seconds
         self.tz = ZoneInfo(tz)
 
-    def get(self, venue_id: int, capacity: int, at: datetime) -> Occupancy:
+    def get(self, venue_id: int, at: datetime) -> Occupancy:
         bucket = int(at.timestamp()) // self.bucket_seconds
         rng = random.Random(f"{venue_id}:{bucket}")
 
@@ -74,7 +73,6 @@ class DummyOccupancyProvider:
         return Occupancy(
             level=classify(ratio),
             ratio=ratio,
-            people=round(ratio * capacity),
             updated_at=datetime.fromtimestamp(bucket * self.bucket_seconds, tz=timezone.utc),
         )
 

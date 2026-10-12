@@ -43,7 +43,6 @@ def test_venue_occupancy(client):
     assert by_name["Test Kafe A"] == {
         "level": "medium",
         "ratio": 0.5,
-        "people": 20,
         "updated_at": "2026-10-12T10:00:00Z",
     }
-    assert by_name["Test Cowork B"]["people"] == 30
+    assert "people" not in by_name["Test Cowork B"]

@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     database_url: str
     max_venues_per_request: int = 200
 
-    # Occupancy level thresholds (ratio = people / capacity)
+    # Occupancy level thresholds (ratio: 0 = empty, 1 = full)
     occupancy_low_max: float = 0.40
     occupancy_medium_max: float = 0.75
 

@@ -23,8 +23,8 @@ FIXED_TIME = datetime(2026, 10, 12, 10, 0, tzinfo=timezone.utc)
 class FixedOccupancyProvider:
     """Returns half-full for every venue so API tests are predictable."""
 
-    def get(self, venue_id, capacity, at):
-        return Occupancy(level=Level.MEDIUM, ratio=0.5, people=capacity // 2, updated_at=FIXED_TIME)
+    def get(self, venue_id, at):
+        return Occupancy(level=Level.MEDIUM, ratio=0.5, updated_at=FIXED_TIME)
 
 
 @pytest.fixture
