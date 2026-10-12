@@ -18,3 +18,14 @@ export const LEVELS = Object.keys(LEVEL_STYLE) as Level[];
 export function formatRatio(ratio: number): string {
   return `%${Math.round(ratio * 100)} dolu`;
 }
+
+const AREA_TEXT: Record<Level, string> = {
+  low: 'Sakin',
+  medium: 'Orta',
+  high: 'Yoğun',
+};
+
+/** Area (district) busyness line on the venue card: "Bölge: Yoğun" */
+export function areaStatus(level: string): string {
+  return `Bölge: ${AREA_TEXT[level as Level] ?? 'Bilinmiyor'}`;
+}

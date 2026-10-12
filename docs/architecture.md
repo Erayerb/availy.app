@@ -30,19 +30,24 @@ mobile ──GET /v1/venues?bbox=… (30 sn polling)──▶ backend ──▶ 
   - `high`: > 0.75
 - Provider bir arayüzün (`OccupancyProvider`) arkasındadır; ileride gerçek kaynak takılabilir.
 - Eşikler config'te tutulur, birim testleriyle doğrulanır.
+- **Semt yoğunluğu:** Aynı semtteki tüm mekanların (harita alanı ve filtreden bağımsız) ortalama oranı → aynı seviyeler.
 
 ## 4. Veritabanı şeması
 
-- `venues(id, name, category, location geography(Point,4326), capacity int, created_at)`
-  — `location` üzerinde GIST index
+- `venues(id, name, category, location geography(Point,4326), capacity int, neighborhood, district, tags text[], created_at)`
+  — `location` GIST, `tags` GIN, `district` index
+- `popularity` (0–1): sahte doluluğu ölçekler; 0 = her zaman boş
+- `category`: cafe, bar, coworking, library (gece kulübü yok)
+- `tags` (amaç filtresi): socializing, coworking, entertainment, quiet — bir mekanın birden fazla etiketi olabilir
 
 ## 5. API uçları (v1)
 
 | Metot | Yol | Açıklama |
 |---|---|---|
 | GET | `/health` | Servis + DB durumu |
-| GET | `/v1/venues?bbox=minLon,minLat,maxLon,maxLat` | Haritadaki mekanlar + doluluk (en fazla 200 sonuç) |
-| GET | `/v1/venues/{id}` | Mekan detayı + anlık doluluk |
+| GET | `/v1/venues?bbox=minLon,minLat,maxLon,maxLat&tags=quiet,coworking` | Haritadaki mekanlar + doluluk + semt yoğunluğu (en fazla 200). `tags` verilirse en az birine uyanlar. |
+| GET | `/v1/venues/search?q=&district=&tags=` | İsimle arama (büyük/küçük harf duyarsız), semt ve amaç filtresi |
+| GET | `/v1/districts` | Semt listesi (Türkçe sıralı) |
 
 MVP'de kullanıcı hesabı ve kimlik doğrulama yok.
 

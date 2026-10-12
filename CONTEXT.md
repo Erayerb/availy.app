@@ -37,6 +37,12 @@ Wi-Fi sayımı, MAC, check-in ve simülatör kapsam dışı (bkz. docs/architect
 - Bitti: Aşama 4 (sahte doluluk: app/occupancy.py, /v1/venues içinde occupancy alanı, 25 test)
 - Bitti: Aşama 5 (Expo harita, renkli pinler, alt bilgi kartı, %oran gösterimi, 30 sn polling; iPhone'da çalışıyor)
 - Not: Kişi sayısı gösterilmez ve API'den kaldırıldı; sadece oran
-- Sırada: Aşama 6 (mekan detay ekranı)
+- Bitti: Ana sayfa (varsayılan ekran): semt seçimi (tek, tekrar basınca kalkar; "✕ Temizle" semt+filtreleri sıfırlar), amaç filtreleri (çoklu, haritayla ortak), mekan arama, 2 sütun kare mekan kartları (türe göre renkli görsel + isim); arama yokken öneriler karışık sırada. Karta dokununca harita o mekanda, bilgi kartı açık açılır
+- Bitti: Harita: geri tuşu (ana sayfaya döner), kendi çizdiğimiz yuvarlak pinler (48px dokunma alanı; iOS'un kendi pin vurgusu başka pine atlıyordu), açılır/kapanır filtre kartı + ✕, pin üstünde bilgi kartı (tür, oran, "Bölge: Yoğun", konum, yol tarifi)
+- Bitti: Sidebar: Ana Sayfa / Harita / Keşfet / Kampanyalar / Hakkında (Keşfet ve Kampanyalar "Yakında")
+- Not: Kart harita callout'u DEĞİL, normal view (callout iOS'ta pin atlamasına ve buton kaymasına yol açıyordu)
+- Not: Seed silmez, sadece eksik demo mekanları ekler; popularity=0 olanlar hep boş. Gece kulübü yok
+- Kararlar: sessizlik mekan türüne göre etiket; bölge yoğunluğu semt bazlı
+- Sırada: kullanıcıyla belirlenecek
 - Not: Proje test/prototip; amaç kendi telefonundan göstermek, Mac'i yormamak
 - Kararlar: önce polling (30 sn), WebSocket sonra; MVP'de doluluk sahte

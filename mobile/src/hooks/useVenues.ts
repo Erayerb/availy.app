@@ -4,13 +4,15 @@ import { fetchVenues, type Venue } from '../lib/api';
 
 const POLL_INTERVAL_MS = 30_000;
 
-/** Fetch venues for the given bbox and refresh every 30 seconds. */
-export function useVenues(bbox: string) {
+/** Fetch venues for the given bbox and tags, refreshing every 30 seconds. */
+export function useVenues(bbox: string, tags: string[]) {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
   const lastKeyRef = useRef('');
+
+  const tagsKey = tags.join(',');
 
   const load = useCallback(async () => {
     // Cancel an in-flight request so a stale bbox never overwrites a newer one
@@ -18,7 +20,7 @@ export function useVenues(bbox: string) {
     const controller = new AbortController();
     controllerRef.current = controller;
     try {
-      const next = await fetchVenues(bbox, controller.signal);
+      const next = await fetchVenues(bbox, tagsKey ? tagsKey.split(',') : [], controller.signal);
       // Skip identical data so markers are not re-rendered on every poll
       const nextKey = JSON.stringify(next);
       if (nextKey !== lastKeyRef.current) {
@@ -31,7 +33,7 @@ export function useVenues(bbox: string) {
       if (controller.signal.aborted) return;
       setError(e instanceof Error ? e.message : 'Bilinmeyen hata');
     }
-  }, [bbox]);
+  }, [bbox, tagsKey]);
 
   useEffect(() => {
     load();
