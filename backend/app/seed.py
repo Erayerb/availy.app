@@ -8,26 +8,23 @@ from psycopg.rows import dict_row
 
 from app.config import settings
 from app.db import apply_schema
-from app.demo_data import DEMO_VENUES
+from app.demo_data import DEMO_VENUES, demo_venue_rows  # noqa: F401 (DEMO_VENUES re-exported for tests)
 
 
 def seed(conn: psycopg.Connection) -> int:
     """Insert demo venues whose name is not taken yet; return how many were added."""
     apply_schema(conn)
     added = 0
-    for name, category, lon, lat, capacity, neighborhood, district, tags, popularity in DEMO_VENUES:
+    for venue in demo_venue_rows():
         row = conn.execute(
             """
-            INSERT INTO venues (name, category, location, capacity, neighborhood, district, tags, popularity)
+            INSERT INTO venues (name, category, location, capacity, neighborhood, district, tags, popularity, always_busy)
             SELECT %(name)s, %(category)s, ST_SetSRID(ST_MakePoint(%(lon)s, %(lat)s), 4326)::geography,
-                   %(capacity)s, %(neighborhood)s, %(district)s, %(tags)s, %(popularity)s
+                   %(capacity)s, %(neighborhood)s, %(district)s, %(tags)s, %(popularity)s, %(always_busy)s
             WHERE NOT EXISTS (SELECT 1 FROM venues WHERE name = %(name)s)
             RETURNING id
             """,
-            {
-                "name": name, "category": category, "lon": lon, "lat": lat, "capacity": capacity,
-                "neighborhood": neighborhood, "district": district, "tags": tags, "popularity": popularity,
-            },
+            venue,
         ).fetchone()
         added += row is not None
     return added

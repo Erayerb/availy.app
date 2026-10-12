@@ -1,15 +1,16 @@
 import { memo, useCallback, useEffect, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, type MapPressEvent } from 'react-native-maps';
 
 import type { Venue } from '../lib/api';
 import type { Region } from '../lib/bbox';
-import { levelStyle } from '../lib/occupancy';
+import { useSettings } from '../context/SettingsContext';
 import { colors } from '../theme';
 import { DOT_SIZE, SELECTED_DOT_SIZE, type VenueMapProps } from './VenueMap.types';
 
-// Invisible tap area around each dot; much easier to hit than the dot itself
-const TOUCH_SIZE = 48;
+// Invisible tap area around each dot: a little larger than the dot, but small
+// enough that neighbouring dots' areas don't cover each other
+const TOUCH_SIZE = 34;
 
 /**
  * Custom dot instead of the native pin: iOS highlights tapped native pins on
@@ -26,6 +27,8 @@ const VenueMarker = memo(function VenueMarker({
   onSelect: (id: number) => void;
 }) {
   const size = selected ? SELECTED_DOT_SIZE : DOT_SIZE;
+  const { look } = useSettings();
+  const { color, glyph } = look(venue.occupancy.level, venue.open_now);
   return (
     <Marker
       coordinate={{ latitude: venue.lat, longitude: venue.lon }}
@@ -44,11 +47,13 @@ const VenueMarker = memo(function VenueMarker({
               width: size,
               height: size,
               borderRadius: size / 2,
-              backgroundColor: levelStyle(venue.occupancy.level).color,
+              backgroundColor: color,
             },
             selected && styles.markerSelected,
           ]}
-        />
+        >
+          {glyph && <Text style={[styles.glyph, { fontSize: size * 0.55 }]}>{glyph}</Text>}
+        </View>
       </View>
     </Marker>
   );
@@ -63,9 +68,17 @@ export function VenueMap({
   onMapPress,
   onRegionChangeComplete,
   onSelectedPointChange,
+  focus,
 }: VenueMapProps) {
   const mapRef = useRef<MapView>(null);
+
+  useEffect(() => {
+    if (!focus || !mapRef.current) return;
+    mapRef.current.animateCamera({ center: { latitude: focus.lat, longitude: focus.lon } }, { duration: 400 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus?.key]);
   const selected = venues.find((v) => v.id === selectedId);
+  const { colorBlind } = useSettings();
 
   // Track the selected dot's screen position so the card follows it while the map moves
   const updatePoint = useCallback(async () => {
@@ -97,13 +110,15 @@ export function VenueMap({
         onRegionChangeComplete(region);
       }}
       onPress={handleMapPress}
+      showsUserLocation
+      showsMyLocationButton={false}
     >
       {venues.map((venue) => {
         const isSelected = venue.id === selectedId;
         return (
           <VenueMarker
             // tracksViewChanges is off, so a new key re-renders the dot when its look changes
-            key={`${venue.id}-${venue.occupancy.level}-${isSelected}`}
+            key={`${venue.id}-${venue.occupancy.level}-${venue.open_now}-${isSelected}-${colorBlind}`}
             venue={venue}
             selected={isSelected}
             onSelect={onMarkerPress}
@@ -125,6 +140,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.01)',
   },
   marker: {
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 3,
     borderColor: colors.white,
     shadowColor: colors.shadow,
@@ -133,4 +150,5 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
   },
   markerSelected: { borderColor: colors.text, borderWidth: 4 },
+  glyph: { color: colors.white, fontWeight: '800', textAlign: 'center' },
 });

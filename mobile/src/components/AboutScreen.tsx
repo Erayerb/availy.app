@@ -1,10 +1,11 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme';
+import { Wordmark } from './Wordmark';
 
 export function AboutScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Availy</Text>
+      <Wordmark size={44} />
       <Text style={styles.text}>
         Kafe, bar ve co-working gibi mekanların anlık doluluğunu harita üzerinde gösterir.
       </Text>
@@ -17,7 +18,6 @@ export function AboutScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, paddingTop: 130, paddingHorizontal: 24, gap: 12 },
-  title: { fontSize: 28, fontWeight: '700' },
   text: { fontSize: 16, color: colors.text, lineHeight: 22 },
   note: { fontSize: 14, color: colors.textMuted },
 });

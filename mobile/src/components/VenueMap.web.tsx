@@ -3,7 +3,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { useEffect, useRef } from 'react';
 
-import { levelStyle } from '../lib/occupancy';
+import { useSettings } from '../context/SettingsContext';
 import { colors } from '../theme';
 import { DOT_SIZE, SELECTED_DOT_SIZE, type VenueMapProps } from './VenueMap.types';
 
@@ -19,7 +19,11 @@ export function VenueMap({
   onMapPress,
   onRegionChangeComplete,
   onSelectedPointChange,
+  focus,
+  userPoint,
 }: VenueMapProps) {
+  const { look, colorBlind } = useSettings();
+  const userLayerRef = useRef<L.CircleMarker | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
@@ -40,8 +44,6 @@ export function VenueMap({
     if (!containerRef.current) return;
     const map = L.map(containerRef.current, {
       zoomControl: false,
-      // Canvas with a tap tolerance makes small dots easy to hit on phones
-      renderer: L.canvas({ tolerance: 12 }),
     }).setView([initialRegion.latitude, initialRegion.longitude], zoomForDelta(initialRegion.longitudeDelta));
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -76,6 +78,11 @@ export function VenueMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (focus && mapRef.current) mapRef.current.panTo([focus.lat, focus.lon]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus?.key]);
+
   // Redraw dots when data or selection changes
   useEffect(() => {
     const layer = layerRef.current;
@@ -85,13 +92,15 @@ export function VenueMap({
     const ordered = [...venues].sort((a, b) => Number(a.id === selectedId) - Number(b.id === selectedId));
     for (const venue of ordered) {
       const isSelected = venue.id === selectedId;
-      L.circleMarker([venue.lat, venue.lon], {
-        radius: (isSelected ? SELECTED_DOT_SIZE : DOT_SIZE) / 2,
-        fillColor: levelStyle(venue.occupancy.level).color,
-        fillOpacity: 1,
-        color: isSelected ? colors.text : colors.white,
-        weight: isSelected ? 4 : 3,
-      })
+      const size = isSelected ? SELECTED_DOT_SIZE : DOT_SIZE;
+      const { color, glyph } = look(venue.occupancy.level, venue.open_now);
+      const border = isSelected ? `4px solid ${colors.text}` : `3px solid ${colors.white}`;
+      const icon = L.divIcon({
+        className: '',
+        iconSize: [size, size],
+        html: `<div style="width:${size}px;height:${size}px;box-sizing:border-box;border-radius:50%;background:${color};border:${border};box-shadow:0 1px 2px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#fff;font:800 ${Math.round(size * 0.5)}px sans-serif">${glyph ?? ''}</div>`,
+      });
+      L.marker([venue.lat, venue.lon], { icon, zIndexOffset: isSelected ? 1000 : 0 })
         .on('click', (event) => {
           L.DomEvent.stopPropagation(event);
           latest.current.onMarkerPress(venue.id);
@@ -101,7 +110,23 @@ export function VenueMap({
     onSelectedPointChange(null);
     reportSelectedPoint();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [venues, selectedId]);
+  }, [venues, selectedId, colorBlind]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    userLayerRef.current?.remove();
+    userLayerRef.current = userPoint
+      ? L.circleMarker([userPoint.lat, userPoint.lon], {
+          radius: 7,
+          color: colors.white,
+          weight: 3,
+          fillColor: '#1A73E8',
+          fillOpacity: 1,
+          interactive: false,
+        }).addTo(map)
+      : null;
+  }, [userPoint]);
 
   // zIndex + isolation keep Leaflet's internal z-indexes (400+) below our overlays
   return <div ref={containerRef} style={{ position: 'absolute', inset: 0, zIndex: 0, isolation: 'isolate' }} />;

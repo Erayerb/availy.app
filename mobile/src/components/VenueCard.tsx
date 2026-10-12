@@ -1,29 +1,53 @@
+import { useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 
+import { useCampaigns } from '../context/CampaignsContext';
+import { useEngagement } from '../context/EngagementContext';
+import { useLocation } from '../context/LocationContext';
+import { useSettings } from '../context/SettingsContext';
 import type { Venue } from '../lib/api';
 import { categoryLabel } from '../lib/filters';
+import { distanceKm, formatDistance } from '../lib/geo';
 import { directionsUrl, shortLocation } from '../lib/location';
-import { areaStatus, formatRatio, levelStyle } from '../lib/occupancy';
-import { FavoriteButton } from './FavoriteButton';
+import { areaStatus, formatRatio } from '../lib/occupancy';
+import { shareVenue } from '../lib/shareVenue';
 import { colors } from '../theme';
+import { CampaignBox } from './CampaignBox';
+import { FavoriteButton } from './FavoriteButton';
+import { LevelDot } from './LevelDot';
+import { WatchButton } from './WatchButton';
 
-export const CARD_WIDTH = 250;
+export const CARD_WIDTH = 260;
 
 type Props = {
   venue: Venue;
   onClose: () => void;
+  onDetails: () => void;
+  // Shown only for crowded venues: opens the quieter alternatives pop-up
+  onShowAlternatives?: () => void;
   onLayout?: (event: LayoutChangeEvent) => void;
 };
 
 /** Plain React Native view (not a map callout) so taps never reach other pins. */
-export function VenueCard({ venue, onClose, onLayout }: Props) {
-  const { color, label } = levelStyle(venue.occupancy.level);
+export function VenueCard({ venue, onClose, onDetails, onShowAlternatives, onLayout }: Props) {
+  const { look } = useSettings();
+  const { label } = look(venue.occupancy.level, venue.open_now);
+  const { activeFor } = useCampaigns();
+  const { watches } = useEngagement();
+  const campaign = venue.open_now ? activeFor(venue.id) : null;
+  const { point } = useLocation();
+  const [note, setNote] = useState<string | null>(null);
+  const watching = watches.some((w) => w.venueId === venue.id);
 
   return (
     <View style={styles.card} onLayout={onLayout}>
       <View style={styles.header}>
         <Text style={styles.title}>{venue.name}</Text>
         <View style={styles.actions}>
+          <WatchButton venue={venue} />
+          <Pressable onPress={async () => setNote(await shareVenue(venue))} hitSlop={10} accessibilityLabel="Paylaş">
+            <Text style={styles.icon}>⤴</Text>
+          </Pressable>
           <FavoriteButton venueId={venue.id} />
           <Pressable onPress={onClose} hitSlop={12}>
             <Text style={styles.close}>✕</Text>
@@ -33,20 +57,39 @@ export function VenueCard({ venue, onClose, onLayout }: Props) {
       <Text style={styles.category}>{categoryLabel(venue.category)}</Text>
 
       <View style={styles.row}>
-        <View style={[styles.dot, { backgroundColor: color }]} />
+        <LevelDot level={venue.occupancy.level} open={venue.open_now} />
         <Text style={styles.level}>{label}</Text>
-        <Text style={styles.ratio}>{formatRatio(venue.occupancy.ratio)}</Text>
+        <Text style={styles.ratio}>
+          {venue.open_now ? formatRatio(venue.occupancy.ratio) : `${venue.opens_at}'de açılır`}
+        </Text>
       </View>
 
-      <Text style={styles.secondary}>{areaStatus(venue.district_occupancy.level)}</Text>
-      <Text style={styles.secondary}>📍 {shortLocation(venue.neighborhood, venue.district)}</Text>
+      {venue.open_now && <Text style={styles.secondary}>{areaStatus(venue.district_occupancy.level)}</Text>}
+      {watching && <Text style={styles.watching}>🔔 %70 altına düşünce haber vereceğiz</Text>}
+      {campaign && <CampaignBox campaign={campaign} />}
+      <Text style={styles.secondary}>
+        📍 {shortLocation(venue.neighborhood, venue.district)}
+        {point ? ` · ${formatDistance(distanceKm(point, venue))}` : ''}
+      </Text>
+      {note && <Text style={styles.note}>{note}</Text>}
 
-      <Pressable
-        onPress={() => Linking.openURL(directionsUrl(Platform.OS, venue.lat, venue.lon))}
-        style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-      >
-        <Text style={styles.buttonText}>Yol tarifi</Text>
-      </Pressable>
+      {onShowAlternatives && venue.open_now && (
+        <Pressable onPress={onShowAlternatives} style={({ pressed }) => [styles.altButton, pressed && styles.pressed]}>
+          <Text style={styles.altButtonText}>Daha boş alternatifler</Text>
+        </Pressable>
+      )}
+
+      <View style={styles.buttons}>
+        <Pressable onPress={onDetails} style={({ pressed }) => [styles.detailsButton, pressed && styles.pressed]}>
+          <Text style={styles.detailsText}>Detaylar</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => Linking.openURL(directionsUrl(Platform.OS, venue.lat, venue.lon))}
+          style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+        >
+          <Text style={styles.buttonText}>Yol tarifi</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -65,22 +108,30 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
-  title: { fontSize: 16, fontWeight: '600', flexShrink: 1 },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  title: { fontSize: 16, fontWeight: '600', flexShrink: 1, color: colors.text },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  icon: { fontSize: 18, color: colors.textMuted },
   close: { fontSize: 16, color: colors.textMuted },
   category: { fontSize: 13, color: colors.textMuted },
   row: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  level: { fontSize: 14 },
+  level: { fontSize: 14, color: colors.text },
   ratio: { fontSize: 14, color: colors.textMuted, marginLeft: 'auto' },
-  secondary: { fontSize: 13, color: colors.textMuted },
-  button: {
-    marginTop: 6,
-    paddingVertical: 9,
+  secondary: { fontSize: 13, color: colors.text },
+  watching: { fontSize: 12, color: colors.primary },
+  note: { fontSize: 12, color: colors.success },
+  altButton: {
+    marginTop: 4,
+    paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: colors.primary,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
     alignItems: 'center',
   },
-  buttonPressed: { opacity: 0.8 },
+  altButtonText: { color: colors.primary, fontWeight: '600' },
+  buttons: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  detailsButton: { flex: 1, paddingVertical: 9, borderRadius: 10, backgroundColor: colors.cream, alignItems: 'center' },
+  detailsText: { color: colors.text, fontWeight: '600' },
+  button: { flex: 1, paddingVertical: 9, borderRadius: 10, backgroundColor: colors.primary, alignItems: 'center' },
+  pressed: { opacity: 0.8 },
   buttonText: { color: colors.onPrimary, fontWeight: '600' },
 });

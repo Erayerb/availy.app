@@ -62,7 +62,7 @@ def find_venues_in_bbox(
     """Venues inside bbox; with tags, only venues having at least one of them."""
     return conn.execute(
         """
-        SELECT id, name, category, capacity, neighborhood, district, tags, popularity,
+        SELECT id, name, category, capacity, neighborhood, district, tags, popularity, always_busy,
                ST_Y(location::geometry) AS lat,
                ST_X(location::geometry) AS lon
         FROM venues
@@ -83,15 +83,30 @@ def find_venues_in_bbox(
 
 
 def find_venues_by_district(conn: psycopg.Connection, districts: list[str]) -> dict[str, list[dict]]:
-    """All venues (id, popularity) per district, ignoring bbox and filters."""
+    """All venues (id, popularity, always_busy) per district, ignoring bbox and filters."""
     rows = conn.execute(
-        "SELECT id, popularity, district FROM venues WHERE district = ANY(%s) ORDER BY id",
+        "SELECT id, popularity, always_busy, district FROM venues WHERE district = ANY(%s) ORDER BY id",
         (districts,),
     ).fetchall()
     result: dict[str, list[dict]] = {}
     for row in rows:
         result.setdefault(row["district"], []).append(row)
     return result
+
+
+# Turkish letters folded to plain ASCII so "nisantasi" finds "Nişantaşı"
+_TR_FROM = "ÇĞİIÖŞÜçğıöşüÂâÎîÛû"
+_TR_TO = "cgiiosucgiosuaaiiuu"
+_FOLD = str.maketrans(_TR_FROM, _TR_TO)
+
+
+def fold_tr(text: str) -> str:
+    return text.translate(_FOLD).lower()
+
+
+def _folded_sql(column: str) -> str:
+    """SQL twin of fold_tr (translate before lower avoids locale issues with İ)."""
+    return f"lower(translate({column}, '{_TR_FROM}', '{_TR_TO}'))"
 
 
 def escape_like(text: str) -> str:
@@ -107,21 +122,30 @@ def search_venues(
     limit: int,
     ids: list[int] | None = None,
 ) -> list[dict]:
-    """Venues whose name contains `query` (case-insensitive), optionally by district, tags and ids."""
-    return conn.execute(
-        """
-        SELECT id, name, category, capacity, neighborhood, district, tags, popularity,
+    """Venues whose name, neighborhood or district contains `query` (case- and Turkish-accent-insensitive),
+    optionally filtered by district, tags and ids."""
+    sql = """
+        SELECT id, name, category, capacity, neighborhood, district, tags, popularity, always_busy,
                ST_Y(location::geometry) AS lat,
                ST_X(location::geometry) AS lon
         FROM venues
-        WHERE (%(query)s = '' OR name ILIKE '%%' || %(query)s || '%%')
+        WHERE (%(query)s = ''
+               OR {name} LIKE '%%' || %(query)s || '%%'
+               OR {neighborhood} LIKE '%%' || %(query)s || '%%'
+               OR {district} LIKE '%%' || %(query)s || '%%')
           AND (%(district)s::text IS NULL OR district = %(district)s)
           AND (cardinality(%(tags)s::text[]) = 0 OR tags && %(tags)s::text[])
           AND (%(ids)s::bigint[] IS NULL OR id = ANY(%(ids)s::bigint[]))
         ORDER BY name COLLATE "tr-TR-x-icu"
         LIMIT %(limit)s
-        """,
-        {"query": escape_like(query), "district": district, "tags": tags, "ids": ids, "limit": limit},
+    """.format(
+        name=_folded_sql("name"),
+        neighborhood=_folded_sql("neighborhood"),
+        district=_folded_sql("district"),
+    )
+    return conn.execute(
+        sql,
+        {"query": escape_like(fold_tr(query)), "district": district, "tags": tags, "ids": ids, "limit": limit},
     ).fetchall()
 
 
@@ -135,3 +159,10 @@ def list_districts(conn: psycopg.Connection) -> list[str]:
         """
     ).fetchall()
     return [row["district"] for row in rows]
+
+
+def find_venue_profile(conn: psycopg.Connection, venue_id: int) -> dict | None:
+    """Dummy occupancy settings of one venue: popularity and always_busy."""
+    return conn.execute(
+        "SELECT category, popularity, always_busy FROM venues WHERE id = %s", (venue_id,)
+    ).fetchone()

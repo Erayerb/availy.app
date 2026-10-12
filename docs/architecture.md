@@ -37,6 +37,7 @@ mobile ──GET /v1/venues?bbox=… (30 sn polling)──▶ backend ──▶ 
 - `venues(id, name, category, location geography(Point,4326), capacity int, neighborhood, district, tags text[], created_at)`
   — `location` GIST, `tags` GIN, `district` index
 - `popularity` (0–1): sahte doluluğu ölçekler; 0 = her zaman boş
+- `always_busy`: test mekanı; sahte doluluk her saat %80–96 (Kalabalık)
 - `category`: cafe, bar, coworking, library, restaurant (gece kulübü yok)
 - `tags` (amaç filtresi): socializing, coworking, entertainment, quiet, food — bir mekanın birden fazla etiketi olabilir
 
@@ -47,6 +48,7 @@ mobile ──GET /v1/venues?bbox=… (30 sn polling)──▶ backend ──▶ 
 | GET | `/health` | Servis + DB durumu |
 | GET | `/v1/venues?bbox=minLon,minLat,maxLon,maxLat&tags=quiet,coworking` | Haritadaki mekanlar + doluluk + semt yoğunluğu (en fazla 200). `tags` verilirse en az birine uyanlar. |
 | GET | `/v1/venues/search?q=&district=&tags=&ids=` | İsimle arama (büyük/küçük harf duyarsız), semt, amaç ve id filtresi (favoriler için) |
+| GET | `/v1/venues/{id}/hourly` | Bugünün saatlik doluluk profili (işletme paneli grafiği) |
 | GET | `/v1/districts` | Semt listesi (Türkçe sıralı) |
 
 MVP'de gerçek kullanıcı hesabı ve kimlik doğrulama yok. Mobilde giriş/kayıt ekranları sahte (prototip); favoriler telefonda saklanır.
@@ -69,7 +71,10 @@ MVP'de gerçek kullanıcı hesabı ve kimlik doğrulama yok. Mobilde giriş/kay�
 - Redis (cache / rate limit — gerçek veri gelince gerekir)
 - WebSocket (önce polling kararı)
 - Kullanıcı hesapları
-- İşletme paneli ve kampanya gönderimi
+- Kampanyaların sunucuda saklanıp gerçek push bildirimiyle gönderilmesi (prototipte telefonda)
+- Gerçek ödeme / abonelik: işletme kampanya göndermeden önce SaaS aboneliği (₺1.899/ay) almış olmalı ya da kampanya başı ₺150 ödemeli. Prototipte paketler sadece gösterim, kampanya ödemesiz gönderilir.
+
+> Sonraya bırakılan işlerin güncel ve tam listesi: `CONTEXT.md` → **Yapılacaklar**.
 
 ## 8. Aşamalar
 

@@ -35,3 +35,10 @@ def test_escape_like():
 
 def test_parse_tags_accepts_food():
     assert parse_tags("food,quiet") == ["food", "quiet"]
+
+
+def test_fold_tr():
+    from app.venues import fold_tr
+
+    assert fold_tr("Nişantaşı") == "nisantasi"
+    assert fold_tr("İSTANBUL Üsküdar Çengelköy Ağa") == "istanbul uskudar cengelkoy aga"

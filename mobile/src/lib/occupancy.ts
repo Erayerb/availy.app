@@ -3,13 +3,28 @@ export type Level = 'low' | 'medium' | 'high';
 const LEVEL_STYLE: Record<Level, { color: string; label: string }> = {
   low: { color: '#2e9d4f', label: 'Sakin' },
   medium: { color: '#e0a800', label: 'Orta' },
-  high: { color: '#d64545', label: 'Kalabalık' },
+  high: { color: '#D9480F', label: 'Kalabalık' },
 };
 
-const UNKNOWN_STYLE = { color: '#8a8a8a', label: 'Bilinmiyor' };
+// Okabe-Ito colours stay distinguishable with common colour blindness; glyphs add a non-colour cue
+const COLOR_BLIND_STYLE: Record<Level, { color: string; glyph: string }> = {
+  low: { color: '#0072B2', glyph: '✓' },
+  medium: { color: '#E69F00', glyph: '~' },
+  high: { color: '#D55E00', glyph: '!' },
+};
 
-export function levelStyle(level: string): { color: string; label: string } {
-  return LEVEL_STYLE[level as Level] ?? UNKNOWN_STYLE;
+const UNKNOWN_STYLE = { color: '#8a8a8a', label: 'Bilinmiyor', glyph: '?' };
+
+export const CLOSED_STYLE = { color: '#A39E97', label: 'Kapalı', glyph: '×' };
+
+export type LevelLook = { color: string; label: string; glyph: string | null };
+
+export function levelStyle(level: string, colorBlind = false): LevelLook {
+  const base = LEVEL_STYLE[level as Level];
+  if (!base) return UNKNOWN_STYLE;
+  // "!" marks crowded places even in the normal palette
+  if (!colorBlind) return { ...base, glyph: level === 'high' ? '!' : null };
+  return { label: base.label, ...COLOR_BLIND_STYLE[level as Level] };
 }
 
 export const LEVELS = Object.keys(LEVEL_STYLE) as Level[];

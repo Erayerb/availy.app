@@ -1,6 +1,6 @@
 import random
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timezone
 from enum import StrEnum
 from typing import Protocol
 from zoneinfo import ZoneInfo
@@ -48,7 +48,9 @@ def average_occupancy(ratios: list[float]) -> AreaOccupancy:
 
 
 class OccupancyProvider(Protocol):
-    def get(self, venue_id: int, at: datetime, popularity: float = 1.0) -> Occupancy: ...
+    def get(
+        self, venue_id: int, at: datetime, popularity: float = 1.0, always_busy: bool = False
+    ) -> Occupancy: ...
 
 
 # Typical busyness by local hour (0-23): quiet nights, lunch and evening peaks
@@ -59,6 +61,9 @@ HOURLY_BASE = [
     0.75, 0.85, 0.80, 0.60, 0.40, 0.20,  # 18-23
 ]
 NOISE = 0.20
+# Test venues that are crowded at every hour stay between 0.80 and 0.96
+ALWAYS_BUSY_BASE = 0.88
+ALWAYS_BUSY_NOISE = 0.08
 
 
 class DummyOccupancyProvider:
@@ -76,12 +81,17 @@ class DummyOccupancyProvider:
         self.bucket_seconds = bucket_seconds
         self.tz = ZoneInfo(tz)
 
-    def get(self, venue_id: int, at: datetime, popularity: float = 1.0) -> Occupancy:
+    def get(
+        self, venue_id: int, at: datetime, popularity: float = 1.0, always_busy: bool = False
+    ) -> Occupancy:
         bucket = int(at.timestamp()) // self.bucket_seconds
         rng = random.Random(f"{venue_id}:{bucket}")
 
         local_hour = at.astimezone(self.tz).hour
-        ratio = (HOURLY_BASE[local_hour] + rng.uniform(-NOISE, NOISE)) * popularity
+        if always_busy:
+            ratio = ALWAYS_BUSY_BASE + rng.uniform(-ALWAYS_BUSY_NOISE, ALWAYS_BUSY_NOISE)
+        else:
+            ratio = (HOURLY_BASE[local_hour] + rng.uniform(-NOISE, NOISE)) * popularity
         ratio = round(min(max(ratio, 0.0), 1.0), 2)
 
         return Occupancy(
@@ -94,3 +104,48 @@ class DummyOccupancyProvider:
 def get_occupancy_provider() -> OccupancyProvider:
     """FastAPI dependency; swap here when a real data source exists."""
     return DummyOccupancyProvider()
+
+
+def hourly_profile(
+    provider: OccupancyProvider,
+    venue_id: int,
+    popularity: float,
+    day: date,
+    always_busy: bool = False,
+    tz: str = settings.dummy_timezone,
+) -> list[Occupancy]:
+    """Occupancy at half past each local hour of `day` (used by the business stats panel)."""
+    zone = ZoneInfo(tz)
+    return [
+        provider.get(venue_id, datetime.combine(day, time(hour, 30), tzinfo=zone), popularity, always_busy)
+        for hour in range(24)
+    ]
+
+
+def daily_history(
+    provider: OccupancyProvider,
+    venue_id: int,
+    popularity: float,
+    always_busy: bool,
+    open_hours: list[int],
+    last_day: date,
+    days: int,
+) -> list[tuple[date, float]]:
+    """Average occupancy during opening hours for each of the `days` days ending at `last_day`."""
+    from datetime import timedelta
+
+    result = []
+    for offset in range(days - 1, -1, -1):
+        day = last_day - timedelta(days=offset)
+        profile = hourly_profile(provider, venue_id, popularity, day, always_busy=always_busy)
+        ratios = [profile[h].ratio for h in open_hours] or [0.0]
+        result.append((day, round(sum(ratios) / len(ratios), 2)))
+    return result
+
+
+def weekday_averages(history: list[tuple[date, float]]) -> list[float]:
+    """Mean of the daily averages per weekday, Monday first."""
+    buckets: list[list[float]] = [[] for _ in range(7)]
+    for day, ratio in history:
+        buckets[day.weekday()].append(ratio)
+    return [round(sum(b) / len(b), 2) if b else 0.0 for b in buckets]

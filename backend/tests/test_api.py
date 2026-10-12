@@ -24,7 +24,10 @@ def test_venue_fields(client):
     assert set(venue) == {
         "id", "name", "category", "capacity", "lat", "lon",
         "neighborhood", "district", "tags", "occupancy", "district_occupancy",
+        "open_now", "hours", "opens_at",
     }
+    assert venue["hours"] == "08:00–23:00"  # cafe
+    assert venue["opens_at"] == "08:00"
     assert (venue["lat"], venue["lon"]) == (40.984, 29.026)
     assert (venue["neighborhood"], venue["district"]) == ("Moda", "Kadıköy")
     assert venue["tags"] == ["socializing"]
@@ -80,3 +83,29 @@ def test_venues_invalid_bbox(client):
 
 def test_venues_missing_bbox(client):
     assert client.get("/v1/venues").status_code == 422
+
+
+def test_hourly_profile_endpoint(client, conn):
+    venue_id = next(i for i, r in conn.ratios_by_id.items() if r == 0.2)
+    response = client.get(f"/v1/venues/{venue_id}/hourly")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["venue_id"] == venue_id
+    assert [h["hour"] for h in body["hours"]] == list(range(24))
+    # Cafe: closed at night, open in the afternoon
+    assert body["hours"][3]["open"] is False and body["hours"][15]["open"] is True
+    # The fixed test provider returns the same ratio at every hour
+    assert {h["ratio"] for h in body["hours"]} == {0.2}
+
+
+def test_hourly_profile_unknown_venue(client):
+    assert client.get("/v1/venues/999999/hourly").status_code == 404
+
+
+def test_history_endpoint(client, conn):
+    venue_id = next(iter(conn.ratios_by_id))
+    body = client.get(f"/v1/venues/{venue_id}/history", params={"days": 7}).json()
+    assert len(body["daily"]) == 7 and len(body["weekday"]) == 7
+    # The fixed test provider returns the same ratio at every hour
+    assert {d["ratio"] for d in body["daily"]} == {conn.ratios_by_id[venue_id]}
+    assert client.get("/v1/venues/999999/history").status_code == 404

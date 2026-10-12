@@ -1,19 +1,31 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import type { User } from '../lib/auth';
+import { isBusiness, type User } from '../lib/auth';
+import { Wordmark } from './Wordmark';
 import { colors } from '../theme';
 
-export type Screen = 'home' | 'map' | 'favorites' | 'explore' | 'campaigns' | 'about';
+export type Screen =
+  | 'home'
+  | 'business'
+  | 'map'
+  | 'favorites'
+  | 'explore'
+  | 'campaigns'
+  | 'profile'
+  | 'settings'
+  | 'about'
+  | 'detail';
 
 const WIDTH = 270;
 
 const ITEMS: { screen: Screen; label: string }[] = [
   { screen: 'home', label: 'Ana Sayfa' },
   { screen: 'map', label: 'Harita' },
-  { screen: 'favorites', label: 'Favoriler' },
   { screen: 'explore', label: 'Keşfet' },
-  { screen: 'campaigns', label: 'Kampanyalar' },
+  { screen: 'favorites', label: 'Favoriler' },
+  { screen: 'campaigns', label: 'Kampanyalar ve Sadakat' },
+  { screen: 'profile', label: 'Profil' },
   { screen: 'about', label: 'Hakkında' },
 ];
 
@@ -46,11 +58,25 @@ export function Sidebar({ open, current, user, onSelect, onLogin, onLogout, onCl
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
       </Animated.View>
       <Animated.View style={[styles.drawer, { transform: [{ translateX }] }]}>
-        <Text style={styles.brand}>Availy</Text>
-        <Text style={styles.greeting}>{user ? `Merhaba, ${user.name}` : 'Misafir olarak geziyorsun'}</Text>
+        <View style={styles.brand}>
+          <Wordmark size={34} />
+        </View>
+        <Text style={styles.greeting}>
+          {user
+            ? `Merhaba, ${user.name}${isBusiness(user) ? ' (İşletme)' : ''}`
+            : 'Misafir olarak geziyorsun'}
+        </Text>
 
         <View style={styles.items}>
-          {ITEMS.map(({ screen, label }) => (
+          {(isBusiness(user)
+            ? [
+                ITEMS[0],
+                { screen: 'business' as Screen, label: 'İşletme Paneli' },
+                { screen: 'profile' as Screen, label: 'İşletme Profili' },
+                ...ITEMS.slice(1).filter((item) => item.screen !== 'profile'),
+              ]
+            : ITEMS
+          ).map(({ screen, label }) => (
             <Pressable
               key={screen}
               onPress={() => onSelect(screen)}
@@ -62,6 +88,12 @@ export function Sidebar({ open, current, user, onSelect, onLogin, onLogout, onCl
         </View>
 
         <View style={styles.footer}>
+          <Pressable
+            onPress={() => onSelect('settings')}
+            style={[styles.item, current === 'settings' && styles.itemActive]}
+          >
+            <Text style={[styles.itemText, current === 'settings' && styles.itemTextActive]}>Ayarlar</Text>
+          </Pressable>
           {user ? (
             <Pressable onPress={onLogout} style={styles.item}>
               <Text style={styles.logout}>Çıkış Yap</Text>
@@ -90,14 +122,14 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     paddingHorizontal: 16,
   },
-  brand: { fontSize: 24, fontWeight: '700', paddingHorizontal: 12 },
+  brand: { paddingHorizontal: 12 },
   greeting: { fontSize: 14, color: colors.textMuted, paddingHorizontal: 12, marginTop: 4, marginBottom: 20 },
   items: { gap: 4 },
   item: { paddingVertical: 12, paddingHorizontal: 12, borderRadius: 10 },
   itemActive: { backgroundColor: colors.cream },
   itemText: { fontSize: 16, color: colors.text },
   itemTextActive: { fontWeight: '600', color: colors.text },
-  footer: { marginTop: 'auto' },
+  footer: { marginTop: 'auto', gap: 8 },
   login: { paddingVertical: 13, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center' },
   loginText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
   logout: { fontSize: 16, color: colors.danger },

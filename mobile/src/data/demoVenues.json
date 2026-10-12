@@ -11,7 +11,8 @@
     "tags": [
       "socializing"
     ],
-    "popularity": 1.0
+    "popularity": 1.0,
+    "always_busy": false
   },
   {
     "id": 2,
@@ -25,7 +26,8 @@
     "tags": [
       "socializing"
     ],
-    "popularity": 1.0
+    "popularity": 1.0,
+    "always_busy": false
   },
   {
     "id": 3,
@@ -40,7 +42,8 @@
       "coworking",
       "quiet"
     ],
-    "popularity": 0.8
+    "popularity": 0.8,
+    "always_busy": false
   },
   {
     "id": 4,
@@ -55,7 +58,8 @@
       "quiet",
       "coworking"
     ],
-    "popularity": 0.7
+    "popularity": 0.7,
+    "always_busy": false
   },
   {
     "id": 5,
@@ -70,7 +74,8 @@
       "socializing",
       "entertainment"
     ],
-    "popularity": 1.0
+    "popularity": 1.0,
+    "always_busy": false
   },
   {
     "id": 6,
@@ -84,7 +89,8 @@
     "tags": [
       "quiet"
     ],
-    "popularity": 0.6
+    "popularity": 0.6,
+    "always_busy": false
   },
   {
     "id": 7,
@@ -98,7 +104,8 @@
     "tags": [
       "socializing"
     ],
-    "popularity": 0.9
+    "popularity": 0.9,
+    "always_busy": false
   },
   {
     "id": 8,
@@ -112,7 +119,8 @@
     "tags": [
       "quiet"
     ],
-    "popularity": 0.0
+    "popularity": 0.0,
+    "always_busy": false
   },
   {
     "id": 9,
@@ -126,7 +134,8 @@
     "tags": [
       "entertainment"
     ],
-    "popularity": 0.8
+    "popularity": 0.8,
+    "always_busy": false
   },
   {
     "id": 10,
@@ -140,7 +149,8 @@
     "tags": [
       "socializing"
     ],
-    "popularity": 1.0
+    "popularity": 1.0,
+    "always_busy": false
   },
   {
     "id": 11,
@@ -155,7 +165,8 @@
       "socializing",
       "entertainment"
     ],
-    "popularity": 1.0
+    "popularity": 1.0,
+    "always_busy": false
   },
   {
     "id": 12,
@@ -170,7 +181,8 @@
       "coworking",
       "quiet"
     ],
-    "popularity": 0.9
+    "popularity": 0.9,
+    "always_busy": false
   },
   {
     "id": 13,
@@ -185,7 +197,8 @@
       "socializing",
       "quiet"
     ],
-    "popularity": 0.8
+    "popularity": 0.8,
+    "always_busy": false
   },
   {
     "id": 14,
@@ -199,7 +212,8 @@
     "tags": [
       "socializing"
     ],
-    "popularity": 1.0
+    "popularity": 1.0,
+    "always_busy": false
   },
   {
     "id": 15,
@@ -213,7 +227,8 @@
     "tags": [
       "coworking"
     ],
-    "popularity": 0.0
+    "popularity": 0.0,
+    "always_busy": false
   },
   {
     "id": 16,
@@ -227,7 +242,8 @@
     "tags": [
       "quiet"
     ],
-    "popularity": 0.4
+    "popularity": 0.4,
+    "always_busy": false
   },
   {
     "id": 17,
@@ -242,7 +258,8 @@
       "quiet",
       "coworking"
     ],
-    "popularity": 0.8
+    "popularity": 0.8,
+    "always_busy": false
   },
   {
     "id": 18,
@@ -256,7 +273,8 @@
     "tags": [
       "socializing"
     ],
-    "popularity": 1.0
+    "popularity": 1.0,
+    "always_busy": false
   },
   {
     "id": 19,
@@ -271,7 +289,8 @@
       "socializing",
       "entertainment"
     ],
-    "popularity": 1.0
+    "popularity": 1.0,
+    "always_busy": false
   },
   {
     "id": 20,
@@ -285,7 +304,8 @@
     "tags": [
       "socializing"
     ],
-    "popularity": 1.0
+    "popularity": 1.0,
+    "always_busy": false
   },
   {
     "id": 21,
@@ -300,7 +320,8 @@
       "coworking",
       "quiet"
     ],
-    "popularity": 0.5
+    "popularity": 0.5,
+    "always_busy": false
   },
   {
     "id": 22,
@@ -314,7 +335,8 @@
     "tags": [
       "entertainment"
     ],
-    "popularity": 0.0
+    "popularity": 0.0,
+    "always_busy": false
   },
   {
     "id": 23,
@@ -328,7 +350,8 @@
     "tags": [
       "coworking"
     ],
-    "popularity": 0.9
+    "popularity": 0.9,
+    "always_busy": false
   },
   {
     "id": 24,
@@ -343,7 +366,8 @@
       "quiet",
       "coworking"
     ],
-    "popularity": 0.7
+    "popularity": 0.7,
+    "always_busy": false
   },
   {
     "id": 25,
@@ -357,7 +381,8 @@
     "tags": [
       "socializing"
     ],
-    "popularity": 1.0
+    "popularity": 1.0,
+    "always_busy": false
   },
   {
     "id": 26,
@@ -372,7 +397,8 @@
       "socializing",
       "entertainment"
     ],
-    "popularity": 0.9
+    "popularity": 0.9,
+    "always_busy": false
   },
   {
     "id": 27,
@@ -387,7 +413,8 @@
       "socializing",
       "quiet"
     ],
-    "popularity": 0.9
+    "popularity": 0.9,
+    "always_busy": false
   },
   {
     "id": 28,
@@ -401,7 +428,8 @@
     "tags": [
       "entertainment"
     ],
-    "popularity": 0.7
+    "popularity": 0.7,
+    "always_busy": false
   },
   {
     "id": 29,
@@ -415,7 +443,8 @@
     "tags": [
       "quiet"
     ],
-    "popularity": 0.5
+    "popularity": 0.5,
+    "always_busy": false
   },
   {
     "id": 30,
@@ -430,7 +459,8 @@
       "socializing",
       "quiet"
     ],
-    "popularity": 0.6
+    "popularity": 0.6,
+    "always_busy": false
   },
   {
     "id": 31,
@@ -445,7 +475,8 @@
       "coworking",
       "quiet"
     ],
-    "popularity": 0.8
+    "popularity": 0.8,
+    "always_busy": false
   },
   {
     "id": 32,
@@ -459,7 +490,8 @@
     "tags": [
       "food"
     ],
-    "popularity": 1.0
+    "popularity": 1.0,
+    "always_busy": false
   },
   {
     "id": 33,
@@ -474,7 +506,8 @@
       "food",
       "socializing"
     ],
-    "popularity": 0.9
+    "popularity": 0.9,
+    "always_busy": false
   },
   {
     "id": 34,
@@ -489,7 +522,8 @@
       "food",
       "socializing"
     ],
-    "popularity": 1.0
+    "popularity": 1.0,
+    "always_busy": false
   },
   {
     "id": 35,
@@ -503,7 +537,8 @@
     "tags": [
       "food"
     ],
-    "popularity": 0.7
+    "popularity": 0.7,
+    "always_busy": false
   },
   {
     "id": 36,
@@ -517,7 +552,8 @@
     "tags": [
       "food"
     ],
-    "popularity": 1.0
+    "popularity": 1.0,
+    "always_busy": false
   },
   {
     "id": 37,
@@ -532,7 +568,8 @@
       "food",
       "socializing"
     ],
-    "popularity": 0.6
+    "popularity": 0.6,
+    "always_busy": false
   },
   {
     "id": 38,
@@ -546,6 +583,85 @@
     "tags": [
       "food"
     ],
-    "popularity": 0.0
+    "popularity": 0.0,
+    "always_busy": false
+  },
+  {
+    "id": 39,
+    "name": "Demo Kafe Popüler Moda",
+    "category": "cafe",
+    "lon": 29.027,
+    "lat": 40.986,
+    "capacity": 30,
+    "neighborhood": "Moda",
+    "district": "Kadıköy",
+    "tags": [
+      "socializing"
+    ],
+    "popularity": 1.0,
+    "always_busy": true
+  },
+  {
+    "id": 40,
+    "name": "Demo Bar Popüler Beşiktaş",
+    "category": "bar",
+    "lon": 29.0052,
+    "lat": 41.0435,
+    "capacity": 40,
+    "neighborhood": "Sinanpaşa",
+    "district": "Beşiktaş",
+    "tags": [
+      "socializing",
+      "entertainment"
+    ],
+    "popularity": 1.0,
+    "always_busy": true
+  },
+  {
+    "id": 41,
+    "name": "Demo Kafe Popüler Karaköy",
+    "category": "cafe",
+    "lon": 28.9765,
+    "lat": 41.025,
+    "capacity": 25,
+    "neighborhood": "Kemankeş",
+    "district": "Beyoğlu",
+    "tags": [
+      "socializing"
+    ],
+    "popularity": 1.0,
+    "always_busy": true
+  },
+  {
+    "id": 42,
+    "name": "Demo Cowork Popüler Şişli",
+    "category": "coworking",
+    "lon": 28.988,
+    "lat": 41.059,
+    "capacity": 50,
+    "neighborhood": "Mecidiyeköy",
+    "district": "Şişli",
+    "tags": [
+      "coworking",
+      "quiet"
+    ],
+    "popularity": 1.0,
+    "always_busy": true
+  },
+  {
+    "id": 43,
+    "name": "Demo Restoran Popüler Üsküdar",
+    "category": "restaurant",
+    "lon": 29.0165,
+    "lat": 41.0255,
+    "capacity": 45,
+    "neighborhood": "Mimar Sinan",
+    "district": "Üsküdar",
+    "tags": [
+      "food",
+      "socializing"
+    ],
+    "popularity": 1.0,
+    "always_busy": true
   }
 ]

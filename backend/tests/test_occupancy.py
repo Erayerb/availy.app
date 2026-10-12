@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from app.occupancy import DummyOccupancyProvider, Level, classify
+from app.occupancy import DummyOccupancyProvider, Level, classify, daily_history, hourly_profile, weekday_averages
 
 ISTANBUL = ZoneInfo("Europe/Istanbul")
 
@@ -78,3 +78,38 @@ def test_popularity_scales_down():
     full = mean(provider.get(v, evening).ratio for v in range(1, 51))
     half = mean(provider.get(v, evening, popularity=0.5).ratio for v in range(1, 51))
     assert half < full
+
+
+
+def test_hourly_profile_has_24_hours_with_evening_peak():
+    provider = DummyOccupancyProvider()
+    profile = hourly_profile(provider, 1, 1.0, datetime(2026, 10, 12).date())
+    assert len(profile) == 24
+    assert profile[19].ratio > profile[3].ratio
+
+
+def test_hourly_profile_matches_provider_at_half_past():
+    provider = DummyOccupancyProvider()
+    profile = hourly_profile(provider, 7, 0.5, datetime(2026, 10, 12).date())
+    assert profile[13] == provider.get(7, datetime(2026, 10, 12, 13, 30, tzinfo=ISTANBUL), 0.5)
+
+
+def test_always_busy_venue_is_crowded_at_every_hour():
+    provider = DummyOccupancyProvider()
+    for venue_id in range(1, 11):
+        for hour in range(24):
+            at = datetime(2026, 10, 12, hour, 30, tzinfo=ISTANBUL)
+            assert provider.get(venue_id, at, always_busy=True).level == Level.HIGH
+
+
+
+def test_daily_history_and_weekday_averages():
+    provider = DummyOccupancyProvider()
+    last = datetime(2026, 10, 12).date()  # a Monday
+    history = daily_history(provider, 3, 1.0, False, list(range(8, 23)), last, 14)
+    assert [d for d, _ in history][-1] == last and len(history) == 14
+    assert all(0 <= r <= 1 for _, r in history)
+    averages = weekday_averages(history)
+    assert len(averages) == 7
+    monday = [r for d, r in history if d.weekday() == 0]
+    assert averages[0] == round(sum(monday) / len(monday), 2)

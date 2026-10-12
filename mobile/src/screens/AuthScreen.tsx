@@ -12,27 +12,30 @@ import {
 
 import { BackButton } from '../components/BackButton';
 import { Logo } from '../components/Logo';
-import { validateLogin, validateRegister } from '../lib/auth';
+import { Chip } from '../components/TagChips';
+import { validateLogin, validateRegister, type Role } from '../lib/auth';
 import { colors } from '../theme';
 
 type Mode = 'login' | 'register';
 
 type Props = {
   mode: Mode;
+  initialRole?: Role;
   onBack: () => void;
   onSwitchMode: (mode: Mode) => void;
   // Resolve to an error message, or null on success
-  onLogin: (email: string, password: string) => Promise<string | null>;
-  onRegister: (name: string, email: string, password: string) => Promise<string | null>;
+  onLogin: (email: string, password: string, role: Role) => Promise<string | null>;
+  onRegister: (name: string, email: string, password: string, role: Role) => Promise<string | null>;
 };
 
 /** Sign in / sign up form. Prototype: accounts live only on this phone. */
-export function AuthScreen({ mode, onBack, onSwitchMode, onLogin, onRegister }: Props) {
+export function AuthScreen({ mode, initialRole = 'personal', onBack, onSwitchMode, onLogin, onRegister }: Props) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [role, setRole] = useState<Role>(initialRole);
   const isRegister = mode === 'register';
 
   const submit = async () => {
@@ -40,7 +43,7 @@ export function AuthScreen({ mode, onBack, onSwitchMode, onLogin, onRegister }: 
     setError(problem);
     if (problem || busy) return;
     setBusy(true);
-    const failure = isRegister ? await onRegister(name, email, password) : await onLogin(email, password);
+    const failure = isRegister ? await onRegister(name, email, password, role) : await onLogin(email, password, role);
     // On success the app switches screens; only update state if we are still here
     if (failure) {
       setError(failure);
@@ -58,11 +61,25 @@ export function AuthScreen({ mode, onBack, onSwitchMode, onLogin, onRegister }: 
           <Text style={styles.title}>{isRegister ? 'Kayıt Ol' : 'Giriş Yap'}</Text>
         </View>
 
+        <View style={styles.roles}>
+          <Text style={styles.rolesLabel}>Hesap türü</Text>
+          <View style={styles.roleRow}>
+            <Chip label="Bireysel" active={role === 'personal'} onPress={() => setRole('personal')} />
+            <Chip label="İşletme" active={role === 'business'} onPress={() => setRole('business')} />
+          </View>
+          {role === 'business' && (
+            <Text style={styles.roleHint}>
+              {isRegister
+                ? 'Kayıttan sonra mekanını seçeceksin; kampanya ve istatistik paneli açılır.'
+                : 'İşletme hesabınla giriş yapıp paneline ulaş.'}
+            </Text>
+          )}
+        </View>
         {isRegister && (
           <TextInput
             value={name}
             onChangeText={setName}
-            placeholder="Ad"
+            placeholder={role === 'business' ? 'Yetkili adı' : 'Ad'}
             placeholderTextColor={colors.placeholder}
             style={styles.input}
             autoCapitalize="words"
@@ -134,6 +151,10 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   error: { color: colors.danger, fontSize: 14 },
+  roles: { gap: 8 },
+  rolesLabel: { fontSize: 14, fontWeight: '600', color: colors.text },
+  roleRow: { flexDirection: 'row', gap: 8 },
+  roleHint: { fontSize: 13, color: colors.textMuted },
   primary: { marginTop: 6, paddingVertical: 15, borderRadius: 14, backgroundColor: colors.primary, alignItems: 'center' },
   primaryText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
   pressed: { opacity: 0.8 },
