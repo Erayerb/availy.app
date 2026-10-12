@@ -28,7 +28,7 @@ class FixedOccupancyProvider:
     def __init__(self, ratios_by_id: dict[int, float]):
         self.ratios_by_id = ratios_by_id
 
-    def get(self, venue_id, at, popularity=1.0):
+    def get(self, venue_id, at, popularity=1.0, always_busy=False):
         ratio = self.ratios_by_id[venue_id]
         return Occupancy(level=classify(ratio), ratio=ratio, updated_at=FIXED_TIME)
 

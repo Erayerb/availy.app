@@ -56,3 +56,15 @@ def test_search_with_empty_ids_returns_nothing(client):
 
 def test_search_rejects_bad_ids(client):
     assert client.get("/v1/venues/search", params={"ids": "1,abc"}).status_code == 422
+
+
+def test_search_ignores_turkish_letters(client):
+    # Typed on an English keyboard
+    assert search(client, q="kadikoy") == {"Test Kafe A", "Test Cowork B", "Test Bar Uzak"}
+    assert search(client, q="CANKAYA") == {"Test Kafe Ankara"}
+    assert search(client, q="Osmanaga") == {"Test Cowork B"}
+
+
+def test_search_matches_neighborhood_and_district(client):
+    assert search(client, q="kızılay") == {"Test Kafe Ankara"}
+    assert search(client, q="Fikirtepe") == {"Test Bar Uzak"}

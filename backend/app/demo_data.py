@@ -48,3 +48,24 @@ DEMO_VENUES = [
     ("Demo Restoran Nişantaşı", "restaurant", 28.9945, 41.0515, 70, "Teşvikiye", "Şişli", ["food", "socializing"], 0.6),
     ("Demo Kebapçı Üsküdar", "restaurant", 29.0160, 41.0250, 55, "Mimar Sinan", "Üsküdar", ["food"], 0.0),
 ]
+
+# Crowded at every hour of the day, so the "quieter alternatives" pop-up can be
+# tried any time. Each sits next to calmer venues of the same type.
+ALWAYS_BUSY_DEMO_VENUES = [
+    ("Demo Kafe Popüler Moda", "cafe", 29.0270, 40.9860, 30, "Moda", "Kadıköy", ["socializing"], 1.0),
+    ("Demo Bar Popüler Beşiktaş", "bar", 29.0052, 41.0435, 40, "Sinanpaşa", "Beşiktaş", ["socializing", "entertainment"], 1.0),
+    ("Demo Kafe Popüler Karaköy", "cafe", 28.9765, 41.0250, 25, "Kemankeş", "Beyoğlu", ["socializing"], 1.0),
+    ("Demo Cowork Popüler Şişli", "coworking", 28.9880, 41.0590, 50, "Mecidiyeköy", "Şişli", ["coworking", "quiet"], 1.0),
+    ("Demo Restoran Popüler Üsküdar", "restaurant", 29.0165, 41.0255, 45, "Mimar Sinan", "Üsküdar", ["food", "socializing"], 1.0),
+]
+
+_FIELDS = ("name", "category", "lon", "lat", "capacity", "neighborhood", "district", "tags", "popularity")
+
+
+def demo_venue_rows() -> list[dict]:
+    """Every demo venue as a dict, with the always_busy flag."""
+    return [
+        {**dict(zip(_FIELDS, row)), "always_busy": busy}
+        for rows, busy in ((DEMO_VENUES, False), (ALWAYS_BUSY_DEMO_VENUES, True))
+        for row in rows
+    ]
