@@ -74,3 +74,19 @@ test('district busyness is the same for every venue in the district', () => {
 test('districts are sorted in Turkish order', () => {
   assert.deepEqual(staticDistricts(), ['Beşiktaş', 'Beyoğlu', 'Kadıköy', 'Şişli', 'Üsküdar']);
 });
+
+test('always-busy test venues are crowded at every hour, even at night', () => {
+  for (let hour = 0; hour < 24; hour++) {
+    const at = new Date(Date.UTC(2026, 9, 12, (hour + 21) % 24, 30)); // Istanbul = UTC+3
+    assert.equal(dummyOccupancy(7, at, 1, true).level, 'high');
+  }
+  const busy = staticSearch('Popüler', null, [], undefined, NIGHT);
+  assert.ok(busy.length >= 3);
+  assert.ok(busy.every((v) => v.occupancy.level === 'high'));
+  assert.ok(!('always_busy' in busy[0]));
+});
+
+test('search works without Turkish letters and matches districts too', () => {
+  assert.ok(staticSearch('nisantasi', null, []).some((v) => v.name === 'Demo Kafe Nişantaşı'));
+  assert.ok(staticSearch('uskudar', null, []).every((v) => v.district === 'Üsküdar'));
+});

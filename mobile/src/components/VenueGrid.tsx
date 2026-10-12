@@ -1,7 +1,9 @@
 import type { ReactElement } from 'react';
 import { FlatList, StyleSheet, Text, useWindowDimensions } from 'react-native';
 
+import { useLocation } from '../context/LocationContext';
 import type { Venue } from '../lib/api';
+import { distanceKm, formatDistance } from '../lib/geo';
 import { VenueTile } from './VenueTile';
 import { colors } from '../theme';
 
@@ -20,6 +22,7 @@ type Props = {
 export function VenueGrid({ venues, header, emptyText, error, onOpenVenue }: Props) {
   const { width } = useWindowDimensions();
   const tileSize = (width - PADDING * 2 - GAP) / 2;
+  const { point } = useLocation();
 
   return (
     <FlatList
@@ -31,7 +34,14 @@ export function VenueGrid({ venues, header, emptyText, error, onOpenVenue }: Pro
       columnWrapperStyle={styles.columns}
       ListHeaderComponent={header}
       ListEmptyComponent={<Text style={error ? styles.error : styles.empty}>{error ?? emptyText}</Text>}
-      renderItem={({ item }) => <VenueTile venue={item} size={tileSize} onPress={() => onOpenVenue(item)} />}
+      renderItem={({ item }) => (
+        <VenueTile
+          venue={item}
+          size={tileSize}
+          distance={point ? formatDistance(distanceKm(point, item)) : null}
+          onPress={() => onOpenVenue(item)}
+        />
+      )}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
     />

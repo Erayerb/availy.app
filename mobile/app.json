@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Availy",
+    "name": "availy",
     "slug": "availy",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -20,6 +20,20 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Yakındaki kampanyaları göstermek için konumunu kullanırız."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Sadakat damgası vermek için müşterinin QR kodunu okutmak üzere kamerayı kullanırız."
+        }
+      ]
+    ]
   }
 }

@@ -14,6 +14,15 @@ export function toggleTag(selected: Tag[], tag: Tag): Tag[] {
   return next.sort();
 }
 
+const TR_FOLD: Record<string, string> = { ç: 'c', ğ: 'g', ı: 'i', i̇: 'i', ö: 'o', ş: 's', ü: 'u', â: 'a', î: 'i', û: 'u' };
+
+/** "Nişantaşı" -> "nisantasi", so searches typed on an English keyboard still match. */
+export function foldTr(text: string): string {
+  return text
+    .toLocaleLowerCase('tr-TR')
+    .replace(/i̇|[çğıöşüâîû]/g, (ch) => TR_FOLD[ch] ?? ch);
+}
+
 /** Single choice that can be cleared by tapping the active option again. */
 export function toggleSingle<T>(current: T | null, value: T): T | null {
   return current === value ? null : value;

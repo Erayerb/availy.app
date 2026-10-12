@@ -1,5 +1,19 @@
 /** Signed-in user and form validation. Accounts themselves: see accounts.ts. */
-export type User = { name: string; email: string };
+import type { PlanId } from './plans.ts';
+
+export type Role = 'personal' | 'business';
+
+// role/venueId/plan are optional so users stored by older versions still load (as personal)
+export type User = {
+  name: string;
+  email: string;
+  role?: Role;
+  venueId?: number | null;
+  plan?: PlanId;
+  venueVerified?: boolean; // business proved it owns the venue
+};
+
+export const isBusiness = (user: User | null) => user?.role === 'business';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const MIN_PASSWORD_LENGTH = 6;

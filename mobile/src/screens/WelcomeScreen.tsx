@@ -1,24 +1,31 @@
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Logo } from '../components/Logo';
-import type { User } from '../lib/auth';
+import { Wordmark } from '../components/Wordmark';
+import type { Role, User } from '../lib/auth';
 import { colors } from '../theme';
 
 type Props = {
   user: User | null;
   onContinue: () => void;
   onSwitchAccount: () => void;
-  onLogin: () => void;
-  onRegister: () => void;
+  onLogin: (role: Role) => void;
+  onRegister: (role: Role) => void;
   onGuest: () => void;
 };
 
+const ROLE_LABELS: Record<Role, string> = { personal: 'Bireysel', business: 'İşletme' };
+
 export function WelcomeScreen({ user, onContinue, onSwitchAccount, onLogin, onRegister, onGuest }: Props) {
+  // Guests first pick an account type, then sign in or sign up
+  const [role, setRole] = useState<Role | null>(null);
+
   return (
     <View style={styles.container}>
       <View style={styles.brand}>
         <Logo />
-        <Text style={styles.name}>Availy</Text>
+        <Wordmark size={56} />
         <Text style={styles.tagline}>Şu an nerede yer var?</Text>
       </View>
 
@@ -38,12 +45,31 @@ export function WelcomeScreen({ user, onContinue, onSwitchAccount, onLogin, onRe
         </View>
       ) : (
         <View style={styles.actions}>
-          <Pressable onPress={onLogin} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
-            <Text style={styles.primaryText}>Giriş Yap</Text>
-          </Pressable>
-          <Pressable onPress={onRegister} style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}>
-            <Text style={styles.secondaryText}>Kayıt Ol</Text>
-          </Pressable>
+          {role === null ? (
+            <>
+              <Text style={styles.question}>availy'yi nasıl kullanacaksın?</Text>
+              <Pressable onPress={() => setRole('personal')} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
+                <Text style={styles.primaryText}>Bireysel</Text>
+              </Pressable>
+              <Pressable onPress={() => setRole('business')} style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}>
+                <Text style={styles.secondaryText}>İşletme</Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <Pressable onPress={() => setRole(null)} hitSlop={10}>
+                <Text style={styles.roleLine}>
+                  {ROLE_LABELS[role]} hesap · <Text style={styles.change}>değiştir</Text>
+                </Text>
+              </Pressable>
+              <Pressable onPress={() => onLogin(role)} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
+                <Text style={styles.primaryText}>Giriş Yap</Text>
+              </Pressable>
+              <Pressable onPress={() => onRegister(role)} style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}>
+                <Text style={styles.secondaryText}>Kayıt Ol</Text>
+              </Pressable>
+            </>
+          )}
           <Pressable onPress={onGuest} hitSlop={10} style={styles.guest}>
             <Text style={styles.guestText}>Kayıt olmadan devam et</Text>
           </Pressable>
@@ -56,9 +82,11 @@ export function WelcomeScreen({ user, onContinue, onSwitchAccount, onLogin, onRe
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 24, paddingBottom: 50 },
   brand: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },
-  name: { fontSize: 40, fontWeight: '800', color: colors.text, letterSpacing: -0.5 },
   tagline: { fontSize: 16, color: colors.textMuted },
   actions: { gap: 12 },
+  question: { fontSize: 17, fontWeight: '600', color: colors.text, textAlign: 'center', marginBottom: 4 },
+  roleLine: { fontSize: 15, color: colors.textMuted, textAlign: 'center', marginBottom: 4 },
+  change: { color: colors.primary, textDecorationLine: 'underline' },
   greeting: { fontSize: 22, fontWeight: '700', color: colors.text, textAlign: 'center' },
   email: { fontSize: 14, color: colors.textMuted, textAlign: 'center', marginTop: -6, marginBottom: 8 },
   primary: { paddingVertical: 15, borderRadius: 14, backgroundColor: colors.primary, alignItems: 'center' },

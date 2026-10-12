@@ -1,16 +1,24 @@
 import { useCallback, useState } from 'react';
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
+import { AlternativesPopup } from '../components/AlternativesPopup';
 import { FilterBar } from '../components/FilterBar';
 import { BackButton } from '../components/BackButton';
 import { CARD_WIDTH, VenueCard } from '../components/VenueCard';
 import { VenueMap } from '../components/VenueMap';
 import { SELECTED_DOT_SIZE } from '../components/VenueMap.types';
 import { useVenues } from '../hooks/useVenues';
+import { useCampaigns } from '../context/CampaignsContext';
+import { useLocation } from '../context/LocationContext';
+import { quieterAlternatives, shouldSuggestAlternatives } from '../lib/alternatives';
+import { campaignsNear } from '../lib/campaigns';
 import { containsBounds, formatBBox, regionToBounds, type Region } from '../lib/bbox';
 import { cardPosition, type Point } from '../lib/cardPosition';
 import { toggleTag, type Tag } from '../lib/filters';
-import { LEVELS, levelStyle } from '../lib/occupancy';
+import { LEVELS } from '../lib/occupancy';
+import { LevelDot } from '../components/LevelDot';
+import { useSettings } from '../context/SettingsContext';
+import type { Venue } from '../lib/api';
 import { colors } from '../theme';
 
 // Fetch an area twice the visible size so small pans don't trigger a new request
@@ -25,6 +33,7 @@ type Props = {
   // Tapping the selected dot again closes its card
   onMarkerPress: (id: number) => void;
   onBack: () => void;
+  onOpenDetails: (venue: Venue) => void;
 };
 
 export function MapScreen({
@@ -36,7 +45,9 @@ export function MapScreen({
   onSelect,
   onMarkerPress,
   onBack,
+  onOpenDetails,
 }: Props) {
+  const { look } = useSettings();
   const window = useWindowDimensions();
   const [queryBounds, setQueryBounds] = useState(() => regionToBounds(initialRegion, QUERY_PADDING));
   const [pinPoint, setPinPoint] = useState<Point | null>(null);
@@ -45,6 +56,19 @@ export function MapScreen({
   const [headerBottom, setHeaderBottom] = useState(120);
   const { venues, error, lastUpdated } = useVenues(formatBBox(queryBounds), tags);
   const selected = venues.find((v) => v.id === selectedId);
+  const [focus, setFocus] = useState<{ lat: number; lon: number; key: number } | null>(null);
+  // Venue whose "Daha boş alternatifler" button was pressed; the pop-up hides when another venue is selected
+  const [alternativesFor, setAlternativesFor] = useState<number | null>(null);
+  const [popupHeight, setPopupHeight] = useState(0);
+
+  const showPopup = selected !== undefined && alternativesFor === selected.id;
+  const { campaigns, now, activeFor } = useCampaigns();
+  const { point } = useLocation();
+  // Campaigns whose radius reaches the user (or, without a location, the crowded venue they are looking at)
+  const campaignIds = showPopup
+    ? new Set(campaignsNear(campaigns, point ?? selected, now).map(({ campaign }) => campaign.venueId))
+    : new Set<number>();
+  const alternatives = showPopup ? quieterAlternatives(selected, venues, campaignIds) : [];
 
   const handlePointChange = useCallback((point: Point | null) => setPinPoint(point), []);
 
@@ -60,7 +84,8 @@ export function MapScreen({
       ? cardPosition({
           pin: pinPoint,
           card: { width: CARD_WIDTH, height: cardHeight },
-          screen: window,
+          // Keep the venue card above the pop-up when it is shown
+          screen: showPopup ? { width: window.width, height: window.height - popupHeight - 36 } : window,
           topInset: headerBottom + 8,
           margin: 8,
           pinHeight: SELECTED_DOT_SIZE / 2 + 4,
@@ -77,7 +102,20 @@ export function MapScreen({
         onMapPress={() => onSelect(null)}
         onRegionChangeComplete={handleRegionChangeComplete}
         onSelectedPointChange={handlePointChange}
+        focus={focus}
+        userPoint={point}
       />
+
+      {/* Jump back to the user's own position */}
+      {point && (
+        <Pressable
+          style={[styles.locate, { bottom: showPopup ? popupHeight + 40 : 84 }]}
+          onPress={() => setFocus({ lat: point.lat, lon: point.lon, key: Date.now() })}
+          accessibilityLabel="Konumuma git"
+        >
+          <Text style={styles.locateIcon}>◎</Text>
+        </Pressable>
+      )}
 
       {selected && (
         <View
@@ -89,28 +127,47 @@ export function MapScreen({
           <VenueCard
             venue={selected}
             onClose={() => onSelect(null)}
+            onDetails={() => onOpenDetails(selected)}
+            onShowAlternatives={
+              shouldSuggestAlternatives(selected) ? () => setAlternativesFor(selected.id) : undefined
+            }
             onLayout={(e) => setCardHeight(e.nativeEvent.layout.height)}
           />
         </View>
       )}
 
-      <View style={styles.legend}>
-        {LEVELS.map((level) => {
-          const { color, label } = levelStyle(level);
-          return (
+      {showPopup && selected ? (
+        <AlternativesPopup
+          venue={selected}
+          alternatives={alternatives}
+          campaignFor={activeFor}
+          onChoose={(alt) => {
+            onSelect(alt.id);
+            setFocus({ lat: alt.lat, lon: alt.lon, key: Date.now() });
+          }}
+          onClose={() => setAlternativesFor(null)}
+          onLayout={(e) => setPopupHeight(e.nativeEvent.layout.height)}
+        />
+      ) : (
+        <View style={styles.legend}>
+          {LEVELS.map((level) => (
             <View key={level} style={styles.legendItem}>
-              <View style={[styles.dot, { backgroundColor: color }]} />
-              <Text style={styles.legendText}>{label}</Text>
+              <LevelDot level={level} />
+              <Text style={styles.legendText}>{look(level).label}</Text>
             </View>
-          );
-        })}
-        <Text style={error ? styles.error : styles.status}>
-          {error ??
-            (lastUpdated
-              ? lastUpdated.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
-              : '…')}
-        </Text>
-      </View>
+          ))}
+          <View style={styles.legendItem}>
+            <LevelDot level="low" open={false} />
+            <Text style={styles.legendText}>Kapalı</Text>
+          </View>
+          <Text style={error ? styles.error : styles.status}>
+            {error ??
+              (lastUpdated
+                ? lastUpdated.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+                : '…')}
+          </Text>
+        </View>
+      )}
 
       <View
         style={styles.header}
@@ -153,6 +210,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  locate: {
+    position: 'absolute',
+    right: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 5,
+  },
+  locateIcon: { fontSize: 22, color: '#1A73E8' },
   legendText: { fontSize: 12 },
   dot: { width: 10, height: 10, borderRadius: 5 },
   status: { fontSize: 11, color: colors.textMuted },

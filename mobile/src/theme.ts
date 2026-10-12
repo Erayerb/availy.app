@@ -12,6 +12,7 @@ export const colors = {
   placeholder: '#A8968A',
   disabled: '#D9CBB6',
   danger: '#B42318',
+  success: '#2E7D32',
   white: '#FFFFFF',
   shadow: '#000000',
   backdrop: 'rgba(43,29,22,0.4)',

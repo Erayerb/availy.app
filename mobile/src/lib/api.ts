@@ -1,6 +1,12 @@
-import type { Level } from './occupancy';
 import demoVenues from '../data/demoVenues.json';
-import { createStaticApi } from './staticApi';
+import { hourlyProfile } from './dummyOccupancy';
+import { computeHistory, type History } from './history';
+import { hoursFor, isOpenAtHour } from './hours';
+import { getOverride, withOverrides } from './overrideStore';
+import { getLocalVenues } from './localVenueStore';
+import { isLocalVenueId } from './localVenues';
+import type { Level } from './occupancy';
+import { createStaticApi, type DemoVenue } from './staticApi';
 
 export type Occupancy = {
   level: Level;
@@ -25,22 +31,39 @@ export type Venue = {
   tags: string[];
   occupancy: Occupancy;
   district_occupancy: AreaOccupancy;
+  open_now: boolean;
+  hours: string; // "08:00–23:00" or "24 saat açık"
+  opens_at: string; // next opening time, shown when closed
+  // Set by the business on this phone (see overrides.ts)
+  description?: string;
+  amenity_keys?: string[];
+  address?: string;
 };
+
+export type HourlyPoint = { hour: number; level: Level; ratio: number; open: boolean };
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 // "static": bundled demo data, no server (GitHub Pages build). Otherwise the backend API.
 const STATIC_DATA = process.env.EXPO_PUBLIC_DATA_MODE === 'static';
-const staticApi = createStaticApi(demoVenues);
+
+/**
+ * Venues served without the backend: the bundled demo venues (static mode
+ * only) plus venues that business accounts added on this phone.
+ */
+const deviceApi = () => createStaticApi([...(STATIC_DATA ? (demoVenues as DemoVenue[]) : []), ...getLocalVenues()]);
+
+const byName = (a: Venue, b: Venue) => a.name.localeCompare(b.name, 'tr');
 
 export async function fetchVenues(
   bbox: string,
   tags: string[],
   signal?: AbortSignal,
 ): Promise<Venue[]> {
-  if (STATIC_DATA) return staticApi.venuesInBBox(bbox, tags);
+  const local = deviceApi().venuesInBBox(bbox, tags);
+  if (STATIC_DATA) return withOverrides(local);
   const params = new URLSearchParams({ bbox });
   if (tags.length > 0) params.set('tags', tags.join(','));
-  return getJson(`/v1/venues?${params}`, signal);
+  return withOverrides([...(await getJson<Venue[]>(`/v1/venues?${params}`, signal)), ...local]);
 }
 
 export async function searchVenues(
@@ -49,21 +72,51 @@ export async function searchVenues(
   tags: string[],
   signal?: AbortSignal,
 ): Promise<Venue[]> {
-  if (STATIC_DATA) return staticApi.search(query, district, tags);
+  const local = deviceApi().search(query, district, tags);
+  if (STATIC_DATA) return withOverrides(local);
   const params = new URLSearchParams({ q: query });
   if (district) params.set('district', district);
   if (tags.length > 0) params.set('tags', tags.join(','));
-  return getJson(`/v1/venues/search?${params}`, signal);
+  return withOverrides([...(await getJson<Venue[]>(`/v1/venues/search?${params}`, signal)), ...local].sort(byName));
 }
 
 export async function fetchVenuesByIds(ids: number[], signal?: AbortSignal): Promise<Venue[]> {
-  if (STATIC_DATA) return staticApi.search('', null, [], ids);
-  return getJson(`/v1/venues/search?${new URLSearchParams({ ids: ids.join(',') })}`, signal);
+  const local = deviceApi().search('', null, [], ids);
+  const remoteIds = ids.filter((id) => !isLocalVenueId(id));
+  if (STATIC_DATA || remoteIds.length === 0) return withOverrides(local);
+  const params = new URLSearchParams({ ids: remoteIds.join(',') });
+  return withOverrides([...(await getJson<Venue[]>(`/v1/venues/search?${params}`, signal)), ...local].sort(byName));
 }
 
 export async function fetchDistricts(signal?: AbortSignal): Promise<string[]> {
-  if (STATIC_DATA) return staticApi.districts();
-  return getJson('/v1/districts', signal);
+  const local = deviceApi().districts();
+  const remote = STATIC_DATA ? [] : await getJson<string[]>('/v1/districts', signal);
+  return [...new Set([...remote, ...local])].sort((a, b) => a.localeCompare(b, 'tr'));
+}
+
+/** Today's occupancy per hour for one venue (business stats panel). */
+export async function fetchHourly(venueId: number, signal?: AbortSignal): Promise<HourlyPoint[]> {
+  if (STATIC_DATA || isLocalVenueId(venueId)) {
+    const all = [...(demoVenues as DemoVenue[]), ...getLocalVenues()];
+    const venue = all.find((v) => v.id === venueId);
+    const opening = getOverride(venueId)?.hours ?? hoursFor(venue?.category ?? '', venue?.always_busy);
+    return hourlyProfile(venueId, venue?.popularity ?? 1, new Date(), venue?.always_busy).map((h) => ({
+      ...h,
+      open: isOpenAtHour(opening, h.hour),
+    }));
+  }
+  return (await getJson<{ hours: HourlyPoint[] }>(`/v1/venues/${venueId}/hourly`, signal)).hours;
+}
+
+/** Average occupancy per day for the last `days` days (business weekly / monthly statistics). */
+export async function fetchHistory(venueId: number, days: number, signal?: AbortSignal): Promise<History> {
+  if (STATIC_DATA || isLocalVenueId(venueId)) {
+    const all = [...(demoVenues as DemoVenue[]), ...getLocalVenues()];
+    const venue = all.find((v) => v.id === venueId);
+    const opening = getOverride(venueId)?.hours ?? hoursFor(venue?.category ?? '', venue?.always_busy);
+    return computeHistory(venueId, venue?.popularity ?? 1, venue?.always_busy ?? false, opening, days);
+  }
+  return getJson<History>(`/v1/venues/${venueId}/history?days=${days}`, signal);
 }
 
 async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {

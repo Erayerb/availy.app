@@ -1,25 +1,34 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useCampaigns } from '../context/CampaignsContext';
 import type { Venue } from '../lib/api';
-import { levelStyle } from '../lib/occupancy';
-import { categoryVisual } from '../lib/visuals';
-import { FavoriteButton } from './FavoriteButton';
 import { colors } from '../theme';
+import { FavoriteButton } from './FavoriteButton';
+import { LevelDot } from './LevelDot';
+import { VenuePhoto } from './VenuePhoto';
 
 type Props = {
   venue: Venue;
   size: number;
+  distance?: string | null; // e.g. "850 m", shown when the user's location is known
   onPress: () => void;
 };
 
-export function VenueTile({ venue, size, onPress }: Props) {
-  const { emoji, background } = categoryVisual(venue.category);
+export function VenueTile({ venue, size, distance, onPress }: Props) {
+  const campaign = useCampaigns().activeFor(venue.id);
 
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [{ width: size }, pressed && styles.pressed]}>
-      <View style={[styles.image, { width: size, height: size, backgroundColor: background }]}>
-        <Text style={styles.emoji}>{emoji}</Text>
-        <View style={[styles.badge, { backgroundColor: levelStyle(venue.occupancy.level).color }]} />
+      <View>
+        <VenuePhoto venueId={venue.id} category={venue.category} size={size} height={size} />
+        {!venue.open_now && <View style={[styles.closedShade, { borderRadius: 16 }]} />}
+        <View style={styles.badge}>
+          <LevelDot level={venue.occupancy.level} open={venue.open_now} size={14} />
+        </View>
+        {!venue.open_now && <Text style={styles.closed}>Kapalı · {venue.opens_at}</Text>}
+        {campaign && venue.open_now && (
+          <Text style={styles.campaign}>🏷️ {campaign.discount !== null ? `%${campaign.discount}` : 'Kampanya'}</Text>
+        )}
         <View style={styles.favorite}>
           <FavoriteButton venueId={venue.id} size={16} floating />
         </View>
@@ -27,24 +36,49 @@ export function VenueTile({ venue, size, onPress }: Props) {
       <Text style={styles.name} numberOfLines={2}>
         {venue.name}
       </Text>
+      {distance && <Text style={styles.distance}>📍 {distance}</Text>}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   pressed: { opacity: 0.75 },
-  image: { borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  emoji: { fontSize: 48 },
+  closedShade: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(255,255,255,0.45)' },
   badge: {
     position: 'absolute',
     top: 10,
     right: 10,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    borderRadius: 10,
     borderWidth: 2,
     borderColor: colors.white,
   },
+  closed: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: colors.text,
+    color: colors.onPrimary,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  campaign: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: colors.primary,
+    color: colors.onPrimary,
+    fontSize: 12,
+    fontWeight: '700',
+  },
   favorite: { position: 'absolute', top: 6, left: 6 },
+  distance: { marginTop: 2, fontSize: 12, color: colors.textMuted },
   name: { marginTop: 6, fontSize: 14, fontWeight: '600', color: colors.text },
 });

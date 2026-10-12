@@ -19,9 +19,13 @@ export type DemoVenue = {
   district: string;
   tags: string[];
   popularity: number;
+  always_busy?: boolean; // test venue crowded at every hour
+  address?: string; // open address (venues added by a business)
 };
 
-const lower = (text: string) => text.toLocaleLowerCase('tr-TR');
+// .ts extension so Node's test runner can load this file directly
+import { foldTr } from './filters.ts';
+import { hoursFor, hoursLabel, isOpenAtHour, istanbulHour, opensAt } from './hours.ts';
 
 function withOccupancy(venues: DemoVenue[], all: DemoVenue[], now: Date): Venue[] {
   const districtAverage = new Map<string, ReturnType<typeof averageOccupancy>>();
@@ -29,14 +33,20 @@ function withOccupancy(venues: DemoVenue[], all: DemoVenue[], now: Date): Venue[
     const members = all.filter((v) => v.district === district);
     districtAverage.set(
       district,
-      averageOccupancy(members.map((m) => dummyOccupancy(m.id, now, m.popularity).ratio)),
+      averageOccupancy(members.map((m) => dummyOccupancy(m.id, now, m.popularity, m.always_busy).ratio)),
     );
   }
-  return venues.map(({ popularity, ...venue }) => ({
-    ...venue,
-    occupancy: dummyOccupancy(venue.id, now, popularity),
-    district_occupancy: districtAverage.get(venue.district)!,
-  })) as Venue[];
+  return venues.map(({ popularity, always_busy, ...venue }) => {
+    const opening = hoursFor(venue.category, always_busy);
+    return {
+      ...venue,
+      open_now: isOpenAtHour(opening, istanbulHour(now)),
+      hours: hoursLabel(opening),
+      opens_at: opensAt(opening),
+      occupancy: dummyOccupancy(venue.id, now, popularity, always_busy),
+      district_occupancy: districtAverage.get(venue.district)!,
+    };
+  }) as Venue[];
 }
 
 const matchesTags = (venue: DemoVenue, tags: string[]) =>
@@ -55,8 +65,7 @@ export function createStaticApi(demoVenues: DemoVenue[]) {
 function venuesInBBox(demoVenues: DemoVenue[], bbox: string, tags: string[], now: Date): Venue[] {
   const [minLon, minLat, maxLon, maxLat] = bbox.split(',').map(Number);
   const inside = demoVenues.filter(
-    (v) =>
-      v.lon >= minLon && v.lon <= maxLon && v.lat >= minLat && v.lat <= maxLat && matchesTags(v, tags),
+    (v) => v.lon >= minLon && v.lon <= maxLon && v.lat >= minLat && v.lat <= maxLat && matchesTags(v, tags),
   );
   return withOccupancy(inside, demoVenues, now);
 }
@@ -69,11 +78,11 @@ function search(
   ids: number[] | undefined,
   now: Date,
 ): Venue[] {
-  const q = lower(query.trim());
+  const q = foldTr(query.trim());
   const found = demoVenues
     .filter(
       (v) =>
-        (!q || lower(v.name).includes(q)) &&
+        (!q || [v.name, v.neighborhood, v.district].some((text) => foldTr(text).includes(q))) &&
         (!district || v.district === district) &&
         matchesTags(v, tags) &&
         (!ids || ids.includes(v.id)),

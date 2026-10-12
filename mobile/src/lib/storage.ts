@@ -4,6 +4,21 @@ export const KEYS = {
   user: 'availy.user',
   accounts: 'availy.accounts', // prototype accounts on this phone (password hashes only)
   favorites: 'availy.favorites',
+  campaigns: 'availy.campaigns', // business campaigns created on this phone
+  localVenues: 'availy.localVenues', // venues added by business accounts on this phone
+  settings: 'availy.settings',
+  coupons: 'availy.coupons',
+  campaignViews: 'availy.campaignViews',
+  loyaltyPrograms: 'availy.loyaltyPrograms',
+  stampCards: 'availy.stampCards',
+  memberships: 'availy.memberships',
+  watches: 'availy.watches',
+  photos: 'availy.photos', // venueId -> one photo (data URI) shown on the home tile
+  venueOverrides: 'availy.venueOverrides', // details edited by the business
+  schedules: 'availy.schedules', // scheduled / recurring campaigns
+  firedSchedules: 'availy.firedSchedules',
+  feedback: 'availy.feedback',
+  monitor: 'availy.monitor', // dead-hour alert / auto campaign timestamps
 } as const;
 
 export async function loadJson<T>(key: string): Promise<T | null> {
