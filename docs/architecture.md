@@ -6,7 +6,7 @@
 
 | Bileşen | Görev |
 |---|---|
-| `mobile/` (Flutter) | Harita ekranı ve mekan detayı. Görünür alanı 30 sn'de bir polling ile yeniler. |
+| `mobile/` (React Native + Expo) | Harita ekranı ve mekan detayı. Görünür alanı 30 sn'de bir polling ile yeniler. |
 | `backend/` (FastAPI) | REST API, mekan listesi, sahte doluluk üretimi. |
 | PostgreSQL + PostGIS | Mekanlar (konum, kapasite). |
 
@@ -71,7 +71,7 @@ MVP'de kullanıcı hesabı ve kimlik doğrulama yok.
 2. Docker Compose + DB init (sadece PostGIS extension)
 3. Backend iskeleti + `venues` şeması + `/health` + `/v1/venues` (sahte seed verisiyle) + testler
 4. `DummyOccupancyProvider` + birim testleri
-5. Flutter harita ekranı + 30 sn polling
+5. Expo harita ekranı + 30 sn polling (telefonda Expo Go)
 6. Mekan detay ekranı
 
 ## 9. Kararlar

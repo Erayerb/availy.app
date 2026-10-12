@@ -19,3 +19,16 @@ docker compose run --rm backend python -m app.seed
 ./docker/db/test_db.sh
 docker compose run --rm backend pytest -q
 ```
+
+## Mobil uygulama (telefonda)
+
+1. Telefona **Expo Go** uygulamasını kur (App Store / Google Play).
+2. Telefon ve Mac aynı Wi-Fi'da olmalı. `mobile/.env` içindeki IP Mac'in IP'si olmalı (`ipconfig getifaddr en0`).
+3. Backend çalışıyor olmalı (`docker compose up -d`).
+4. Başlat ve çıkan QR kodu telefonla okut:
+
+```bash
+cd mobile && npm start
+```
+
+Testler: `cd mobile && npm test && npm run typecheck`

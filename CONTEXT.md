@@ -6,7 +6,7 @@ Gelir modeli (B2B): işletmelere boş saatlerde yakındaki kullanıcıya
 kampanya gönderme aracı.
 
 ## Teknoloji
-- Mobil: Flutter + flutter_map (OpenStreetMap), Riverpod, Dio
+- Mobil: React Native + Expo (TypeScript), react-native-maps; telefonda Expo Go ile çalışır
 - Backend: Python FastAPI
 - Veritabanı: PostgreSQL + PostGIS (Redis ertelendi)
 - Altyapı: Docker Compose
@@ -17,7 +17,7 @@ Wi-Fi sayımı, MAC, check-in ve simülatör kapsam dışı (bkz. docs/architect
 
 ## Klasörler
 - backend/ : FastAPI
-- mobile/ : Flutter
+- mobile/ : Expo (React Native)
 - simulator/ : (ertelendi) sahte Wi-Fi veri üreticisi
 - docker/ : Dockerfile ve DB scriptleri
 - docs/ : mimari notlar
@@ -35,5 +35,8 @@ Wi-Fi sayımı, MAC, check-in ve simülatör kapsam dışı (bkz. docs/architect
 - Bitti: Aşama 2 (docker-compose.yml + docker/db/init.sql, PostGIS çalışıyor)
 - Bitti: Aşama 3 (FastAPI backend, venues şeması, 10 sahte mekan, /health, /v1/venues, 13 test)
 - Bitti: Aşama 4 (sahte doluluk: app/occupancy.py, /v1/venues içinde occupancy alanı, 25 test)
-- Sırada: Aşama 5 (Flutter harita + 30 sn polling; önce Flutter kurulumu)
+- Bitti: Aşama 5 (Expo harita, renkli pinler, alt bilgi kartı, %oran gösterimi, 30 sn polling; iPhone'da çalışıyor)
+- Not: Kişi sayısı gösterilmez ve API'den kaldırıldı; sadece oran
+- Sırada: Aşama 6 (mekan detay ekranı)
+- Not: Proje test/prototip; amaç kendi telefonundan göstermek, Mac'i yormamak
 - Kararlar: önce polling (30 sn), WebSocket sonra; MVP'de doluluk sahte
