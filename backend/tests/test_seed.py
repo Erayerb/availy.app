@@ -21,3 +21,9 @@ def test_demo_data_has_empty_venues():
 
 def test_demo_data_has_no_night_clubs():
     assert all(v[1] != "club" for v in DEMO_VENUES)
+
+
+def test_demo_data_has_restaurants_with_food_tag():
+    restaurants = [v for v in DEMO_VENUES if v[1] == "restaurant"]
+    assert len(restaurants) >= 5
+    assert all("food" in v[7] for v in restaurants)

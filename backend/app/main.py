@@ -14,11 +14,12 @@ from app.venues import (
     find_venues_in_bbox,
     list_districts,
     parse_bbox,
+    parse_ids,
     parse_tags,
     search_venues,
 )
 
-TAGS_DESCRIPTION = "Comma-separated: socializing,coworking,entertainment,quiet"
+TAGS_DESCRIPTION = "Comma-separated: socializing,coworking,entertainment,quiet,food"
 
 
 @asynccontextmanager
@@ -88,15 +89,17 @@ def search(
     q: str = Query("", max_length=50, description="Part of the venue name"),
     district: str | None = Query(None),
     tags: str | None = Query(None, description=TAGS_DESCRIPTION),
+    ids: str | None = Query(None, description="Comma-separated venue ids, e.g. favorites"),
     conn: psycopg.Connection = Depends(get_conn),
     provider: OccupancyProvider = Depends(get_occupancy_provider),
 ):
     try:
         parsed_tags = parse_tags(tags)
+        parsed_ids = parse_ids(ids, settings.max_venues_per_request)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from None
     venues = search_venues(
-        conn, q.strip(), district or None, parsed_tags, settings.max_venues_per_request
+        conn, q.strip(), district or None, parsed_tags, settings.max_venues_per_request, parsed_ids
     )
     return with_occupancy(conn, provider, venues)
 

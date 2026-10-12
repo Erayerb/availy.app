@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import psycopg
 
 # Purpose tags used by the mobile filter chips
-TAGS = frozenset({"socializing", "coworking", "entertainment", "quiet"})
+TAGS = frozenset({"socializing", "coworking", "entertainment", "quiet", "food"})
 
 
 @dataclass(frozen=True)
@@ -30,6 +30,19 @@ def parse_bbox(raw: str) -> BBox:
     if min_lon >= max_lon or min_lat >= max_lat:
         raise ValueError("min values must be smaller than max values")
     return BBox(min_lon, min_lat, max_lon, max_lat)
+
+
+def parse_ids(raw: str | None, max_count: int) -> list[int] | None:
+    """Parse '3,1,2' into ids; None means no id filter."""
+    if raw is None:
+        return None
+    try:
+        ids = sorted({int(p) for p in raw.split(",") if p.strip()})
+    except ValueError:
+        raise ValueError("ids must be comma-separated integers") from None
+    if len(ids) > max_count:
+        raise ValueError(f"at most {max_count} ids allowed")
+    return ids
 
 
 def parse_tags(raw: str | None) -> list[str]:
@@ -92,8 +105,9 @@ def search_venues(
     district: str | None,
     tags: list[str],
     limit: int,
+    ids: list[int] | None = None,
 ) -> list[dict]:
-    """Venues whose name contains `query` (case-insensitive), optionally by district and tags."""
+    """Venues whose name contains `query` (case-insensitive), optionally by district, tags and ids."""
     return conn.execute(
         """
         SELECT id, name, category, capacity, neighborhood, district, tags, popularity,
@@ -103,10 +117,11 @@ def search_venues(
         WHERE (%(query)s = '' OR name ILIKE '%%' || %(query)s || '%%')
           AND (%(district)s::text IS NULL OR district = %(district)s)
           AND (cardinality(%(tags)s::text[]) = 0 OR tags && %(tags)s::text[])
+          AND (%(ids)s::bigint[] IS NULL OR id = ANY(%(ids)s::bigint[]))
         ORDER BY name COLLATE "tr-TR-x-icu"
         LIMIT %(limit)s
         """,
-        {"query": escape_like(query), "district": district, "tags": tags, "limit": limit},
+        {"query": escape_like(query), "district": district, "tags": tags, "ids": ids, "limit": limit},
     ).fetchall()
 
 
