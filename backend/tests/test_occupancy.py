@@ -61,3 +61,20 @@ def test_updated_at_is_bucket_start():
     provider = DummyOccupancyProvider(bucket_seconds=300)
     at = datetime(2026, 10, 12, 13, 7, 42, tzinfo=timezone.utc)
     assert provider.get(1, at).updated_at == datetime(2026, 10, 12, 13, 5, 0, tzinfo=timezone.utc)
+
+
+def test_zero_popularity_is_always_empty():
+    provider = DummyOccupancyProvider()
+    evening = datetime(2026, 10, 12, 19, 0, tzinfo=ISTANBUL)
+    for venue_id in range(1, 21):
+        occ = provider.get(venue_id, evening, popularity=0.0)
+        assert occ.ratio == 0.0
+        assert occ.level == Level.LOW
+
+
+def test_popularity_scales_down():
+    provider = DummyOccupancyProvider()
+    evening = datetime(2026, 10, 12, 19, 0, tzinfo=ISTANBUL)
+    full = mean(provider.get(v, evening).ratio for v in range(1, 51))
+    half = mean(provider.get(v, evening, popularity=0.5).ratio for v in range(1, 51))
+    assert half < full

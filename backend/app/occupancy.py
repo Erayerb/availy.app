@@ -33,8 +33,22 @@ def classify(
     return Level.HIGH
 
 
+@dataclass(frozen=True)
+class AreaOccupancy:
+    level: Level
+    ratio: float
+
+
+def average_occupancy(ratios: list[float]) -> AreaOccupancy:
+    """Mean occupancy of an area (e.g. all venues in a district)."""
+    if not ratios:
+        raise ValueError("ratios must not be empty")
+    ratio = round(sum(ratios) / len(ratios), 2)
+    return AreaOccupancy(level=classify(ratio), ratio=ratio)
+
+
 class OccupancyProvider(Protocol):
-    def get(self, venue_id: int, at: datetime) -> Occupancy: ...
+    def get(self, venue_id: int, at: datetime, popularity: float = 1.0) -> Occupancy: ...
 
 
 # Typical busyness by local hour (0-23): quiet nights, lunch and evening peaks
@@ -62,12 +76,12 @@ class DummyOccupancyProvider:
         self.bucket_seconds = bucket_seconds
         self.tz = ZoneInfo(tz)
 
-    def get(self, venue_id: int, at: datetime) -> Occupancy:
+    def get(self, venue_id: int, at: datetime, popularity: float = 1.0) -> Occupancy:
         bucket = int(at.timestamp()) // self.bucket_seconds
         rng = random.Random(f"{venue_id}:{bucket}")
 
         local_hour = at.astimezone(self.tz).hour
-        ratio = HOURLY_BASE[local_hour] + rng.uniform(-NOISE, NOISE)
+        ratio = (HOURLY_BASE[local_hour] + rng.uniform(-NOISE, NOISE)) * popularity
         ratio = round(min(max(ratio, 0.0), 1.0), 2)
 
         return Occupancy(

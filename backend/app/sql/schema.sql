@@ -7,4 +7,14 @@ CREATE TABLE IF NOT EXISTS venues (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Added for filtering and the short location label ("Moda, Kadıköy")
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS neighborhood TEXT NOT NULL DEFAULT '';
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS district TEXT NOT NULL DEFAULT '';
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS tags TEXT[] NOT NULL DEFAULT '{}';
+-- Scales the dummy occupancy (0 = always empty, 1 = normal)
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS popularity REAL NOT NULL DEFAULT 1
+    CHECK (popularity >= 0 AND popularity <= 1);
+
 CREATE INDEX IF NOT EXISTS venues_location_gist ON venues USING GIST (location);
+CREATE INDEX IF NOT EXISTS venues_tags_gin ON venues USING GIN (tags);
+CREATE INDEX IF NOT EXISTS venues_district ON venues (district);
