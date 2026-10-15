@@ -2,7 +2,7 @@ export type Tag = 'socializing' | 'coworking' | 'entertainment' | 'quiet' | 'foo
 
 export const TAG_OPTIONS: { tag: Tag; label: string }[] = [
   { tag: 'socializing', label: 'Sosyalleşme' },
-  { tag: 'coworking', label: 'Co-working' },
+  { tag: 'coworking', label: 'Ortak çalışma' },
   { tag: 'entertainment', label: 'Eğlence' },
   { tag: 'quiet', label: 'Sessizlik' },
   { tag: 'food', label: 'Yemek' },
@@ -31,7 +31,7 @@ export function toggleSingle<T>(current: T | null, value: T): T | null {
 const CATEGORY_LABELS: Record<string, string> = {
   cafe: 'Kafe',
   bar: 'Bar',
-  coworking: 'Co-working',
+  coworking: 'Ortak çalışma',
   library: 'Kütüphane',
   restaurant: 'Restoran',
 };

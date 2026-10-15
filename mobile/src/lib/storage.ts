@@ -19,6 +19,7 @@ export const KEYS = {
   firedSchedules: 'availy.firedSchedules',
   feedback: 'availy.feedback',
   monitor: 'availy.monitor', // dead-hour alert / auto campaign timestamps
+  support: 'availy.support', // bug reports and contact messages
 } as const;
 
 export async function loadJson<T>(key: string): Promise<T | null> {

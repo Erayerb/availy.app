@@ -25,7 +25,7 @@ export function VerificationSection({ onVerified }: { onVerified: () => void }) 
   return (
     <View style={[panel.card, { borderColor: colors.primary, borderWidth: 1.5 }]}>
       <Text style={panel.sectionTitle}>Mekan sahipliğini doğrula</Text>
-      <Text style={panel.muted}>Kampanya, sadakat programı ve zamanlanmış kampanyalar doğrulamadan sonra açılır.</Text>
+      <Text style={panel.muted}>Doğrulanan işletmeler ✓ rozeti alır; mekan bilgilerini yalnızca gerçek sahibi değiştirebilir.</Text>
       <View style={panel.wrap}>
         {VERIFICATION_METHODS.map((m) => (
           <Chip key={m.id} label={m.label} active={method === m.id} onPress={() => setMethod(m.id)} />

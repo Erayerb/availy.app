@@ -6,7 +6,7 @@ import { categoryLabel, foldTr, TAG_OPTIONS, toggleSingle, toggleTag } from '../
 test('filter chips are the purposes in Turkish', () => {
   assert.deepEqual(
     TAG_OPTIONS.map((o) => o.label),
-    ['Sosyalleşme', 'Co-working', 'Eğlence', 'Sessizlik', 'Yemek'],
+    ['Sosyalleşme', 'Ortak çalışma', 'Eğlence', 'Sessizlik', 'Yemek'],
   );
 });
 

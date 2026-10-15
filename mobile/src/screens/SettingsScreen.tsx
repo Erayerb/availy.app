@@ -1,23 +1,35 @@
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { LevelDot } from '../components/LevelDot';
-import { MenuButton } from '../components/MenuButton';
+import { BackButton } from '../components/BackButton';
+import { VenueEditSection } from '../components/business/VenueEditSection';
+import { useVenuesByIds } from '../hooks/useVenuesByIds';
 import { useLocation } from '../context/LocationContext';
 import { useSettings } from '../context/SettingsContext';
 import { LEVELS } from '../lib/occupancy';
 import { colors } from '../theme';
 import { ThemedSwitch } from '../components/ThemedSwitch';
 
-export function SettingsScreen({ onMenu, isBusiness }: { onMenu: () => void; isBusiness: boolean }) {
+type Props = {
+  onBack: () => void;
+  isBusiness: boolean;
+  venueId: number | null; // business: its venue, edited here
+};
+
+export function SettingsScreen({ onBack, isBusiness, venueId }: Props) {
+  const { venues } = useVenuesByIds(venueId ? [venueId] : []);
+  const venue = venues[0];
   const { colorBlind, watchNotifications, deadHourAlerts, autoCampaign, update, look } = useSettings();
   const { point, loading } = useLocation();
 
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
-        <MenuButton onPress={onMenu} />
-        <Text style={styles.title}>Ayarlar</Text>
+        <BackButton onPress={onBack} />
+        <Text style={styles.title}>{isBusiness ? 'İşletme Ayarları' : 'Ayarlar'}</Text>
       </View>
+
+      {isBusiness && venue && <VenueEditSection key={venue.id} venue={venue} onSaved={() => {}} />}
 
       <View style={styles.card}>
         <Row

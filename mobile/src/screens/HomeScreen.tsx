@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ClearButton } from '../components/ClearButton';
-import { MenuButton } from '../components/MenuButton';
 import { Chip, TagChips } from '../components/TagChips';
 import { VenueGrid } from '../components/VenueGrid';
 import { Wordmark } from '../components/Wordmark';
@@ -31,7 +30,6 @@ type Props = {
   onQueryChange: (query: string) => void;
   sortMode: SortMode;
   onSortChange: (mode: SortMode) => void;
-  onMenu: () => void;
   onOpenVenue: (venue: Venue) => void;
 };
 
@@ -46,7 +44,6 @@ export function HomeScreen({
   onQueryChange: setQuery,
   sortMode,
   onSortChange,
-  onMenu,
   onOpenVenue,
 }: Props) {
   const visibleDistricts = districtsForSides(useDistricts(), sides);
@@ -81,7 +78,6 @@ export function HomeScreen({
   const header = (
     <View style={styles.header}>
       <View style={styles.topRow}>
-        <MenuButton onPress={onMenu} />
         <Wordmark size={34} />
       </View>
 

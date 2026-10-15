@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { HourlyChart } from '../components/HourlyChart';
-import { MenuButton } from '../components/MenuButton';
 
 import { useCampaigns } from '../context/CampaignsContext';
 import { useBusinessData } from '../hooks/useBusinessData';
@@ -19,7 +18,6 @@ import { StatsSection } from '../components/business/StatsSection';
 import { LevelDot } from '../components/LevelDot';
 import { useSettings } from '../context/SettingsContext';
 
-import { PLANS, type PlanId } from '../lib/plans';
 import { formatHour, isDeadHour, nearbyCompetitors, percent, summarizeDay } from '../lib/stats';
 import { colors } from '../theme';
 
@@ -28,21 +26,15 @@ const istanbulHour = (now: Date) => (now.getUTCHours() + 3) % 24;
 
 type Props = {
   venueId: number;
-  plan: PlanId;
   verified: boolean;
   onVerified: () => void;
-  onMenu: () => void;
-  onPlanChange: (plan: PlanId) => void;
   onShowOnMap: (venue: Venue) => void;
 };
 
 export function BusinessScreen({
   venueId,
-  plan,
   verified,
   onVerified,
-  onMenu,
-  onPlanChange,
   onShowOnMap,
 }: Props) {
   const { venue, hourly, all, error } = useBusinessData(venueId);
@@ -79,7 +71,6 @@ export function BusinessScreen({
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
-        <MenuButton onPress={onMenu} />
         <Text style={styles.pageTitle}>İşletme Paneli</Text>
       </View>
 
@@ -171,35 +162,6 @@ export function BusinessScreen({
 
       <FeedbackSection venueId={venue.id} />
 
-      {/* Plan */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Paketin</Text>
-        {(Object.keys(PLANS) as PlanId[]).map((id) => {
-          const p = PLANS[id];
-          const selected = id === plan;
-          return (
-            <Pressable
-              key={id}
-              style={[styles.plan, selected && styles.planSelected]}
-              onPress={() => onPlanChange(id)}
-            >
-              <View style={styles.planHeader}>
-                <Text style={styles.planName}>{p.name}</Text>
-                <Text style={styles.planPrice}>{p.price}</Text>
-              </View>
-              {p.features.map((f) => (
-                <Text key={f} style={styles.muted}>
-                  • {f}
-                </Text>
-              ))}
-              <Text style={selected ? styles.planActive : styles.planChoose}>
-                {selected ? '✓ Mevcut paketin' : 'Bu paketi seç'}
-              </Text>
-            </Pressable>
-          );
-        })}
-        <Text style={styles.note}>Prototip: ödeme alınmaz.</Text>
-      </View>
     </ScrollView>
   );
 }
@@ -286,12 +248,4 @@ const styles = StyleSheet.create({
   stats: { fontSize: 12, color: colors.textMuted },
   campaignMeta: { flexDirection: 'row', justifyContent: 'space-between' },
   endText: { color: colors.danger, fontWeight: '600' },
-  plan: { padding: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.border, gap: 3 },
-  planSelected: { borderColor: colors.primary, borderWidth: 2 },
-  planHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
-  planName: { fontSize: 15, fontWeight: '700', color: colors.text },
-  planPrice: { fontSize: 15, fontWeight: '700', color: colors.primary },
-  planActive: { marginTop: 4, color: colors.primary, fontWeight: '600' },
-  planChoose: { marginTop: 4, color: colors.textMuted },
-  note: { textAlign: 'center', color: colors.placeholder, fontSize: 12 },
 });

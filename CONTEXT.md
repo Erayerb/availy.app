@@ -50,7 +50,7 @@ Wi-Fi sayımı, MAC, check-in ve simülatör kapsam dışı (bkz. docs/architect
 - Tema: kırmızı + krem (mobile/src/theme.ts); logo: krem daire içinde kırmızı @
 - Yazı logosu: küçük harf, el yazısı "availy" (Dancing Script) ve y'nin kuyruğu yazının altından a'ya uzanır (mobile/src/components/Wordmark.tsx); uygulama adı da "availy"
 - "Tüm semtler" hem semt hem Avrupa/Anadolu seçimini sıfırlar
-- Filtreler: Sosyalleşme, Co-working, Eğlence, Sessizlik, Yemek (restoranlar)
+- Filtreler: Sosyalleşme, Ortak çalışma, Eğlence, Sessizlik, Yemek (restoranlar)
 - Haritada seçili noktaya tekrar basınca kart kapanır
 - Bitti: Web demo + GitHub Pages (.github/workflows/pages.yml, main'e push'ta): Leaflet/OSM harita (VenueMap.web.tsx), demo veri uygulamaya gömülü (EXPO_PUBLIC_DATA_MODE=static), backend gerekmez; Expo Go etkilenmez
 - Not: Demo mekanların tek kaynağı backend/app/demo_data.py; web JSON'u backend/scripts/export_demo_venues.py üretir
@@ -89,13 +89,19 @@ Wi-Fi sayımı, MAC, check-in ve simülatör kapsam dışı (bkz. docs/architect
 - Bitti: Geri bildirim: müşteri detay sayfasında 1–5 puan + yorum (kişi başı bir tane); işletme panelinde ortalama ve son yorumlar
 - Bitti: Düzen (işletme): İşletme Paneli = durum, ölü saat, grafik, kıyaslama, istatistik, kupon doğrulama, geri bildirim, paket. Kampanyalar ve Sadakat = Kampanyalarım (yeni kampanya + zamanlanmış + sonuçlar) / Sadakat programlarım (kurulum, aktif-pasif, damga) / Yakındaki. İşletme Profili = ad, şifre, mekan bilgilerini düzenle, mekan fotoğrafı (puan/favori/kupon kutuları yok)
 - Bitti: Kapasite arayüzden kaldırıldı (veride varsayılan 50 duruyor); yeni mekan eklerken Özellikler (açık alan, Wi-Fi, priz…) seçilir
-- Bitti: Sidebar'da Ayarlar, Çıkış Yap / Giriş Yap'ın hemen üstünde
 - Bitti: Sadakat QR ile: müşteri Sadakat sekmesinde QR'ını gösterir, işletme Sadakat programlarım'da "📷 Damga ver / Ödülü kullan" ile kamerayla okutur (kamera yoksa kodu elle yazma yedeği var)
 - Bitti: İşletme Kampanyalar ve Sadakat sekmeleri: Kampanyalarım / Kuponlar (kupon doğrulama + alınan kuponlar) / Sadakat programlarım / Yakındaki
 - Bitti: Kampanyaya kişi sınırı (sınırsız, 10, 25, 50, 100 kupon); dolunca "Kuponlar tükendi"
 - Bitti: Yeni mekan: açık adres yazılır, haritadan konum isteğe bağlı (adres Nominatim ile bulunur; bulunamazsa semtin ortası)
 - Bitti: Sidebar'da İşletme Profili, İşletme Paneli'nin hemen altında; mekan düzenlemede kısa açıklama kaldırıldı
 - Not: Mekan sahipliği doğrulaması şimdilik kapalı (kampanya ve sadakat doğrulamasız kullanılabilir); kod duruyor (VerificationSection)
+- Bitti: Sidebar yerine alt sekme çubuğu (Midas gibi): Ana Sayfa, Kampanyalar (kampanyalar, kuponlar ve sadakat tek sekmede), Harita (ortada), Favoriler (işletmede Panel), ☰ Daha fazla (Profil / İşletme Profili, Ayarlar / İşletme Ayarları, İşletme doğrulama, Hata bildir ve iletişim, Hakkında, Çıkış). Keşfet sayfası kaldırıldı; işletmede Favoriler yok
+- Bitti: Kupon QR ile: müşteri Kuponlarım'da kuponun QR'ını gösterir, işletme Kampanyalar → Kuponlar'da "📷 Kupon QR'ı okut" ile okutur (elle yazma yedeği var)
+- Bitti: Hata bildir sayfası, içinde İletişime geç sekmesi (konu, mesaj, e-posta; şimdilik telefonda saklanır)
+- Bitti: İşletme doğrulama ekranı görünür ama etkin değil ("Yakında")
+- Bitti: "Co-working" her yerde "Ortak çalışma"; işletme mekan adını İşletme Profili → Mekan bilgilerini düzenle'den değiştirebilir
+- Bitti: Sadakat programı formu "Sadakat programı oluştur" ile açılır, İptal ile kapanır; Damga ver (her alışveriş) ve Ödülü kullandır (kart dolunca) açıklamalı
+- Bitti: Mekan bilgilerini düzenle İşletme Ayarları'nda; Paket (kampanya başı / SaaS) İşletme Profili'nde; biten kampanyalar tek tek ya da topluca silinebilir
 - Bitti: Test için her saat kalabalık 5 demo mekan ("Demo … Popüler …", always_busy); toplam 43 mekan
 - Not: Sahte doluluk tüm mekanlarda aynı saat eğrisini kullanıyor; yoğun saatlerde herkes birlikte doluyor. İleride kategoriye göre farklı eğri (kafe öğleden sonra, bar gece) daha gerçekçi olur
 - Sırada: kullanıcıyla belirlenecek (bkz. Yapılacaklar)
@@ -133,6 +139,7 @@ Konuşmalarda "şimdi olmayacak, sonra" denen her şey. Yapıldıkça "Durum"a t
 **B2B**
 - Birden fazla şube: bir işletme hesabına birden çok mekan bağlamak, şubeler arası karşılaştırma
 - Personel hesapları: kasiyer/garson için sınırlı yetkili hesap (sadece kupon doğrulama ve damga verme)
+- Hata bildirimleri ve iletişim mesajları sunucuya / destek e-postasına gitsin (şimdi sadece telefonda)
 - Mekan sahipliği doğrulaması: kampanya oluşturmak ve sadakat programı kurmak için zorunlu olacak (şimdilik kapalı); gerçek SMS sağlayıcısı ya da belgeyi inceleyen yönetici paneli
 - Zamanlanmış kampanyaların ve otomatik kampanyanın sunucuda çalışması (şu an uygulama açıkken)
 - Geri bildirimlerin sunucuda saklanması; işletmenin yorumlara yanıt vermesi; uygunsuz yorum bildirme
@@ -142,7 +149,6 @@ Konuşmalarda "şimdi olmayacak, sonra" denen her şey. Yapıldıkça "Durum"a t
 - Kampanyaları yarıçap içindeki kullanıcılara gerçek push bildirimi olarak göndermek (şu an sadece uygulama içinde görünür)
 
 **Uygulama**
-- Keşfet sayfası (şu an "Yakında")
 - Mekanların gerçek fotoğrafları (şu an türe göre renkli görsel) ve kalıcı logo
 - Ayrı mekan detay sayfası (şu an haritadaki bilgi kartı)
 - "Kalabalık" kırmızısı marka kırmızısıyla karışabilir; istenirse koyu turuncu

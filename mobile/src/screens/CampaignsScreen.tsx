@@ -6,14 +6,13 @@ import { CampaignForm } from '../components/business/CampaignForm';
 import { CouponVerifier } from '../components/business/CouponVerifier';
 import { LoyaltySetup } from '../components/business/LoyaltySetup';
 import { ScheduleSection } from '../components/business/ScheduleSection';
-import { MenuButton } from '../components/MenuButton';
 import { Chip } from '../components/TagChips';
 import { useCampaigns } from '../context/CampaignsContext';
 import { useEngagement } from '../context/EngagementContext';
 import { useLocation } from '../context/LocationContext';
 import { isActive, timeLeft, visibleCampaigns, type Campaign } from '../lib/campaigns';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
-import { campaignStats } from '../lib/coupons';
+import { campaignStats, couponQrPayload } from '../lib/coupons';
 import { formatDistance } from '../lib/geo';
 import type { PlanId } from '../lib/plans';
 import QRCode from 'react-native-qrcode-svg';
@@ -29,17 +28,18 @@ import { colors } from '../theme';
 
 type Tab = 'campaigns' | 'coupons' | 'loyalty' | 'myCampaigns' | 'myPrograms' | 'venueCoupons';
 
+// Campaigns, coupons and loyalty share one bottom tab
 const CUSTOMER_TABS: { tab: Tab; label: string }[] = [
   { tab: 'campaigns', label: 'Kampanyalar' },
   { tab: 'coupons', label: 'Kuponlarım' },
   { tab: 'loyalty', label: 'Sadakat' },
 ];
 
-// A business sees what customers see, plus its own campaigns and loyalty programs
+// A business sees its own campaigns, coupons and loyalty program, plus what customers nearby see
 const BUSINESS_TABS: { tab: Tab; label: string }[] = [
   { tab: 'myCampaigns', label: 'Kampanyalarım' },
   { tab: 'venueCoupons', label: 'Kuponlar' },
-  { tab: 'myPrograms', label: 'Sadakat programlarım' },
+  { tab: 'myPrograms', label: 'Sadakat programım' },
   { tab: 'campaigns', label: 'Yakındaki' },
 ];
 
@@ -53,19 +53,17 @@ export type BusinessInfo = {
 type Props = {
   signedIn: boolean;
   business: BusinessInfo | null; // set for business accounts
-  onMenu: () => void;
   onLogin: () => void;
   onOpenVenue: (campaign: Pick<Campaign, 'venueId' | 'lat' | 'lon'>) => void;
 };
 
-export function CampaignsScreen({ signedIn, business, onMenu, onLogin, onOpenVenue }: Props) {
+export function CampaignsScreen({ signedIn, business, onLogin, onOpenVenue }: Props) {
   const tabs = business ? BUSINESS_TABS : CUSTOMER_TABS;
   const [tab, setTab] = useState<Tab>(tabs[0].tab);
 
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
-        <MenuButton onPress={onMenu} />
         <Text style={styles.title}>Kampanyalar ve Sadakat</Text>
       </View>
       <View style={styles.tabs}>
@@ -150,6 +148,16 @@ function MyCoupons() {
           <View key={coupon.code} style={[styles.card, status !== 'Geçerli · kasada göster' && styles.faded]}>
             <Text style={styles.venue}>{coupon.venueName}</Text>
             <Text style={styles.text}>{coupon.message}</Text>
+            {status === 'Geçerli · kasada göster' && (
+              <View style={styles.qr}>
+                <QRCode
+                  value={couponQrPayload(coupon.code)}
+                  size={140}
+                  backgroundColor={colors.surface}
+                  color={colors.text}
+                />
+              </View>
+            )}
             <View style={styles.codeRow}>
               <Text style={styles.code}>{coupon.code}</Text>
               <Text style={styles.muted}>{status}</Text>
@@ -204,7 +212,7 @@ function Loyalty({ signedIn, onLogin }: { signedIn: boolean; onLogin: () => void
         <Text style={[styles.text, styles.centered]}>
           <Text style={styles.code}>{customerCode(userKey)}</Text>
         </Text>
-        <Text style={[styles.muted, styles.centered]}>Kasada bu QR'ı okut; işletme damganı ekler.</Text>
+        <Text style={[styles.muted, styles.centered]}>Kasada bu QR'ı okut: işletme damganı ekler ya da kart dolduysa ödülünü verir.</Text>
       </View>
 
       {visiblePrograms.length === 0 && (
@@ -228,7 +236,7 @@ function Loyalty({ signedIn, onLogin }: { signedIn: boolean; onLogin: () => void
                 </View>
                 {(card?.rewardsAvailable ?? 0) > 0 && (
                   <Text style={styles.reward}>
-                    🎁 Kullanılabilir ödül: {card!.rewardsAvailable} · kasada müşteri kodunu söyle
+                    🎁 Kullanılabilir ödül: {card!.rewardsAvailable} · kasada QR'ını okut
                   </Text>
                 )}
               </>
@@ -251,11 +259,12 @@ function Loyalty({ signedIn, onLogin }: { signedIn: boolean; onLogin: () => void
 
 /** Business: new campaign, scheduled campaigns and results of its own campaigns. */
 function MyCampaigns({ business }: { business: BusinessInfo }) {
-  const { campaigns, now, end } = useCampaigns();
+  const { campaigns, now, end, remove } = useCampaigns();
   const { views, coupons } = useEngagement();
   const { venues } = useVenuesByIds([business.venueId]);
   const venue = venues[0];
   const mine = campaigns.filter((c) => c.venueId === business.venueId);
+  const ended = mine.filter((c) => !isActive(c, now));
 
   return (
     <View style={styles.list}>
@@ -269,7 +278,14 @@ function MyCampaigns({ business }: { business: BusinessInfo }) {
           />
         </>
       )}
-      <Text style={styles.sectionTitle}>Kampanyaların</Text>
+      <View style={styles.cardHeader}>
+        <Text style={styles.sectionTitle}>Kampanyaların</Text>
+        {ended.length > 1 && (
+          <Pressable onPress={() => remove(ended.map((c) => c.id))} hitSlop={8}>
+            <Text style={styles.endText}>Bitenlerin hepsini sil</Text>
+          </Pressable>
+        )}
+      </View>
       {mine.length === 0 && <Text style={styles.muted}>Henüz kampanyan yok.</Text>}
       {mine.map((c) => {
         const live = isActive(c, now);
@@ -281,9 +297,13 @@ function MyCampaigns({ business }: { business: BusinessInfo }) {
               {live ? `Aktif · ${timeLeft(c, now)}` : 'Bitti'} · {c.radiusKm} km · 👁 {stats.views} gösterim ·
               🎟 {stats.claims} kupon · ✅ {stats.redemptions} kullanım
             </Text>
-            {live && (
-              <Pressable onPress={() => end(c.id)}>
+            {live ? (
+              <Pressable onPress={() => end(c.id)} hitSlop={8}>
                 <Text style={styles.endText}>Bitir</Text>
+              </Pressable>
+            ) : (
+              <Pressable onPress={() => remove([c.id])} hitSlop={8}>
+                <Text style={styles.endText}>🗑 Sil</Text>
               </Pressable>
             )}
           </View>
