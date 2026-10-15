@@ -2,18 +2,20 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { PhotoSection } from '../components/business/PhotoSection';
-import { VenueEditSection } from '../components/business/VenueEditSection';
-import { MenuButton } from '../components/MenuButton';
+import { PlanSection } from '../components/business/PlanSection';
+import { BackButton } from '../components/BackButton';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
 import { useEngagement } from '../context/EngagementContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { MIN_PASSWORD_LENGTH, type User } from '../lib/auth';
+import { DEFAULT_PLAN, type PlanId } from '../lib/plans';
 import { availyPoints, customerCode } from '../lib/loyalty';
 import { colors } from '../theme';
 
 type Props = {
   user: User | null;
-  onMenu: () => void;
+  onBack: () => void;
+  onPlanChange: (plan: PlanId) => void;
   onLogin: () => void;
   onRename: (name: string) => Promise<void>;
   onChangePassword: (oldPassword: string, newPassword: string) => Promise<string | null>;
@@ -23,7 +25,8 @@ type Props = {
 
 export function ProfileScreen({
   user,
-  onMenu,
+  onBack,
+  onPlanChange,
   onLogin,
   onRename,
   onChangePassword,
@@ -46,7 +49,7 @@ export function ProfileScreen({
     return (
       <View style={styles.page}>
         <View style={[styles.content, styles.topRow]}>
-          <MenuButton onPress={onMenu} />
+          <BackButton onPress={onBack} />
           <Text style={styles.title}>Profil</Text>
         </View>
         <View style={styles.guest}>
@@ -88,7 +91,7 @@ export function ProfileScreen({
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
-        <MenuButton onPress={onMenu} />
+        <BackButton onPress={onBack} />
         <Text style={styles.title}>{business ? 'İşletme Profili' : 'Profil'}</Text>
       </View>
 
@@ -105,12 +108,10 @@ export function ProfileScreen({
       </View>
 
       {business ? (
-        venue && (
-          <View style={styles.section}>
-            <VenueEditSection venue={venue} onSaved={() => {}} />
-            <PhotoSection venue={venue} />
-          </View>
-        )
+        <View style={styles.section}>
+          {venue && <PhotoSection venue={venue} />}
+          <PlanSection plan={user.plan ?? DEFAULT_PLAN} onPlanChange={onPlanChange} />
+        </View>
       ) : (
         <View style={styles.stats}>
           <Stat value={availyPoints(stamps, used)} label="availy puanı" />

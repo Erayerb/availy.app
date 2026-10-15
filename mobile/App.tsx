@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AboutScreen } from './src/components/AboutScreen';
-import { MenuButton } from './src/components/MenuButton';
-import { Sidebar, type Screen } from './src/components/Sidebar';
+import { BackButton } from './src/components/BackButton';
+import { BUSINESS_TABS, CUSTOMER_TABS, TabBar, type Screen } from './src/components/TabBar';
 import { CampaignsProvider } from './src/context/CampaignsContext';
 import { EngagementProvider, useEngagement } from './src/context/EngagementContext';
 import { SettingsProvider } from './src/context/SettingsContext';
@@ -27,12 +27,14 @@ import type { SortMode } from './src/lib/sort';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { BusinessScreen } from './src/screens/BusinessScreen';
 import { CampaignsScreen } from './src/screens/CampaignsScreen';
-import { ExploreScreen } from './src/screens/ExploreScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { VenueDetailScreen } from './src/screens/VenueDetailScreen';
 import { FavoritesScreen } from './src/screens/FavoritesScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
+import { MoreScreen } from './src/screens/MoreScreen';
+import { SupportScreen } from './src/screens/SupportScreen';
+import { VerificationScreen } from './src/screens/VerificationScreen';
 import { MapScreen } from './src/screens/MapScreen';
 import { VenueSetupScreen } from './src/screens/VenueSetupScreen';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
@@ -79,7 +81,6 @@ function Main() {
   const screen = nav.current;
   const goTo = (next: Screen) => setNav((h) => push(h, next));
   const goBack = () => setNav((h) => back(h, 'home'));
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   // Purpose filters are shared by the home screen and the map
   const [tags, setTags] = useState<Tag[]>([]);
   // Home search and "Konum" filter, kept here so they survive a trip to the map
@@ -110,7 +111,10 @@ function Main() {
     setNav({ current: 'home', stack: [] });
   };
 
-  const openMenu = () => setSidebarOpen(true);
+  const logout = async () => {
+    setEntered(false);
+    await auth.logout();
+  };
 
   const openVenueOnMap = (venue: { id: number; lat: number; lon: number }) => {
     setMapRegion({
@@ -219,6 +223,8 @@ function Main() {
     <EngagementProvider userKey={auth.user?.email ?? 'guest'}>
       <FavoritesProvider signedIn={auth.user !== null} onLoginRequired={() => setAuthForm('login')}>
         <View style={styles.container}>
+          {/* Screens fill the space above the bottom tab bar */}
+          <View style={styles.screen}>
           {screen === 'home' && (
             <HomeScreen
               tags={tags}
@@ -231,7 +237,6 @@ function Main() {
               onQueryChange={setQuery}
               sortMode={sortMode}
               onSortChange={setSortMode}
-              onMenu={openMenu}
               onOpenVenue={openDetails}
             />
           )}
@@ -254,16 +259,12 @@ function Main() {
           {screen === 'business' && auth.user?.venueId && (
             <BusinessScreen
               venueId={auth.user.venueId}
-              plan={auth.user.plan ?? DEFAULT_PLAN}
               verified={auth.user.venueVerified === true}
               onVerified={() => auth.updateProfile({ venueVerified: true })}
-              onMenu={openMenu}
-              onPlanChange={(plan) => auth.updateProfile({ plan })}
               onShowOnMap={openVenueOnMap}
             />
           )}
-          {screen === 'favorites' && <FavoritesScreen onMenu={openMenu} onOpenVenue={openDetails} />}
-          {screen === 'explore' && <ExploreScreen onMenu={openMenu} onOpenVenue={openDetails} />}
+          {screen === 'favorites' && <FavoritesScreen onOpenVenue={openDetails} />}
           {screen === 'detail' && detailId !== null && (
             <VenueDetailScreen
               venueId={detailId}
@@ -276,7 +277,8 @@ function Main() {
           {screen === 'profile' && (
             <ProfileScreen
               user={auth.user}
-              onMenu={openMenu}
+              onBack={goBack}
+              onPlanChange={(plan) => auth.updateProfile({ plan })}
               onLogin={() => setAuthForm('login')}
               onRename={auth.rename}
               onChangePassword={auth.changePassword}
@@ -284,13 +286,16 @@ function Main() {
                 setEntered(false);
                 await auth.deleteAccount();
               }}
-              onLogout={async () => {
-                setEntered(false);
-                await auth.logout();
-              }}
+              onLogout={logout}
             />
           )}
-          {screen === 'settings' && <SettingsScreen onMenu={openMenu} isBusiness={isBusiness(auth.user)} />}
+          {screen === 'settings' && (
+            <SettingsScreen
+              onBack={goBack}
+              isBusiness={isBusiness(auth.user)}
+              venueId={isBusiness(auth.user) ? (auth.user?.venueId ?? null) : null}
+            />
+          )}
           {screen === 'campaigns' && (
             <CampaignsScreen
               signedIn={auth.user !== null}
@@ -305,38 +310,34 @@ function Main() {
                   : null
               }
               onLogin={() => setAuthForm('login')}
-              onMenu={openMenu}
               onOpenVenue={(c) => openVenueOnMap({ id: c.venueId, lat: c.lat, lon: c.lon })}
             />
           )}
           {screen === 'about' && <AboutScreen />}
-
-          {/* Most screens draw their own header; the simple pages share this button */}
           {screen === 'about' && (
-            <View style={styles.menu}>
-              <MenuButton onPress={openMenu} />
+            <View style={styles.back}>
+              <BackButton onPress={goBack} />
             </View>
           )}
+          {screen === 'support' && <SupportScreen email={auth.user?.email ?? null} onBack={goBack} />}
+          {screen === 'verification' && <VerificationScreen onBack={goBack} />}
+          {screen === 'more' && (
+            <MoreScreen
+              user={auth.user}
+              onSelect={goTo}
+              onLogin={() => setAuthForm('login')}
+              onLogout={logout}
+            />
+          )}
+          </View>
 
-          <Sidebar
-            open={sidebarOpen}
+          <TabBar
+            tabs={isBusiness(auth.user) ? BUSINESS_TABS : CUSTOMER_TABS}
             current={screen}
-            user={auth.user}
             onSelect={(next) => {
               goTo(next);
               setSelectedId(null);
-              setSidebarOpen(false);
             }}
-            onLogin={() => {
-              setSidebarOpen(false);
-              setAuthForm('login');
-            }}
-            onLogout={async () => {
-              setSidebarOpen(false);
-              setEntered(false);
-              await auth.logout();
-            }}
-            onClose={() => setSidebarOpen(false)}
           />
 
           {isBusiness(auth.user) && auth.user?.venueId && (
@@ -352,7 +353,8 @@ function Main() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  menu: { position: 'absolute', top: 60, left: 12 },
+  screen: { flex: 1 },
+  back: { position: 'absolute', top: 60, left: 12 },
   alert: {
     position: 'absolute',
     top: 54,

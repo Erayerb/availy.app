@@ -27,6 +27,19 @@ export function couponCode(random: () => number = Math.random): string {
 
 export const normalizeCode = (code: string) => code.trim().toUpperCase().replace(/\s+/g, '');
 
+const QR_PREFIX = 'availy:coupon:';
+
+/** What the coupon's QR code contains. */
+export const couponQrPayload = (code: string) => `${QR_PREFIX}${code}`;
+
+/** Coupon code from a scanned QR (or a code typed by hand); null if it is not a coupon. */
+export function parseCouponQr(data: string): string | null {
+  const text = data.trim();
+  const raw = text.toLowerCase().startsWith(QR_PREFIX) ? text.slice(QR_PREFIX.length) : text;
+  const code = normalizeCode(raw);
+  return /^AV-[A-Z0-9]{4}$/.test(code) ? code : null;
+}
+
 /** Coupons still available for a campaign with a limit (null = unlimited). */
 export function remainingCoupons(campaign: Campaign, coupons: Coupon[]): number | null {
   if (!campaign.maxClaims) return null;

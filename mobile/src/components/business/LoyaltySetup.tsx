@@ -20,7 +20,8 @@ import { ThemedSwitch } from '../ThemedSwitch';
 export function LoyaltySetup({ venue }: { venue: Venue }) {
   const { programs, memberships, saveProgram, removeProgram, giveStamp, redeemReward } = useEngagement();
   const program = programs.find((p) => p.venueId === venue.id);
-  const [editing, setEditing] = useState(!program);
+  // The form opens only when the business asks for it, and can always be cancelled
+  const [editing, setEditing] = useState(false);
   const [kind, setKind] = useState<LoyaltyProgram['kind']>(program?.kind ?? 'stamps');
   const [stamps, setStamps] = useState(String(program?.stampsRequired ?? 5));
   const [reward, setReward] = useState(program?.reward ?? '1 kahve bedava');
@@ -37,6 +38,17 @@ export function LoyaltySetup({ venue }: { venue: Venue }) {
     const code = parseCustomerQr(raw);
     if (!code) return setMessage('Bu bir availy müşteri kodu değil.');
     setMessage(action === 'stamp' ? await giveStamp(code, venue.id) : await redeemReward(code, venue.id));
+  };
+
+  // Drop unsaved changes and go back to what is stored
+  const cancel = () => {
+    setKind(program?.kind ?? 'stamps');
+    setStamps(String(program?.stampsRequired ?? 5));
+    setReward(program?.reward ?? '1 kahve bedava');
+    setPrice(String(program?.price || 149));
+    setPerk(program?.perk ?? 'Her siparişte %15 indirim');
+    setFormError(null);
+    setEditing(false);
   };
 
   const save = () => {
@@ -72,15 +84,23 @@ export function LoyaltySetup({ venue }: { venue: Venue }) {
           </View>
           {program.kind === 'stamps' ? (
             <>
-              <Text style={panel.muted}>Müşterinin telefonundaki QR kodu okut.</Text>
-              <View style={panel.row}>
-                <Pressable style={[panel.primary, { flex: 1 }]} onPress={() => setScan('stamp')}>
-                  <Text style={panel.primaryText}>📷 Damga ver</Text>
-                </Pressable>
-                <Pressable style={[panel.secondary, { flex: 1 }]} onPress={() => setScan('reward')}>
-                  <Text style={panel.secondaryText}>📷 Ödülü kullan</Text>
-                </Pressable>
-              </View>
+              <Text style={panel.muted}>
+                İki durumda da müşterinin Kampanyalar ve Sadakat → Sadakat sekmesindeki QR'ını okutursun.
+              </Text>
+              <Pressable style={panel.primary} onPress={() => setScan('stamp')}>
+                <Text style={panel.primaryText}>📷 Damga ver</Text>
+              </Pressable>
+              <Text style={panel.muted}>
+                Her alışverişte: müşterinin kartına 1 damga eklenir. {program.stampsRequired}. damgada kart
+                dolar ve müşteri 1 ödül kazanır.
+              </Text>
+              <Pressable style={panel.secondary} onPress={() => setScan('reward')}>
+                <Text style={panel.secondaryText}>📷 Ödülü kullandır</Text>
+              </Pressable>
+              <Text style={panel.muted}>
+                Kartı dolmuş müşteri ödülünü ({program.reward}) aldığında: ödül kartından düşer, böylece
+                aynı ödül iki kez kullanılamaz.
+              </Text>
               <Pressable onPress={() => setManual((m) => !m)}>
                 <Text style={panel.muted}>
                   {manual ? 'Elle girişi gizle' : 'Kamera yok mu? Kodu elle yaz'}
@@ -108,14 +128,14 @@ export function LoyaltySetup({ venue }: { venue: Venue }) {
                       style={[panel.secondary, { flex: 1 }]}
                       onPress={() => apply('reward', customer)}
                     >
-                      <Text style={panel.secondaryText}>Ödülü kullan</Text>
+                      <Text style={panel.secondaryText}>Ödülü kullandır</Text>
                     </Pressable>
                   </View>
                 </>
               )}
               <QrScanner
                 visible={scan !== null}
-                title={scan === 'reward' ? 'Ödül için QR okut' : 'Damga için QR okut'}
+                title={scan === 'reward' ? 'Ödülü kullandırmak için QR okut' : 'Damga için QR okut'}
                 onClose={() => setScan(null)}
                 onScanned={(data) => {
                   const action = scan ?? 'stamp';
@@ -137,6 +157,15 @@ export function LoyaltySetup({ venue }: { venue: Venue }) {
               <Text style={{ color: colors.danger, fontWeight: '600' }}>Programı kaldır</Text>
             </Pressable>
           </View>
+        </>
+      ) : !editing ? (
+        <>
+          <Text style={panel.muted}>
+            Müdavimlerini ödüllendir: damga kartı ücretsizdir, üyelik ücretli olabilir.
+          </Text>
+          <Pressable style={panel.primary} onPress={() => setEditing(true)}>
+            <Text style={panel.primaryText}>Sadakat programı oluştur</Text>
+          </Pressable>
         </>
       ) : (
         <>
@@ -177,9 +206,14 @@ export function LoyaltySetup({ venue }: { venue: Venue }) {
             </>
           )}
           {formError && <Text style={panel.error}>{formError}</Text>}
-          <Pressable style={panel.primary} onPress={save}>
-            <Text style={panel.primaryText}>Programı kaydet</Text>
-          </Pressable>
+          <View style={panel.row}>
+            <Pressable style={[panel.secondary, { flex: 1 }]} onPress={cancel}>
+              <Text style={panel.secondaryText}>İptal</Text>
+            </Pressable>
+            <Pressable style={[panel.primary, { flex: 1 }]} onPress={save}>
+              <Text style={panel.primaryText}>Kaydet</Text>
+            </Pressable>
+          </View>
         </>
       )}
     </View>

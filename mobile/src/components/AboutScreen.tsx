@@ -7,7 +7,7 @@ export function AboutScreen() {
     <View style={styles.container}>
       <Wordmark size={44} />
       <Text style={styles.text}>
-        Kafe, bar ve co-working gibi mekanların anlık doluluğunu harita üzerinde gösterir.
+        Kafe, bar ve ortak çalışma alanı gibi mekanların anlık doluluğunu harita üzerinde gösterir.
       </Text>
       <Text style={styles.note}>
         Prototip sürüm: mekanlar ve doluluk oranları örnek (sahte) verilerdir.

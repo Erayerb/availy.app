@@ -113,3 +113,10 @@ test('paused loyalty programs are inactive', () => {
   assert.ok(isProgramActive({ active: undefined } as never));
   assert.ok(!isProgramActive({ active: false } as never));
 });
+
+test('a business can rename its venue; the name must be 2–60 characters', () => {
+  assert.match(validateOverride({ name: ' A ' }) ?? '', /İşletme adı/);
+  assert.equal(validateOverride({ name: 'Yeni Ad Kafe' }), null);
+  const renamed = applyOverride({ name: 'Eski Ad', tags: [] } as never, { name: '  Yeni Ad Kafe ' });
+  assert.equal(renamed.name, 'Yeni Ad Kafe');
+});

@@ -20,6 +20,7 @@ type Campaigns = {
   now: Date;
   create: (input: NewCampaign) => Campaign;
   end: (id: string) => void;
+  remove: (ids: string[]) => void;
   activeFor: (venueId: number) => Campaign | null;
   schedules: ScheduledCampaign[];
   saveSchedule: (schedule: ScheduledCampaign) => void;
@@ -70,6 +71,12 @@ export function CampaignsProvider({ children }: { children: ReactNode }) {
     [update],
   );
 
+  // Deleting only hides a campaign from lists; its coupons stay with the customers
+  const remove = useCallback(
+    (ids: string[]) => update((current) => current.filter((c) => !ids.includes(c.id))),
+    [update],
+  );
+
   // Turn due scheduled campaigns into real ones (checked every tick while the app is open)
   useEffect(() => {
     const due = dueSchedules(schedules, new Set(fired), now);
@@ -106,7 +113,7 @@ export function CampaignsProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <CampaignsContext.Provider value={{ campaigns, now, create, end, activeFor, schedules, saveSchedule, removeSchedule }}>
+    <CampaignsContext.Provider value={{ campaigns, now, create, end, remove, activeFor, schedules, saveSchedule, removeSchedule }}>
       {children}
     </CampaignsContext.Provider>
   );
