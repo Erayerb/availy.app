@@ -102,6 +102,19 @@ def test_hourly_profile_unknown_venue(client):
     assert client.get("/v1/venues/999999/hourly").status_code == 404
 
 
+def test_forecast_endpoint(client, conn):
+    venue_id = next(i for i, r in conn.ratios_by_id.items() if r == 0.2)
+    body = client.get(f"/v1/venues/{venue_id}/forecast", params={"hours": 2}).json()
+    points = body["points"]
+    # One point per 5-minute step, all in the future and in order
+    assert len(points) == 24
+    assert points == sorted(points, key=lambda p: p["at"])
+    assert {p["ratio"] for p in points} == {0.2}
+    assert all(isinstance(p["open"], bool) for p in points)
+    assert client.get("/v1/venues/999999/forecast").status_code == 404
+    assert client.get(f"/v1/venues/{venue_id}/forecast", params={"hours": 48}).status_code == 422
+
+
 def test_history_endpoint(client, conn):
     venue_id = next(iter(conn.ratios_by_id))
     body = client.get(f"/v1/venues/{venue_id}/history", params={"days": 7}).json()

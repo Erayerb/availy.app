@@ -49,6 +49,8 @@ mobile ──GET /v1/venues?bbox=… (30 sn polling)──▶ backend ──▶ 
 | GET | `/v1/venues?bbox=minLon,minLat,maxLon,maxLat&tags=quiet,coworking` | Haritadaki mekanlar + doluluk + semt yoğunluğu (en fazla 200). `tags` verilirse en az birine uyanlar. |
 | GET | `/v1/venues/search?q=&district=&tags=&ids=` | İsimle arama (büyük/küçük harf duyarsız), semt, amaç ve id filtresi (favoriler için) |
 | GET | `/v1/venues/{id}/hourly` | Bugünün saatlik doluluk profili (işletme paneli grafiği) |
+| GET | `/v1/venues/{id}/history?days=30` | Son günlerin günlük ve haftanın günlerine göre ortalama doluluğu (işletme istatistikleri) |
+| GET | `/v1/venues/{id}/forecast?hours=12` | Önümüzdeki saatler için 5 dakikalık adımlarla beklenen doluluk; kalabalık mekanlarda "Tahmini boşalma: ~15:20" satırı buradan hesaplanır |
 | GET | `/v1/districts` | Semt listesi (Türkçe sıralı) |
 
 MVP'de gerçek kullanıcı hesabı ve kimlik doğrulama yok. Mobilde giriş/kayıt ekranları sahte (prototip); favoriler telefonda saklanır.
@@ -61,7 +63,7 @@ MVP'de gerçek kullanıcı hesabı ve kimlik doğrulama yok. Mobilde giriş/kay�
 
 **Veri toplama (tamamı ertelendi):**
 - Wi-Fi cihaz sayımı (`/v1/ingest/wifi`, API anahtarı)
-- `simulator/` ile sahte Wi-Fi verisi gönderimi
+- Sahte Wi-Fi verisi gönderen bir simülatör
 - MAC adresi tabanlı sayım (hash'leme, tekilleştirme)
 - Kullanıcı check-in'leri (GPS ile ≤ 100 m doğrulama, rate limit, cihaz token'ı)
 - Kaynakları birleştirme modeli ("büyük olanı al" / ağırlıklı model)

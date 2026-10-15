@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { AdBanner } from '../components/AdBanner';
 import { ClearButton } from '../components/ClearButton';
 import { Chip, TagChips } from '../components/TagChips';
 import { VenueGrid } from '../components/VenueGrid';
@@ -30,7 +31,11 @@ type Props = {
   onQueryChange: (query: string) => void;
   sortMode: SortMode;
   onSortChange: (mode: SortMode) => void;
+  hideClosed: boolean;
+  onHideClosedChange: (hide: boolean) => void;
   onOpenVenue: (venue: Venue) => void;
+  // Free plan: show the ad slot (null for Premium users)
+  onPremium: (() => void) | null;
 };
 
 export function HomeScreen({
@@ -44,13 +49,19 @@ export function HomeScreen({
   onQueryChange: setQuery,
   sortMode,
   onSortChange,
+  hideClosed,
+  onHideClosedChange,
   onOpenVenue,
+  onPremium,
 }: Props) {
   const visibleDistricts = districtsForSides(useDistricts(), sides);
-  const { venues: found, loading, error } = useSearch(query, null, tags);
+  const { venues: found, loading, error, refreshing, refresh, updatedAt } = useSearch(query, null, tags);
   const venues = useMemo(
-    () => found.filter((v) => matchesSides(v.district, sides) && matchesDistricts(v.district, districts)),
-    [found, sides, districts],
+    () =>
+      found.filter(
+        (v) => matchesSides(v.district, sides) && matchesDistricts(v.district, districts) && (!hideClosed || v.open_now),
+      ),
+    [found, sides, districts, hideClosed],
   );
   const searching = query.trim().length > 0;
   const hasFilters = districts.length > 0 || tags.length > 0 || sides.length > 0;
@@ -145,9 +156,17 @@ export function HomeScreen({
           {SORT_OPTIONS.map(({ mode, label }) => (
             <Chip key={mode} label={label} active={sortMode === mode} onPress={() => onSortChange(mode)} />
           ))}
+          <Chip label="Kapalıları gizle" active={hideClosed} onPress={() => onHideClosedChange(!hideClosed)} />
         </View>
       </View>
       {needsLocation && <Text style={styles.hint}>En yakını göstermek için konum izni gerekli.</Text>}
+      {updatedAt && (
+        <Text style={styles.hint}>
+          Son güncelleme {updatedAt.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+          {Platform.OS === 'web' ? '' : ' · yenilemek için aşağı çek'}
+        </Text>
+      )}
+      {onPremium && <AdBanner onPremium={onPremium} />}
     </View>
   );
 
@@ -158,6 +177,8 @@ export function HomeScreen({
       emptyText={loading ? 'Yükleniyor…' : 'Sonuç bulunamadı'}
       error={error}
       onOpenVenue={onOpenVenue}
+      refreshing={refreshing}
+      onRefresh={refresh}
     />
   );
 }

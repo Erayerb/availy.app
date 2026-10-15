@@ -3,8 +3,11 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { AboutScreen } from './src/components/AboutScreen';
-import { BackButton } from './src/components/BackButton';
+import { Logo } from './src/components/Logo';
+import { Wordmark } from './src/components/Wordmark';
+import { useSettings } from './src/context/SettingsContext';
+import { AboutScreen } from './src/screens/AboutScreen';
+import { SubscriptionScreen } from './src/screens/SubscriptionScreen';
 import { BUSINESS_TABS, CUSTOMER_TABS, TabBar, type Screen } from './src/components/TabBar';
 import { CampaignsProvider } from './src/context/CampaignsContext';
 import { EngagementProvider, useEngagement } from './src/context/EngagementContext';
@@ -50,6 +53,12 @@ const DEFAULT_REGION: Region = {
 // Zoom level used when opening a single venue on the map
 const VENUE_ZOOM = 0.02;
 
+// Signed-in users see only the logo for this long before the app opens
+const SPLASH_MS = 1000;
+
+// First screen after entering: businesses start on their panel
+const landingFor = (role: Role): Screen => (role === 'business' ? 'business' : 'home');
+
 // Before the main app: welcome page, sign in / sign up forms, business venue setup
 type Gate = 'welcome' | 'login' | 'register' | 'venueSetup' | null;
 
@@ -71,7 +80,7 @@ function Main() {
   const [localVenuesReady, setLocalVenuesReady] = useState(false);
   // Script font of the "availy" wordmark; continue anyway if it fails to load
   const [fontLoaded, fontError] = useFonts({ DancingScript_700Bold });
-  // The welcome page shows on every launch; signed-in users get a "continue" option there
+  // Signed-out users start on the welcome page; signed-in users see a short splash
   const [entered, setEntered] = useState(false);
   const [authForm, setAuthForm] = useState<'login' | 'register' | null>(null);
   // Account type chosen on the welcome page, preselected on the form
@@ -80,7 +89,11 @@ function Main() {
   const [nav, setNav] = useState<History<Screen>>({ current: 'home', stack: [] });
   const screen = nav.current;
   const goTo = (next: Screen) => setNav((h) => push(h, next));
-  const goBack = () => setNav((h) => back(h, 'home'));
+  const role: Role = isBusiness(auth.user) ? 'business' : 'personal';
+  const goBack = () => setNav((h) => back(h, landingFor(role)));
+  const { premium } = useSettings();
+  // Home and map: hide venues that are closed right now
+  const [hideClosed, setHideClosed] = useState(false);
   // Purpose filters are shared by the home screen and the map
   const [tags, setTags] = useState<Tag[]>([]);
   // Home search and "Konum" filter, kept here so they survive a trip to the map
@@ -105,11 +118,20 @@ function Main() {
   const needsVenue = isBusiness(auth.user) && !auth.user?.venueId;
   const gate: Gate = authForm ?? (!entered ? 'welcome' : needsVenue ? 'venueSetup' : null);
 
-  const enterApp = () => {
+  const enterApp = (as: Role = 'personal') => {
     setAuthForm(null);
     setEntered(true);
-    setNav({ current: 'home', stack: [] });
+    setNav({ current: landingFor(as), stack: [] });
   };
+
+  const showSplash = gate === 'welcome' && auth.ready && auth.user !== null;
+  useEffect(() => {
+    if (!showSplash) return;
+    const timer = setTimeout(() => enterApp(role), SPLASH_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showSplash]);
+
 
   const logout = async () => {
     setEntered(false);
@@ -150,16 +172,20 @@ function Main() {
     return <View style={styles.container} />;
   }
 
+  if (showSplash) {
+    return (
+      <View style={[styles.container, styles.splash]}>
+        <Logo />
+        <Wordmark size={56} />
+        <StatusBar style="dark" />
+      </View>
+    );
+  }
+
   if (gate === 'welcome') {
     return (
       <>
         <WelcomeScreen
-          user={auth.user}
-          onContinue={enterApp}
-          onSwitchAccount={async () => {
-            await auth.logout();
-            setAuthForm('login');
-          }}
           onLogin={(role) => {
             setAuthRole(role);
             setAuthForm('login');
@@ -168,7 +194,7 @@ function Main() {
             setAuthRole(role);
             setAuthForm('register');
           }}
-          onGuest={enterApp}
+          onGuest={() => enterApp('personal')}
         />
         <StatusBar style="dark" />
       </>
@@ -186,12 +212,12 @@ function Main() {
           onSwitchMode={setAuthForm}
           onLogin={async (email, password, role) => {
             const error = await auth.login(email, password, role);
-            if (!error) enterApp();
+            if (!error) enterApp(role);
             return error;
           }}
           onRegister={async (name, email, password, role) => {
             const error = await auth.register(name, email, password, role);
-            if (!error) enterApp();
+            if (!error) enterApp(role);
             return error;
           }}
         />
@@ -237,7 +263,10 @@ function Main() {
               onQueryChange={setQuery}
               sortMode={sortMode}
               onSortChange={setSortMode}
+              hideClosed={hideClosed}
+              onHideClosedChange={setHideClosed}
               onOpenVenue={openDetails}
+              onPremium={premium ? null : () => goTo('subscription')}
             />
           )}
           {screen === 'map' && (
@@ -246,6 +275,8 @@ function Main() {
               onRegionSaved={setMapRegion}
               tags={tags}
               onTagsChange={setTags}
+              hideClosed={hideClosed}
+              onHideClosedChange={setHideClosed}
               selectedId={selectedId}
               onSelect={setSelectedId}
               onMarkerPress={(id) => setSelectedId((current) => toggleSingle(current, id))}
@@ -259,8 +290,6 @@ function Main() {
           {screen === 'business' && auth.user?.venueId && (
             <BusinessScreen
               venueId={auth.user.venueId}
-              verified={auth.user.venueVerified === true}
-              onVerified={() => auth.updateProfile({ venueVerified: true })}
               onShowOnMap={openVenueOnMap}
             />
           )}
@@ -304,7 +333,6 @@ function Main() {
                   ? {
                       venueId: auth.user.venueId,
                       plan: auth.user.plan ?? DEFAULT_PLAN,
-                      verified: auth.user.venueVerified === true,
                       onPlanChange: (plan) => auth.updateProfile({ plan }),
                     }
                   : null
@@ -313,14 +341,12 @@ function Main() {
               onOpenVenue={(c) => openVenueOnMap({ id: c.venueId, lat: c.lat, lon: c.lon })}
             />
           )}
-          {screen === 'about' && <AboutScreen />}
-          {screen === 'about' && (
-            <View style={styles.back}>
-              <BackButton onPress={goBack} />
-            </View>
-          )}
+          {screen === 'about' && <AboutScreen role={role} onBack={goBack} />}
           {screen === 'support' && <SupportScreen email={auth.user?.email ?? null} onBack={goBack} />}
           {screen === 'verification' && <VerificationScreen onBack={goBack} />}
+          {screen === 'subscription' && (
+            <SubscriptionScreen signedIn={auth.user !== null} onBack={goBack} onLogin={() => setAuthForm('login')} />
+          )}
           {screen === 'more' && (
             <MoreScreen
               user={auth.user}
@@ -354,7 +380,7 @@ function Main() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   screen: { flex: 1 },
-  back: { position: 'absolute', top: 60, left: 12 },
+  splash: { alignItems: 'center', justifyContent: 'center', gap: 14 },
   alert: {
     position: 'absolute',
     top: 54,

@@ -1,4 +1,4 @@
-import random
+import math
 from dataclasses import dataclass
 from datetime import date, datetime, time, timezone
 from enum import StrEnum
@@ -66,6 +66,31 @@ ALWAYS_BUSY_BASE = 0.88
 ALWAYS_BUSY_NOISE = 0.08
 
 
+def _imul(a: int, b: int) -> int:
+    """32-bit multiply like JavaScript's Math.imul (as an unsigned value)."""
+    return (a * b) & 0xFFFFFFFF
+
+
+def seeded_random(seed: str) -> float:
+    """Deterministic number in [0, 1) for a string seed (FNV-1a + mulberry32 step).
+
+    Same algorithm as mobile/src/lib/dummyOccupancy.ts, so the backend and the
+    serverless web demo show the same fake occupancy.
+    """
+    h = 2166136261
+    for ch in seed:
+        h = _imul(h ^ ord(ch), 16777619)
+    t = (h + 0x6D2B79F5) & 0xFFFFFFFF
+    t = _imul(t ^ (t >> 15), t | 1)
+    t ^= (t + _imul(t ^ (t >> 7), t | 61)) & 0xFFFFFFFF
+    return (t ^ (t >> 14)) / 4294967296
+
+
+def round_ratio(ratio: float) -> float:
+    """Two decimals, rounding halves up like JavaScript's Math.round."""
+    return math.floor(ratio * 100 + 0.5) / 100
+
+
 class DummyOccupancyProvider:
     """Fake occupancy for the MVP: no real data source is used.
 
@@ -85,14 +110,14 @@ class DummyOccupancyProvider:
         self, venue_id: int, at: datetime, popularity: float = 1.0, always_busy: bool = False
     ) -> Occupancy:
         bucket = int(at.timestamp()) // self.bucket_seconds
-        rng = random.Random(f"{venue_id}:{bucket}")
+        noise = seeded_random(f"{venue_id}:{bucket}") * 2 - 1
 
         local_hour = at.astimezone(self.tz).hour
         if always_busy:
-            ratio = ALWAYS_BUSY_BASE + rng.uniform(-ALWAYS_BUSY_NOISE, ALWAYS_BUSY_NOISE)
+            ratio = ALWAYS_BUSY_BASE + noise * ALWAYS_BUSY_NOISE
         else:
-            ratio = (HOURLY_BASE[local_hour] + rng.uniform(-NOISE, NOISE)) * popularity
-        ratio = round(min(max(ratio, 0.0), 1.0), 2)
+            ratio = (HOURLY_BASE[local_hour] + noise * NOISE) * popularity
+        ratio = round_ratio(min(max(ratio, 0.0), 1.0))
 
         return Occupancy(
             level=classify(ratio),

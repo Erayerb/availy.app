@@ -13,6 +13,7 @@ export type Screen =
   | 'profile'
   | 'settings'
   | 'support'
+  | 'subscription'
   | 'verification'
   | 'about'
   | 'detail';
@@ -26,11 +27,11 @@ const MORE: Tab = { screen: 'more', label: 'Daha fazla', icon: 'menu' };
 
 // The map sits in the middle of the bar
 export const CUSTOMER_TABS: Tab[] = [HOME, CAMPAIGNS, MAP, { screen: 'favorites', label: 'Favoriler', icon: 'heart' }, MORE];
-// Businesses have their panel instead of favorites
-export const BUSINESS_TABS: Tab[] = [HOME, CAMPAIGNS, MAP, { screen: 'business', label: 'Panel', icon: 'chart' }, MORE];
+// Businesses: home, panel, map (middle), campaigns; the app still opens on the panel
+export const BUSINESS_TABS: Tab[] = [HOME, { screen: 'business', label: 'Panel', icon: 'chart' }, MAP, CAMPAIGNS, MORE];
 
 // Pages opened from the "Daha fazla" list keep that tab highlighted
-const MORE_PAGES: Screen[] = ['more', 'profile', 'settings', 'support', 'verification', 'about'];
+const MORE_PAGES: Screen[] = ['more', 'subscription', 'profile', 'settings', 'support', 'verification', 'about'];
 
 type Props = {
   tabs: Tab[];

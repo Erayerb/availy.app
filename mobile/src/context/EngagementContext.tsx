@@ -9,6 +9,7 @@ import { Platform } from 'react-native';
 import { usePersistentState } from '../hooks/usePersistentState';
 import type { Accounts } from '../lib/accounts';
 import { fetchVenuesByIds } from '../lib/api';
+import { canAddWatch, FREE_WATCH_LIMIT } from '../lib/premium';
 import type { Campaign } from '../lib/campaigns';
 import { claimCoupon, couponCode, parseCoupons, redeemCoupon, type Coupon } from '../lib/coupons';
 import {
@@ -84,7 +85,7 @@ async function userForCode(code: string): Promise<string | null> {
 }
 
 export function EngagementProvider({ userKey, children }: { userKey: string; children: ReactNode }) {
-  const { watchNotifications } = useSettings();
+  const { watchNotifications, premium } = useSettings();
   const [coupons, setCoupons] = usePersistentState<Coupon[]>(KEYS.coupons, [], parseCoupons);
   const [views, setViews] = usePersistentState<Record<string, number>>(KEYS.campaignViews, {}, asRecord);
   const [programs, setPrograms] = usePersistentState<LoyaltyProgram[]>(KEYS.loyaltyPrograms, [], asArray);
@@ -187,10 +188,15 @@ export function EngagementProvider({ userKey, children }: { userKey: string; chi
 
   const toggleWatchFor = useCallback(
     (venue: { id: number; name: string }) => {
+      const adding = !watches.some((w) => w.venueId === venue.id);
+      if (adding && !canAddWatch(watches.length, premium)) {
+        setAlert(`Ücretsiz planda aynı anda ${FREE_WATCH_LIMIT} mekanı takip edebilirsin. Sınırsız takip için Premium: Daha fazla → Abonelik`);
+        return;
+      }
       setWatches((list) => toggleWatch(list, venue, new Date()));
       if (Platform.OS !== 'web' && watchNotifications) Notifications.requestPermissionsAsync().catch(() => {});
     },
-    [setWatches, watchNotifications],
+    [setWatches, watchNotifications, watches, premium],
   );
 
   // While the app is open, check watched venues and notify once they drop below 70%

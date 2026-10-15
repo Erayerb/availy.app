@@ -9,9 +9,10 @@ export type Settings = {
   watchNotifications: boolean; // phone notification when a watched venue empties
   deadHourAlerts: boolean; // business: tell me when my venue is in a dead hour
   autoCampaign: boolean; // business: send the ready-made campaign automatically in a dead hour
+  premium: boolean; // B2C Premium (demo, no payment): no ads, unlimited watches
 };
 
-const DEFAULTS: Settings = { colorBlind: false, watchNotifications: true, deadHourAlerts: true, autoCampaign: false };
+const DEFAULTS: Settings = { colorBlind: false, watchNotifications: true, deadHourAlerts: true, autoCampaign: false, premium: false };
 
 type SettingsValue = Settings & {
   update: (patch: Partial<Settings>) => void;

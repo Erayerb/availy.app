@@ -21,16 +21,17 @@ export type Campaign = {
   discount: number | null; // percent, or null for a message without a discount
   radiusKm: number;
   maxClaims?: number | null; // coupon limit; missing or null = unlimited
+  durationHours?: number; // planned length, reused by "Tekrar gönder" (missing in older data)
   startsAt: string; // ISO
   endsAt: string; // ISO; moved to "now" when the business ends it early
 };
 
-export type NewCampaign = Omit<Campaign, 'id' | 'startsAt' | 'endsAt'> & { durationHours: number };
+export type NewCampaign = Omit<Campaign, 'id' | 'startsAt' | 'endsAt' | 'durationHours'> & { durationHours: number };
 
 export function createCampaign(input: NewCampaign, now: Date, id: string): Campaign {
-  const { durationHours, ...rest } = input;
+  const { durationHours } = input;
   return {
-    ...rest,
+    ...input,
     message: input.message.trim(),
     id,
     startsAt: now.toISOString(),
@@ -47,6 +48,22 @@ export function validateCampaign(message: string): string | null {
 
 export const isActive = (c: Campaign, now: Date) =>
   new Date(c.startsAt).getTime() <= now.getTime() && now.getTime() < new Date(c.endsAt).getTime();
+
+/** Same campaign again, starting now ("Tekrar gönder"). */
+export function repeatCampaign(c: Campaign): NewCampaign {
+  const planned = c.durationHours ?? Math.round((new Date(c.endsAt).getTime() - new Date(c.startsAt).getTime()) / 3_600_000);
+  return {
+    venueId: c.venueId,
+    venueName: c.venueName,
+    lat: c.lat,
+    lon: c.lon,
+    message: c.message,
+    discount: c.discount,
+    radiusKm: c.radiusKm,
+    maxClaims: c.maxClaims ?? null,
+    durationHours: Math.min(Math.max(planned, 1), 24),
+  };
+}
 
 export function endCampaign(c: Campaign, now: Date): Campaign {
   return { ...c, endsAt: now.toISOString() };

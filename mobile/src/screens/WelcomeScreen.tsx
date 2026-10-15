@@ -3,13 +3,10 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Logo } from '../components/Logo';
 import { Wordmark } from '../components/Wordmark';
-import type { Role, User } from '../lib/auth';
+import type { Role } from '../lib/auth';
 import { colors } from '../theme';
 
 type Props = {
-  user: User | null;
-  onContinue: () => void;
-  onSwitchAccount: () => void;
   onLogin: (role: Role) => void;
   onRegister: (role: Role) => void;
   onGuest: () => void;
@@ -17,7 +14,8 @@ type Props = {
 
 const ROLE_LABELS: Record<Role, string> = { personal: 'Bireysel', business: 'İşletme' };
 
-export function WelcomeScreen({ user, onContinue, onSwitchAccount, onLogin, onRegister, onGuest }: Props) {
+/** First page for signed-out users; signed-in users only see a short splash. */
+export function WelcomeScreen({ onLogin, onRegister, onGuest }: Props) {
   // Guests first pick an account type, then sign in or sign up
   const [role, setRole] = useState<Role | null>(null);
 
@@ -29,52 +27,36 @@ export function WelcomeScreen({ user, onContinue, onSwitchAccount, onLogin, onRe
         <Text style={styles.tagline}>Şu an nerede yer var?</Text>
       </View>
 
-      {user ? (
-        <View style={styles.actions}>
-          <Text style={styles.greeting}>Merhaba, {user.name}</Text>
-          <Text style={styles.email}>{user.email}</Text>
-          <Pressable onPress={onContinue} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
-            <Text style={styles.primaryText}>Bu hesapla devam et</Text>
-          </Pressable>
-          <Pressable
-            onPress={onSwitchAccount}
-            style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
-          >
-            <Text style={styles.secondaryText}>Farklı hesapla giriş yap</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <View style={styles.actions}>
-          {role === null ? (
-            <>
-              <Text style={styles.question}>availy'yi nasıl kullanacaksın?</Text>
-              <Pressable onPress={() => setRole('personal')} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
-                <Text style={styles.primaryText}>Bireysel</Text>
-              </Pressable>
-              <Pressable onPress={() => setRole('business')} style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}>
-                <Text style={styles.secondaryText}>İşletme</Text>
-              </Pressable>
-            </>
-          ) : (
-            <>
-              <Pressable onPress={() => setRole(null)} hitSlop={10}>
-                <Text style={styles.roleLine}>
-                  {ROLE_LABELS[role]} hesap · <Text style={styles.change}>değiştir</Text>
-                </Text>
-              </Pressable>
-              <Pressable onPress={() => onLogin(role)} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
-                <Text style={styles.primaryText}>Giriş Yap</Text>
-              </Pressable>
-              <Pressable onPress={() => onRegister(role)} style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}>
-                <Text style={styles.secondaryText}>Kayıt Ol</Text>
-              </Pressable>
-            </>
-          )}
-          <Pressable onPress={onGuest} hitSlop={10} style={styles.guest}>
-            <Text style={styles.guestText}>Kayıt olmadan devam et</Text>
-          </Pressable>
-        </View>
-      )}
+      <View style={styles.actions}>
+        {role === null ? (
+          <>
+            <Text style={styles.question}>availy'yi nasıl kullanacaksın?</Text>
+            <Pressable onPress={() => setRole('personal')} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
+              <Text style={styles.primaryText}>Bireysel</Text>
+            </Pressable>
+            <Pressable onPress={() => setRole('business')} style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}>
+              <Text style={styles.secondaryText}>İşletme</Text>
+            </Pressable>
+          </>
+        ) : (
+          <>
+            <Pressable onPress={() => setRole(null)} hitSlop={10}>
+              <Text style={styles.roleLine}>
+                {ROLE_LABELS[role]} hesap · <Text style={styles.change}>değiştir</Text>
+              </Text>
+            </Pressable>
+            <Pressable onPress={() => onLogin(role)} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
+              <Text style={styles.primaryText}>Giriş Yap</Text>
+            </Pressable>
+            <Pressable onPress={() => onRegister(role)} style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}>
+              <Text style={styles.secondaryText}>Kayıt Ol</Text>
+            </Pressable>
+          </>
+        )}
+        <Pressable onPress={onGuest} hitSlop={10} style={styles.guest}>
+          <Text style={styles.guestText}>Kayıt olmadan devam et</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -87,8 +69,6 @@ const styles = StyleSheet.create({
   question: { fontSize: 17, fontWeight: '600', color: colors.text, textAlign: 'center', marginBottom: 4 },
   roleLine: { fontSize: 15, color: colors.textMuted, textAlign: 'center', marginBottom: 4 },
   change: { color: colors.primary, textDecorationLine: 'underline' },
-  greeting: { fontSize: 22, fontWeight: '700', color: colors.text, textAlign: 'center' },
-  email: { fontSize: 14, color: colors.textMuted, textAlign: 'center', marginTop: -6, marginBottom: 8 },
   primary: { paddingVertical: 15, borderRadius: 14, backgroundColor: colors.primary, alignItems: 'center' },
   primaryText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
   secondary: {

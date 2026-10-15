@@ -13,7 +13,7 @@ type Props = {
 
 export function FavoritesScreen({ onOpenVenue }: Props) {
   const { ids } = useFavorites();
-  const { venues, loading, error } = useVenuesByIds(ids);
+  const { venues, loading, error, refreshing, refresh } = useVenuesByIds(ids);
   // Hide a venue right away when it is un-favorited, without waiting for a refetch
   const { point } = useLocation();
   const favorites = venues.filter((v) => ids.includes(v.id));
@@ -32,6 +32,8 @@ export function FavoritesScreen({ onOpenVenue }: Props) {
       emptyText={loading ? 'Yükleniyor…' : 'Henüz favori mekanın yok.\nMekanlardaki ♡ ile ekleyebilirsin.'}
       error={error}
       onOpenVenue={onOpenVenue}
+      refreshing={refreshing}
+      onRefresh={refresh}
     />
   );
 }

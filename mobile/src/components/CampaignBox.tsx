@@ -25,7 +25,7 @@ export function CampaignBox({ campaign }: { campaign: Campaign }) {
       {coupon ? (
         <View style={styles.code}>
           <Text style={styles.codeLabel}>
-            {coupon.redeemedAt ? 'Kupon kullanıldı' : 'Kasada bu kodu göster'}
+            {coupon.redeemedAt ? 'Kupon kullanıldı' : "Kasada göster · QR'ı Kampanyalar → Kuponlarım'da"}
           </Text>
           <Text style={[styles.codeText, coupon.redeemedAt && styles.used]}>{coupon.code}</Text>
         </View>

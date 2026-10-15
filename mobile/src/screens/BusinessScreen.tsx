@@ -26,15 +26,11 @@ const istanbulHour = (now: Date) => (now.getUTCHours() + 3) % 24;
 
 type Props = {
   venueId: number;
-  verified: boolean;
-  onVerified: () => void;
   onShowOnMap: (venue: Venue) => void;
 };
 
 export function BusinessScreen({
   venueId,
-  verified,
-  onVerified,
   onShowOnMap,
 }: Props) {
   const { venue, hourly, all, error } = useBusinessData(venueId);
@@ -90,7 +86,7 @@ export function BusinessScreen({
           <View style={styles.nowInfo}>
             <View style={styles.levelRow}>
               <LevelDot level={venue.occupancy.level} open={venue.open_now} />
-              <Text style={styles.text}>{label}</Text>
+              <Text style={styles.text}>{venue.open_now ? label : `${venue.opens_at}'de açılır`}</Text>
             </View>
             <Text style={styles.muted}>🕒 {venue.hours}</Text>
           </View>
@@ -205,7 +201,6 @@ const styles = StyleSheet.create({
   bigPercent: { fontSize: 44, fontWeight: '800', color: colors.text },
   nowInfo: { gap: 4, flex: 1 },
   levelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  dot: { width: 10, height: 10, borderRadius: 5 },
   alert: {
     padding: 12,
     borderRadius: 12,
@@ -224,17 +219,6 @@ const styles = StyleSheet.create({
   fillBar: { height: 8, borderRadius: 4, backgroundColor: colors.primary },
   compRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   compPercent: { fontSize: 14, fontWeight: '600', color: colors.text, minWidth: 52, textAlign: 'right' },
-  input: {
-    minHeight: 70,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: colors.cream,
-    fontSize: 15,
-    color: colors.text,
-    textAlignVertical: 'top',
-  },
-  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  error: { color: colors.danger, fontSize: 14 },
   primary: {
     paddingVertical: 13,
     paddingHorizontal: 12,
@@ -243,9 +227,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryText: { color: colors.onPrimary, fontSize: 15, fontWeight: '600', textAlign: 'center' },
-  campaign: { paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.border, gap: 4 },
-  ended: { opacity: 0.5 },
-  stats: { fontSize: 12, color: colors.textMuted },
-  campaignMeta: { flexDirection: 'row', justifyContent: 'space-between' },
-  endText: { color: colors.danger, fontWeight: '600' },
 });
