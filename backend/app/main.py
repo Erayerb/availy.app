@@ -187,6 +187,40 @@ def history(
     }
 
 
+class ForecastPoint(BaseModel):
+    at: datetime
+    ratio: float
+    open: bool
+
+
+class ForecastOut(BaseModel):
+    venue_id: int
+    points: list[ForecastPoint]
+
+
+@app.get("/v1/venues/{venue_id}/forecast", response_model=ForecastOut)
+def forecast(
+    venue_id: int,
+    hours: int = Query(12, ge=1, le=24),
+    conn: psycopg.Connection = Depends(get_conn),
+    provider: OccupancyProvider = Depends(get_occupancy_provider),
+):
+    """Expected occupancy for each upcoming time step, so the app can schedule
+    "it emptied" / dead-hour notifications that fire while it is closed."""
+    venue = find_venue_profile(conn, venue_id)
+    if venue is None:
+        raise HTTPException(status_code=404, detail="venue not found")
+    opening = hours_for(venue["category"], venue["always_busy"])
+    step = settings.dummy_bucket_seconds
+    first = (int(datetime.now(timezone.utc).timestamp()) // step + 1) * step
+    points = []
+    for i in range(hours * 3600 // step):
+        at = datetime.fromtimestamp(first + i * step, tz=timezone.utc)
+        o = provider.get(venue_id, at, venue["popularity"], venue["always_busy"])
+        points.append({"at": at, "ratio": o.ratio, "open": opening.is_open_at_hour(local_hour(at))})
+    return {"venue_id": venue_id, "points": points}
+
+
 @app.get("/v1/districts", response_model=list[str])
 def districts(conn: psycopg.Connection = Depends(get_conn)):
     return list_districts(conn)

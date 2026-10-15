@@ -9,6 +9,7 @@ type Item = { screen: Screen; label: string; hint?: string; badge?: string };
 
 const CUSTOMER_ITEMS: Item[] = [
   { screen: 'profile', label: 'Profil', hint: 'Ad, şifre ve hesap' },
+  { screen: 'subscription', label: 'Abonelik', hint: 'Ücretsiz ya da Premium (₺79/ay)' },
   { screen: 'settings', label: 'Ayarlar', hint: 'Renk körlüğü modu, bildirimler, konum' },
 ];
 
@@ -20,7 +21,7 @@ const BUSINESS_ITEMS: Item[] = [
 
 const COMMON_ITEMS: Item[] = [
   { screen: 'support', label: 'Hata bildir ve iletişim', hint: 'Sorun bildir ya da bize yaz' },
-  { screen: 'about', label: 'Hakkında' },
+  { screen: 'about', label: 'Hakkında', hint: 'Nasıl kullanılır: renkler, bildirimler, kampanyalar' },
 ];
 
 type Props = {

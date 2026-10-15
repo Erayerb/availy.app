@@ -28,6 +28,8 @@ type Props = {
   onRegionSaved: (region: Region) => void;
   tags: Tag[];
   onTagsChange: (tags: Tag[]) => void;
+  hideClosed: boolean;
+  onHideClosedChange: (hide: boolean) => void;
   selectedId: number | null;
   onSelect: (id: number | null) => void;
   // Tapping the selected dot again closes its card
@@ -41,6 +43,8 @@ export function MapScreen({
   onRegionSaved,
   tags,
   onTagsChange,
+  hideClosed,
+  onHideClosedChange,
   selectedId,
   onSelect,
   onMarkerPress,
@@ -96,7 +100,7 @@ export function MapScreen({
     <View style={styles.container}>
       <VenueMap
         initialRegion={initialRegion}
-        venues={venues}
+        venues={hideClosed ? venues.filter((v) => v.open_now) : venues}
         selectedId={selectedId}
         onMarkerPress={onMarkerPress}
         onMapPress={() => onSelect(null)}
@@ -177,7 +181,12 @@ export function MapScreen({
         <FilterBar
           selected={tags}
           onToggle={(tag) => onTagsChange(toggleTag(tags, tag))}
-          onClear={() => onTagsChange([])}
+          hideClosed={hideClosed}
+          onHideClosedChange={onHideClosedChange}
+          onClear={() => {
+            onTagsChange([]);
+            onHideClosedChange(false);
+          }}
         />
       </View>
     </View>

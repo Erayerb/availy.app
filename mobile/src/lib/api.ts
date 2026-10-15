@@ -1,5 +1,6 @@
 import demoVenues from '../data/demoVenues.json';
 import { hourlyProfile } from './dummyOccupancy';
+import { localForecast, withOpening, type ForecastPoint } from './forecast';
 import { computeHistory, type History } from './history';
 import { hoursFor, isOpenAtHour } from './hours';
 import { getOverride, withOverrides } from './overrideStore';
@@ -117,6 +118,19 @@ export async function fetchHistory(venueId: number, days: number, signal?: Abort
     return computeHistory(venueId, venue?.popularity ?? 1, venue?.always_busy ?? false, opening, days);
   }
   return getJson<History>(`/v1/venues/${venueId}/history?days=${days}`, signal);
+}
+
+/** Expected occupancy in 5-minute steps for the next hours (scheduled notifications). */
+export async function fetchForecast(venueId: number, signal?: AbortSignal): Promise<ForecastPoint[]> {
+  const all = [...(demoVenues as DemoVenue[]), ...getLocalVenues()];
+  const venue = all.find((v) => v.id === venueId);
+  const edited = getOverride(venueId)?.hours;
+  if (STATIC_DATA || isLocalVenueId(venueId)) {
+    const opening = edited ?? hoursFor(venue?.category ?? '', venue?.always_busy);
+    return localForecast(venueId, venue?.popularity ?? 1, venue?.always_busy ?? false, opening);
+  }
+  const { points } = await getJson<{ points: ForecastPoint[] }>(`/v1/venues/${venueId}/forecast`, signal);
+  return edited ? withOpening(points, edited) : points;
 }
 
 async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {

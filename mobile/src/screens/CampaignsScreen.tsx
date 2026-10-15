@@ -10,10 +10,10 @@ import { Chip } from '../components/TagChips';
 import { useCampaigns } from '../context/CampaignsContext';
 import { useEngagement } from '../context/EngagementContext';
 import { useLocation } from '../context/LocationContext';
-import { isActive, timeLeft, visibleCampaigns, type Campaign } from '../lib/campaigns';
+import { isActive, repeatCampaign, timeLeft, visibleCampaigns, type Campaign } from '../lib/campaigns';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
 import { campaignStats, couponQrPayload } from '../lib/coupons';
-import { formatDistance } from '../lib/geo';
+import { distanceKm, formatDistance } from '../lib/geo';
 import type { PlanId } from '../lib/plans';
 import QRCode from 'react-native-qrcode-svg';
 
@@ -26,7 +26,7 @@ import {
 } from '../lib/loyalty';
 import { colors } from '../theme';
 
-type Tab = 'campaigns' | 'coupons' | 'loyalty' | 'myCampaigns' | 'myPrograms' | 'venueCoupons';
+type Tab = 'campaigns' | 'coupons' | 'loyalty' | 'myCampaigns' | 'myPrograms' | 'venueCoupons' | 'rivals';
 
 // Campaigns, coupons and loyalty share one bottom tab
 const CUSTOMER_TABS: { tab: Tab; label: string }[] = [
@@ -35,18 +35,20 @@ const CUSTOMER_TABS: { tab: Tab; label: string }[] = [
   { tab: 'loyalty', label: 'Sadakat' },
 ];
 
-// A business sees its own campaigns, coupons and loyalty program, plus what customers nearby see
+// A business sees its own campaigns, coupons and loyalty program, plus its rivals' campaigns
 const BUSINESS_TABS: { tab: Tab; label: string }[] = [
   { tab: 'myCampaigns', label: 'Kampanyalarım' },
   { tab: 'venueCoupons', label: 'Kuponlar' },
   { tab: 'myPrograms', label: 'Sadakat programım' },
-  { tab: 'campaigns', label: 'Yakındaki' },
+  { tab: 'rivals', label: 'Rakipler' },
 ];
+
+// "Rakipler": active campaigns of other venues this close to the business
+const RIVAL_RADIUS_KM = 3;
 
 export type BusinessInfo = {
   venueId: number;
   plan: PlanId;
-  verified: boolean;
   onPlanChange: (plan: PlanId) => void;
 };
 
@@ -77,6 +79,7 @@ export function CampaignsScreen({ signedIn, business, onLogin, onOpenVenue }: Pr
       {tab === 'myCampaigns' && business && <MyCampaigns business={business} />}
       {tab === 'myPrograms' && business && <MyPrograms business={business} />}
       {tab === 'venueCoupons' && business && <VenueCoupons venueId={business.venueId} />}
+      {tab === 'rivals' && business && <Rivals venueId={business.venueId} />}
     </ScrollView>
   );
 }
@@ -103,8 +106,8 @@ function CampaignList({ onOpenVenue }: Pick<Props, 'onOpenVenue'>) {
       </Text>
       {nearby.length === 0 && (
         <Text style={styles.empty}>
-          Yakınında aktif kampanya yok.{'\n'}İşletme hesabıyla panelden kampanya oluşturup burada
-          görebilirsin.
+          Yakınında aktif kampanya yok.{'\n'}İşletme hesabıyla Kampanyalar sekmesinden kampanya oluşturup
+          burada görebilirsin.
         </Text>
       )}
       {nearby.map(({ campaign, distanceKm }) => (
@@ -259,7 +262,7 @@ function Loyalty({ signedIn, onLogin }: { signedIn: boolean; onLogin: () => void
 
 /** Business: new campaign, scheduled campaigns and results of its own campaigns. */
 function MyCampaigns({ business }: { business: BusinessInfo }) {
-  const { campaigns, now, end, remove } = useCampaigns();
+  const { campaigns, now, end, remove, create } = useCampaigns();
   const { views, coupons } = useEngagement();
   const { venues } = useVenuesByIds([business.venueId]);
   const venue = venues[0];
@@ -291,9 +294,9 @@ function MyCampaigns({ business }: { business: BusinessInfo }) {
         const live = isActive(c, now);
         const stats = campaignStats(c.id, views, coupons);
         return (
-          <View key={c.id} style={[styles.card, !live && styles.faded]}>
-            <Text style={styles.text}>{c.message}</Text>
-            <Text style={styles.muted}>
+          <View key={c.id} style={styles.card}>
+            <Text style={[styles.text, !live && styles.faded]}>{c.message}</Text>
+            <Text style={[styles.muted, !live && styles.faded]}>
               {live ? `Aktif · ${timeLeft(c, now)}` : 'Bitti'} · {c.radiusKm} km · 👁 {stats.views} gösterim ·
               🎟 {stats.claims} kupon · ✅ {stats.redemptions} kullanım
             </Text>
@@ -302,13 +305,52 @@ function MyCampaigns({ business }: { business: BusinessInfo }) {
                 <Text style={styles.endText}>Bitir</Text>
               </Pressable>
             ) : (
-              <Pressable onPress={() => remove([c.id])} hitSlop={8}>
-                <Text style={styles.endText}>🗑 Sil</Text>
-              </Pressable>
+              <View style={styles.actions}>
+                <Pressable onPress={() => create(repeatCampaign(c))} hitSlop={8}>
+                  <Text style={styles.repeatText}>↻ Tekrar gönder</Text>
+                </Pressable>
+                <Pressable onPress={() => remove([c.id])} hitSlop={8}>
+                  <Text style={styles.endText}>🗑 Sil</Text>
+                </Pressable>
+              </View>
             )}
           </View>
         );
       })}
+    </View>
+  );
+}
+
+/** Business: what nearby venues are offering right now. */
+function Rivals({ venueId }: { venueId: number }) {
+  const { campaigns, now } = useCampaigns();
+  const { venues } = useVenuesByIds([venueId]);
+  const venue = venues[0];
+  if (!venue) return null;
+  const rivals = campaigns
+    .filter((c) => c.venueId !== venueId && isActive(c, now))
+    .map((c) => ({ campaign: c, km: distanceKm(venue, c) }))
+    .filter(({ km }) => km <= RIVAL_RADIUS_KM)
+    .sort((a, b) => a.km - b.km);
+
+  return (
+    <View style={styles.list}>
+      <Text style={styles.muted}>{RIVAL_RADIUS_KM} km içindeki diğer mekanların şu anki kampanyaları</Text>
+      {rivals.length === 0 && <Text style={styles.empty}>Şu an yakınında kampanya yapan başka mekan yok.</Text>}
+      {rivals.map(({ campaign, km }) => (
+        <View key={campaign.id} style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.venue} numberOfLines={1}>
+              {campaign.venueName}
+            </Text>
+            {campaign.discount !== null && <Text style={styles.badge}>%{campaign.discount}</Text>}
+          </View>
+          <Text style={styles.text}>{campaign.message}</Text>
+          <Text style={styles.muted}>
+            📍 {formatDistance(km)} · {timeLeft(campaign, now)} · {campaign.radiusKm} km'ye gönderildi
+          </Text>
+        </View>
+      ))}
     </View>
   );
 }
@@ -421,4 +463,6 @@ const styles = StyleSheet.create({
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: colors.text, marginTop: 4 },
   endText: { color: colors.danger, fontWeight: '600' },
+  repeatText: { color: colors.primary, fontWeight: '600' },
+  actions: { flexDirection: 'row', gap: 18 },
 });

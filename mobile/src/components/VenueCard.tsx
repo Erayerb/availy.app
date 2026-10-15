@@ -13,6 +13,7 @@ import { areaStatus, formatRatio } from '../lib/occupancy';
 import { shareVenue } from '../lib/shareVenue';
 import { colors } from '../theme';
 import { CampaignBox } from './CampaignBox';
+import { useEmptyingEstimate } from '../hooks/useEmptyingEstimate';
 import { FavoriteButton } from './FavoriteButton';
 import { LevelDot } from './LevelDot';
 import { WatchButton } from './WatchButton';
@@ -38,6 +39,7 @@ export function VenueCard({ venue, onClose, onDetails, onShowAlternatives, onLay
   const { point } = useLocation();
   const [note, setNote] = useState<string | null>(null);
   const watching = watches.some((w) => w.venueId === venue.id);
+  const estimate = useEmptyingEstimate(venue);
 
   return (
     <View style={styles.card} onLayout={onLayout}>
@@ -65,6 +67,7 @@ export function VenueCard({ venue, onClose, onDetails, onShowAlternatives, onLay
       </View>
 
       {venue.open_now && <Text style={styles.secondary}>{areaStatus(venue.district_occupancy.level)}</Text>}
+      {estimate && <Text style={styles.secondary}>⏳ {estimate}</Text>}
       {watching && <Text style={styles.watching}>🔔 %70 altına düşünce haber vereceğiz</Text>}
       {campaign && <CampaignBox campaign={campaign} />}
       <Text style={styles.secondary}>

@@ -1,6 +1,6 @@
 /**
  * TypeScript copy of the backend's DummyOccupancyProvider, used by the static
- * (serverless) web build. Same idea and thresholds; the random numbers differ.
+ * (serverless) web build. Same algorithm and numbers (checked by tests on both sides).
  */
 import type { Level } from './occupancy';
 

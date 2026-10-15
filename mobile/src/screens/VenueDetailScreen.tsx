@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { BackButton } from '../components/BackButton';
 import { CampaignBox } from '../components/CampaignBox';
@@ -11,6 +11,7 @@ import { useCampaigns } from '../context/CampaignsContext';
 import { useEngagement } from '../context/EngagementContext';
 import { useLocation } from '../context/LocationContext';
 import { useSettings } from '../context/SettingsContext';
+import { useEmptyingEstimate } from '../hooks/useEmptyingEstimate';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
 import { amenitiesFor } from '../lib/amenities';
 import type { Venue } from '../lib/api';
@@ -33,7 +34,7 @@ type Props = {
 };
 
 export function VenueDetailScreen({ venueId, userName, onLogin, onBack, onShowOnMap }: Props) {
-  const { venues, loading, error } = useVenuesByIds([venueId]);
+  const { venues, loading, error, refreshing, refresh } = useVenuesByIds([venueId]);
   const venue = venues[0];
   const { look } = useSettings();
   const { activeFor } = useCampaigns();
@@ -43,6 +44,7 @@ export function VenueDetailScreen({ venueId, userName, onLogin, onBack, onShowOn
   const [feedbackNote, setFeedbackNote] = useState<{ ok: boolean; text: string } | null>(null);
   const { point } = useLocation();
   const [note, setNote] = useState<string | null>(null);
+  const estimate = useEmptyingEstimate(venue);
 
   if (!venue) {
     return (
@@ -71,7 +73,15 @@ export function VenueDetailScreen({ venueId, userName, onLogin, onBack, onShowOn
   const watching = watches.some((w) => w.venueId === venue.id);
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.page}
+      contentContainerStyle={styles.content}
+      refreshControl={
+        Platform.OS !== 'web' ? (
+          <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />
+        ) : undefined
+      }
+    >
       <View style={styles.top}>
         <BackButton onPress={onBack} />
         <View style={styles.actions}>
@@ -113,6 +123,7 @@ export function VenueDetailScreen({ venueId, userName, onLogin, onBack, onShowOn
           </Text>
         </View>
         {venue.open_now && <Text style={styles.text}>{areaStatus(venue.district_occupancy.level)}</Text>}
+        {estimate && <Text style={styles.text}>⏳ {estimate}</Text>}
         <Text style={styles.text}>🕒 {venue.hours}</Text>
         {watching ? (
           <Text style={styles.watch}>🔔 %70 altına düşünce haber vereceğiz</Text>
@@ -215,8 +226,9 @@ export function VenueDetailScreen({ venueId, userName, onLogin, onBack, onShowOn
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 48, gap: 14 },
+  // Space for the status bar sits outside the scroll view, so the pull-to-refresh spinner stays visible
+  page: { flex: 1, marginTop: 50, backgroundColor: colors.background },
+  content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 48, gap: 14 },
   center: {
     flex: 1,
     alignItems: 'center',

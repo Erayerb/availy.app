@@ -113,3 +113,22 @@ def test_daily_history_and_weekday_averages():
     assert len(averages) == 7
     monday = [r for d, r in history if d.weekday() == 0]
     assert averages[0] == round(sum(monday) / len(monday), 2)
+
+
+# Same inputs and results as mobile/tests/forecast.test.ts: the backend and the
+# serverless web demo must produce identical fake occupancy
+PARITY_CASES = [
+    (1, "2026-10-14T10:02:00+00:00", 1.0, False, 0.8),
+    (7, "2026-10-14T05:40:00+00:00", 1.2, False, 0.48),
+    (15, "2026-10-14T12:55:00+00:00", 0.9, False, 0.51),
+    (28, "2026-10-16T07:30:00+00:00", 1.0, False, 0.47),
+    (42, "2026-10-15T20:15:00+00:00", 0.8, False, 0.23),
+    (3, "2026-10-14T01:00:00+00:00", 1.0, True, 0.83),
+]
+
+
+@pytest.mark.parametrize("venue_id,at,popularity,always_busy,expected", PARITY_CASES)
+def test_matches_mobile_implementation(venue_id, at, popularity, always_busy, expected):
+    provider = DummyOccupancyProvider(bucket_seconds=300, tz="Europe/Istanbul")
+    got = provider.get(venue_id, datetime.fromisoformat(at), popularity, always_busy)
+    assert got.ratio == expected
