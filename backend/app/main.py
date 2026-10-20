@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from typing import Literal
 from datetime import date, datetime, timezone
 from zoneinfo import ZoneInfo
 
@@ -7,6 +8,9 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from app.auth_api import router as auth_router
+from app.checkins_api import router as checkins_router
+from app.checkins import load_crowds
 from app.config import settings
 from app.db import apply_schema, get_conn, pool
 from app.hours import hours_for, local_hour
@@ -43,6 +47,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Availy API", lifespan=lifespan)
+app.include_router(auth_router)
+app.include_router(checkins_router)
 
 
 class OccupancyOut(BaseModel):
@@ -56,6 +62,18 @@ class AreaOccupancyOut(BaseModel):
     ratio: float
 
 
+class CrowdOut(BaseModel):
+    """v2: occupancy from recent check-ins."""
+
+    state: Literal["live", "stale", "unexplored"]
+    level: Level | None
+    ratio: float | None  # only with at least 3 people in the last 90 minutes
+    reporters: int
+    last_report_at: datetime | None
+    queue: bool | None
+    seats: bool | None
+
+
 class Venue(BaseModel):
     id: int
     name: str
@@ -66,8 +84,10 @@ class Venue(BaseModel):
     neighborhood: str
     district: str
     tags: list[str]
+    # v1 fake occupancy; kept until the app switches to `crowd` (v2 stage 6)
     occupancy: OccupancyOut
     district_occupancy: AreaOccupancyOut
+    crowd: CrowdOut
     open_now: bool
     hours: str  # e.g. "08:00–23:00" or "24 saat açık"
     opens_at: str  # next opening time, shown when closed
@@ -238,6 +258,7 @@ def with_occupancy(conn: psycopg.Connection, provider: OccupancyProvider, venues
     }
 
     hour = local_hour(now)
+    crowds = load_crowds(conn, [v["id"] for v in venues], now)
     result = []
     for v in venues:
         opening = hours_for(v["category"], v["always_busy"])
@@ -246,6 +267,7 @@ def with_occupancy(conn: psycopg.Connection, provider: OccupancyProvider, venues
                 **v,
                 "occupancy": provider.get(v["id"], now, v["popularity"], v["always_busy"]),
                 "district_occupancy": district_occupancy[v["district"]],
+                "crowd": crowds[v["id"]],
                 "open_now": opening.is_open_at_hour(hour),
                 "hours": opening.label(),
                 "opens_at": opening.opens_at,

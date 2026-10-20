@@ -24,7 +24,7 @@ def test_venue_fields(client):
     assert set(venue) == {
         "id", "name", "category", "capacity", "lat", "lon",
         "neighborhood", "district", "tags", "occupancy", "district_occupancy",
-        "open_now", "hours", "opens_at",
+        "open_now", "hours", "opens_at", "crowd",
     }
     assert venue["hours"] == "08:00–23:00"  # cafe
     assert venue["opens_at"] == "08:00"

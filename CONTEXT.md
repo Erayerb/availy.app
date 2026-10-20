@@ -108,71 +108,90 @@ Wi-Fi sayımı, MAC, check-in ve simülatör kapsam dışı (bkz. docs/architect
 - Not: Proje test/prototip; amaç kendi telefonundan göstermek, Mac'i yormamak
 - Kararlar: önce polling (30 sn), WebSocket sonra; MVP'de doluluk sahte
 
-## Yapılacaklar (şimdi değil, sonra)
-Konuşmalarda "şimdi olmayacak, sonra" denen her şey. Yapıldıkça "Durum"a taşı.
+## Yapılacaklar (v2)
+Yalnızca v2 (check-in) ile ilgili işler. v2 dışındakiler "Rafa kaldırıldı" bölümünde. Yapıldıkça "Durum"a taşı.
 
-**Gerçek veri toplama** (MVP'de doluluk sahte)
+**Sunucu ve hesaplar**
+- Gerçek, sunucu taraflı hesap sistemi (v1'de hesaplar ve şifre hash'i telefonda)
+- İki telefonla demo: 1) Mac'teki backend, iki telefon aynı Wi-Fi'de Expo Go ile bağlanır (Mac açık olmalı); 2) backend ücretsiz bir sunucuya (ör. Render + Neon), Mac kapalıyken de çalışır
+- v2 web demosu ayrı adreste (ör. /availy.app/v2/); internetteki backend'e bağlanır
+
+**Bildirimler** (yayından önce şart; olay olunca gelir, uygulama kapalıyken de; belirli bir saate kurulan bildirim değil)
+- Müşteri: "Sakin olunca haber ver" (takip ettiği mekan check-in'lere göre Sakin olunca); yakınındaki bir mekan indirim kampanyası açınca
+- İşletme: mekanı Sakin göründüğü an (ölü saat), tek dokunuşla kampanya gönderme önerisiyle
+- Nasıl: sunucu check-in'leri ve kampanyaları izler, olay olunca Expo push ile gönderir (telefon push token'ını sunucuya kaydeder; Android için development build gerekir)
+
+**İşletme tarafı** (müşteri tarafı bittikten sonra)
+- Kampanya, kupon, sadakat, mekan düzenlemeleri ve yorumları sunucuya taşımak (v1'de telefonda)
+- Check-in ile bağlamak: ör. "check-in yapana %10" kampanyası
+- Panel istatistikleri (saatlik grafik, haftalık / aylık, kıyaslama) check-in verisi biriktikçe geri gelecek
+- Zamanlanmış ve otomatik kampanyalar sunucuda çalışsın
+- Mekan sahipliği doğrulaması: kampanya ve sadakat için zorunlu; gerçek SMS (mekanın kayıtlı telefonuna) ya da yöneticinin incelediği belge; bir mekanı yalnızca bir hesap alabilir
+
+**v1'den geri gelecekler** (sahte veriye dayanıyorlardı)
+- Tahmini boşalma: geçmiş haftaların check-in'lerine göre
+- "Sakin olunca haber ver" (v1'deki "boşalınca haber ver")
+
+**availy puanı**
+- Kazanım (v2 planı): check-in 10, mekanın ilk check-in'i 50 puan + Kâşif rozeti
+- Harcama fikirleri: ödül kataloğu (ör. 200 puan = istenen kafede %10 kupon, işletmeler sponsorlar), Premium indirimi (ör. 500 puan = 1 ay Premium), Getir/Trendyol gibi ortak kuponlar
+- Ek kazanım fikirleri: yorum yazmak, Sakin saatte gitmek (kalabalığı dağıtır, işletmenin de işine yarar)
+
+## Versiyon 2: check-in ile doluluk (planlama aşamasında, kod yok)
+v1 silinmez: `v1` etiketinde ve `main` dalında olduğu gibi kalır, web demosu v1'i gösterir.
+v2 `v2-checkin` dalında geliştirilir, `main`'e hiç alınmaz; hazır olunca ayrı adreste yayınlanır (ör. /availy.app/v2/).
+- Bitti: v2 Aşama 1 mimari plan (docs/v2-architecture.md, onaylandı)
+- Bitti: v2 misafir hesabı: POST /v1/auth/guest otomatik id'li hesap açar ("Misafir 12", oturum 365 gün, güven 0.5); POST /v1/auth/upgrade ile kayıt olunca aynı id kalır (toplam 100 test)
+- Bitti: v2 Aşama 2 (backend: `users` ve `sessions` tabloları, app/accounts.py, POST /v1/auth/register, /login, /logout, GET /v1/me; şifre scrypt, oturum anahtarının sadece hash'i saklanır, 30 gün geçerli; bilinmeyen e-posta ve yanlış şifre aynı mesajı alır; 15 yeni test, toplam 94)
+- Bitti: v2 Aşama 3 (`checkins` tablosu, app/checkins.py, POST /v1/venues/{id}/checkins: giriş/misafir gerekli, Sakin/Orta/Kalabalık + "Sıra var mı?" / "Oturacak yer var mı?", mekana ≤150 m (PostGIS; konum saklanmaz), kapalı mekana check-in yok, aynı mekana 2 saatte bir ("Tekrar: 14:00"), kayan 60 dk'da en fazla 10, mekanın ilk check-in'i işaretlenir (aynı anda iki kişi olsa da tek); 11 yeni test, toplam 111)
+- Bitti: check-in yarıçapı 150 m
+- Bitti: v2 Aşama 4 (app/crowd.py `crowd_from_checkins`: son 90 dk, kişi başı son bildirim, 30 dk yarılanma × güven, Sakin 0.2 / Orta 0.55 / Kalabalık 0.9 → v1 eşikleri; en az 3 kişide oran; "Sıra var" / "Oturacak yer" ağırlıklı çoğunluk; durumlar live / stale / unexplored. /v1/venues ve /search çıktısında `crowd`; v1'in sahte `occupancy` alanı uygulama v2'ye geçene kadar (Aşama 6) duruyor; toplam 120 test)
+- Sırada: v2 Aşama 5 (mobil: sunucu hesabıyla giriş / kayıt / misafir)
+Konuşulan kararlar:
+- Doluluğu mekanlar değil, check-in yapan kullanıcılar belirler (Swarm / Foursquare benzeri)
+- Check-in akışı: önce doluluk seçilir (Sakin / Orta / Kalabalık), sonra Check-in butonu açılır
+  - Kalabalık seçilirse ek soru: "Sıra var mı?"
+  - Orta seçilirse ek soru: "Oturacak yer var mı?"
+- Veri tazeliği: bir bildirim 60–90 dk geçerli, yeni bildirimler daha ağır basar; ekranda "Son bildirim 12 dk önce · 4 kişi"
+- Hile koruması: mekana ≤150 m (GPS), aynı mekana birkaç saatte en fazla bir check-in, giriş zorunlu, diğer bildirimlerle sürekli çelişen kullanıcının ağırlığı düşer
+- Hiç check-in almamış mekan haritada ayrı bir simgeyle durur; ilk check-in'i yapan ödül kazanır (insanlar yeni yerleri "keşfetmek" için koştursun). Mekan detayında bir süre "Burayı X keşfetti" yazar
+- Puan (şimdilik): check-in 10, ilk check-in 50
+- Misafir de check-in yapabilir (otomatik id'li hesap); bildirimi daha az sayılır ve bu kullanıcıya check-in ekranında söylenir; kayıt olunca tam sayılır, puanları korunur
+- Konum izni açılışta istenir; verilmediyse gereken yerde (check-in, "En yakın", "Konumum") tekrar istenir (iOS'ta reddedildiyse Ayarlar'a yönlendirilir)
+- Saatte en fazla 10 check-in: kayan 60 dakika
+- Doluluk hesabı son 90 dk'nın check-in'lerini kullanır; aynı kullanıcı aynı mekana 2 saatte bir check-in yapabilir
+- Yüzde: Sakin / Orta / Kalabalık seçilir; son 90 dk'da en az 3 kişi varsa "~%60" gibi yüzde de gösterilir, yoksa yalnızca seviye
+- "Burayı X keşfetti" 30 gün görünür
+- Demo için "demo" işaretli sahte check-in'ler üretilecek (az kullanıcıyla haritayı göstermek için)
+- Pilot bölge: Nişantaşı, Caddebostan, Yeditepe Üniversitesi kampüsü ve çevresi
+- "Boşalınca haber ver" v2'de "Sakin olunca haber ver" olacak
+- Sonraki sürümler (sosyal): check-in'i arkadaşlarla paylaş (check-in ekranında anahtar; arkadaşların ana ekran akışında görünür, isteyene bildirim gider); arkadaşlar izin verilirse birbirinin check-in'lerini görür; herkese açık liderlik tablosu; mekan yorumları ve geri bildirim, yorumlara diğer kullanıcılar cevap verebilir (yorum sahibi izin verdiyse)
+- KVKK: konum yalnızca check-in anında kontrol edilir, saklanmaz; kimin nerede olduğu başkalarına gösterilmez
+- Arkadaş akışı (Swarm gibi) olacak, ama ilk sürümde değil
+- İşletme kısmı v2'de de olacak: önce müşteri tarafı, sonra işletme düzenlenir
+- Check-in'ler herkese görünmeli; v2 baştan sunucuyla çalışır (önce Mac'teki backend, sonra internet)
+
+## Rafa kaldırıldı
+v1'in veri toplama planı. v2'de doluluk check-in'lerden geleceği için şimdilik yapılmayacak.
 - Wi-Fi cihaz sayımı: işletmelerin Wi-Fi cihazlarından (ör. Cisco Meraki, Ubiquiti) API/webhook ile bağlı cihaz sayısı
 - MAC adresleri sunucuda anında hash'lenecek (KVKK/GDPR); sadece sayı tutulacak
 - Sahte Wi-Fi verisi gönderen bir simülatör (gerçek veri entegrasyonunu denemek için)
-- Kullanıcı check-in'i: GPS ile mekana ≤100 m doğrulama, cihaz başına sınır (rate limit)
 - İki kaynağı birleştirme modeli ("büyük olanı al" ya da ağırlıklı model) — karar verilmedi
 - Sahte doluluğa kategoriye göre farklı saat eğrileri (kafe öğleden sonra, bar gece) — daha gerçekçi alternatif önerileri için
-
-**Altyapı**
-- Backend'i internete koymak (ör. Render + Neon/Supabase); şu an web demo sunucusuz, Expo Go Mac'teki backend'e bağlı
-- Redis (cache, rate limit) — gerçek veri gelince
-- WebSocket ile anlık güncelleme (şu an 30 sn polling)
-- Uygulamayı mağaza/kalıcı kurulum için derlemek (EAS Build; iOS için Apple geliştirici hesabı gerekir)
-
-**Sunucuya taşıma ve bildirimler (öncelikli)**
-- Kampanyaları, kuponları, sadakat kartlarını ve hesapları sunucuda saklamak: işletmenin açtığı kampanya başka telefonlarda da görünsün (iki telefonla gerçek demo)
-- Kampanyalar yarıçap içindeki kullanıcılara bildirim olarak gelecek (push; Expo Go'da Android'de push yok, development build gerekir)
-- Bildirimler (yayına çıkmadan önce şart; olay olunca gelir, uygulama kapalıyken de; belirli bir saate kurulan bildirim değil):
-  - Müşteri: yakınındaki bir mekan "boşum ve indirimim var" kampanyası gönderince; yakınında yeni bir kampanya açılınca; takip ettiği mekan boşalınca
-  - İşletme: mekanı belli bir süre (ör. 30 dk) boş kalınca (ölü saat), tek dokunuşla kampanya gönderme önerisiyle
-  - Nasıl: sunucu doluluğu ve yeni kampanyaları izler, olay olunca Expo push ile gönderir (telefon push token'ını sunucuya kaydeder; Android için development build gerekir). Otomatik ve zamanlanmış kampanyalar da sunucuda çalışır. Şu an bu bildirimler yalnızca uygulama açıkken geliyor
-- İki telefonla demo ("işletme kampanya açar, müşteri başka telefonda görür"): kampanya, kupon, sadakat kartı, hesap ve yorumlar sunucuya taşınır. 1) Hızlı yol: Mac'teki backend'e bu tablolar ve uç noktalar eklenir, iki telefon aynı Wi-Fi'de Expo Go ile Mac'e bağlanır (Mac açık olmalı). 2) Kalıcı yol: aynı backend ücretsiz bir sunucuya (ör. Render + Neon), Mac kapalıyken de çalışır, web demo da aynı veriyi görür
-
-**Hesaplar ve veriler** (şu an her şey sadece o telefonda/tarayıcıda)
-- Gerçek, sunucu taraflı hesap sistemi (şu an prototip; hesaplar telefonda, şifre hash'i telefonda)
-- Favorileri, kampanyaları ve işletmelerin eklediği mekanları sunucuda saklamak (herkes görsün)
-- Yayında favoriler sadece giriş yapanlara: `FAVORITES_REQUIRE_LOGIN = true` (mobile/src/lib/favorites.ts)
-- İşletmenin mekan sahipliğini doğrulamak (şu an listeden herhangi bir mekan seçilebiliyor)
-
-**B2B**
-- Birden fazla şube: bir işletme hesabına birden çok mekan bağlamak, şubeler arası karşılaştırma
-- Personel hesapları: kasiyer/garson için sınırlı yetkili hesap (sadece kupon doğrulama ve damga verme)
-- Hata bildirimleri ve iletişim mesajları sunucuya / destek e-postasına gitsin (şimdi sadece telefonda)
-- Mekan sahipliği doğrulaması: kampanya oluşturmak ve sadakat programı kurmak için zorunlu olacak (şimdilik kapalı, ekran "Yakında"). Gerçek olmalı: SMS mekanın kayıtlı (ör. Google'daki) telefonuna gider, belgeyi bir yönetici inceler (yönetici paneli). Bir mekanı yalnızca bir hesap alabilir; bu kontrol için hesaplar sunucuda olmalı
-- İşletme premium aboneliğine (SaaS) "hesap yönetimi" dahil: işletmenin availy hesabını (kampanyalar, sadakat, mekan bilgileri) isteyen işletme için bizim ekibimiz yönetir
-- Zamanlanmış kampanyaların ve otomatik kampanyanın sunucuda çalışması (şu an uygulama açıkken)
-- Geri bildirimlerin sunucuda saklanması; işletmenin yorumlara yanıt vermesi; uygunsuz yorum bildirme
-- Mekan düzenlemelerinin sunucuya kaydedilmesi (şu an telefonda)
-- Uygulamaya henüz katılmamış işletmeler de haritada görünecek. Böyle bir mekana basınca: "Bu kafeden haberdar olmak istiyorsanız işletmeyi ikna etmemize yardımcı olun" benzeri bir yazı (ör. "İşletmeye haber ver" butonu) çıkacak; doluluk bilgisi gösterilmeyecek
-- Ödeme kuralı şu an uygulanmıyor: "Kampanya Başı" paketindeki işletme de ödeme yapmadan sınırsız kampanya açabiliyor; ödeme eklenince kampanya gönderimi pakete / ödemeye bağlanacak
-- Ödeme: işletme kampanya göndermeden önce SaaS aboneliği (₺1.899/ay) almış olmalı ya da kampanya başı ₺150 ödemeli. Prototipte ödeme yok; paketler sadece gösterim
-- Kampanyaları yarıçap içindeki kullanıcılara gerçek push bildirimi olarak göndermek (şu an sadece uygulama içinde görünür)
-
-**Uygulama**
-- Tanıtım (nasıl kullanılır) uygulama ilk yüklendiğinde en başta da çıksın (hesap türüne göre birkaç sayfa, "Atla" ile geçilebilir); şimdilik sadece Hakkında'da
-- Mekanların gerçek fotoğrafları (şu an türe göre renkli görsel) ve kalıcı logo
-
-**Tanıtım sitesi**
-- Uygulamanın web sitesi (ör. ana sayfa + işletmeler için ayrı sayfa):
-  - Uygulama bilgisi: ne işe yarar, nasıl çalışır, ekran görüntüleri, indirme bağlantıları
-  - Kullanıcıların neler yapabildiği: anlık doluluk, filtreler, alternatif önerileri, kampanyalar, favoriler
-  - İşletmeler için: panel, ölü saat kampanyaları, istatistikler, nasıl katılınır / başvuru formu
-  - Abonelikler ve fiyatlar: SaaS ₺1.899/ay, kampanya başı ₺150, B2C Premium ₺79/ay
-  - İşbirlikleri ve ortaklıklar (ör. Getir/Trendyol kuponları, kampüs elçileri), iletişim, KVKK/gizlilik metni
-
-**availy puanı** (şimdilik sadece birikiyor: damga 5, kullanılan kupon 10 puan)
-- Harcama: ödül kataloğu (ör. 200 puan = istenen kafede %10 kupon, işletmeler sponsorlar), Premium indirimi (ör. 500 puan = 1 ay Premium), Getir/Trendyol gibi ortak kuponlar
-- Ek kazanım: yorum yazmak, bir mekana ilk ziyaret, ölü saatte gitmek (kalabalığı dağıtır, işletmenin de işine yarar)
-
-**Proje dokümanında olup henüz yapılmayanlar**
-- B2C Premium (₺79/ay): ekranı ve Ücretsiz / Premium farkı var (demo); gerçek ödeme ve gerçek konuma dayalı reklamlar yok
-- Mikro rezervasyon (masa tutma + ön sipariş, %15 komisyon)
-- Sadakat puanları (doğrulama/check-in ile puan, mekanlar arası ortak)
 - Açılışta Google Maps "Popular Times" verisiyle başlangıç (cold start)
+
+v1'in v2 dışında kalan yapılacakları (gerekince geri alınır):
+- Altyapı: Redis (cache, rate limit); WebSocket ile anlık güncelleme (şu an 30 sn yenileme); mağaza / kalıcı kurulum için derleme (EAS Build; iOS için Apple geliştirici hesabı)
+- Yayında favoriler sadece giriş yapanlara: `FAVORITES_REQUIRE_LOGIN = true` (mobile/src/lib/favorites.ts)
+- Birden fazla şube: bir işletme hesabına birden çok mekan, şubeler arası karşılaştırma
+- Personel hesapları: kasiyer / garson için sınırlı yetkili hesap (sadece kupon doğrulama ve damga verme)
+- Hata bildirimleri ve iletişim mesajları sunucuya / destek e-postasına gitsin
+- İşletme premium aboneliğine (SaaS) "hesap yönetimi": isteyen işletmenin availy hesabını bizim ekibimiz yönetir
+- İşletmenin yorumlara yanıt vermesi; uygunsuz yorum bildirme
+- Uygulamaya katılmamış işletmeler: "Bu kafeden haberdar olmak istiyorsanız işletmeyi ikna etmemize yardımcı olun" (ör. "İşletmeye haber ver" butonu)
+- Ödeme: kampanya için SaaS aboneliği (₺1.899/ay) ya da kampanya başı ₺150; şu an kural uygulanmıyor ("Kampanya Başı" paketinde de sınırsız kampanya)
+- Tanıtım (nasıl kullanılır) uygulama ilk yüklendiğinde en başta da çıksın; şimdilik sadece Hakkında'da
+- Mekanların gerçek fotoğrafları ve kalıcı logo
+- Tanıtım sitesi: uygulama bilgisi, kullanıcı özellikleri, işletmeler için sayfa ve başvuru formu, fiyatlar (SaaS ₺1.899/ay, kampanya başı ₺150, B2C Premium ₺79/ay), işbirlikleri (Getir/Trendyol, kampüs elçileri), iletişim, KVKK metni
+- Proje dokümanından: B2C Premium'da gerçek ödeme ve gerçek konuma dayalı reklamlar (ekranı demo olarak var); mikro rezervasyon (masa tutma + ön sipariş, %15 komisyon)
 - Not: Dokümanın 8. bölümü Flutter/AWS/Redis diyor; prototip React Native (Expo) + FastAPI + PostGIS
