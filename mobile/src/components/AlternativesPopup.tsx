@@ -10,8 +10,9 @@ import {
 import type { Venue } from '../lib/api';
 import type { Campaign } from '../lib/campaigns';
 import { formatDistance } from '../lib/geo';
-import { LevelDot } from './LevelDot';
-import { percent } from '../lib/stats';
+import { CrowdDot } from './CrowdDot';
+import { useSettings } from '../context/SettingsContext';
+import { crowdRatioText } from '../lib/crowd';
 import { colors } from '../theme';
 
 // Every row has the same height so exactly 4 fit; more alternatives scroll
@@ -38,11 +39,12 @@ export function AlternativesPopup({
   onClose,
   onLayout,
 }: Props) {
+  const { crowdLook } = useSettings();
 
   return (
     <View style={styles.popup} onLayout={onLayout}>
       <View style={styles.header}>
-        <Text style={styles.title}>Burası şu an {percent(venue.occupancy.ratio)} dolu</Text>
+        <Text style={styles.title}>Burası şu an kalabalık{crowdRatioText(venue.crowd) ? ` (${crowdRatioText(venue.crowd)})` : ''}</Text>
         <Pressable onPress={onClose} hitSlop={12}>
           <Text style={styles.close}>✕</Text>
         </Pressable>
@@ -65,7 +67,7 @@ export function AlternativesPopup({
               onPress={() => onChoose(alt)}
               style={({ pressed }) => [styles.row, pressed && styles.pressed]}
             >
-              <LevelDot level={alt.occupancy.level} />
+              <CrowdDot venue={alt} />
               <View style={styles.nameBox}>
                 <Text style={styles.name} numberOfLines={1}>
                   {alt.name}
@@ -77,7 +79,7 @@ export function AlternativesPopup({
                 )}
               </View>
               <Text style={styles.meta}>{formatDistance(distanceKm)}</Text>
-              <Text style={styles.percent}>{percent(alt.occupancy.ratio)}</Text>
+              <Text style={styles.percent}>{crowdRatioText(alt.crowd) ?? crowdLook(alt).label}</Text>
               <Text style={styles.chevron}>›</Text>
             </Pressable>
           );

@@ -8,7 +8,8 @@ import { colors } from '../theme';
 type Item = { screen: Screen; label: string; hint?: string; badge?: string };
 
 const CUSTOMER_ITEMS: Item[] = [
-  { screen: 'profile', label: 'Profil', hint: 'Ad, şifre ve hesap' },
+  { screen: 'profile', label: 'Profil', hint: 'Puan, rozetler, ad ve şifre' },
+  { screen: 'friends', label: 'Arkadaşlar', hint: 'Kullanıcı adıyla bul, QR ve davet bağlantısı' },
   { screen: 'subscription', label: 'Abonelik', hint: 'Ücretsiz ya da Premium (₺79/ay)' },
   { screen: 'settings', label: 'Ayarlar', hint: 'Renk körlüğü modu, bildirimler, konum' },
 ];
@@ -39,7 +40,9 @@ export function MoreScreen({ user, onSelect, onLogin, onLogout }: Props) {
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <Wordmark size={34} />
       <Text style={styles.greeting}>
-        {user ? `Merhaba, ${user.name}${isBusiness(user) ? ' (İşletme)' : ''}` : 'Misafir olarak geziyorsun'}
+        {user && !user.isGuest
+          ? `Merhaba, ${user.name}${isBusiness(user) ? ' (İşletme)' : ''}`
+          : `Misafir olarak geziyorsun${user ? ` (${user.name})` : ''}`}
       </Text>
 
       <View style={styles.card}>
@@ -59,13 +62,13 @@ export function MoreScreen({ user, onSelect, onLogin, onLogout }: Props) {
         ))}
       </View>
 
-      {user ? (
+      {user && !user.isGuest ? (
         <Pressable onPress={onLogout} style={styles.logout}>
           <Text style={styles.logoutText}>Çıkış Yap</Text>
         </Pressable>
       ) : (
         <Pressable onPress={onLogin} style={styles.login}>
-          <Text style={styles.loginText}>Giriş Yap / Kayıt Ol</Text>
+          <Text style={styles.loginText}>Kayıt Ol / Giriş Yap</Text>
         </Pressable>
       )}
     </ScrollView>

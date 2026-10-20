@@ -5,15 +5,17 @@ from zoneinfo import ZoneInfo
 
 import psycopg
 from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.auth_api import router as auth_router
 from app.checkins_api import router as checkins_router
-from app.checkins import load_crowds
+from app.friends_api import router as friends_router
+from app.checkins import load_crowds, load_discoveries
 from app.config import settings
 from app.db import apply_schema, get_conn, pool
-from app.hours import hours_for, local_hour
+from app.hours import local_hour, venue_hours
 from app.occupancy import (
     Level,
     OccupancyProvider,
@@ -47,8 +49,16 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Availy API", lifespan=lifespan)
+# Sign-in uses the Authorization header, not cookies, so credentials stay off
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
+)
 app.include_router(auth_router)
 app.include_router(checkins_router)
+app.include_router(friends_router)
 
 
 class OccupancyOut(BaseModel):
@@ -74,6 +84,13 @@ class CrowdOut(BaseModel):
     seats: bool | None
 
 
+class DiscoveryOut(BaseModel):
+    """v2: "Burayı X keşfetti" (first check-in, shown for 30 days)."""
+
+    name: str | None  # None when the first check-in was private
+    at: datetime
+
+
 class Venue(BaseModel):
     id: int
     name: str
@@ -88,6 +105,7 @@ class Venue(BaseModel):
     occupancy: OccupancyOut
     district_occupancy: AreaOccupancyOut
     crowd: CrowdOut
+    discovery: DiscoveryOut | None
     open_now: bool
     hours: str  # e.g. "08:00–23:00" or "24 saat açık"
     opens_at: str  # next opening time, shown when closed
@@ -163,7 +181,7 @@ def hourly(
         raise HTTPException(status_code=404, detail="venue not found")
     today = datetime.now(ZoneInfo(settings.dummy_timezone)).date()
     profile = hourly_profile(provider, venue_id, venue["popularity"], today, venue["always_busy"])
-    opening = hours_for(venue["category"], venue["always_busy"])
+    opening = venue_hours(venue)
     return {
         "venue_id": venue_id,
         "date": today,
@@ -196,7 +214,7 @@ def history(
     venue = find_venue_profile(conn, venue_id)
     if venue is None:
         raise HTTPException(status_code=404, detail="venue not found")
-    opening = hours_for(venue["category"], venue["always_busy"])
+    opening = venue_hours(venue)
     open_hours = [h for h in range(24) if opening.is_open_at_hour(h)]
     today = datetime.now(ZoneInfo(settings.dummy_timezone)).date()
     past = daily_history(provider, venue_id, venue["popularity"], venue["always_busy"], open_hours, today, days)
@@ -230,7 +248,7 @@ def forecast(
     venue = find_venue_profile(conn, venue_id)
     if venue is None:
         raise HTTPException(status_code=404, detail="venue not found")
-    opening = hours_for(venue["category"], venue["always_busy"])
+    opening = venue_hours(venue)
     step = settings.dummy_bucket_seconds
     first = (int(datetime.now(timezone.utc).timestamp()) // step + 1) * step
     points = []
@@ -259,15 +277,17 @@ def with_occupancy(conn: psycopg.Connection, provider: OccupancyProvider, venues
 
     hour = local_hour(now)
     crowds = load_crowds(conn, [v["id"] for v in venues], now)
+    discoveries = load_discoveries(conn, [v["id"] for v in venues], now)
     result = []
     for v in venues:
-        opening = hours_for(v["category"], v["always_busy"])
+        opening = venue_hours(v)
         result.append(
             {
                 **v,
                 "occupancy": provider.get(v["id"], now, v["popularity"], v["always_busy"]),
                 "district_occupancy": district_occupancy[v["district"]],
                 "crowd": crowds[v["id"]],
+                "discovery": discoveries.get(v["id"]),
                 "open_now": opening.is_open_at_hour(hour),
                 "hours": opening.label(),
                 "opens_at": opening.opens_at,

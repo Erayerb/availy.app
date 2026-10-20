@@ -14,6 +14,14 @@ test('validateLogin rejects bad email or short password', () => {
 });
 
 test('validateRegister requires a name', () => {
-  assert.equal(validateRegister(' ', 'eray@example.com', '123456'), 'Adını gir.');
-  assert.equal(validateRegister('Eray', 'eray@example.com', '123456'), null);
+  assert.equal(validateRegister(' ', 'eray@example.com', '123456', 'eray'), 'Adını gir.');
+  assert.equal(validateRegister('Eray', 'eray@example.com', '123456', 'eray'), null);
+});
+
+test('user names: 3-20 of a-z, digits, dot, underscore; "@" and capitals are tidied', async () => {
+  const { normalizeUsername, validateUsername } = await import('../src/lib/auth.ts');
+  assert.equal(normalizeUsername(' @Eray_42 '), 'eray_42');
+  assert.equal(validateUsername('eray'), null);
+  assert.match(validateRegister('Eray', 'eray@example.com', '123456', 'ab') ?? '', /Kullanıcı adı/);
+  for (const bad of ['ab', 'ayşe', 'a b', '_eray', 'x'.repeat(21)]) assert.notEqual(validateUsername(bad), null);
 });

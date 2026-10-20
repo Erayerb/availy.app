@@ -54,7 +54,10 @@ export function AboutScreen({ role, onBack }: { role: Role; onBack: () => void }
         </View>
       ))}
 
-      <Text style={styles.note}>Prototip sürüm: mekanlar ve doluluk oranları örnek (sahte) verilerdir.</Text>
+      <Text style={styles.note}>
+        Mekan bilgileri © OpenStreetMap katkıcıları (ODbL lisansı). Doluluk, kullanıcıların check-in'lerinden
+        hesaplanır. Prototip sürüm.
+      </Text>
     </ScrollView>
   );
 }

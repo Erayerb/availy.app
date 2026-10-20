@@ -15,8 +15,13 @@ EMAIL = "test.kullanici@example.test"
 PASSWORD = "gizli123"
 
 
-def register(client, email=EMAIL, password=PASSWORD, role="personal", name="Test Kullanıcı"):
-    return client.post("/v1/auth/register", json={"name": name, "email": email, "password": password, "role": role})
+def username_for(email):
+    return email.strip().lower().split("@")[0].replace("-", "_")[:20]
+
+
+def register(client, email=EMAIL, password=PASSWORD, role="personal", name="Test Kullanıcı", username=None):
+    body = {"name": name, "email": email, "password": password, "role": role, "username": username or username_for(email)}
+    return client.post("/v1/auth/register", json=body)
 
 
 def auth(token):
@@ -43,7 +48,7 @@ def test_password_hash_round_trip():
     ],
 )
 def test_registration_rules(name, email, password, role, message):
-    assert validate_registration(name, email, password, role) == message
+    assert validate_registration(name, email, password, role, "ayse") == message
 
 
 def test_register_returns_session_and_normalized_email(client):
@@ -148,7 +153,7 @@ def test_guest_counts_less_until_sign_up(client, conn):
 def test_guest_upgrade_keeps_the_id(client, conn):
     guest = client.post("/v1/auth/guest").json()
     token = guest["token"]
-    body = {"name": "Ayşe", "email": EMAIL, "password": PASSWORD, "role": "personal"}
+    body = {"name": "Ayşe", "email": EMAIL, "password": PASSWORD, "role": "personal", "username": "ayse"}
     response = client.post("/v1/auth/upgrade", json=body, headers=auth(token))
     assert response.status_code == 200
     user = response.json()
@@ -165,7 +170,7 @@ def test_guest_upgrade_keeps_the_id(client, conn):
 def test_guest_upgrade_with_a_taken_email(client):
     register(client)
     token = client.post("/v1/auth/guest").json()["token"]
-    body = {"name": "Ayşe", "email": EMAIL, "password": PASSWORD}
+    body = {"name": "Ayşe", "email": EMAIL, "password": PASSWORD, "username": "baska"}
     response = client.post("/v1/auth/upgrade", json=body, headers=auth(token))
     assert response.status_code == 409
 
@@ -174,3 +179,60 @@ def test_guests_cannot_sign_in_with_a_password(client):
     client.post("/v1/auth/guest")
     response = client.post("/v1/auth/login", json={"email": "", "password": PASSWORD})
     assert response.status_code == 401
+
+
+def test_rename(client):
+    token = register(client).json()["token"]
+    assert client.patch("/v1/me", json={"name": " Ayşe "}, headers=auth(token)).json()["name"] == "Ayşe"
+    assert client.patch("/v1/me", json={"name": "A"}, headers=auth(token)).status_code == 400
+
+
+def test_change_password(client):
+    token = register(client).json()["token"]
+    wrong = client.post("/v1/me/password", json={"old_password": "yanlis1", "new_password": "yeni1234"}, headers=auth(token))
+    assert wrong.status_code == 403 and wrong.json()["detail"] == "Mevcut şifre hatalı."
+    short = client.post("/v1/me/password", json={"old_password": PASSWORD, "new_password": "123"}, headers=auth(token))
+    assert short.status_code == 400
+    ok = client.post("/v1/me/password", json={"old_password": PASSWORD, "new_password": "yeni1234"}, headers=auth(token))
+    assert ok.status_code == 204
+    assert client.post("/v1/auth/login", json={"email": EMAIL, "password": "yeni1234"}).status_code == 200
+    assert client.post("/v1/auth/login", json={"email": EMAIL, "password": PASSWORD}).status_code == 401
+
+
+def test_guest_has_no_password_to_change(client):
+    token = client.post("/v1/auth/guest").json()["token"]
+    response = client.post("/v1/me/password", json={"old_password": "x", "new_password": "yeni1234"}, headers=auth(token))
+    assert response.status_code == 409
+
+
+def test_delete_account_keeps_checkins_anonymous(client, conn):
+    body = register(client).json()
+    token, user_id = body["token"], body["user"]["id"]
+    venue = conn.execute("SELECT id FROM venues LIMIT 1").fetchone()["id"]
+    checkin_id = conn.execute(
+        "INSERT INTO checkins (venue_id, user_id, level) VALUES (%s, %s, 'low') RETURNING id", (venue, user_id)
+    ).fetchone()["id"]
+    assert client.delete("/v1/me", headers=auth(token)).status_code == 204
+    assert client.get("/v1/me", headers=auth(token)).status_code == 401
+    assert conn.execute("SELECT user_id FROM checkins WHERE id = %s", (checkin_id,)).fetchone()["user_id"] is None
+
+
+@pytest.mark.parametrize("username", ["ab", "Ayşe", "a b", "_eray", "x" * 21])
+def test_bad_usernames(username):
+    assert "Kullanıcı adı" in validate_registration("Ayşe", EMAIL, PASSWORD, "personal", username)
+
+
+def test_usernames_are_unique_ignoring_case(client):
+    first = register(client, username="Eray")
+    assert first.status_code == 201 and first.json()["user"]["username"] == "eray"
+    second = register(client, email="baska@example.test", username="ERAY")
+    assert second.status_code == 409 and "kullanıcı adı alınmış" in second.json()["detail"]
+    # "@" in front is fine
+    assert register(client, email="ucuncu@example.test", username="@eray_2").json()["user"]["username"] == "eray_2"
+
+
+def test_guest_upgrade_needs_a_free_username(client):
+    register(client, username="alinmis")
+    token = client.post("/v1/auth/guest").json()["token"]
+    body = {"name": "Ayşe", "email": "yeni@example.test", "password": PASSWORD, "username": "alinmis"}
+    assert client.post("/v1/auth/upgrade", json=body, headers=auth(token)).status_code == 409

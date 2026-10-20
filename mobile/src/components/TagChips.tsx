@@ -18,9 +18,16 @@ export function TagChips({ selected, onToggle }: Props) {
   );
 }
 
-export function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+type ChipProps = { label: string; active: boolean; onPress: () => void; disabled?: boolean };
+
+export function Chip({ label, active, onPress, disabled = false }: ChipProps) {
   return (
-    <Pressable onPress={onPress} style={[styles.chip, active && styles.chipActive]}>
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityState={{ disabled, selected: active }}
+      style={[styles.chip, active && styles.chipActive, disabled && styles.chipDisabled]}
+    >
       <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
     </Pressable>
   );
@@ -37,6 +44,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipDisabled: { opacity: 0.35 },
   chipText: { fontSize: 13, color: colors.text, fontWeight: '500' },
   chipTextActive: { color: colors.onPrimary },
 });

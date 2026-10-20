@@ -24,6 +24,7 @@ export type DemoVenue = {
 };
 
 // .ts extension so Node's test runner can load this file directly
+import { UNEXPLORED } from './crowd.ts';
 import { foldTr } from './filters.ts';
 import { hoursFor, hoursLabel, isOpenAtHour, istanbulHour, opensAt } from './hours.ts';
 
@@ -44,6 +45,8 @@ function withOccupancy(venues: DemoVenue[], all: DemoVenue[], now: Date): Venue[
       hours: hoursLabel(opening),
       opens_at: opensAt(opening),
       occupancy: dummyOccupancy(venue.id, now, popularity, always_busy),
+      // No server, no check-ins
+      crowd: UNEXPLORED,
       district_occupancy: districtAverage.get(venue.district)!,
     };
   }) as Venue[];

@@ -23,6 +23,12 @@ const SIDE_OF = new Map<string, Side>([
 ]);
 
 /** All 39 Istanbul districts in Turkish alphabetical order. */
+// Pilot: Nişantaşı (Şişli), Caddebostan (Kadıköy), Yeditepe Üniversitesi ve çevresi (Ataşehir).
+// Only these can be picked in the location filter for now; the others are shown greyed out.
+export const PILOT_DISTRICTS = ['Ataşehir', 'Kadıköy', 'Şişli'];
+export const PILOT_NOTE = 'Şimdilik pilot bölgeler: Şişli (Nişantaşı), Kadıköy (Caddebostan), Ataşehir (Yeditepe çevresi)';
+export const isPilotDistrict = (district: string) => PILOT_DISTRICTS.includes(district);
+
 export const ALL_DISTRICTS = [...EUROPE, ...ANATOLIA].sort((a, b) => a.localeCompare(b, 'tr'));
 
 export const sideOf = (district: string): Side | null => SIDE_OF.get(district) ?? null;

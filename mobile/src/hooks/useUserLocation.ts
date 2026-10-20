@@ -1,5 +1,5 @@
 import * as Location from 'expo-location';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { distanceKm, type LatLon } from '../lib/geo';
 
@@ -7,11 +7,31 @@ import { distanceKm, type LatLon } from '../lib/geo';
 const ISTANBUL: LatLon = { lat: 41.03, lon: 29.01 };
 const MAX_KM_FROM_DEMO_AREA = 50;
 
-/** point is null while loading, without permission, or when the phone is outside the demo area. */
-export type UserLocation = { point: LatLon | null; loading: boolean };
+/** Result of asking for the position right now (check-in): the raw position, or why there is none. */
+export type Locate = { coords: LatLon; error: null } | { coords: null; error: 'denied' | 'blocked' | 'failed' };
+
+/**
+ * point is null while loading, without permission, or when the phone is outside the demo area.
+ * `locate` asks again (permission and position) where the location is needed, e.g. for a check-in.
+ */
+export type UserLocation = { point: LatLon | null; loading: boolean; locate: () => Promise<Locate> };
 
 export function useUserLocation(): UserLocation {
-  const [state, setState] = useState<UserLocation>({ point: null, loading: true });
+  const [state, setState] = useState<Omit<UserLocation, 'locate'>>({ point: null, loading: true });
+
+  const locate = useCallback(async (): Promise<Locate> => {
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      // iOS does not ask again once denied: the user has to allow it in Settings
+      if (permission.status !== 'granted') return { coords: null, error: permission.canAskAgain ? 'denied' : 'blocked' };
+      const { coords } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const point = { lat: coords.latitude, lon: coords.longitude };
+      setState({ point: distanceKm(point, ISTANBUL) <= MAX_KM_FROM_DEMO_AREA ? point : null, loading: false });
+      return { coords: point, error: null };
+    } catch {
+      return { coords: null, error: 'failed' };
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,5 +52,5 @@ export function useUserLocation(): UserLocation {
     };
   }, []);
 
-  return state;
+  return { ...state, locate };
 }

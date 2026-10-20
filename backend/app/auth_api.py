@@ -9,10 +9,13 @@ from app.accounts import (
     GUEST_SESSION_DAYS,
     AccountError,
     authenticate,
+    change_password,
     create_guest,
     create_session,
     create_user,
     delete_session,
+    delete_user,
+    rename_user,
     upgrade_guest,
     user_for_token,
 )
@@ -25,6 +28,7 @@ Role = Literal["personal", "business"]
 
 class RegisterIn(BaseModel):
     name: str
+    username: str
     email: str
     password: str
     role: Role = "personal"
@@ -41,10 +45,28 @@ class UserOut(BaseModel):
     id: int
     name: str
     email: str | None  # None for guests
+    username: str | None  # "@eray"; None for guests
     role: Role
     is_guest: bool
     venue_id: int | None
     plan: str | None
+
+
+class BadgeOut(BaseModel):
+    id: str
+    name: str
+    icon: str
+    description: str
+    progress: int
+    target: int
+    earned: bool
+
+
+class MeOut(UserOut):
+    points: int
+    checkins: int
+    discoveries: int  # venues where this user made the first check-in
+    badges: list[BadgeOut]  # the whole catalog; locked ones have earned = false
 
 
 class SessionOut(BaseModel):
@@ -80,7 +102,7 @@ def _fail(error: AccountError) -> HTTPException:
 @router.post("/auth/register", response_model=SessionOut, status_code=201)
 def register(body: RegisterIn, conn: psycopg.Connection = Depends(get_conn)):
     try:
-        user = create_user(conn, body.name, body.email, body.password, body.role)
+        user = create_user(conn, body.name, body.email, body.password, body.role, body.username)
     except AccountError as e:
         raise _fail(e) from None
     return {"token": create_session(conn, user["id"]), "user": user}
@@ -106,7 +128,7 @@ def guest(conn: psycopg.Connection = Depends(get_conn)):
 def upgrade(body: RegisterIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
     """A guest signs up and keeps the same id; the current session stays valid."""
     try:
-        return upgrade_guest(conn, user, body.name, body.email, body.password, body.role)
+        return upgrade_guest(conn, user, body.name, body.email, body.password, body.role, body.username)
     except AccountError as e:
         raise _fail(e) from None
 
@@ -119,6 +141,40 @@ def logout(authorization: str | None = Header(None), conn: psycopg.Connection = 
     return Response(status_code=204)
 
 
-@router.get("/me", response_model=UserOut)
-def me(user: dict = Depends(current_user)):
-    return user
+@router.get("/me", response_model=MeOut)
+def me(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    from app.checkins import user_stats
+
+    return {**user, **user_stats(conn, user["id"])}
+
+
+class RenameIn(BaseModel):
+    name: str
+
+
+class PasswordIn(BaseModel):
+    old_password: str
+    new_password: str
+
+
+@router.patch("/me", response_model=UserOut)
+def rename(body: RenameIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    try:
+        return rename_user(conn, user, body.name)
+    except AccountError as e:
+        raise _fail(e) from None
+
+
+@router.post("/me/password", status_code=204)
+def password(body: PasswordIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    try:
+        change_password(conn, user, body.old_password, body.new_password)
+    except AccountError as e:
+        raise _fail(e) from None
+    return Response(status_code=204)
+
+
+@router.delete("/me", status_code=204)
+def delete_me(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    delete_user(conn, user)
+    return Response(status_code=204)

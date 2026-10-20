@@ -13,7 +13,7 @@ import {
 import { BackButton } from '../components/BackButton';
 import { Logo } from '../components/Logo';
 import { Chip } from '../components/TagChips';
-import { validateLogin, validateRegister, type Role } from '../lib/auth';
+import { normalizeUsername, validateLogin, validateRegister, type Role } from '../lib/auth';
 import { colors } from '../theme';
 
 type Mode = 'login' | 'register';
@@ -25,12 +25,13 @@ type Props = {
   onSwitchMode: (mode: Mode) => void;
   // Resolve to an error message, or null on success
   onLogin: (email: string, password: string, role: Role) => Promise<string | null>;
-  onRegister: (name: string, email: string, password: string, role: Role) => Promise<string | null>;
+  onRegister: (name: string, username: string, email: string, password: string, role: Role) => Promise<string | null>;
 };
 
-/** Sign in / sign up form. Prototype: accounts live only on this phone. */
+/** Sign in / sign up form (accounts on the server, v2). */
 export function AuthScreen({ mode, initialRole = 'personal', onBack, onSwitchMode, onLogin, onRegister }: Props) {
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -39,11 +40,13 @@ export function AuthScreen({ mode, initialRole = 'personal', onBack, onSwitchMod
   const isRegister = mode === 'register';
 
   const submit = async () => {
-    const problem = isRegister ? validateRegister(name, email, password) : validateLogin(email, password);
+    const problem = isRegister ? validateRegister(name, email, password, username) : validateLogin(email, password);
     setError(problem);
     if (problem || busy) return;
     setBusy(true);
-    const failure = isRegister ? await onRegister(name, email, password, role) : await onLogin(email, password, role);
+    const failure = isRegister
+      ? await onRegister(name, normalizeUsername(username), email, password, role)
+      : await onLogin(email, password, role);
     // On success the app switches screens; only update state if we are still here
     if (failure) {
       setError(failure);
@@ -85,6 +88,21 @@ export function AuthScreen({ mode, initialRole = 'personal', onBack, onSwitchMod
             autoCapitalize="words"
             textContentType="name"
           />
+        )}
+        {isRegister && (
+          <View>
+            <TextInput
+              value={username}
+              onChangeText={(text) => setUsername(normalizeUsername(text))}
+              placeholder="Kullanıcı adı (ör. eray)"
+              placeholderTextColor={colors.placeholder}
+              style={styles.input}
+              autoCapitalize="none"
+              autoCorrect={false}
+              textContentType="username"
+            />
+            <Text style={styles.roleHint}>Arkadaşların seni @{username || 'kullaniciadi'} ile bulur. Başkası alamaz.</Text>
+          </View>
         )}
         <TextInput
           value={email}
@@ -131,7 +149,7 @@ export function AuthScreen({ mode, initialRole = 'personal', onBack, onSwitchMod
           </Text>
         </Pressable>
 
-        <Text style={styles.note}>Prototip: hesap sadece bu telefonda tutulur, sunucuya gönderilmez.</Text>
+
       </ScrollView>
     </KeyboardAvoidingView>
   );

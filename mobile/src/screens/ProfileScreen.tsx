@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { PhotoSection } from '../components/business/PhotoSection';
+import { BadgeGrid } from '../components/BadgeGrid';
 import { PlanSection } from '../components/business/PlanSection';
 import { BackButton } from '../components/BackButton';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
 import { useEngagement } from '../context/EngagementContext';
 import { useFavorites } from '../context/FavoritesContext';
-import { MIN_PASSWORD_LENGTH, type User } from '../lib/auth';
+import { accountKey, MIN_PASSWORD_LENGTH, type User } from '../lib/auth';
 import { DEFAULT_PLAN, type PlanId } from '../lib/plans';
 import { availyPoints, customerCode } from '../lib/loyalty';
 import { colors } from '../theme';
@@ -17,6 +18,7 @@ type Props = {
   onBack: () => void;
   onPlanChange: (plan: PlanId) => void;
   onLogin: () => void;
+  onRegister: () => void;
   onRename: (name: string) => Promise<void>;
   onChangePassword: (oldPassword: string, newPassword: string) => Promise<string | null>;
   onDeleteAccount: () => Promise<void>;
@@ -28,6 +30,7 @@ export function ProfileScreen({
   onBack,
   onPlanChange,
   onLogin,
+  onRegister,
   onRename,
   onChangePassword,
   onDeleteAccount,
@@ -38,14 +41,14 @@ export function ProfileScreen({
   const { venues } = useVenuesByIds(business && user?.venueId ? [user.venueId] : []);
   const venue = venues[0];
   const { ids: favorites } = useFavorites();
-  const { coupons, cards, programs, watches } = useEngagement();
+  const { coupons, cards, programs } = useEngagement();
   const [name, setName] = useState(user?.name ?? '');
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  if (!user) {
+  if (!user || user.isGuest) {
     return (
       <View style={styles.page}>
         <View style={[styles.content, styles.topRow]}>
@@ -53,18 +56,34 @@ export function ProfileScreen({
           <Text style={styles.title}>Profil</Text>
         </View>
         <View style={styles.guest}>
+          {user && <Text style={styles.name}>{user.name}</Text>}
           <Text style={styles.muted}>
-            Misafir olarak geziyorsun. Profil, puan ve sadakat kartları için giriş yap.
+            Misafir olarak geziyorsun. Misafir check-in'leri daha az sayılır. Kayıt olursan tam sayılır ve
+            puanların korunur.
           </Text>
-          <Pressable style={styles.primary} onPress={onLogin}>
-            <Text style={styles.primaryText}>Giriş yap / Kayıt ol</Text>
+          <Pressable style={styles.primary} onPress={onRegister}>
+            <Text style={styles.primaryText}>Kayıt ol</Text>
           </Pressable>
+          <Pressable style={styles.secondary} onPress={onLogin}>
+            <Text style={styles.secondaryText}>Hesabım var, giriş yap</Text>
+          </Pressable>
+          {user && (
+            <Text style={styles.muted}>
+              Başka bir hesapla giriş yaparsan bu misafir hesabının puanları o hesaba geçmez.
+            </Text>
+          )}
+          {user && (
+            <Text style={styles.text}>
+              Misafir puanın: {user.points ?? 0} (misafirler her şeyden yarım puan alır)
+            </Text>
+          )}
+          {user?.badges && <BadgeGrid badges={user.badges} />}
         </View>
       </View>
     );
   }
 
-  const myCards = cards.filter((c) => c.userKey === user.email);
+  const myCards = cards.filter((c) => c.userKey === accountKey(user));
   const stamps = myCards.reduce(
     (sum, c) =>
       sum +
@@ -72,7 +91,7 @@ export function ProfileScreen({
       c.rewardsAvailable * (programs.find((p) => p.venueId === c.venueId)?.stampsRequired ?? 0),
     0,
   );
-  const myCoupons = coupons.filter((c) => c.userKey === user.email);
+  const myCoupons = coupons.filter((c) => c.userKey === accountKey(user));
   const used = myCoupons.filter((c) => c.redeemedAt).length;
 
   const savePassword = async () => {
@@ -97,12 +116,13 @@ export function ProfileScreen({
 
       <View style={styles.card}>
         <Text style={styles.name}>{user.name}</Text>
+        {user.username && <Text style={styles.text}>@{user.username}</Text>}
         <Text style={styles.muted}>
           {user.email} · {user.role === 'business' ? 'İşletme hesabı' : 'Bireysel hesap'}
         </Text>
         {!business && (
           <Text style={styles.text}>
-            Müşteri kodun: <Text style={styles.code}>{customerCode(user.email)}</Text>
+            Müşteri kodun: <Text style={styles.code}>{customerCode(accountKey(user))}</Text>
           </Text>
         )}
       </View>
@@ -113,11 +133,14 @@ export function ProfileScreen({
           <PlanSection plan={user.plan ?? DEFAULT_PLAN} onPlanChange={onPlanChange} />
         </View>
       ) : (
-        <View style={styles.stats}>
-          <Stat value={availyPoints(stamps, used)} label="availy puanı" />
-          <Stat value={favorites.length} label="favori" />
-          <Stat value={myCoupons.length} label="kupon" />
-          <Stat value={watches.length} label="takip" />
+        <View style={styles.section}>
+          <View style={styles.stats}>
+            <Stat value={(user.points ?? 0) + availyPoints(stamps, used)} label="availy puanı" />
+            <Stat value={user.checkins ?? 0} label="check-in" />
+            <Stat value={user.discoveries ?? 0} label="keşif" />
+            <Stat value={favorites.length} label="favori" />
+          </View>
+          {user.badges && <BadgeGrid badges={user.badges} />}
         </View>
       )}
 

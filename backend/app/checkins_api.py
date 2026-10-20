@@ -24,6 +24,8 @@ class CheckinIn(BaseModel):
     seats: bool | None = None  # only with "medium"
     lat: float
     lon: float
+    # Private: still counts for the occupancy, but the name is never shown to others
+    private: bool = False
 
 
 class CheckinOut(BaseModel):
@@ -34,6 +36,23 @@ class CheckinOut(BaseModel):
     seats: bool | None
     is_first: bool
     created_at: datetime
+    is_private: bool
+    points_earned: int
+    visitor_rank: int | None  # "Burayı keşfeden 12. kişisin" (first visit only)
+    my_visits: int
+
+
+class VisitOut(BaseModel):
+    venue_id: int
+    visits: int
+    last_at: datetime
+
+
+@router.get("/me/visits", response_model=list[VisitOut])
+def visits(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    from app.checkins import user_visits
+
+    return user_visits(conn, user["id"])
 
 
 @router.post("/venues/{venue_id}/checkins", response_model=CheckinOut, status_code=201)
@@ -45,6 +64,8 @@ def checkin(
     now: datetime = Depends(get_clock),
 ):
     try:
-        return create_checkin(conn, user, venue_id, body.level, body.queue, body.seats, body.lat, body.lon, now)
+        return create_checkin(
+            conn, user, venue_id, body.level, body.queue, body.seats, body.lat, body.lon, now, body.private
+        )
     except CheckinError as e:
         raise HTTPException(status_code=e.status, detail=e.message) from None

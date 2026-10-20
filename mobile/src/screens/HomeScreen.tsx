@@ -10,7 +10,16 @@ import { useDistricts } from '../hooks/useDistricts';
 import { useSearch } from '../hooks/useSearch';
 import type { Venue } from '../lib/api';
 import { toggleTag, type Tag } from '../lib/filters';
-import { districtsForSides, matchesDistricts, matchesSides, SIDE_OPTIONS, toggleSide, type Side } from '../lib/istanbul';
+import {
+  districtsForSides,
+  isPilotDistrict,
+  matchesDistricts,
+  matchesSides,
+  PILOT_NOTE,
+  SIDE_OPTIONS,
+  toggleSide,
+  type Side,
+} from '../lib/istanbul';
 import { useLocation } from '../context/LocationContext';
 import { SORT_OPTIONS, sortVenues, type SortMode } from '../lib/sort';
 import { stableShuffle } from '../lib/shuffle';
@@ -117,15 +126,18 @@ export function HomeScreen({
             onSidesChange([]);
           }}
         />
-        {visibleDistricts.map((d) => (
+        {/* Pilot districts first; the rest are visible but cannot be picked yet */}
+        {[...visibleDistricts.filter(isPilotDistrict), ...visibleDistricts.filter((d) => !isPilotDistrict(d))].map((d) => (
           <Chip
             key={d}
             label={d}
             active={districts.includes(d)}
+            disabled={!isPilotDistrict(d)}
             onPress={() => onDistrictsChange(districts.includes(d) ? districts.filter((x) => x !== d) : [...districts, d])}
           />
         ))}
       </ScrollView>
+      <Text style={styles.hint}>{PILOT_NOTE}</Text>
 
       <Text style={styles.sectionTitle}>Ne arıyorsun?</Text>
       <TagChips selected={tags} onToggle={(tag) => onTagsChange(toggleTag(tags, tag))} />

@@ -103,8 +103,8 @@ Hesap tek bir saf fonksiyonda (`crowd_from_checkins`) olur; test edilmesi kolay,
 | POST | `/v1/auth/upgrade` | Misafir kayıt olur: ad, e-posta, şifre; aynı id kalır |
 | POST | `/v1/auth/logout` | Oturumu kapatır |
 | GET | `/v1/me` | Profil, toplam puan, rozetler |
-| POST | `/v1/venues/{id}/checkins` | `{level, queue?, seats?, lat, lon}` (giriş gerekli) → check-in, kazanılan puan, ilk mi |
-| GET | `/v1/me/checkins` | Kendi check-in geçmişim |
+| POST | `/v1/venues/{id}/checkins` | `{level, queue?, seats?, lat, lon, private?}` (giriş gerekli) → check-in, kazanılan puan (misafire yarısı), ilk mi, "keşfeden kaçıncı kişi" |
+| GET | `/v1/me/visits` | Check-in yaptığım mekanlar (haritada "Ziyaret ettiklerim") |
 | GET | `/v1/venues?bbox=…` | v1'deki gibi + `crowd: {state, level, ratio, reporters, last_report_at, queue, seats}`; v1'in `occupancy` alanı uygulama v2'ye geçince (Aşama 6) kalkar |
 | GET | `/v1/venues/search` | Aynı değişiklikle |
 

@@ -1,14 +1,16 @@
-/** "Haber ver": tell the user when a busy venue drops below 70%. */
+/** "Sakin olunca haber ver": tell the user when check-ins say a busy venue has become quiet. */
 import type { Venue } from './api';
-
-export const WATCH_THRESHOLD = 0.7;
+import { liveLevel } from './crowd.ts';
 
 export type Watch = { venueId: number; venueName: string; createdAt: string };
 
-/** Offer the bell only where it makes sense: currently at or above the threshold. */
-export const canWatch = (venue: Venue) => venue.occupancy.ratio >= WATCH_THRESHOLD;
+/** Offer the bell where it makes sense: reported Orta or Kalabalık right now. */
+export const canWatch = (venue: Venue) => {
+  const level = liveLevel(venue);
+  return level === 'medium' || level === 'high';
+};
 
-export const watchTriggered = (venue: Venue) => venue.open_now && venue.occupancy.ratio < WATCH_THRESHOLD;
+export const watchTriggered = (venue: Venue) => liveLevel(venue) === 'low';
 
 export function toggleWatch(watches: Watch[], venue: { id: number; name: string }, now: Date): Watch[] {
   return watches.some((w) => w.venueId === venue.id)
@@ -18,8 +20,8 @@ export function toggleWatch(watches: Watch[], venue: { id: number; name: string 
 
 export function notificationText(venue: Venue): { title: string; body: string } {
   return {
-    title: `${venue.name} boşaldı`,
-    body: `Şu an %${Math.round(venue.occupancy.ratio * 100)} dolu. Gitmek için iyi bir zaman.`,
+    title: `${venue.name} sakinleşti`,
+    body: 'Son check-in\'lere göre şu an sakin. Gitmek için iyi bir zaman.',
   };
 }
 

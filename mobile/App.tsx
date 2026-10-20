@@ -1,12 +1,16 @@
 import { DancingScript_700Bold, useFonts } from '@expo-google-fonts/dancing-script';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Logo } from './src/components/Logo';
 import { Wordmark } from './src/components/Wordmark';
 import { useSettings } from './src/context/SettingsContext';
 import { AboutScreen } from './src/screens/AboutScreen';
+import { FriendsScreen } from './src/screens/FriendsScreen';
+import { FirstCheckinSheet } from './src/components/FirstCheckinSheet';
+import { IntroOverlay } from './src/components/IntroOverlay';
+import { friendsApi, inviteFromQuery } from './src/lib/friends';
 import { SubscriptionScreen } from './src/screens/SubscriptionScreen';
 import { BUSINESS_TABS, CUSTOMER_TABS, TabBar, type Screen } from './src/components/TabBar';
 import { CampaignsProvider } from './src/context/CampaignsContext';
@@ -15,7 +19,8 @@ import { SettingsProvider } from './src/context/SettingsContext';
 import { LocationProvider } from './src/context/LocationContext';
 import { FavoritesProvider } from './src/context/FavoritesContext';
 import { useAuth } from './src/hooks/useAuth';
-import { isBusiness, type Role } from './src/lib/auth';
+import { useVisits } from './src/hooks/useVisits';
+import { accountKey, isBusiness, isRegistered, type Role } from './src/lib/auth';
 import { DEFAULT_PLAN } from './src/lib/plans';
 import { loadLocalVenues } from './src/lib/localVenueStore';
 import { loadOverrides } from './src/lib/overrideStore';
@@ -92,6 +97,9 @@ function Main() {
   const role: Role = isBusiness(auth.user) ? 'business' : 'personal';
   const goBack = () => setNav((h) => back(h, landingFor(role)));
   const { premium } = useSettings();
+  // v2: venues the user checked in at (reloaded after each check-in, when the check-in count changes)
+  const visits = useVisits(auth.user?.token, auth.user?.checkins);
+  const visitedIds = useMemo(() => new Set(visits.map((v) => v.venue_id)), [visits]);
   // Home and map: hide venues that are closed right now
   const [hideClosed, setHideClosed] = useState(false);
   // Purpose filters are shared by the home screen and the map
@@ -132,6 +140,26 @@ function Main() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showSplash]);
 
+
+  // Right after a new account: how-to slides, then (customers) "İlk check-in'in"
+  const [onboarding, setOnboarding] = useState<'intro' | 'first' | null>(null);
+  const startOnboarding = () => setOnboarding('intro');
+
+  // Web: an invite link (?invite=eray) sends a friend request once the visitor has an account
+  const [invite, setInvite] = useState(() =>
+    Platform.OS === 'web' && typeof window !== 'undefined' ? inviteFromQuery(window.location.search) : null,
+  );
+  useEffect(() => {
+    if (!invite || gate !== null || !isRegistered(auth.user) || !auth.user?.token) return;
+    const username = invite;
+    setInvite(null);
+    window.history.replaceState(null, '', window.location.pathname);
+    friendsApi
+      .add(auth.user.token, username)
+      .then(() => goTo('friends'))
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invite, gate, auth.user]);
 
   const logout = async () => {
     setEntered(false);
@@ -194,7 +222,14 @@ function Main() {
             setAuthRole(role);
             setAuthForm('register');
           }}
-          onGuest={() => enterApp('personal')}
+          onGuest={async () => {
+            const error = await auth.continueAsGuest();
+            if (!error) {
+              enterApp('personal');
+              startOnboarding();
+            }
+            return error;
+          }}
         />
         <StatusBar style="dark" />
       </>
@@ -215,9 +250,14 @@ function Main() {
             if (!error) enterApp(role);
             return error;
           }}
-          onRegister={async (name, email, password, role) => {
-            const error = await auth.register(name, email, password, role);
-            if (!error) enterApp(role);
+          onRegister={async (name, username, email, password, role) => {
+            // A guest who signs up has already been through the onboarding
+            const wasGuest = auth.user?.isGuest === true;
+            const error = await auth.register(name, username, email, password, role);
+            if (!error) {
+              enterApp(role);
+              if (!wasGuest) startOnboarding();
+            }
             return error;
           }}
         />
@@ -246,8 +286,8 @@ function Main() {
   }
 
   return (
-    <EngagementProvider userKey={auth.user?.email ?? 'guest'}>
-      <FavoritesProvider signedIn={auth.user !== null} onLoginRequired={() => setAuthForm('login')}>
+    <EngagementProvider userKey={auth.user ? accountKey(auth.user) : 'guest'}>
+      <FavoritesProvider signedIn={isRegistered(auth.user)} onLoginRequired={() => setAuthForm('login')}>
         <View style={styles.container}>
           {/* Screens fill the space above the bottom tab bar */}
           <View style={styles.screen}>
@@ -277,6 +317,7 @@ function Main() {
               onTagsChange={setTags}
               hideClosed={hideClosed}
               onHideClosedChange={setHideClosed}
+              visitedIds={visitedIds}
               selectedId={selectedId}
               onSelect={setSelectedId}
               onMarkerPress={(id) => setSelectedId((current) => toggleSingle(current, id))}
@@ -298,6 +339,12 @@ function Main() {
             <VenueDetailScreen
               venueId={detailId}
               userName={auth.user?.name ?? null}
+              user={auth.user}
+              onRegister={() => {
+                setAuthRole('personal');
+                setAuthForm('register');
+              }}
+              onCheckedIn={auth.refreshMe}
               onLogin={() => setAuthForm('login')}
               onBack={goBack}
               onShowOnMap={openVenueOnMap}
@@ -309,6 +356,10 @@ function Main() {
               onBack={goBack}
               onPlanChange={(plan) => auth.updateProfile({ plan })}
               onLogin={() => setAuthForm('login')}
+              onRegister={() => {
+                setAuthRole('personal');
+                setAuthForm('register');
+              }}
               onRename={auth.rename}
               onChangePassword={auth.changePassword}
               onDeleteAccount={async () => {
@@ -327,7 +378,8 @@ function Main() {
           )}
           {screen === 'campaigns' && (
             <CampaignsScreen
-              signedIn={auth.user !== null}
+              signedIn={isRegistered(auth.user)}
+              serverPoints={auth.user?.points ?? 0}
               business={
                 isBusiness(auth.user) && auth.user?.venueId
                   ? {
@@ -344,8 +396,18 @@ function Main() {
           {screen === 'about' && <AboutScreen role={role} onBack={goBack} />}
           {screen === 'support' && <SupportScreen email={auth.user?.email ?? null} onBack={goBack} />}
           {screen === 'verification' && <VerificationScreen onBack={goBack} />}
+          {screen === 'friends' && (
+            <FriendsScreen
+              user={auth.user}
+              onBack={goBack}
+              onRegister={() => {
+                setAuthRole('personal');
+                setAuthForm('register');
+              }}
+            />
+          )}
           {screen === 'subscription' && (
-            <SubscriptionScreen signedIn={auth.user !== null} onBack={goBack} onLogin={() => setAuthForm('login')} />
+            <SubscriptionScreen signedIn={isRegistered(auth.user)} onBack={goBack} onLogin={() => setAuthForm('login')} />
           )}
           {screen === 'more' && (
             <MoreScreen
@@ -370,6 +432,18 @@ function Main() {
             <BusinessMonitor venueId={auth.user.venueId} />
           )}
           <WatchAlert />
+          {onboarding === 'intro' && (
+            <IntroOverlay role={role} onDone={() => setOnboarding(role === 'business' ? null : 'first')} />
+          )}
+          {onboarding === 'first' && (
+            <FirstCheckinSheet
+              onFound={openDetails}
+              onDone={(venue) => {
+                setOnboarding(null);
+                if (!venue) goTo('map');
+              }}
+            />
+          )}
           <StatusBar style="dark" />
         </View>
       </FavoritesProvider>

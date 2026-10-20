@@ -1,4 +1,5 @@
 import type { Venue } from './api';
+import { crowdScore } from './crowd.ts';
 import { sortByDistance, type LatLon } from './geo.ts';
 
 export type SortMode = 'recommended' | 'nearest' | 'quietest';
@@ -9,11 +10,14 @@ export const SORT_OPTIONS: { mode: SortMode; label: string }[] = [
   { mode: 'quietest', label: 'En sakin' },
 ];
 
-/** Open venues first, emptiest first; closed ones at the end. */
+/** Open venues first, emptiest (by fresh check-ins) first; no fresh data next, closed ones last. */
 export function byQuietest(venues: Venue[]): Venue[] {
-  return [...venues].sort(
-    (a, b) => Number(b.open_now) - Number(a.open_now) || a.occupancy.ratio - b.occupancy.ratio,
-  );
+  return [...venues].sort((a, b) => {
+    const open = Number(b.open_now) - Number(a.open_now);
+    if (open !== 0) return open;
+    const [sa, sb] = [crowdScore(a), crowdScore(b)];
+    return sa === sb ? 0 : sa < sb ? -1 : 1;
+  });
 }
 
 export function sortVenues(

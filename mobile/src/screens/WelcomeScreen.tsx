@@ -9,7 +9,8 @@ import { colors } from '../theme';
 type Props = {
   onLogin: (role: Role) => void;
   onRegister: (role: Role) => void;
-  onGuest: () => void;
+  // Opens a guest account on the server; resolves to an error message, or null
+  onGuest: () => Promise<string | null>;
 };
 
 const ROLE_LABELS: Record<Role, string> = { personal: 'Bireysel', business: 'İşletme' };
@@ -18,6 +19,16 @@ const ROLE_LABELS: Record<Role, string> = { personal: 'Bireysel', business: 'İ�
 export function WelcomeScreen({ onLogin, onRegister, onGuest }: Props) {
   // Guests first pick an account type, then sign in or sign up
   const [role, setRole] = useState<Role | null>(null);
+  const [guestError, setGuestError] = useState<string | null>(null);
+  const [opening, setOpening] = useState(false);
+
+  const continueAsGuest = async () => {
+    setOpening(true);
+    setGuestError(null);
+    const error = await onGuest();
+    setOpening(false);
+    setGuestError(error);
+  };
 
   return (
     <View style={styles.container}>
@@ -53,9 +64,10 @@ export function WelcomeScreen({ onLogin, onRegister, onGuest }: Props) {
             </Pressable>
           </>
         )}
-        <Pressable onPress={onGuest} hitSlop={10} style={styles.guest}>
-          <Text style={styles.guestText}>Kayıt olmadan devam et</Text>
+        <Pressable onPress={continueAsGuest} disabled={opening} hitSlop={10} style={styles.guest}>
+          <Text style={styles.guestText}>{opening ? 'Açılıyor…' : 'Kayıt olmadan devam et'}</Text>
         </Pressable>
+        {guestError && <Text style={styles.error}>{guestError}</Text>}
       </View>
     </View>
   );
@@ -81,5 +93,6 @@ const styles = StyleSheet.create({
   secondaryText: { color: colors.primary, fontSize: 16, fontWeight: '600' },
   pressed: { opacity: 0.8 },
   guest: { alignItems: 'center', paddingVertical: 10 },
+  error: { color: colors.danger, fontSize: 14, textAlign: 'center' },
   guestText: { color: colors.textMuted, fontSize: 15, textDecorationLine: 'underline' },
 });

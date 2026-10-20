@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 import psycopg
 
 from app.config import settings
-from app.hours import hours_for, local_hour
+from app.hours import local_hour, venue_hours
 
 LEVELS = ("low", "medium", "high")
 CHECKIN_RADIUS_M = 150
@@ -17,6 +17,34 @@ HOURLY_LIMIT = 10
 HOURLY_WINDOW = timedelta(hours=1)
 
 CHECKIN_COLUMNS = "id, venue_id, level, queue, seats, is_first, created_at"
+
+# availy points (for now): every check-in, plus a bonus for a venue's very first one
+CHECKIN_POINTS = 10
+FIRST_CHECKIN_POINTS = 50
+# Guests get half of every award (they are free to create); what they earned stays when they sign up
+GUEST_POINT_FACTOR = 0.5
+# "Burayı X keşfetti" is shown on the venue for this long
+DISCOVERY_SHOWN = timedelta(days=30)
+# Trust: a report is compared with other people's reports at the same venue in the last 30 minutes.
+# Far off (e.g. Kalabalık when others say Sakin) lowers the reporter's trust, close agreement raises it a little.
+TRUST_WINDOW = timedelta(minutes=30)
+TRUST_MIN_OTHERS = 2
+TRUST_DISAGREE_GAP = 0.5  # Sakin (0.2) vs Kalabalık (0.9) is 0.7; Orta vs either side is 0.35
+TRUST_AGREE_GAP = 0.2
+TRUST_PENALTY = 0.1
+TRUST_REWARD = 0.02
+TRUST_FLOOR = 0.2
+
+# Badge catalog: (id, name, icon, how to earn, stat it counts, target)
+BADGES = [
+    ("first_step", "İlk Adım", "👣", "İlk check-in'ini yap", "checkins", 1),
+    ("explorer", "Kâşif", "✨", "Bir mekanın ilk check-in'ini yap", "discoveries", 1),
+    ("great_explorer", "Büyük Kâşif", "🧭", "5 mekanın ilk check-in'ini yap", "discoveries", 5),
+    ("traveller", "Gezgin", "🗺️", "5 farklı mekanda check-in yap", "venues", 5),
+    ("regular", "Müdavim", "☕", "Aynı mekana 5 kez check-in yap", "max_same_venue", 5),
+    ("night_owl", "Gece Kuşu", "🦉", "22:00'den sonra check-in yap", "night", 1),
+    ("helper", "Yardımsever", "🤝", "25 check-in yap", "checkins", 25),
+]
 
 
 @dataclass
@@ -49,6 +77,7 @@ def create_checkin(
     lat: float,
     lon: float,
     now: datetime,
+    private: bool = False,
 ) -> dict:
     problem = validate_report(level, queue, seats)
     if problem:
@@ -58,7 +87,7 @@ def create_checkin(
 
     venue = conn.execute(
         """
-        SELECT category, always_busy,
+        SELECT category, always_busy, open_hour, close_hour,
                ST_Distance(location, ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography) AS distance_m
         FROM venues WHERE id = %s
         """,
@@ -66,7 +95,7 @@ def create_checkin(
     ).fetchone()
     if venue is None:
         raise CheckinError("Mekan bulunamadı.", 404)
-    if not hours_for(venue["category"], venue["always_busy"]).is_open_at_hour(local_hour(now)):
+    if not venue_hours(venue).is_open_at_hour(local_hour(now)):
         raise CheckinError("Mekan şu an kapalı.", 409)
     # The location is used only for this comparison and then dropped
     if venue["distance_m"] > CHECKIN_RADIUS_M:
@@ -88,17 +117,139 @@ def create_checkin(
         raise CheckinError(f"Bir saatte en fazla {HOURLY_LIMIT} check-in yapabilirsin.", 429)
 
     insert = f"""
-        INSERT INTO checkins (venue_id, user_id, level, queue, seats, is_first, created_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-        RETURNING {CHECKIN_COLUMNS}
+        INSERT INTO checkins (venue_id, user_id, level, queue, seats, is_first, is_private, created_at)
+        VALUES (%s, %s, %s, %s, %s, %s, {'true' if private else 'false'}, %s)
+        RETURNING {CHECKIN_COLUMNS}, is_private
     """
     first = conn.execute("SELECT NOT EXISTS (SELECT 1 FROM checkins WHERE venue_id = %s) AS f", (venue_id,)).fetchone()["f"]
     try:
         # Savepoint: if someone else became first at the same moment, retry as a normal check-in
         with conn.transaction():
-            return conn.execute(insert, (venue_id, user["id"], level, queue, seats, first, now)).fetchone()
+            checkin = conn.execute(insert, (venue_id, user["id"], level, queue, seats, first, now)).fetchone()
     except psycopg.errors.UniqueViolation:
-        return conn.execute(insert, (venue_id, user["id"], level, queue, seats, False, now)).fetchone()
+        checkin = conn.execute(insert, (venue_id, user["id"], level, queue, seats, False, now)).fetchone()
+    update_trust(conn, user, venue_id, level, now)
+    visits = conn.execute(
+        """
+        SELECT
+            (SELECT count(*) FROM checkins WHERE venue_id = %(v)s AND user_id = %(u)s) AS mine,
+            (SELECT count(DISTINCT user_id) FROM checkins WHERE venue_id = %(v)s AND user_id IS NOT NULL) AS people
+        """,
+        {"v": venue_id, "u": user["id"]},
+    ).fetchone()
+    return {
+        **checkin,
+        "points_earned": award_points(conn, user, checkin, now),
+        # "Burayı keşfeden 12. kişisin" on the first visit; later the visit count
+        "visitor_rank": visits["people"] if visits["mine"] == 1 else None,
+        "my_visits": visits["mine"],
+    }
+
+
+def update_trust(conn: psycopg.Connection, user: dict, venue_id: int, level: str, now: datetime) -> float | None:
+    """Compare this report with others' and adjust the reporter's trust; returns the new value (None = unchanged)."""
+    from app.accounts import GUEST_TRUST
+    from app.crowd import LEVEL_SCORE
+
+    others = conn.execute(
+        """
+        SELECT DISTINCT ON (user_id) level FROM checkins
+        WHERE venue_id = %s AND user_id IS NOT NULL AND user_id <> %s AND created_at > %s AND created_at <= %s
+        ORDER BY user_id, created_at DESC
+        """,
+        (venue_id, user["id"], now - TRUST_WINDOW, now),
+    ).fetchall()
+    if len(others) < TRUST_MIN_OTHERS:
+        return None
+    consensus = sum(LEVEL_SCORE[o["level"]] for o in others) / len(others)
+    gap = abs(LEVEL_SCORE[level] - consensus)
+    trust = conn.execute("SELECT trust FROM users WHERE id = %s", (user["id"],)).fetchone()["trust"]
+    cap = GUEST_TRUST if user.get("is_guest") else 1.0
+    if gap >= TRUST_DISAGREE_GAP:
+        new = max(TRUST_FLOOR, trust - TRUST_PENALTY)
+    elif gap <= TRUST_AGREE_GAP:
+        new = min(cap, trust + TRUST_REWARD)
+    else:
+        return None
+    new = round(new, 3)
+    conn.execute("UPDATE users SET trust = %s WHERE id = %s", (new, user["id"]))
+    return new
+
+
+def award_points(conn: psycopg.Connection, user: dict, checkin: dict, now: datetime) -> int:
+    factor = GUEST_POINT_FACTOR if user.get("is_guest") else 1
+    awards = [(int(CHECKIN_POINTS * factor), "checkin")]
+    if checkin["is_first"]:
+        awards.append((int(FIRST_CHECKIN_POINTS * factor), "first_checkin"))
+    user_id = user["id"]
+    for amount, reason in awards:
+        conn.execute(
+            "INSERT INTO points (user_id, amount, reason, checkin_id, created_at) VALUES (%s, %s, %s, %s, %s)",
+            (user_id, amount, reason, checkin["id"], now),
+        )
+    return sum(amount for amount, _ in awards)
+
+
+def user_stats(conn: psycopg.Connection, user_id: int) -> dict:
+    """Total points, check-in counts and the badge catalog (earned or not, with progress)."""
+    row = conn.execute(
+        f"""
+        SELECT
+            (SELECT COALESCE(sum(amount), 0) FROM points WHERE user_id = %(id)s) AS points,
+            (SELECT count(*) FROM checkins WHERE user_id = %(id)s) AS checkins,
+            (SELECT count(*) FROM checkins WHERE user_id = %(id)s AND is_first) AS discoveries,
+            (SELECT count(DISTINCT venue_id) FROM checkins WHERE user_id = %(id)s) AS venues,
+            (SELECT COALESCE(max(n), 0) FROM (
+                SELECT count(*) AS n FROM checkins WHERE user_id = %(id)s GROUP BY venue_id) t) AS max_same_venue,
+            (SELECT count(*) FROM checkins WHERE user_id = %(id)s
+               AND extract(hour FROM created_at AT TIME ZONE '{settings.dummy_timezone}') NOT BETWEEN 5 AND 21) AS night
+        """,
+        {"id": user_id},
+    ).fetchone()
+    badges = [
+        {
+            "id": badge_id,
+            "name": name,
+            "icon": icon,
+            "description": description,
+            "progress": min(row[stat], target),
+            "target": target,
+            "earned": row[stat] >= target,
+        }
+        for badge_id, name, icon, description, stat, target in BADGES
+    ]
+    return {
+        "points": row["points"],
+        "checkins": row["checkins"],
+        "discoveries": row["discoveries"],
+        "badges": badges,
+    }
+
+
+def user_visits(conn: psycopg.Connection, user_id: int) -> list[dict]:
+    """Venues this user checked in at ("Ziyaret ettiklerim"), most recent first."""
+    return conn.execute(
+        """
+        SELECT venue_id, count(*) AS visits, max(created_at) AS last_at
+        FROM checkins WHERE user_id = %s GROUP BY venue_id ORDER BY max(created_at) DESC
+        """,
+        (user_id,),
+    ).fetchall()
+
+
+def load_discoveries(conn: psycopg.Connection, venue_ids: list[int], now: datetime) -> dict[int, dict]:
+    """Who checked in first at each venue, for the last 30 days ("Burayı X keşfetti")."""
+    if not venue_ids:
+        return {}
+    rows = conn.execute(
+        """
+        SELECT c.venue_id, CASE WHEN c.is_private THEN NULL ELSE u.name END AS name, c.created_at AS at
+        FROM checkins c LEFT JOIN users u ON u.id = c.user_id
+        WHERE c.is_first AND NOT c.is_demo AND c.venue_id = ANY(%s) AND c.created_at > %s
+        """,
+        (venue_ids, now - DISCOVERY_SHOWN),
+    ).fetchall()
+    return {r["venue_id"]: {"name": r["name"], "at": r["at"]} for r in rows}
 
 
 def load_crowds(conn: psycopg.Connection, venue_ids: list[int], now: datetime) -> dict[int, "Crowd"]:

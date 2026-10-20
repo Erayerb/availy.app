@@ -6,6 +6,7 @@ import { hoursFor, isOpenAtHour } from './hours';
 import { getOverride, withOverrides } from './overrideStore';
 import { getLocalVenues } from './localVenueStore';
 import { isLocalVenueId } from './localVenues';
+import type { Crowd } from './crowd';
 import type { Level } from './occupancy';
 import { createStaticApi, type DemoVenue } from './staticApi';
 
@@ -30,7 +31,11 @@ export type Venue = {
   neighborhood: string;
   district: string;
   tags: string[];
+  // v1 fake occupancy: still used by the business panel until it moves to check-ins
   occupancy: Occupancy;
+  crowd: Crowd; // v2: occupancy from check-ins
+  // v2: "Burayı X keşfetti" (first 30 days); name is null when that check-in was private
+  discovery?: { name: string | null; at: string } | null;
   district_occupancy: AreaOccupancy;
   open_now: boolean;
   hours: string; // "08:00–23:00" or "24 saat açık"

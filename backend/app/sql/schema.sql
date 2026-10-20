@@ -70,3 +70,43 @@ CREATE INDEX IF NOT EXISTS checkins_venue_time ON checkins (venue_id, created_at
 CREATE INDEX IF NOT EXISTS checkins_user_time ON checkins (user_id, created_at DESC);
 -- Only one first check-in per venue, even if two people check in at the same moment
 CREATE UNIQUE INDEX IF NOT EXISTS checkins_one_first ON checkins (venue_id) WHERE is_first;
+
+-- v2 availy points: one row per award (check-in, first check-in bonus); the total is their sum
+CREATE TABLE IF NOT EXISTS points (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    amount      INTEGER NOT NULL,
+    reason      TEXT NOT NULL CHECK (reason IN ('checkin', 'first_checkin')),
+    checkin_id  BIGINT REFERENCES checkins(id) ON DELETE SET NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS points_user ON points (user_id);
+
+-- v2: where a venue comes from. 'demo' = fictional v1 demo venues (hidden in v2), 'osm' = OpenStreetMap
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'manual';
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS osm_id TEXT;  -- e.g. "node/123456", for re-imports
+CREATE UNIQUE INDEX IF NOT EXISTS venues_osm_id ON venues (osm_id) WHERE osm_id IS NOT NULL;
+-- Opening hours from the data source; NULL = default hours of the category
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS open_hour SMALLINT CHECK (open_hour BETWEEN 0 AND 24);
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS close_hour SMALLINT CHECK (close_hour BETWEEN 0 AND 24);
+-- Demo venues added before the column existed
+UPDATE venues SET source = 'demo' WHERE source = 'manual' AND name LIKE 'Demo %';
+
+-- v2: check-ins can be private: they still count for the occupancy, but the name is never shown
+-- ("Burayı X keşfetti", and later to friends)
+ALTER TABLE checkins ADD COLUMN IF NOT EXISTS is_private BOOLEAN NOT NULL DEFAULT false;
+
+-- v2: unique user name ("@eray") for finding friends; guests have none
+ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS users_username ON users (lower(username)) WHERE username IS NOT NULL;
+
+-- v2 friends: a request becomes a friendship when the other person accepts it
+CREATE TABLE IF NOT EXISTS friendships (
+    requester_id  BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    addressee_id  BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted')),
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (requester_id, addressee_id),
+    CHECK (requester_id <> addressee_id)
+);
+CREATE INDEX IF NOT EXISTS friendships_addressee ON friendships (addressee_id);

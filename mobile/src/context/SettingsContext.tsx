@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, type ReactNode } from 'react';
 
 import { usePersistentState } from '../hooks/usePersistentState';
-import { CLOSED_STYLE, levelStyle, type LevelLook } from '../lib/occupancy';
+import { liveLevel, type Crowd } from '../lib/crowd';
+import { CLOSED_STYLE, levelStyle, STALE_STYLE, UNEXPLORED_STYLE, type LevelLook } from '../lib/occupancy';
 import { KEYS } from '../lib/storage';
 
 export type Settings = {
@@ -18,6 +19,8 @@ type SettingsValue = Settings & {
   update: (patch: Partial<Settings>) => void;
   // Colour, label and symbol for an occupancy level (grey "Kapalı" when closed)
   look: (level: string, open?: boolean) => LevelLook;
+  // v2: look of a venue from its check-ins (closed, fresh level, no recent data, never checked in)
+  crowdLook: (venue: { open_now: boolean; crowd?: Crowd }) => LevelLook;
 };
 
 const SettingsContext = createContext<SettingsValue | null>(null);
@@ -34,7 +37,19 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [settings.colorBlind],
   );
 
-  return <SettingsContext.Provider value={{ ...settings, update, look }}>{children}</SettingsContext.Provider>;
+  const crowdLook = useCallback(
+    (venue: { open_now: boolean; crowd?: Crowd }): LevelLook => {
+      if (!venue.open_now) return look('low', false);
+      const level = liveLevel(venue);
+      if (level) return look(level);
+      return venue.crowd?.state === 'stale' ? STALE_STYLE : UNEXPLORED_STYLE;
+    },
+    [look],
+  );
+
+  return (
+    <SettingsContext.Provider value={{ ...settings, update, look, crowdLook }}>{children}</SettingsContext.Provider>
+  );
 }
 
 export function useSettings(): SettingsValue {

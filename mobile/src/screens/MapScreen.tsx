@@ -16,7 +16,9 @@ import { containsBounds, formatBBox, regionToBounds, type Region } from '../lib/
 import { cardPosition, type Point } from '../lib/cardPosition';
 import { toggleTag, type Tag } from '../lib/filters';
 import { LEVELS } from '../lib/occupancy';
+import { CrowdDot } from '../components/CrowdDot';
 import { LevelDot } from '../components/LevelDot';
+import { UNEXPLORED } from '../lib/crowd';
 import { useSettings } from '../context/SettingsContext';
 import type { Venue } from '../lib/api';
 import { colors } from '../theme';
@@ -36,6 +38,8 @@ type Props = {
   onMarkerPress: (id: number) => void;
   onBack: () => void;
   onOpenDetails: (venue: Venue) => void;
+  // v2: venues the user checked in at, for "Ziyaret ettiklerim"
+  visitedIds: ReadonlySet<number>;
 };
 
 export function MapScreen({
@@ -50,7 +54,9 @@ export function MapScreen({
   onMarkerPress,
   onBack,
   onOpenDetails,
+  visitedIds,
 }: Props) {
+  const [onlyVisited, setOnlyVisited] = useState(false);
   const { look } = useSettings();
   const window = useWindowDimensions();
   const [queryBounds, setQueryBounds] = useState(() => regionToBounds(initialRegion, QUERY_PADDING));
@@ -100,7 +106,7 @@ export function MapScreen({
     <View style={styles.container}>
       <VenueMap
         initialRegion={initialRegion}
-        venues={hideClosed ? venues.filter((v) => v.open_now) : venues}
+        venues={venues.filter((v) => (!hideClosed || v.open_now) && (!onlyVisited || visitedIds.has(v.id)))}
         selectedId={selectedId}
         onMarkerPress={onMarkerPress}
         onMapPress={() => onSelect(null)}
@@ -154,12 +160,39 @@ export function MapScreen({
         />
       ) : (
         <View style={styles.legend}>
+          <View style={styles.modeRow}>
+            {[
+              { visited: false, label: 'Tümü' },
+              { visited: true, label: `Ziyaret ettiklerim${visitedIds.size ? ` (${visitedIds.size})` : ''}` },
+            ].map(({ visited, label }) => (
+              <Pressable
+                key={label}
+                onPress={() => setOnlyVisited(visited)}
+                style={[styles.mode, onlyVisited === visited && styles.modeActive]}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: onlyVisited === visited }}
+              >
+                <Text style={[styles.modeText, onlyVisited === visited && styles.modeTextActive]}>{label}</Text>
+              </Pressable>
+            ))}
+          </View>
+          {onlyVisited && visitedIds.size === 0 && (
+            <Text style={styles.status}>Henüz check-in yapmadın. Check-in yaptığın mekanlar burada görünür.</Text>
+          )}
           {LEVELS.map((level) => (
             <View key={level} style={styles.legendItem}>
               <LevelDot level={level} />
               <Text style={styles.legendText}>{look(level).label}</Text>
             </View>
           ))}
+          <View style={styles.legendItem}>
+            <CrowdDot venue={{ open_now: true, crowd: { ...UNEXPLORED, state: 'stale' } }} />
+            <Text style={styles.legendText}>Bilgi yok</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <CrowdDot venue={{ open_now: true, crowd: UNEXPLORED }} />
+            <Text style={styles.legendText}>Keşfedilmedi</Text>
+          </View>
           <View style={styles.legendItem}>
             <LevelDot level="low" open={false} />
             <Text style={styles.legendText}>Kapalı</Text>
@@ -209,8 +242,12 @@ const styles = StyleSheet.create({
   legend: {
     position: 'absolute',
     bottom: 36,
-    alignSelf: 'center',
+    left: 12,
+    right: 12,
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    rowGap: 6,
     alignItems: 'center',
     gap: 12,
     paddingVertical: 8,
@@ -219,6 +256,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  modeRow: { width: '100%', flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 2 },
+  mode: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: 14, backgroundColor: colors.cream },
+  modeActive: { backgroundColor: colors.primary },
+  modeText: { fontSize: 13, fontWeight: '600', color: colors.text },
+  modeTextActive: { color: colors.onPrimary },
   locate: {
     position: 'absolute',
     right: 14,

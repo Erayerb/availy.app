@@ -1,0 +1,45 @@
+/** v2 friends: user-name search, requests, QR code and invite link. */
+import { send } from './accountApi.ts';
+import { normalizeUsername } from './auth.ts';
+import { WEB_APP_URL } from './share.ts';
+
+export type Person = { id: number; username: string; name: string };
+export type Relation = 'friend' | 'outgoing' | 'incoming' | 'none';
+export type FriendLists = { friends: Person[]; incoming: Person[]; outgoing: Person[] };
+
+const QR_PREFIX = 'availy:friend:';
+
+/** What my friend QR code contains. */
+export const friendQrPayload = (username: string) => `${QR_PREFIX}${username}`;
+
+/** Link that adds me as a friend when opened (web demo); also inside the shared message. */
+export const inviteLink = (username: string) => `${WEB_APP_URL}?invite=${encodeURIComponent(username)}`;
+
+export const inviteMessage = (username: string) => `availy'de beni arkadaş olarak ekle: @${username} ${inviteLink(username)}`;
+
+const USERNAME = /^[a-z0-9][a-z0-9._]{2,19}$/;
+
+/** User name from a scanned QR, an invite link or a typed "@name"; null if it is none of them. */
+export function parseFriendCode(data: string): string | null {
+  const text = data.trim();
+  let candidate = text;
+  if (text.toLowerCase().startsWith(QR_PREFIX)) candidate = text.slice(QR_PREFIX.length);
+  else if (text.includes('invite=')) candidate = new URLSearchParams(text.slice(text.indexOf('?'))).get('invite') ?? '';
+  const username = normalizeUsername(candidate);
+  return USERNAME.test(username) ? username : null;
+}
+
+/** "?invite=eray" in the web address, if any. */
+export function inviteFromQuery(search: string): string | null {
+  const value = new URLSearchParams(search).get('invite');
+  return value ? parseFriendCode(value) : null;
+}
+
+export const friendsApi = {
+  search: (token: string, q: string) =>
+    send<(Person & { relation: Relation })[]>('GET', `/v1/users/search?q=${encodeURIComponent(q)}`, undefined, token),
+  list: (token: string) => send<FriendLists>('GET', '/v1/friends', undefined, token),
+  add: (token: string, username: string) =>
+    send<Person & { relation: Relation }>('POST', '/v1/friends', { username }, token),
+  remove: (token: string, id: number) => send<void>('DELETE', `/v1/friends/${id}`, undefined, token),
+};

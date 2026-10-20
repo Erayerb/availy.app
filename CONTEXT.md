@@ -128,9 +128,14 @@ Yalnızca v2 (check-in) ile ilgili işler. v2 dışındakiler "Rafa kaldırıld�
 - Zamanlanmış ve otomatik kampanyalar sunucuda çalışsın
 - Mekan sahipliği doğrulaması: kampanya ve sadakat için zorunlu; gerçek SMS (mekanın kayıtlı telefonuna) ya da yöneticinin incelediği belge; bir mekanı yalnızca bir hesap alabilir
 
-**v1'den geri gelecekler** (sahte veriye dayanıyorlardı)
-- Tahmini boşalma: geçmiş haftaların check-in'lerine göre
-- "Sakin olunca haber ver" (v1'deki "boşalınca haber ver")
+**v1'den geri gelebilecekler** (sahte veriye dayanıyorlardı; v2'de kaldırıldı)
+- Belki eklenir: tahmini boşalma ("Tahmini boşalma: ~15:20"), geçmiş haftaların check-in'lerine göre
+- Belki eklenir: "Bölge: Yoğun" satırı, semtteki mekanların güncel check-in'lerinin ortalamasıyla
+
+**Gerçek mekan verisi (pilot bölgeler)** — OSM içe aktarma yapıldı (aşağıdaki notlar bilgi için)
+- OpenStreetMap (Overpass API, ücretsiz; ODbL lisansı: uygulamada "© OpenStreetMap katkıcıları" yazmak şart, veritabanını dağıtırsak aynı lisansla). Ekim 2026 sorgusu: Nişantaşı çevresinde 149 mekan (72 kafe, 66 restoran, 7 bar…; 103'ü isimli, 21'inde çalışma saati), Yeditepe kampüsü çevresinde 10; Caddebostan sorgusu sunucu meşgul olduğu için alınamadı
+- Alternatifler: Foursquare Open Source Places (Apache 2.0, ücretsiz), Overture Maps Places (açık lisans). Google Places / Google Maps verisini kopyalamak kullanım şartlarına aykırı (yalnızca kendi ekranında, kısa süre saklama)
+- Yapılacak: pilot bölgeler için içe aktarma betiği (OSM → `venues`, `osm_id` ile tekrar çalıştırılabilir), kategori eşleme (cafe/restaurant/bar/library/coworking), çalışma saati varsa onu, yoksa türe göre varsayılanı kullanmak; haritada OSM atfı
 
 **availy puanı**
 - Kazanım (v2 planı): check-in 10, mekanın ilk check-in'i 50 puan + Kâşif rozeti
@@ -146,7 +151,21 @@ v2 `v2-checkin` dalında geliştirilir, `main`'e hiç alınmaz; hazır olunca ay
 - Bitti: v2 Aşama 3 (`checkins` tablosu, app/checkins.py, POST /v1/venues/{id}/checkins: giriş/misafir gerekli, Sakin/Orta/Kalabalık + "Sıra var mı?" / "Oturacak yer var mı?", mekana ≤150 m (PostGIS; konum saklanmaz), kapalı mekana check-in yok, aynı mekana 2 saatte bir ("Tekrar: 14:00"), kayan 60 dk'da en fazla 10, mekanın ilk check-in'i işaretlenir (aynı anda iki kişi olsa da tek); 11 yeni test, toplam 111)
 - Bitti: check-in yarıçapı 150 m
 - Bitti: v2 Aşama 4 (app/crowd.py `crowd_from_checkins`: son 90 dk, kişi başı son bildirim, 30 dk yarılanma × güven, Sakin 0.2 / Orta 0.55 / Kalabalık 0.9 → v1 eşikleri; en az 3 kişide oran; "Sıra var" / "Oturacak yer" ağırlıklı çoğunluk; durumlar live / stale / unexplored. /v1/venues ve /search çıktısında `crowd`; v1'in sahte `occupancy` alanı uygulama v2'ye geçene kadar (Aşama 6) duruyor; toplam 120 test)
-- Sırada: v2 Aşama 5 (mobil: sunucu hesabıyla giriş / kayıt / misafir)
+- Bitti: v2 Aşama 5 (mobil hesaplar sunucuda: mobile/src/lib/accountApi.ts, useAuth sunucuya bağlı; "Kayıt olmadan devam et" sunucuda misafir hesabı açar; misafir Profil'den kayıt olunca aynı id kalır; v1'den kalan telefondaki hesaplar yeniden giriş ister; işletmenin seçtiği mekan ve paket şimdilik telefonda kalır (businessProfiles). Backend'e PATCH /v1/me, POST /v1/me/password, DELETE /v1/me (check-in'ler anonimleşir) ve CORS (localhost + erayerb.github.io) eklendi. Backend 125 test, mobil 98 test; web'de misafir → kayıt → çıkış → giriş denendi)
+- Bitti: v2 Aşama 6 (mobil check-in: detay sayfasında "Şu an burası nasıl?" Sakin / Orta / Kalabalık → Kalabalık'ta "Sıra var mı?", Orta'da "Oturacak yer var mı?" → Check-in; konum izni check-in'de yeniden istenir, iOS'ta reddedildiyse Ayarlar'a yönlendirir; misafire "daha az sayılır" notu; ilk check-in'de "✨ İlk check-in senin!". Harita noktaları, kartlar, kutucuklar, alternatifler, "En sakin" sıralaması, paylaşma metni ve "Sakin olunca haber ver" check-in doluluğunu kullanır; durumlar: renkli seviye + "Son bildirim 12 dk önce · 4 kişi" + "~%60" (3+ kişi) + "Sıra var / Oturacak yer var", gri "?" Bilgi yok, mor "✨" Keşfedilmedi. Haritadaki kartta Detaylar yerine "📍 Check-in" (detay sayfasını açar). Tahmini boşalma ve "Bölge" satırı kaldırıldı. İşletme paneli işletme tarafı düzenlenene kadar v1'in sahte doluluğunu kullanıyor. Mobil 103 test; web'de misafir → check-in → ilk check-in → 2 saat kuralı denendi)
+- Bitti: Ana sayfa Konum filtresinde yalnızca pilot semtler (Ataşehir, Kadıköy, Şişli) seçilebilir; diğerleri soluk, seçilemez; altında "Şimdilik pilot bölgeler: …" notu
+- Bitti: v2 Aşama 7 (`points` tablosu: check-in 10, mekanın ilk check-in'i +50; GET /v1/me puan, check-in sayısı, keşif sayısı ve rozetler ("Kâşif": en az bir ilk check-in) döner; mekan çıktısında `discovery` = ilk check-in yapanın adı, 30 gün; misafir kayıt olunca puanlar korunur. Uygulamada check-in sonrası "+10 puan" / "İlk check-in senin! · +60 puan · Kâşif rozeti", detayda "✨ Burayı X keşfetti · 20 Ekim", Profil'de availy puanı (check-in + v1 damga/kupon puanı), check-in, keşif ve Rozetlerin. Backend 128, mobil 105 test; web'de misafir check-in → kayıt → Profil'de 60 puan + Kâşif denendi)
+- Bitti: misafirler her puanın yarısını alır (ilk check-in senaryosu: 5 + 25 = 30); kayıt olunca kazandıkları kalır, sonrası tam
+- Bitti: gizli check-in (doluluğa sayılır, ad gösterilmez: "Burayı gizli bir kullanıcı keşfetti"; ileride arkadaşlara da görünmez)
+- Bitti: check-in sonrası "Burayı keşfeden 12. kişisin!" (mekana ilk gelişte) ya da "Buraya 3. check-in'in."
+- Bitti: rozet kataloğu (İlk Adım, Kâşif, Büyük Kâşif, Gezgin, Müdavim, Gece Kuşu, Yardımsever); Profil'de yuvarlak rozetler, kazanılanlar renkli, kilitliler gri + 🔒 + ilerleme (1/5)
+- Bitti: haritada altta "Tümü / Ziyaret ettiklerim" (GET /v1/me/visits)
+- Bitti: OpenStreetMap içe aktarma (backend/app/import_osm.py; `venues.source` = osm, `osm_id` ile tekrar çalıştırılabilir, OSM çalışma saati varsa `open_hour` / `close_hour`); v1 demo mekanları silinmedi, v2'de gizli (`hidden_venue_sources`). Atıf: detay ve Hakkında'da "© OpenStreetMap katkıcıları"
+- Bitti: kullanıcı adı (kayıtta zorunlu, büyük/küçük harf fark etmeden tekil, 3–20: a-z 0-9 . _; misafir kayıt olurken de seçer); Profil'de @kullaniciadi
+- Bitti: arkadaşlar (backend/app/friends.py): kullanıcı adıyla arama, istek / kabul / reddet / çıkar; Daha fazla → Arkadaşlar: QR'ım, QR okut, davet bağlantısını paylaş (WhatsApp / Instagram hikayesi), web'de ?invite=ad ile açılınca istek gider. Misafir arkadaş ekleyemez
+- Bitti: kayıt sonrası (ve ilk misafir girişinde) geçilebilen tanıtım, ardından Swarm'daki gibi "İlk check-in'in": konumdan 150 m içindeki en yakın açık mekanın sayfası açılır; yoksa "Devam" haritayı açar (işletmede yalnızca tanıtım)
+- Bitti: v2 Aşama 8 (güven puanı: yeni bildirim, aynı mekana son 30 dk'daki en az 2 kişinin bildirimiyle karşılaştırılır; çok farklıysa (Sakin ↔ Kalabalık) güven -0.1, alt sınır 0.2; uyuşuyorsa +0.02, üst sınır 1 (misafirde 0.5); kayıt olan misafirin güveni ikiye katlanır, en fazla 1). Backend 160, mobil 111 test
+- Sırada: v2 Aşama 9 (iki telefonla deneme: Mac backend + Expo Go, aynı Wi-Fi), sonra demo check-in'leri ve backend'i internete koyma
 Konuşulan kararlar:
 - Doluluğu mekanlar değil, check-in yapan kullanıcılar belirler (Swarm / Foursquare benzeri)
 - Check-in akışı: önce doluluk seçilir (Sakin / Orta / Kalabalık), sonra Check-in butonu açılır
@@ -163,8 +182,9 @@ Konuşulan kararlar:
 - Yüzde: Sakin / Orta / Kalabalık seçilir; son 90 dk'da en az 3 kişi varsa "~%60" gibi yüzde de gösterilir, yoksa yalnızca seviye
 - "Burayı X keşfetti" 30 gün görünür
 - Demo için "demo" işaretli sahte check-in'ler üretilecek (az kullanıcıyla haritayı göstermek için)
-- Pilot bölge: Nişantaşı, Caddebostan, Yeditepe Üniversitesi kampüsü ve çevresi
+- Pilot bölge: Nişantaşı, Caddebostan, Yeditepe Üniversitesi kampüsü ve çevresi. Ana sayfadaki Konum filtresinde şimdilik yalnızca bu semtler (Şişli, Kadıköy, Ataşehir) seçilebilir; diğerleri görünür ama soluk ve seçilemez
 - "Boşalınca haber ver" v2'de "Sakin olunca haber ver" olacak
+- Arkadaş bulma (sonraki sürüm): telefon rehberi (izinle, numaralar sunucuya yalnızca hash olarak gider; hesaplara telefon numarası eklemek gerekir), kullanıcı adıyla arama, davet bağlantısı / QR (WhatsApp, Instagram hikayesi). Instagram'dan takipçi / arkadaş listesi çekmek mümkün değil (Meta'nın API'si buna izin vermiyor)
 - Sonraki sürümler (sosyal): check-in'i arkadaşlarla paylaş (check-in ekranında anahtar; arkadaşların ana ekran akışında görünür, isteyene bildirim gider); arkadaşlar izin verilirse birbirinin check-in'lerini görür; herkese açık liderlik tablosu; mekan yorumları ve geri bildirim, yorumlara diğer kullanıcılar cevap verebilir (yorum sahibi izin verdiyse)
 - KVKK: konum yalnızca check-in anında kontrol edilir, saklanmaz; kimin nerede olduğu başkalarına gösterilmez
 - Arkadaş akışı (Swarm gibi) olacak, ama ilk sürümde değil

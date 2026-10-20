@@ -2,7 +2,11 @@ import { createContext, useContext, type ReactNode } from 'react';
 
 import { useUserLocation, type UserLocation } from '../hooks/useUserLocation';
 
-const LocationContext = createContext<UserLocation>({ point: null, loading: false });
+const LocationContext = createContext<UserLocation>({
+  point: null,
+  loading: false,
+  locate: async () => ({ coords: null, error: 'failed' }),
+});
 
 /** Asks for location permission once and shares the result with every screen. */
 export function LocationProvider({ children }: { children: ReactNode }) {

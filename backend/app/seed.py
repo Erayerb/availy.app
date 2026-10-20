@@ -18,9 +18,9 @@ def seed(conn: psycopg.Connection) -> int:
     for venue in demo_venue_rows():
         row = conn.execute(
             """
-            INSERT INTO venues (name, category, location, capacity, neighborhood, district, tags, popularity, always_busy)
+            INSERT INTO venues (name, category, location, capacity, neighborhood, district, tags, popularity, always_busy, source)
             SELECT %(name)s, %(category)s, ST_SetSRID(ST_MakePoint(%(lon)s, %(lat)s), 4326)::geography,
-                   %(capacity)s, %(neighborhood)s, %(district)s, %(tags)s, %(popularity)s, %(always_busy)s
+                   %(capacity)s, %(neighborhood)s, %(district)s, %(tags)s, %(popularity)s, %(always_busy)s, 'demo'
             WHERE NOT EXISTS (SELECT 1 FROM venues WHERE name = %(name)s)
             RETURNING id
             """,

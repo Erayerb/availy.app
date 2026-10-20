@@ -27,8 +27,8 @@ const VenueMarker = memo(function VenueMarker({
   onSelect: (id: number) => void;
 }) {
   const size = selected ? SELECTED_DOT_SIZE : DOT_SIZE;
-  const { look } = useSettings();
-  const { color, glyph } = look(venue.occupancy.level, venue.open_now);
+  const { crowdLook } = useSettings();
+  const { color, glyph } = crowdLook(venue);
   return (
     <Marker
       coordinate={{ latitude: venue.lat, longitude: venue.lon }}
@@ -118,7 +118,7 @@ export function VenueMap({
         return (
           <VenueMarker
             // tracksViewChanges is off, so a new key re-renders the dot when its look changes
-            key={`${venue.id}-${venue.occupancy.level}-${venue.open_now}-${isSelected}-${colorBlind}`}
+            key={`${venue.id}-${venue.crowd?.state}-${venue.crowd?.level}-${venue.open_now}-${isSelected}-${colorBlind}`}
             venue={venue}
             selected={isSelected}
             onSelect={onMarkerPress}

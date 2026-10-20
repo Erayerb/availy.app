@@ -1,0 +1,96 @@
+/** v2: accounts on the server (sign up, sign in, guest, profile). `send` is shared by other v2 calls. */
+import type { Badge, Role, User } from './auth.ts';
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
+export type ServerUser = {
+  id: number;
+  name: string;
+  email: string | null; // null for guests
+  username: string | null;
+  role: Role;
+  is_guest: boolean;
+  venue_id: number | null;
+  plan: string | null;
+  // Only from GET /v1/me
+  points?: number;
+  checkins?: number;
+  discoveries?: number;
+  badges?: Badge[];
+};
+
+type Session = { token: string; user: ServerUser };
+
+// Business details that still live on this phone (v2 moves the business side to the server later)
+export type LocalBusiness = Pick<User, 'venueId' | 'plan' | 'venueVerified'>;
+
+/** Turkish message from a failed response: the server's `detail` text, or a general one. */
+export function errorMessage(status: number, data: unknown): string {
+  const detail = (data as { detail?: unknown } | null)?.detail;
+  if (typeof detail === 'string') return detail;
+  if (status === 422) return 'Bilgiler eksik ya da geçersiz.';
+  return `Sunucu hatası: ${status}`;
+}
+
+/** App user from the server's user, the session token and what this phone keeps for businesses. */
+export function toUser(server: ServerUser, token: string, local: LocalBusiness = {}): User {
+  return {
+    id: server.id,
+    token,
+    isGuest: server.is_guest,
+    name: server.name,
+    email: server.email,
+    username: server.username,
+    role: server.role,
+    venueId: server.venue_id ?? local.venueId ?? null,
+    plan: (server.plan as User['plan']) ?? local.plan,
+    venueVerified: local.venueVerified,
+    points: server.points,
+    checkins: server.checkins,
+    discoveries: server.discoveries,
+    badges: server.badges,
+  };
+}
+
+export async function send<T>(method: string, path: string, body?: unknown, token?: string): Promise<T> {
+  if (!API_URL) throw new ApiError('Sunucu adresi tanımlı değil (mobile/.env).', 0);
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      method,
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  } catch {
+    throw new ApiError('Sunucuya bağlanılamadı. İnternet bağlantını kontrol et.', 0);
+  }
+  if (response.status === 204) return undefined as T;
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new ApiError(errorMessage(response.status, data), response.status);
+  return data as T;
+}
+
+export const accountApi = {
+  register: (name: string, username: string, email: string, password: string, role: Role) =>
+    send<Session>('POST', '/v1/auth/register', { name, username, email, password, role }),
+  login: (email: string, password: string, role: Role) => send<Session>('POST', '/v1/auth/login', { email, password, role }),
+  guest: () => send<Session>('POST', '/v1/auth/guest'),
+  // A guest signs up; same id, the current token stays valid
+  upgrade: (token: string, name: string, username: string, email: string, password: string, role: Role) =>
+    send<ServerUser>('POST', '/v1/auth/upgrade', { name, username, email, password, role }, token),
+  logout: (token: string) => send<void>('POST', '/v1/auth/logout', undefined, token),
+  me: (token: string) => send<ServerUser>('GET', '/v1/me', undefined, token),
+  rename: (token: string, name: string) => send<ServerUser>('PATCH', '/v1/me', { name }, token),
+  changePassword: (token: string, oldPassword: string, newPassword: string) =>
+    send<void>('POST', '/v1/me/password', { old_password: oldPassword, new_password: newPassword }, token),
+  remove: (token: string) => send<void>('DELETE', '/v1/me', undefined, token),
+};

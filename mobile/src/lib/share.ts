@@ -1,15 +1,21 @@
 import type { Venue } from './api';
+import { crowdRatioText, liveLevel } from './crowd.ts';
 import { levelStyle } from './occupancy.ts';
 
-export const WEB_APP_URL = 'https://erayerb.github.io/availy.app/';
+// v2 web demo (v1 stays at /availy.app/)
+export const WEB_APP_URL = 'https://erayerb.github.io/availy.app/v2/';
 
 /** Link to the web app that opens this venue (by name, which is unique). */
 export const venueLink = (name: string) => `${WEB_APP_URL}?venue=${encodeURIComponent(name)}`;
 
 export function shareMessage(venue: Venue): string {
-  const status = venue.open_now
-    ? `şu an %${Math.round(venue.occupancy.ratio * 100)} dolu (${levelStyle(venue.occupancy.level).label})`
-    : `şu an kapalı, ${venue.opens_at}'de açılıyor`;
+  const level = liveLevel(venue);
+  const ratio = venue.crowd ? crowdRatioText(venue.crowd) : null;
+  const status = !venue.open_now
+    ? `şu an kapalı, ${venue.opens_at}'de açılıyor`
+    : level
+      ? `şu an ${levelStyle(level).label.toLocaleLowerCase('tr-TR')}${ratio ? ` (${ratio})` : ''}`
+      : 'için henüz güncel bildirim yok, ilk check-in\'i sen yap';
   return `${venue.name} ${status}. availy'de gör: ${venueLink(venue.name)}`;
 }
 

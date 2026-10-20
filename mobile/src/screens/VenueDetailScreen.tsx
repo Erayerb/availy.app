@@ -4,14 +4,14 @@ import { Linking, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, T
 import { BackButton } from '../components/BackButton';
 import { CampaignBox } from '../components/CampaignBox';
 import { FavoriteButton } from '../components/FavoriteButton';
-import { LevelDot } from '../components/LevelDot';
+import { CheckinPanel } from '../components/CheckinPanel';
+import { CrowdDot } from '../components/CrowdDot';
 import { VenuePhoto } from '../components/VenuePhoto';
 import { WatchButton } from '../components/WatchButton';
 import { useCampaigns } from '../context/CampaignsContext';
 import { useEngagement } from '../context/EngagementContext';
 import { useLocation } from '../context/LocationContext';
 import { useSettings } from '../context/SettingsContext';
-import { useEmptyingEstimate } from '../hooks/useEmptyingEstimate';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
 import { amenitiesFor } from '../lib/amenities';
 import type { Venue } from '../lib/api';
@@ -20,7 +20,8 @@ import { distanceKm, formatDistance } from '../lib/geo';
 import { directionsUrl, shortLocation } from '../lib/location';
 import { MAX_COMMENT, stars, validateFeedback, venueRating } from '../lib/feedback';
 import { describeProgram, isProgramActive } from '../lib/loyalty';
-import { areaStatus, formatRatio } from '../lib/occupancy';
+import type { User } from '../lib/auth';
+import { crowdExtra, crowdRatioText, crowdSummary } from '../lib/crowd';
 import { shareVenue } from '../lib/shareVenue';
 import { canWatch } from '../lib/watch';
 import { colors } from '../theme';
@@ -28,15 +29,27 @@ import { colors } from '../theme';
 type Props = {
   venueId: number;
   userName: string | null; // signed-in customer, needed to leave feedback
+  user: User | null; // for check-ins
+  onRegister: () => void;
+  onCheckedIn: () => void; // reload the user's points
   onLogin: () => void;
   onBack: () => void;
   onShowOnMap: (venue: Venue) => void;
 };
 
-export function VenueDetailScreen({ venueId, userName, onLogin, onBack, onShowOnMap }: Props) {
+export function VenueDetailScreen({
+  venueId,
+  userName,
+  user,
+  onLogin,
+  onRegister,
+  onCheckedIn,
+  onBack,
+  onShowOnMap,
+}: Props) {
   const { venues, loading, error, refreshing, refresh } = useVenuesByIds([venueId]);
   const venue = venues[0];
-  const { look } = useSettings();
+  const { crowdLook } = useSettings();
   const { activeFor } = useCampaigns();
   const { programs, watches, feedback, leaveFeedback, userKey } = useEngagement();
   const [rating, setRating] = useState(0);
@@ -44,7 +57,6 @@ export function VenueDetailScreen({ venueId, userName, onLogin, onBack, onShowOn
   const [feedbackNote, setFeedbackNote] = useState<{ ok: boolean; text: string } | null>(null);
   const { point } = useLocation();
   const [note, setNote] = useState<string | null>(null);
-  const estimate = useEmptyingEstimate(venue);
 
   if (!venue) {
     return (
@@ -57,7 +69,7 @@ export function VenueDetailScreen({ venueId, userName, onLogin, onBack, onShowOn
     );
   }
 
-  const { label } = look(venue.occupancy.level, venue.open_now);
+  const { label } = crowdLook(venue);
   const campaign = venue.open_now ? activeFor(venue.id) : null;
   const program = programs.find((p) => p.venueId === venue.id && isProgramActive(p));
   const reviews = venueRating(feedback, venue.id);
@@ -101,6 +113,12 @@ export function VenueDetailScreen({ venueId, userName, onLogin, onBack, onShowOn
 
       <View>
         <Text style={styles.name}>{venue.name}</Text>
+        {venue.discovery && (
+          <Text style={styles.discovery}>
+            ✨ Burayı {venue.discovery.name ?? 'gizli bir kullanıcı'} keşfetti ·{' '}
+            {new Date(venue.discovery.at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}
+          </Text>
+        )}
         {reviews.average !== null && (
           <Text style={styles.rating}>
             {stars(Math.round(reviews.average))} {reviews.average} · {reviews.count} değerlendirme
@@ -116,25 +134,34 @@ export function VenueDetailScreen({ venueId, userName, onLogin, onBack, onShowOn
 
       <View style={styles.card}>
         <View style={styles.row}>
-          <LevelDot level={venue.occupancy.level} open={venue.open_now} size={14} />
+          <CrowdDot venue={venue} size={14} />
           <Text style={styles.status}>{label}</Text>
           <Text style={styles.ratio}>
-            {venue.open_now ? formatRatio(venue.occupancy.ratio) : `${venue.opens_at}'de açılır`}
+            {venue.open_now ? (crowdRatioText(venue.crowd) ?? '') : `${venue.opens_at}'de açılır`}
           </Text>
         </View>
-        {venue.open_now && <Text style={styles.text}>{areaStatus(venue.district_occupancy.level)}</Text>}
-        {estimate && <Text style={styles.text}>⏳ {estimate}</Text>}
+        {venue.open_now && <Text style={styles.text}>{crowdSummary(venue.crowd, new Date())}</Text>}
+        {venue.open_now && crowdExtra(venue.crowd) && <Text style={styles.text}>{crowdExtra(venue.crowd)}</Text>}
         <Text style={styles.text}>🕒 {venue.hours}</Text>
         {watching ? (
-          <Text style={styles.watch}>🔔 %70 altına düşünce haber vereceğiz</Text>
+          <Text style={styles.watch}>🔔 Sakin olunca haber vereceğiz</Text>
         ) : (
           canWatch(venue) && (
-            <Text style={styles.muted}>
-              Kalabalık mı? 🔕 simgesine basınca %70 altına düştüğünde haber veririz.
-            </Text>
+            <Text style={styles.muted}>Kalabalık mı? 🔕 simgesine bas, sakinleşince haber verelim.</Text>
           )
         )}
       </View>
+
+      <CheckinPanel
+        venue={venue}
+        user={user}
+        onLogin={onLogin}
+        onRegister={onRegister}
+        onDone={() => {
+          refresh();
+          onCheckedIn();
+        }}
+      />
 
       {campaign && (
         <View style={styles.section}>
@@ -220,12 +247,15 @@ export function VenueDetailScreen({ venueId, userName, onLogin, onBack, onShowOn
           <Text style={styles.primaryText}>Yol tarifi</Text>
         </Pressable>
       </View>
-      <Text style={styles.demo}>Prototip: özellikler ve doluluk örnek verilerdir.</Text>
+      <Text style={styles.demo}>
+        Mekan bilgileri © OpenStreetMap katkıcıları · doluluk kullanıcıların check-in'lerinden
+      </Text>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  discovery: { fontSize: 13, color: '#7B5EA7', fontWeight: '600', marginTop: 2 },
   // Space for the status bar sits outside the scroll view, so the pull-to-refresh spinner stays visible
   page: { flex: 1, marginTop: 50, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 48, gap: 14 },

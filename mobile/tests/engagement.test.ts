@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 
-import { changePassword, checkLogin, createAccount, deleteAccount, renameAccount } from '../src/lib/accounts.ts';
 import { amenitiesFor } from '../src/lib/amenities.ts';
 import { createCampaign } from '../src/lib/campaigns.ts';
 import { campaignStats, claimCoupon, couponCode, normalizeCode, redeemCoupon, remainingCoupons } from '../src/lib/coupons.ts';
@@ -33,7 +31,7 @@ const venue = (over: Record<string, unknown>) =>
   ({
     id: 1, name: 'Demo Kafe Moda', category: 'cafe', tags: ['socializing'], lat: 40.984, lon: 29.026,
     open_now: true, hours: '08:00–23:00', opens_at: '08:00',
-    occupancy: { level: 'medium', ratio: 0.4, updated_at: '' },
+    crowd: { state: 'live', level: 'medium', ratio: 0.4, reporters: 3, last_report_at: '', queue: null, seats: null },
     ...over,
   }) as never;
 
@@ -87,24 +85,32 @@ test('loyalty programs: validation, description, codes and points', () => {
   assert.equal(availyPoints(3, 2), 35);
 });
 
-test('watch: offered for busy venues, fires below 70% while open', () => {
-  assert.ok(canWatch(venue({ occupancy: { level: 'high', ratio: 0.85 } })));
-  assert.ok(!canWatch(venue({})));
-  assert.ok(watchTriggered(venue({ occupancy: { level: 'medium', ratio: 0.6 } })));
-  assert.ok(!watchTriggered(venue({ open_now: false, occupancy: { level: 'low', ratio: 0.1 } })));
+const live = (level: string, ratio: number | null = null) => ({
+  crowd: { state: 'live', level, ratio, reporters: 1, last_report_at: '', queue: null, seats: null },
+});
+
+test('"Sakin olunca haber ver": offered for Orta / Kalabalık, fires when check-ins say Sakin', () => {
+  assert.ok(canWatch(venue(live('high'))));
+  assert.ok(canWatch(venue(live('medium'))));
+  assert.ok(!canWatch(venue(live('low'))));
+  assert.ok(!canWatch(venue({ crowd: { state: 'unexplored' } })));
+  assert.ok(watchTriggered(venue(live('low'))));
+  assert.ok(!watchTriggered(venue({ open_now: false, ...live('low') })));
+  assert.ok(!watchTriggered(venue({ crowd: { state: 'stale' } })));
   const on = toggleWatch([], { id: 1, name: 'X' }, NOW);
   assert.equal(on.length, 1);
   assert.equal(toggleWatch(on, { id: 1, name: 'X' }, NOW).length, 0);
-  assert.equal(notificationText(venue({ occupancy: { level: 'medium', ratio: 0.62 } })).body, 'Şu an %62 dolu. Gitmek için iyi bir zaman.');
+  assert.equal(notificationText(venue(live('low'))).title, 'Demo Kafe Moda sakinleşti');
 });
 
-test('sorting: quietest puts open, emptier venues first', () => {
+test('sorting: quietest puts open, emptier venues first; no fresh check-ins after them', () => {
   const list = [
-    venue({ id: 1, occupancy: { ratio: 0.5 } }),
-    venue({ id: 2, open_now: false, occupancy: { ratio: 0 } }),
-    venue({ id: 3, occupancy: { ratio: 0.1 } }),
+    venue({ id: 1, ...live('medium', 0.5) }),
+    venue({ id: 2, open_now: false, ...live('low', 0.1) }),
+    venue({ id: 3, ...live('low') }), // no ratio: Sakin counts as 0.2
+    venue({ id: 4, crowd: { state: 'unexplored' } }),
   ];
-  assert.deepEqual(byQuietest(list).map((v: { id: number }) => v.id), [3, 1, 2]);
+  assert.deepEqual(byQuietest(list).map((v: { id: number }) => v.id), [3, 1, 4, 2]);
   const same = <T,>(v: T) => v;
   assert.deepEqual(sortVenues(list, 'nearest', null, same), list); // no location: unchanged
 });
@@ -117,7 +123,8 @@ test('colour-blind mode adds a glyph and a different palette', () => {
 
 test('share message and link round trip', () => {
   const text = shareMessage(venue({}));
-  assert.match(text, /^Demo Kafe Moda şu an %40 dolu \(Orta\)\. availy'de gör: https:\/\/erayerb\.github\.io\/availy\.app\/\?venue=/);
+  assert.match(text, /^Demo Kafe Moda şu an orta \(~%40\)\. availy'de gör: https:\/\/erayerb\.github\.io\/availy\.app\/v2\/\?venue=/);
+  assert.match(shareMessage(venue({ crowd: { state: 'unexplored' } })), /henüz güncel bildirim yok/);
   assert.equal(venueFromQuery(new URL(venueLink('Demo Kafe Moda')).search), 'Demo Kafe Moda');
   assert.match(shareMessage(venue({ open_now: false })), /kapalı, 08:00'de açılıyor/);
   assert.equal(venueFromQuery('?x=1'), null);
@@ -126,18 +133,6 @@ test('share message and link round trip', () => {
 test('amenities follow type and purpose', () => {
   assert.deepEqual(amenitiesFor({ category: 'coworking', tags: [] }).map((a) => a.label), ['Wi-Fi', 'Priz', 'Sessiz alan', 'Toplantı odası']);
   assert.ok(amenitiesFor({ category: 'bar', tags: ['quiet'] }).some((a) => a.label === 'Sessiz alan'));
-});
-
-const sha256 = async (t: string) => createHash('sha256').update(t).digest('hex');
-
-test('profile: change password, rename and delete account', async () => {
-  const accounts = (await createAccount({}, 'Eray', 'e@x.com', 'eski123', 's1', sha256)).accounts!;
-  assert.equal((await changePassword(accounts, 'e@x.com', 'yanlis', 'yeni123', 's2', sha256)).error, 'Mevcut şifre hatalı.');
-  const changed = (await changePassword(accounts, 'e@x.com', 'eski123', 'yeni123', 's2', sha256)).accounts!;
-  assert.equal((await checkLogin(changed, 'e@x.com', 'yeni123', sha256)).error, null);
-  assert.equal((await checkLogin(changed, 'e@x.com', 'eski123', sha256)).error, 'Şifre hatalı.');
-  assert.equal(renameAccount(changed, 'E@x.com', ' Eray E ')['e@x.com'].name, 'Eray E');
-  assert.deepEqual(deleteAccount(changed, 'e@x.com'), {});
 });
 
 test('campaign coupon limit', () => {

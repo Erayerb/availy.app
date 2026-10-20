@@ -6,13 +6,23 @@ export const CUSTOMER_SLIDES: IntroSection[] = [
     icon: '🟢',
     title: 'Renkler ne anlatıyor?',
     lines: [
-      'Yüzde, mekanın şu an ne kadar dolu olduğunu gösterir (kişi sayısı değil).',
-      'Sakin: %40 altı · Orta: %40–75 · Kalabalık: %75 üstü.',
+      'Doluluğu mekanda olan kullanıcılar bildirir: son 90 dakikadaki check-in\'lere bakılır.',
+      'En az 3 kişi bildirdiyse yaklaşık yüzde de görünür (~%60). Gri: güncel bilgi yok. ✨: henüz kimse check-in yapmadı.',
     ],
     legend: true,
   },
   {
     icon: '📍',
+    title: 'Check-in',
+    lines: [
+      'Mekandayken (150 m içinde) detay sayfasında "Şu an burası nasıl?" sorusuna cevap ver: Sakin, Orta ya da Kalabalık.',
+      'Seçince Check-in açılır. Bir mekana 2 saatte bir check-in yapabilirsin; konumun saklanmaz.',
+      'Gizli check-in doluluğa sayılır ama adın kimseye gösterilmez.',
+      '✨ simgeli mekanın ilk check-in\'ini yapan burayı keşfetmiş olur; her check-in 10, ilk check-in +50 puan (misafirlere yarısı).',
+    ],
+  },
+  {
+    icon: '🗺️',
     title: 'Nerede yer var?',
     lines: [
       'Ana Sayfa\'da semtini ve ne aradığını seç; Harita\'da çevrene bak.',
@@ -21,10 +31,10 @@ export const CUSTOMER_SLIDES: IntroSection[] = [
   },
   {
     icon: '🔔',
-    title: 'Boşalınca haber ver',
+    title: 'Sakin olunca haber ver',
     lines: [
-      'Kalabalık bir mekandaki 🔕 simgesine dokun.',
-      'Mekan %70\'in altına düşünce telefonuna bildirim gelir.',
+      'Orta ya da kalabalık bir mekandaki 🔕 simgesine dokun.',
+      'Check-in\'ler mekanı sakin gösterince telefonuna bildirim gelir.',
     ],
   },
   {

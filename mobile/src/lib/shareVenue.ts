@@ -4,8 +4,9 @@ import type { Venue } from './api';
 import { shareMessage } from './share';
 
 /** System share sheet; on browsers without it, copy the text instead. Returns a note for the user. */
-export async function shareVenue(venue: Venue): Promise<string | null> {
-  const message = shareMessage(venue);
+export const shareVenue = (venue: Venue) => shareText(shareMessage(venue));
+
+export async function shareText(message: string): Promise<string | null> {
   try {
     const browser = typeof navigator !== 'undefined' ? (navigator as Navigator) : null;
     if (Platform.OS === 'web' && browser && typeof browser.share !== 'function') {

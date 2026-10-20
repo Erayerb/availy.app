@@ -2,7 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const KEYS = {
   user: 'availy.user',
-  accounts: 'availy.accounts', // prototype accounts on this phone (password hashes only)
+  businessProfiles: 'availy.businessProfiles', // account id -> venue / plan kept on this phone (v2: server later)
+  knownCustomers: 'availy.knownCustomers', // accounts used on this phone (business finds a customer by code)
   favorites: 'availy.favorites',
   campaigns: 'availy.campaigns', // business campaigns created on this phone
   localVenues: 'availy.localVenues', // venues added by business accounts on this phone

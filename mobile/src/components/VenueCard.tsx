@@ -9,13 +9,12 @@ import type { Venue } from '../lib/api';
 import { categoryLabel } from '../lib/filters';
 import { distanceKm, formatDistance } from '../lib/geo';
 import { directionsUrl, shortLocation } from '../lib/location';
-import { areaStatus, formatRatio } from '../lib/occupancy';
+import { crowdExtra, crowdRatioText, crowdSummary } from '../lib/crowd';
 import { shareVenue } from '../lib/shareVenue';
 import { colors } from '../theme';
 import { CampaignBox } from './CampaignBox';
-import { useEmptyingEstimate } from '../hooks/useEmptyingEstimate';
 import { FavoriteButton } from './FavoriteButton';
-import { LevelDot } from './LevelDot';
+import { CrowdDot } from './CrowdDot';
 import { WatchButton } from './WatchButton';
 
 export const CARD_WIDTH = 260;
@@ -31,15 +30,14 @@ type Props = {
 
 /** Plain React Native view (not a map callout) so taps never reach other pins. */
 export function VenueCard({ venue, onClose, onDetails, onShowAlternatives, onLayout }: Props) {
-  const { look } = useSettings();
-  const { label } = look(venue.occupancy.level, venue.open_now);
+  const { crowdLook } = useSettings();
+  const { label } = crowdLook(venue);
   const { activeFor } = useCampaigns();
   const { watches } = useEngagement();
   const campaign = venue.open_now ? activeFor(venue.id) : null;
   const { point } = useLocation();
   const [note, setNote] = useState<string | null>(null);
   const watching = watches.some((w) => w.venueId === venue.id);
-  const estimate = useEmptyingEstimate(venue);
 
   return (
     <View style={styles.card} onLayout={onLayout}>
@@ -59,16 +57,16 @@ export function VenueCard({ venue, onClose, onDetails, onShowAlternatives, onLay
       <Text style={styles.category}>{categoryLabel(venue.category)}</Text>
 
       <View style={styles.row}>
-        <LevelDot level={venue.occupancy.level} open={venue.open_now} />
+        <CrowdDot venue={venue} />
         <Text style={styles.level}>{label}</Text>
         <Text style={styles.ratio}>
-          {venue.open_now ? formatRatio(venue.occupancy.ratio) : `${venue.opens_at}'de açılır`}
+          {venue.open_now ? (crowdRatioText(venue.crowd) ?? '') : `${venue.opens_at}'de açılır`}
         </Text>
       </View>
 
-      {venue.open_now && <Text style={styles.secondary}>{areaStatus(venue.district_occupancy.level)}</Text>}
-      {estimate && <Text style={styles.secondary}>⏳ {estimate}</Text>}
-      {watching && <Text style={styles.watching}>🔔 %70 altına düşünce haber vereceğiz</Text>}
+      {venue.open_now && <Text style={styles.secondary}>{crowdSummary(venue.crowd, new Date())}</Text>}
+      {venue.open_now && crowdExtra(venue.crowd) && <Text style={styles.secondary}>{crowdExtra(venue.crowd)}</Text>}
+      {watching && <Text style={styles.watching}>🔔 Sakin olunca haber vereceğiz</Text>}
       {campaign && <CampaignBox campaign={campaign} />}
       <Text style={styles.secondary}>
         📍 {shortLocation(venue.neighborhood, venue.district)}
@@ -84,7 +82,7 @@ export function VenueCard({ venue, onClose, onDetails, onShowAlternatives, onLay
 
       <View style={styles.buttons}>
         <Pressable onPress={onDetails} style={({ pressed }) => [styles.detailsButton, pressed && styles.pressed]}>
-          <Text style={styles.detailsText}>Detaylar</Text>
+          <Text style={styles.detailsText}>{venue.open_now ? '📍 Check-in' : 'Detaylar'}</Text>
         </Pressable>
         <Pressable
           onPress={() => Linking.openURL(directionsUrl(Platform.OS, venue.lat, venue.lon))}

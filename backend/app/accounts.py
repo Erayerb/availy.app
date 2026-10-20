@@ -22,6 +22,8 @@ GUEST_SESSION_DAYS = 365
 # A guest's check-ins count less until they sign up (abuse: guests are free to create)
 GUEST_TRUST = 0.5
 EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+# "@eray": 3-20 lower-case letters, digits, dot or underscore; starts with a letter or digit
+USERNAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._]{2,19}$")
 
 # scrypt cost: n=2^14, r=8, p=1 (about 16 MB of memory per hash)
 SCRYPT_N, SCRYPT_R, SCRYPT_P = 2**14, 8, 1
@@ -42,9 +44,22 @@ def normalize_email(email: str) -> str:
     return email.strip().lower()
 
 
-def validate_registration(name: str, email: str, password: str, role: str) -> str | None:
+def normalize_username(username: str) -> str:
+    return username.strip().lstrip("@").lower()
+
+
+def validate_username(username: str) -> str | None:
+    if not USERNAME_PATTERN.match(normalize_username(username)):
+        return "Kullanıcı adı 3–20 karakter olmalı; yalnızca harf (a-z), rakam, nokta ve alt çizgi."
+    return None
+
+
+def validate_registration(name: str, email: str, password: str, role: str, username: str = "") -> str | None:
     if len(name.strip()) < 2:
         return "Adını gir."
+    problem = validate_username(username)
+    if problem:
+        return problem
     if not EMAIL_PATTERN.match(email.strip()):
         return "Geçerli bir e-posta gir."
     if len(password) < MIN_PASSWORD_LENGTH:
@@ -87,25 +102,40 @@ def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-USER_COLUMNS = "id, email, name, role, venue_id, plan, trust, is_guest, created_at"
+USER_COLUMNS = "id, email, username, name, role, venue_id, plan, trust, is_guest, created_at"
+USERNAME_TAKEN = "Bu kullanıcı adı alınmış, başka bir tane dene."
 
 
-def create_user(conn: psycopg.Connection, name: str, email: str, password: str, role: str = "personal") -> dict:
-    problem = validate_registration(name, email, password, role)
+def username_taken(conn: psycopg.Connection, username: str, except_id: int | None = None) -> bool:
+    return conn.execute(
+        "SELECT 1 FROM users WHERE lower(username) = %s AND id IS DISTINCT FROM %s",
+        (normalize_username(username), except_id),
+    ).fetchone() is not None
+
+
+def create_user(
+    conn: psycopg.Connection, name: str, email: str, password: str, role: str = "personal", username: str = ""
+) -> dict:
+    problem = validate_registration(name, email, password, role, username)
     if problem:
         raise AccountError(problem)
-    user = conn.execute(
-        f"""
-        INSERT INTO users (email, name, password_hash, role)
-        VALUES (%s, %s, %s, %s)
-        ON CONFLICT (email) DO NOTHING
-        RETURNING {USER_COLUMNS}
-        """,
-        (normalize_email(email), name.strip(), hash_password(password), role),
-    ).fetchone()
-    if user is None:
+    if conn.execute("SELECT 1 FROM users WHERE email = %s", (normalize_email(email),)).fetchone():
         raise AccountError("Bu e-posta zaten kayıtlı. Giriş yapmayı dene.", 409)
-    return user
+    if username_taken(conn, username):
+        raise AccountError(USERNAME_TAKEN, 409)
+    try:
+        with conn.transaction():
+            return conn.execute(
+                f"""
+                INSERT INTO users (email, username, name, password_hash, role)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING {USER_COLUMNS}
+                """,
+                (normalize_email(email), normalize_username(username), name.strip(), hash_password(password), role),
+            ).fetchone()
+    except psycopg.errors.UniqueViolation:
+        # Someone took the e-mail or user name at the same moment
+        raise AccountError("Bu e-posta ya da kullanıcı adı az önce alındı, tekrar dene.", 409) from None
 
 
 def create_guest(conn: psycopg.Connection) -> dict:
@@ -123,24 +153,30 @@ def create_guest(conn: psycopg.Connection) -> dict:
     ).fetchone()
 
 
-def upgrade_guest(conn: psycopg.Connection, user: dict, name: str, email: str, password: str, role: str = "personal") -> dict:
-    """A guest signs up: same id (check-ins and points stay), now with e-mail and password."""
+def upgrade_guest(
+    conn: psycopg.Connection, user: dict, name: str, email: str, password: str, role: str = "personal", username: str = ""
+) -> dict:
+    """A guest signs up: same id (check-ins and points stay), now with e-mail, user name and password."""
     if not user["is_guest"]:
         raise AccountError("Bu hesap zaten kayıtlı.", 409)
-    problem = validate_registration(name, email, password, role)
+    problem = validate_registration(name, email, password, role, username)
     if problem:
         raise AccountError(problem)
     taken = conn.execute("SELECT 1 FROM users WHERE email = %s", (normalize_email(email),)).fetchone()
     if taken:
         raise AccountError("Bu e-posta zaten kayıtlı. Giriş yapmayı dene.", 409)
+    if username_taken(conn, username, except_id=user["id"]):
+        raise AccountError(USERNAME_TAKEN, 409)
     return conn.execute(
         f"""
         UPDATE users
-        SET name = %s, email = %s, password_hash = %s, role = %s, is_guest = false, trust = GREATEST(trust, 1)
+        SET name = %s, email = %s, username = %s, password_hash = %s, role = %s, is_guest = false,
+            -- Full weight from now on, but a guest who kept contradicting others stays lower
+            trust = LEAST(1, trust / %s)
         WHERE id = %s
         RETURNING {USER_COLUMNS}
         """,
-        (name.strip(), normalize_email(email), hash_password(password), role, user["id"]),
+        (name.strip(), normalize_email(email), normalize_username(username), hash_password(password), role, GUEST_TRUST, user["id"]),
     ).fetchone()
 
 
@@ -163,6 +199,30 @@ def authenticate(conn: psycopg.Connection, email: str, password: str, role: str 
             403,
         )
     return row
+
+
+def rename_user(conn: psycopg.Connection, user: dict, name: str) -> dict:
+    if len(name.strip()) < 2:
+        raise AccountError("Adını gir.")
+    return conn.execute(
+        f"UPDATE users SET name = %s WHERE id = %s RETURNING {USER_COLUMNS}", (name.strip(), user["id"])
+    ).fetchone()
+
+
+def change_password(conn: psycopg.Connection, user: dict, old_password: str, new_password: str) -> None:
+    stored = conn.execute("SELECT password_hash FROM users WHERE id = %s", (user["id"],)).fetchone()["password_hash"]
+    if stored is None:
+        raise AccountError("Misafir hesabının şifresi yok. Önce kayıt ol.", 409)
+    if not verify_password(old_password, stored):
+        raise AccountError("Mevcut şifre hatalı.", 403)
+    if not MIN_PASSWORD_LENGTH <= len(new_password) <= MAX_PASSWORD_LENGTH:
+        raise AccountError(f"Yeni şifre en az {MIN_PASSWORD_LENGTH} karakter olmalı.")
+    conn.execute("UPDATE users SET password_hash = %s WHERE id = %s", (hash_password(new_password), user["id"]))
+
+
+def delete_user(conn: psycopg.Connection, user: dict) -> None:
+    """KVKK: the account and its sessions go; its check-ins stay only as anonymous reports."""
+    conn.execute("DELETE FROM users WHERE id = %s", (user["id"],))
 
 
 def create_session(

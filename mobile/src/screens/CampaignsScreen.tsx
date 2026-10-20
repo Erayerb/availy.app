@@ -54,12 +54,13 @@ export type BusinessInfo = {
 
 type Props = {
   signedIn: boolean;
+  serverPoints: number; // v2: points from check-ins
   business: BusinessInfo | null; // set for business accounts
   onLogin: () => void;
   onOpenVenue: (campaign: Pick<Campaign, 'venueId' | 'lat' | 'lon'>) => void;
 };
 
-export function CampaignsScreen({ signedIn, business, onLogin, onOpenVenue }: Props) {
+export function CampaignsScreen({ signedIn, serverPoints, business, onLogin, onOpenVenue }: Props) {
   const tabs = business ? BUSINESS_TABS : CUSTOMER_TABS;
   const [tab, setTab] = useState<Tab>(tabs[0].tab);
 
@@ -75,7 +76,7 @@ export function CampaignsScreen({ signedIn, business, onLogin, onOpenVenue }: Pr
       </View>
       {tab === 'campaigns' && <CampaignList onOpenVenue={onOpenVenue} />}
       {tab === 'coupons' && <MyCoupons />}
-      {tab === 'loyalty' && <Loyalty signedIn={signedIn} onLogin={onLogin} />}
+      {tab === 'loyalty' && <Loyalty signedIn={signedIn} serverPoints={serverPoints} onLogin={onLogin} />}
       {tab === 'myCampaigns' && business && <MyCampaigns business={business} />}
       {tab === 'myPrograms' && business && <MyPrograms business={business} />}
       {tab === 'venueCoupons' && business && <VenueCoupons venueId={business.venueId} />}
@@ -172,7 +173,7 @@ function MyCoupons() {
   );
 }
 
-function Loyalty({ signedIn, onLogin }: { signedIn: boolean; onLogin: () => void }) {
+function Loyalty({ signedIn, serverPoints, onLogin }: { signedIn: boolean; serverPoints: number; onLogin: () => void }) {
   const { programs, cards, memberships, coupons, userKey, toggleMembership } = useEngagement();
 
   if (!signedIn) {
@@ -202,8 +203,10 @@ function Loyalty({ signedIn, onLogin }: { signedIn: boolean; onLogin: () => void
     <View style={styles.list}>
       <View style={styles.pointsCard}>
         <Text style={styles.pointsLabel}>availy puanın</Text>
-        <Text style={styles.points}>{availyPoints(stampsCollected, couponsUsed)}</Text>
-        <Text style={styles.muted}>Her damga 5, kullandığın her kupon 10 puan.</Text>
+        <Text style={styles.points}>{serverPoints + availyPoints(stampsCollected, couponsUsed)}</Text>
+        <Text style={styles.muted}>
+          Her check-in 10, bir mekanın ilk check-in'i +50; her damga 5, kullandığın her kupon 10 puan.
+        </Text>
         <View style={styles.qr}>
           <QRCode
             value={customerQrPayload(customerCode(userKey))}

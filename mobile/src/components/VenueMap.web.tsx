@@ -22,7 +22,7 @@ export function VenueMap({
   focus,
   userPoint,
 }: VenueMapProps) {
-  const { look, colorBlind } = useSettings();
+  const { crowdLook, colorBlind } = useSettings();
   const userLayerRef = useRef<L.CircleMarker | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -93,7 +93,7 @@ export function VenueMap({
     for (const venue of ordered) {
       const isSelected = venue.id === selectedId;
       const size = isSelected ? SELECTED_DOT_SIZE : DOT_SIZE;
-      const { color, glyph } = look(venue.occupancy.level, venue.open_now);
+      const { color, glyph } = crowdLook(venue);
       const border = isSelected ? `4px solid ${colors.text}` : `3px solid ${colors.white}`;
       const icon = L.divIcon({
         className: '',

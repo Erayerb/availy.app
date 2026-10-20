@@ -24,7 +24,7 @@ def test_venue_fields(client):
     assert set(venue) == {
         "id", "name", "category", "capacity", "lat", "lon",
         "neighborhood", "district", "tags", "occupancy", "district_occupancy",
-        "open_now", "hours", "opens_at", "crowd",
+        "open_now", "hours", "opens_at", "crowd", "discovery",
     }
     assert venue["hours"] == "08:00–23:00"  # cafe
     assert venue["opens_at"] == "08:00"
@@ -122,3 +122,15 @@ def test_history_endpoint(client, conn):
     # The fixed test provider returns the same ratio at every hour
     assert {d["ratio"] for d in body["daily"]} == {conn.ratios_by_id[venue_id]}
     assert client.get("/v1/venues/999999/history").status_code == 404
+
+
+def test_cors_allows_only_known_web_pages(client):
+    allowed = client.options(
+        "/v1/me",
+        headers={"Origin": "https://erayerb.github.io", "Access-Control-Request-Method": "GET"},
+    )
+    assert allowed.headers.get("access-control-allow-origin") == "https://erayerb.github.io"
+    other = client.options(
+        "/v1/me", headers={"Origin": "https://example.com", "Access-Control-Request-Method": "GET"}
+    )
+    assert "access-control-allow-origin" not in other.headers

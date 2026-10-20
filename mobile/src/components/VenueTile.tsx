@@ -4,7 +4,7 @@ import { useCampaigns } from '../context/CampaignsContext';
 import type { Venue } from '../lib/api';
 import { colors } from '../theme';
 import { FavoriteButton } from './FavoriteButton';
-import { LevelDot } from './LevelDot';
+import { CrowdDot } from './CrowdDot';
 import { VenuePhoto } from './VenuePhoto';
 
 type Props = {
@@ -23,7 +23,7 @@ export function VenueTile({ venue, size, distance, onPress }: Props) {
         <VenuePhoto venueId={venue.id} category={venue.category} size={size} height={size} />
         {!venue.open_now && <View style={[styles.closedShade, { borderRadius: 16 }]} />}
         <View style={styles.badge}>
-          <LevelDot level={venue.occupancy.level} open={venue.open_now} size={14} />
+          <CrowdDot venue={venue} size={14} />
         </View>
         {!venue.open_now && <Text style={styles.closed}>Kapalı · {venue.opens_at}</Text>}
         {campaign && venue.open_now && (

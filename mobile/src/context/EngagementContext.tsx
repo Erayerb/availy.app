@@ -7,7 +7,6 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { Platform } from 'react-native';
 
 import { usePersistentState } from '../hooks/usePersistentState';
-import type { Accounts } from '../lib/accounts';
 import { fetchVenuesByIds } from '../lib/api';
 import { canAddWatch, FREE_WATCH_LIMIT } from '../lib/premium';
 import type { Campaign } from '../lib/campaigns';
@@ -77,11 +76,11 @@ type Engagement = {
 
 const EngagementContext = createContext<Engagement | null>(null);
 
-/** Find which account on this phone a customer code belongs to. */
+/** Find which account used on this phone a customer code belongs to. */
 async function userForCode(code: string): Promise<string | null> {
-  const accounts = (await loadJson<Accounts>(KEYS.accounts)) ?? {};
+  const known = (await loadJson<string[]>(KEYS.knownCustomers)) ?? [];
   const wanted = code.trim().toUpperCase();
-  return Object.keys(accounts).find((email) => customerCode(email) === wanted) ?? null;
+  return known.find((key) => customerCode(key) === wanted) ?? null;
 }
 
 export function EngagementProvider({ userKey, children }: { userKey: string; children: ReactNode }) {

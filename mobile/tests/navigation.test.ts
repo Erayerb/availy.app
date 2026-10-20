@@ -32,11 +32,16 @@ test('districts are grouped into European and Anatolian sides', () => {
 });
 
 const venue = (id: number, category: string, tags: string[], ratio: number, level: string, lat: number, lon: number) =>
-  ({ id, name: `V${id}`, category, tags, lat, lon, occupancy: { ratio, level } }) as never;
+  ({
+    id, name: `V${id}`, category, tags, lat, lon, open_now: true,
+    crowd: { state: 'live', level, ratio, reporters: 3, last_report_at: '', queue: null, seats: null },
+  }) as never;
 
-test('only crowded venues trigger the pop-up', () => {
+test('only venues reported crowded trigger the pop-up', () => {
   assert.ok(shouldSuggestAlternatives(venue(1, 'bar', [], 0.9, 'high', 0, 0)));
   assert.ok(!shouldSuggestAlternatives(venue(1, 'bar', [], 0.6, 'medium', 0, 0)));
+  const unexplored = { ...(venue(1, 'bar', [], 0.9, 'high', 0, 0) as object), crowd: { state: 'unexplored' } } as never;
+  assert.ok(!shouldSuggestAlternatives(unexplored));
 });
 
 test('alternatives: similar, clearly emptier, nearby, quiet ones first', () => {
@@ -68,4 +73,12 @@ test('several districts can be chosen at once', () => {
   assert.ok(matchesDistricts('Kadıköy', []));
   assert.ok(matchesDistricts('Kadıköy', ['Beşiktaş', 'Kadıköy']));
   assert.ok(!matchesDistricts('Şişli', ['Beşiktaş', 'Kadıköy']));
+});
+
+test('only pilot districts can be picked for now', async () => {
+  const { ALL_DISTRICTS, PILOT_DISTRICTS, isPilotDistrict } = await import('../src/lib/istanbul.ts');
+  assert.deepEqual(PILOT_DISTRICTS, ['Ataşehir', 'Kadıköy', 'Şişli']);
+  assert.ok(PILOT_DISTRICTS.every((d) => ALL_DISTRICTS.includes(d)));
+  assert.ok(isPilotDistrict('Kadıköy'));
+  assert.ok(!isPilotDistrict('Beşiktaş'));
 });

@@ -14,6 +14,7 @@ export type Screen =
   | 'settings'
   | 'support'
   | 'subscription'
+  | 'friends'
   | 'verification'
   | 'about'
   | 'detail';
@@ -31,7 +32,7 @@ export const CUSTOMER_TABS: Tab[] = [HOME, CAMPAIGNS, MAP, { screen: 'favorites'
 export const BUSINESS_TABS: Tab[] = [HOME, { screen: 'business', label: 'Panel', icon: 'chart' }, MAP, CAMPAIGNS, MORE];
 
 // Pages opened from the "Daha fazla" list keep that tab highlighted
-const MORE_PAGES: Screen[] = ['more', 'subscription', 'profile', 'settings', 'support', 'verification', 'about'];
+const MORE_PAGES: Screen[] = ['more', 'friends', 'subscription', 'profile', 'settings', 'support', 'verification', 'about'];
 
 type Props = {
   tabs: Tab[];

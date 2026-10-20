@@ -1,111 +1,171 @@
-import * as Crypto from 'expo-crypto';
 import { useCallback, useEffect, useState } from 'react';
 
-import {
-  changePassword as changeStoredPassword,
-  checkLogin,
-  createAccount,
-  deleteAccount as deleteStoredAccount,
-  normalizeEmail,
-  renameAccount,
-  updateAccount,
-  type Accounts,
-} from '../lib/accounts';
-import type { Role, User } from '../lib/auth';
+import { accountApi, ApiError, toUser, type LocalBusiness } from '../lib/accountApi';
+import { accountKey, type Role, type User } from '../lib/auth';
 import { KEYS, loadJson, remove, saveJson } from '../lib/storage';
 
-const sha256 = (text: string) => Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, text);
+const asMessage = (e: unknown) => (e instanceof Error ? e.message : 'Bilinmeyen hata');
 
-/** Prototype auth against accounts stored on this phone. Returns an error message or null. */
+/** Accounts on the server (v2). Actions resolve to an error message, or null on success. */
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
 
-  useEffect(() => {
-    loadJson<User>(KEYS.user).then((stored) => {
-      setUser(stored);
-      setReady(true);
-    });
-  }, []);
-
   const signIn = useCallback(async (next: User) => {
     setUser(next);
     await saveJson(KEYS.user, next);
+    // Remember who used this phone, so a business here can find a customer by code (loyalty stamps)
+    const known = (await loadJson<string[]>(KEYS.knownCustomers)) ?? [];
+    const key = accountKey(next);
+    if (!known.includes(key)) await saveJson(KEYS.knownCustomers, [...known, key]);
   }, []);
 
+  const signOutLocally = useCallback(async () => {
+    setUser(null);
+    await remove(KEYS.user);
+  }, []);
+
+  // Business details still kept on this phone, per account id
+  const localBusiness = async (id: number): Promise<LocalBusiness> =>
+    ((await loadJson<Record<string, LocalBusiness>>(KEYS.businessProfiles)) ?? {})[id] ?? {};
+
+  useEffect(() => {
+    loadJson<User>(KEYS.user).then(async (stored) => {
+      // v1 users lived only on the phone and have no server session: they sign in again
+      if (stored?.token) setUser(stored);
+      else if (stored) await remove(KEYS.user);
+      setReady(true);
+      if (!stored?.token) return;
+      // Refresh from the server; an expired or deleted session signs the user out
+      try {
+        const fresh = await accountApi.me(stored.token);
+        await signIn(toUser(fresh, stored.token, await localBusiness(fresh.id)));
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 401) await signOutLocally();
+      }
+    });
+  }, [signIn, signOutLocally]);
+
+  /** Reload profile and points from the server (e.g. after a check-in). */
+  const refreshMe = useCallback(async () => {
+    const stored = await loadJson<User>(KEYS.user);
+    if (!stored?.token) return;
+    try {
+      const fresh = await accountApi.me(stored.token);
+      await signIn(toUser(fresh, stored.token, await localBusiness(fresh.id)));
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) await signOutLocally();
+    }
+  }, [signIn, signOutLocally]);
+
+  // Points and badges come only from /v1/me: load them once someone signs in
+  useEffect(() => {
+    if (user?.token && user.points === undefined) refreshMe();
+  }, [user?.token, user?.points, refreshMe]);
+
   const register = useCallback(
-    async (name: string, email: string, password: string, role: Role): Promise<string | null> => {
-      const accounts = (await loadJson<Accounts>(KEYS.accounts)) ?? {};
-      const result = await createAccount(accounts, name, email, password, Crypto.randomUUID(), sha256, role);
-      if (result.error !== null) return result.error;
-      await saveJson(KEYS.accounts, result.accounts);
-      const { venueId, plan, venueVerified } = result.accounts[normalizeEmail(email)];
-      await signIn({ name: name.trim(), email: normalizeEmail(email), role, venueId, plan, venueVerified });
-      return null;
+    async (name: string, username: string, email: string, password: string, role: Role): Promise<string | null> => {
+      try {
+        if (user?.isGuest && user.token) {
+          // A guest signs up: same account, so check-ins and points stay
+          const upgraded = await accountApi.upgrade(user.token, name, username, email, password, role);
+          await signIn(toUser(upgraded, user.token, await localBusiness(upgraded.id)));
+        } else {
+          const session = await accountApi.register(name, username, email, password, role);
+          await signIn(toUser(session.user, session.token));
+        }
+        return null;
+      } catch (e) {
+        return asMessage(e);
+      }
     },
-    [signIn],
+    [user, signIn],
   );
 
   const login = useCallback(
     async (email: string, password: string, role: Role): Promise<string | null> => {
-      const accounts = (await loadJson<Accounts>(KEYS.accounts)) ?? {};
-      const result = await checkLogin(accounts, email, password, sha256, role);
-      if (result.error !== null) return result.error;
-      // checkLogin already verified that the account has the chosen role
-      const { name, venueId, plan, venueVerified } = result.account;
-      await signIn({ name, email: normalizeEmail(email), role, venueId, plan, venueVerified });
-      return null;
+      try {
+        const session = await accountApi.login(email, password, role);
+        await signIn(toUser(session.user, session.token, await localBusiness(session.user.id)));
+        return null;
+      } catch (e) {
+        return asMessage(e);
+      }
     },
     [signIn],
   );
 
-  /** Save business profile changes (claimed venue, plan) to the user and their account. */
+  /** "Kayıt olmadan devam et": the server opens a guest account with an automatic id. */
+  const continueAsGuest = useCallback(async (): Promise<string | null> => {
+    try {
+      const session = await accountApi.guest();
+      await signIn(toUser(session.user, session.token));
+      return null;
+    } catch (e) {
+      return asMessage(e);
+    }
+  }, [signIn]);
+
+  /** Save business profile changes (claimed venue, plan); kept on this phone for now. */
   const updateProfile = useCallback(
-    async (patch: Partial<Pick<User, 'venueId' | 'plan' | 'venueVerified'>>) => {
+    async (patch: Partial<LocalBusiness>) => {
       if (!user) return;
-      const next = { ...user, ...patch };
-      await signIn(next);
-      const accounts = (await loadJson<Accounts>(KEYS.accounts)) ?? {};
-      await saveJson(KEYS.accounts, updateAccount(accounts, user.email, patch));
+      await signIn({ ...user, ...patch });
+      if (user.id === undefined) return;
+      const all = (await loadJson<Record<string, LocalBusiness>>(KEYS.businessProfiles)) ?? {};
+      await saveJson(KEYS.businessProfiles, { ...all, [user.id]: { ...all[user.id], ...patch } });
     },
     [user, signIn],
   );
 
   const rename = useCallback(
     async (name: string) => {
-      if (!user || name.trim().length < 2) return;
-      await signIn({ ...user, name: name.trim() });
-      const accounts = (await loadJson<Accounts>(KEYS.accounts)) ?? {};
-      await saveJson(KEYS.accounts, renameAccount(accounts, user.email, name));
+      if (!user?.token || name.trim().length < 2) return;
+      try {
+        const fresh = await accountApi.rename(user.token, name);
+        await signIn({ ...user, name: fresh.name });
+      } catch {
+        // Keep the old name; the profile screen shows the result
+      }
     },
     [user, signIn],
   );
 
   const changePassword = useCallback(
     async (oldPassword: string, newPassword: string): Promise<string | null> => {
-      if (!user) return 'Giriş yapılmamış.';
-      const accounts = (await loadJson<Accounts>(KEYS.accounts)) ?? {};
-      const result = await changeStoredPassword(accounts, user.email, oldPassword, newPassword, Crypto.randomUUID(), sha256);
-      if (result.error !== null) return result.error;
-      await saveJson(KEYS.accounts, result.accounts);
-      return null;
+      if (!user?.token) return 'Giriş yapılmamış.';
+      try {
+        await accountApi.changePassword(user.token, oldPassword, newPassword);
+        return null;
+      } catch (e) {
+        return asMessage(e);
+      }
     },
     [user],
   );
 
-  /** Removes the account from this phone (KVKK: the user can delete their data). */
+  /** KVKK: deletes the account on the server; its check-ins stay only as anonymous reports. */
   const deleteAccount = useCallback(async () => {
-    if (!user) return;
-    const accounts = (await loadJson<Accounts>(KEYS.accounts)) ?? {};
-    await saveJson(KEYS.accounts, deleteStoredAccount(accounts, user.email));
-    setUser(null);
-    await remove(KEYS.user);
-  }, [user]);
+    if (user?.token) await accountApi.remove(user.token).catch(() => {});
+    await signOutLocally();
+  }, [user, signOutLocally]);
 
   const logout = useCallback(async () => {
-    setUser(null);
-    await remove(KEYS.user);
-  }, []);
+    if (user?.token) await accountApi.logout(user.token).catch(() => {});
+    await signOutLocally();
+  }, [user, signOutLocally]);
 
-  return { user, ready, login, register, updateProfile, rename, changePassword, deleteAccount, logout };
+  return {
+    user,
+    ready,
+    login,
+    register,
+    continueAsGuest,
+    refreshMe,
+    updateProfile,
+    rename,
+    changePassword,
+    deleteAccount,
+    logout,
+  };
 }
