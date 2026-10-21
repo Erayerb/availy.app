@@ -16,6 +16,7 @@ HOURS_BY_CATEGORY: dict[str, tuple[int, int]] = {
     "restaurant": (11, 24),
     "coworking": (8, 22),
     "library": (9, 21),
+    "park": (0, 24),
 }
 DEFAULT_HOURS = (9, 22)
 ALL_DAY = (0, 24)

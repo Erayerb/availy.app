@@ -16,6 +16,7 @@ from app.accounts import (
     delete_session,
     delete_user,
     rename_user,
+    change_username,
     upgrade_guest,
     user_for_token,
 )
@@ -27,7 +28,7 @@ Role = Literal["personal", "business"]
 
 
 class RegisterIn(BaseModel):
-    name: str
+    name: str = ""  # optional; the user name is used until one is set
     username: str
     email: str
     password: str
@@ -35,7 +36,9 @@ class RegisterIn(BaseModel):
 
 
 class LoginIn(BaseModel):
-    email: str
+    # E-mail or user name; `email` is the older field name and still accepted
+    login: str = ""
+    email: str = ""
     password: str
     # The account type chosen in the app; a mismatch gets a helpful message
     role: Role | None = None
@@ -62,7 +65,13 @@ class BadgeOut(BaseModel):
     earned: bool
 
 
-class MeOut(UserOut):
+class PrivacyOut(BaseModel):
+    share_checkins: bool  # friends see my check-ins
+    show_in_leaderboard: bool  # shown in the "Herkes" ranking
+    searchable: bool  # others find me by user-name search
+
+
+class MeOut(UserOut, PrivacyOut):
     points: int
     checkins: int
     discoveries: int  # venues where this user made the first check-in
@@ -111,7 +120,7 @@ def register(body: RegisterIn, conn: psycopg.Connection = Depends(get_conn)):
 @router.post("/auth/login", response_model=SessionOut)
 def login(body: LoginIn, conn: psycopg.Connection = Depends(get_conn)):
     try:
-        user = authenticate(conn, body.email, body.password, body.role)
+        user = authenticate(conn, body.login or body.email, body.password, body.role)
     except AccountError as e:
         raise _fail(e) from None
     return {"token": create_session(conn, user["id"]), "user": user}
@@ -149,7 +158,9 @@ def me(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(ge
 
 
 class RenameIn(BaseModel):
-    name: str
+    # One of the two; the app now only changes the user name
+    name: str | None = None
+    username: str | None = None
 
 
 class PasswordIn(BaseModel):
@@ -160,7 +171,9 @@ class PasswordIn(BaseModel):
 @router.patch("/me", response_model=UserOut)
 def rename(body: RenameIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
     try:
-        return rename_user(conn, user, body.name)
+        if body.username is not None:
+            return change_username(conn, user, body.username)
+        return rename_user(conn, user, body.name or "")
     except AccountError as e:
         raise _fail(e) from None
 
@@ -178,3 +191,22 @@ def password(body: PasswordIn, user: dict = Depends(current_user), conn: psycopg
 def delete_me(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
     delete_user(conn, user)
     return Response(status_code=204)
+
+
+class PrivacyIn(BaseModel):
+    share_checkins: bool | None = None
+    show_in_leaderboard: bool | None = None
+    searchable: bool | None = None
+
+
+@router.patch("/me/privacy", response_model=PrivacyOut)
+def privacy(body: PrivacyIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    """Gizlilik ayarları: only the fields sent are changed."""
+    changes = body.model_dump(exclude_none=True)
+    if not changes:
+        return user
+    columns = ", ".join(f"{name} = %({name})s" for name in changes)
+    return conn.execute(
+        f"UPDATE users SET {columns} WHERE id = %(id)s RETURNING share_checkins, show_in_leaderboard, searchable",
+        {**changes, "id": user["id"]},
+    ).fetchone()

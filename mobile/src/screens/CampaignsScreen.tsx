@@ -1,3 +1,5 @@
+import { BackButton } from '../components/BackButton';
+import { HeaderButtons } from '../components/HeaderButtons';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -58,16 +60,20 @@ type Props = {
   business: BusinessInfo | null; // set for business accounts
   onLogin: () => void;
   onOpenVenue: (campaign: Pick<Campaign, 'venueId' | 'lat' | 'lon'>) => void;
+  // Set when opened from "Daha fazla" (customers); businesses have it as a tab
+  onBack?: () => void;
 };
 
-export function CampaignsScreen({ signedIn, serverPoints, business, onLogin, onOpenVenue }: Props) {
+export function CampaignsScreen({ signedIn, serverPoints, business, onLogin, onOpenVenue, onBack }: Props) {
   const tabs = business ? BUSINESS_TABS : CUSTOMER_TABS;
   const [tab, setTab] = useState<Tab>(tabs[0].tab);
 
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
-        <Text style={styles.title}>Kampanyalar ve Sadakat</Text>
+        {onBack && <BackButton onPress={onBack} />}
+        <Text style={[styles.title, styles.flex]}>Kampanyalar ve Sadakat</Text>
+        {!onBack && <HeaderButtons />}
       </View>
       <View style={styles.tabs}>
         {tabs.map(({ tab: t, label }) => (
@@ -89,7 +95,10 @@ function CampaignList({ onOpenVenue }: Pick<Props, 'onOpenVenue'>) {
   const { campaigns, now } = useCampaigns();
   const { recordView } = useEngagement();
   const location = useLocation();
-  const nearby = visibleCampaigns(campaigns, location.point, now);
+  // Campaigns of v1 demo venues stay stored on the phone but are not shown in v2
+  const { venues: shownVenues } = useVenuesByIds([...new Set(campaigns.map((c) => c.venueId))]);
+  const shownIds = new Set(shownVenues.map((v) => v.id));
+  const nearby = visibleCampaigns(campaigns, location.point, now).filter(({ campaign }) => shownIds.has(campaign.venueId));
 
   // Count each shown campaign as a view (business statistics)
   useEffect(() => {
@@ -175,6 +184,9 @@ function MyCoupons() {
 
 function Loyalty({ signedIn, serverPoints, onLogin }: { signedIn: boolean; serverPoints: number; onLogin: () => void }) {
   const { programs, cards, memberships, coupons, userKey, toggleMembership } = useEngagement();
+  // Programs saved on this phone for v1 demo venues stay stored, but those venues are hidden in v2
+  const { venues: shownVenues } = useVenuesByIds(programs.map((p) => p.venueId));
+  const shownIds = new Set(shownVenues.map((v) => v.id));
 
   if (!signedIn) {
     return (
@@ -189,7 +201,7 @@ function Loyalty({ signedIn, serverPoints, onLogin }: { signedIn: boolean; serve
 
   const myCards = cards.filter((c) => c.userKey === userKey);
   // Paused programs are hidden from customers
-  const visiblePrograms = programs.filter(isProgramActive);
+  const visiblePrograms = programs.filter((p) => isProgramActive(p) && shownIds.has(p.venueId));
   const stampsCollected = myCards.reduce(
     (sum, c) =>
       sum +
@@ -404,6 +416,7 @@ function VenueCoupons({ venueId }: { venueId: number }) {
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 40, gap: 12 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },

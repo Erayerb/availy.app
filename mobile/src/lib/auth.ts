@@ -54,13 +54,19 @@ export function validateUsername(username: string): string | null {
     : 'Kullanıcı adı 3–20 karakter olmalı; yalnızca harf (a-z), rakam, nokta ve alt çizgi.';
 }
 
-export function validateLogin(email: string, password: string): string | null {
-  if (!EMAIL_PATTERN.test(email.trim())) return 'Geçerli bir e-posta gir.';
-  if (password.length < MIN_PASSWORD_LENGTH) return `Şifre en az ${MIN_PASSWORD_LENGTH} karakter olmalı.`;
-  return null;
+const validatePassword = (password: string): string | null =>
+  password.length < MIN_PASSWORD_LENGTH ? `Şifre en az ${MIN_PASSWORD_LENGTH} karakter olmalı.` : null;
+
+/** Sign-in takes the e-mail or the user name. */
+export function validateLogin(login: string, password: string): string | null {
+  const value = login.trim();
+  if (!EMAIL_PATTERN.test(value) && validateUsername(value)) return 'Kullanıcı adını ya da e-postanı gir.';
+  return validatePassword(password);
 }
 
-export function validateRegister(name: string, email: string, password: string, username: string): string | null {
-  if (name.trim().length < 2) return 'Adını gir.';
-  return validateUsername(username) ?? validateLogin(email, password);
+/** Sign-up asks only for a user name (no separate name), e-mail and password. */
+export function validateRegister(email: string, password: string, username: string): string | null {
+  if (validateUsername(username)) return validateUsername(username);
+  if (!EMAIL_PATTERN.test(email.trim())) return 'Geçerli bir e-posta gir.';
+  return validatePassword(password);
 }

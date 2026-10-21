@@ -1,4 +1,4 @@
-export type Tag = 'socializing' | 'coworking' | 'entertainment' | 'quiet' | 'food';
+export type Tag = 'socializing' | 'coworking' | 'entertainment' | 'quiet' | 'food' | 'nightlife' | 'nature';
 
 export const TAG_OPTIONS: { tag: Tag; label: string }[] = [
   { tag: 'socializing', label: 'Sosyalleşme' },
@@ -6,6 +6,8 @@ export const TAG_OPTIONS: { tag: Tag; label: string }[] = [
   { tag: 'entertainment', label: 'Eğlence' },
   { tag: 'quiet', label: 'Sessizlik' },
   { tag: 'food', label: 'Yemek' },
+  { tag: 'nightlife', label: 'Gece hayatı' },
+  { tag: 'nature', label: 'Doğa' },
 ];
 
 /** Add the tag if missing, remove it if present; result is sorted for stable query keys. */
@@ -34,6 +36,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   coworking: 'Ortak çalışma',
   library: 'Kütüphane',
   restaurant: 'Restoran',
+  park: 'Park',
 };
 
 export function categoryLabel(category: string): string {

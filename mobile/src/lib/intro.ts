@@ -7,7 +7,9 @@ export const CUSTOMER_SLIDES: IntroSection[] = [
     title: 'Renkler ne anlatıyor?',
     lines: [
       'Doluluğu mekanda olan kullanıcılar bildirir: son 90 dakikadaki check-in\'lere bakılır.',
-      'En az 3 kişi bildirdiyse yaklaşık yüzde de görünür (~%60). Gri: güncel bilgi yok. ✨: henüz kimse check-in yapmadı.',
+      'En az 5 kişi bildirdiyse yaklaşık yüzde de görünür (~%60). Gri: güncel bilgi yok.',
+      '"Sıra var" ve "Oturacak yer yok" cevapları doluluğu biraz artırır, "Sıra yok" ve "Oturacak yer var" biraz azaltır.',
+      '✨: henüz kimse check-in yapmadı.',
     ],
     legend: true,
   },
@@ -17,6 +19,7 @@ export const CUSTOMER_SLIDES: IntroSection[] = [
     lines: [
       'Mekandayken (150 m içinde) detay sayfasında "Şu an burası nasıl?" sorusuna cevap ver: Sakin, Orta ya da Kalabalık.',
       'Seçince Check-in açılır. Bir mekana 2 saatte bir check-in yapabilirsin; konumun saklanmaz.',
+      'Haritadaki + düğmesi en yakın mekanları listeler; aradığın mekana dokunup check-in yapabilirsin.',
       'Gizli check-in doluluğa sayılır ama adın kimseye gösterilmez.',
       '✨ simgeli mekanın ilk check-in\'ini yapan burayı keşfetmiş olur; her check-in 10, ilk check-in +50 puan (misafirlere yarısı).',
     ],

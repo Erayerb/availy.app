@@ -110,3 +110,64 @@ CREATE TABLE IF NOT EXISTS friendships (
     CHECK (requester_id <> addressee_id)
 );
 CREATE INDEX IF NOT EXISTS friendships_addressee ON friendships (addressee_id);
+
+-- v2 reviews: one per person and venue (a new one replaces the old), stars + an optional comment.
+-- Other registered users can reply if the author allows it.
+CREATE TABLE IF NOT EXISTS reviews (
+    id             BIGSERIAL PRIMARY KEY,
+    venue_id       BIGINT NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+    user_id        BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    rating         SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    body           TEXT NOT NULL DEFAULT '' CHECK (length(body) <= 280),
+    allow_replies  BOOLEAN NOT NULL DEFAULT true,
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (venue_id, user_id)
+);
+CREATE TABLE IF NOT EXISTS review_replies (
+    id          BIGSERIAL PRIMARY KEY,
+    review_id   BIGINT NOT NULL REFERENCES reviews(id) ON DELETE CASCADE,
+    user_id     BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    body        TEXT NOT NULL CHECK (length(body) BETWEEN 1 AND 280),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS review_replies_review ON review_replies (review_id);
+
+-- v2: two reviews per person and venue (no longer one)
+ALTER TABLE reviews DROP CONSTRAINT IF EXISTS reviews_venue_id_user_id_key;
+CREATE INDEX IF NOT EXISTS reviews_venue_user ON reviews (venue_id, user_id);
+
+-- v2 privacy: what others may see (all on by default)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS share_checkins BOOLEAN NOT NULL DEFAULT true;       -- friends see my check-ins
+ALTER TABLE users ADD COLUMN IF NOT EXISTS show_in_leaderboard BOOLEAN NOT NULL DEFAULT true;  -- "Herkes" ranking
+ALTER TABLE users ADD COLUMN IF NOT EXISTS searchable BOOLEAN NOT NULL DEFAULT true;           -- found by user-name search
+
+-- v2 notifications: when a friend request was accepted
+ALTER TABLE friendships ADD COLUMN IF NOT EXISTS accepted_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS points_created ON points (created_at);
+
+-- v2 safety: blocking (no friendship, no requests, their content hidden both ways),
+-- muting (still friends, but nothing from them in my feed) and reporting reviews / replies
+CREATE TABLE IF NOT EXISTS blocks (
+    blocker_id  BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    blocked_id  BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (blocker_id, blocked_id),
+    CHECK (blocker_id <> blocked_id)
+);
+CREATE TABLE IF NOT EXISTS mutes (
+    muter_id    BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    muted_id    BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (muter_id, muted_id),
+    CHECK (muter_id <> muted_id)
+);
+CREATE TABLE IF NOT EXISTS reports (
+    id           BIGSERIAL PRIMARY KEY,
+    reporter_id  BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    review_id    BIGINT REFERENCES reviews(id) ON DELETE CASCADE,
+    reply_id     BIGINT REFERENCES review_replies(id) ON DELETE CASCADE,
+    reason       TEXT NOT NULL CHECK (reason IN ('insult', 'spam', 'false', 'other')),
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CHECK ((review_id IS NULL) <> (reply_id IS NULL))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS reports_once ON reports (reporter_id, COALESCE(review_id, 0), COALESCE(reply_id, 0));

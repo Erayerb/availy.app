@@ -1,6 +1,6 @@
 import Svg, { Circle, Path, Polygon } from 'react-native-svg';
 
-export type IconName = 'home' | 'map' | 'heart' | 'tag' | 'star' | 'chart' | 'menu';
+export type IconName = 'home' | 'map' | 'heart' | 'tag' | 'star' | 'chart' | 'menu' | 'people' | 'person' | 'bell';
 
 /** Simple line icons for the bottom tab bar. */
 export function TabIcon({ name, color, active }: { name: IconName; color: string; active: boolean }) {
@@ -31,6 +31,25 @@ export function TabIcon({ name, color, active }: { name: IconName; color: string
       )}
       {name === 'chart' && <Path d="M4 20V11M10 20V4M16 20v-7M3 20h18" {...stroke} />}
       {name === 'menu' && <Path d="M4 7h16M4 12h16M4 17h16" {...stroke} />}
+      {name === 'bell' && (
+        <>
+          <Path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z" {...stroke} />
+          <Path d="M10 20.5a2.2 2.2 0 0 0 4 0" {...stroke} />
+        </>
+      )}
+      {name === 'person' && (
+        <>
+          <Circle cx={12} cy={8.5} r={3.6} {...stroke} />
+          <Path d="M4.5 20.5c0-4 3.4-6.6 7.5-6.6s7.5 2.6 7.5 6.6" {...stroke} />
+        </>
+      )}
+      {name === 'people' && (
+        <>
+          <Circle cx={9} cy={8} r={3.2} {...stroke} />
+          <Path d="M3 20c0-3.6 2.7-6 6-6s6 2.4 6 6" {...stroke} />
+          <Path d="M15.5 4.9a3.2 3.2 0 0 1 0 6.2M17.5 14.4c2.1.7 3.5 2.8 3.5 5.6" {...stroke} />
+        </>
+      )}
     </Svg>
   );
 }

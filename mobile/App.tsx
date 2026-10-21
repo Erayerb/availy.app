@@ -7,7 +7,17 @@ import { Logo } from './src/components/Logo';
 import { Wordmark } from './src/components/Wordmark';
 import { useSettings } from './src/context/SettingsContext';
 import { AboutScreen } from './src/screens/AboutScreen';
-import { FriendsScreen } from './src/screens/FriendsScreen';
+import { SocialScreen, type SocialTab } from './src/screens/SocialScreen';
+import { CheckinScreen } from './src/screens/CheckinScreen';
+import { useCheckinSuggestion } from './src/hooks/useCheckinSuggestion';
+import { SuggestionBanner } from './src/components/SuggestionBanner';
+import { HeaderActionsContext } from './src/components/HeaderButtons';
+import { PermissionsScreen } from './src/screens/PermissionsScreen';
+import { PrivacyScreen } from './src/screens/PrivacyScreen';
+import { LegalScreen } from './src/screens/LegalScreen';
+import { UserProfileScreen } from './src/screens/UserProfileScreen';
+import { NotificationsScreen } from './src/screens/NotificationsScreen';
+import { NotificationsProvider } from './src/context/NotificationsContext';
 import { FirstCheckinSheet } from './src/components/FirstCheckinSheet';
 import { IntroOverlay } from './src/components/IntroOverlay';
 import { friendsApi, inviteFromQuery } from './src/lib/friends';
@@ -16,6 +26,7 @@ import { BUSINESS_TABS, CUSTOMER_TABS, TabBar, type Screen } from './src/compone
 import { CampaignsProvider } from './src/context/CampaignsContext';
 import { EngagementProvider, useEngagement } from './src/context/EngagementContext';
 import { SettingsProvider } from './src/context/SettingsContext';
+import { useLocation } from './src/context/LocationContext';
 import { LocationProvider } from './src/context/LocationContext';
 import { FavoritesProvider } from './src/context/FavoritesContext';
 import { useAuth } from './src/hooks/useAuth';
@@ -94,9 +105,20 @@ function Main() {
   const [nav, setNav] = useState<History<Screen>>({ current: 'home', stack: [] });
   const screen = nav.current;
   const goTo = (next: Screen) => setNav((h) => push(h, next));
+  // v2: a person's profile (mine from the top-right icon, others from names in Sosyal and reviews)
+  const [profileUsername, setProfileUsername] = useState<string | null>(null);
+  const openProfile = (username: string) => {
+    setProfileUsername(username);
+    goTo('user');
+  };
+  // Guests have no public profile: they get the sign-up page instead
+  const openMyProfile = () => (isRegistered(auth.user) && auth.user?.username ? openProfile(auth.user.username) : goTo('profile'));
+  // Sosyal opens on Akış; a friend-request notification opens it on Arkadaşlar
+  const [socialTab, setSocialTab] = useState<SocialTab>('feed');
   const role: Role = isBusiness(auth.user) ? 'business' : 'personal';
   const goBack = () => setNav((h) => back(h, landingFor(role)));
-  const { premium } = useSettings();
+  const { premium, checkinSuggestions } = useSettings();
+  const { point } = useLocation();
   // v2: venues the user checked in at (reloaded after each check-in, when the check-in count changes)
   const visits = useVisits(auth.user?.token, auth.user?.checkins);
   const visitedIds = useMemo(() => new Set(visits.map((v) => v.venue_id)), [visits]);
@@ -143,6 +165,12 @@ function Main() {
 
   // Right after a new account: how-to slides, then (customers) "İlk check-in'in"
   const [onboarding, setOnboarding] = useState<'intro' | 'first' | null>(null);
+  // v2: "Mado yakınındasın, burası şu an nasıl?" (customers, after the onboarding)
+  const { suggestion, dismiss: dismissSuggestion } = useCheckinSuggestion(
+    point,
+    visits,
+    checkinSuggestions && entered && auth.user !== null && !isBusiness(auth.user) && onboarding === null,
+  );
   const startOnboarding = () => setOnboarding('intro');
 
   // Web: an invite link (?invite=eray) sends a friend request once the visitor has an account
@@ -245,15 +273,15 @@ function Main() {
           initialRole={authRole}
           onBack={() => setAuthForm(null)}
           onSwitchMode={setAuthForm}
-          onLogin={async (email, password, role) => {
-            const error = await auth.login(email, password, role);
+          onLogin={async (login, password, role) => {
+            const error = await auth.login(login, password, role);
             if (!error) enterApp(role);
             return error;
           }}
-          onRegister={async (name, username, email, password, role) => {
+          onRegister={async (username, email, password, role) => {
             // A guest who signs up has already been through the onboarding
             const wasGuest = auth.user?.isGuest === true;
-            const error = await auth.register(name, username, email, password, role);
+            const error = await auth.register(username, email, password, role);
             if (!error) {
               enterApp(role);
               if (!wasGuest) startOnboarding();
@@ -287,7 +315,16 @@ function Main() {
 
   return (
     <EngagementProvider userKey={auth.user ? accountKey(auth.user) : 'guest'}>
-      <FavoritesProvider signedIn={isRegistered(auth.user)} onLoginRequired={() => setAuthForm('login')}>
+      <FavoritesProvider
+        accountKey={auth.user ? accountKey(auth.user) : null}
+        signedIn={isRegistered(auth.user)} onLoginRequired={() => setAuthForm('login')}>
+      <NotificationsProvider
+        token={isRegistered(auth.user) ? (auth.user?.token ?? null) : null}
+        accountKey={auth.user ? accountKey(auth.user) : null}
+      >
+      <HeaderActionsContext.Provider
+        value={{ onOpenProfile: openMyProfile, onOpenNotifications: () => goTo('notifications') }}
+      >
         <View style={styles.container}>
           {/* Screens fill the space above the bottom tab bar */}
           <View style={styles.screen}>
@@ -307,6 +344,8 @@ function Main() {
               onHideClosedChange={setHideClosed}
               onOpenVenue={openDetails}
               onPremium={premium ? null : () => goTo('subscription')}
+              onOpenProfile={openMyProfile}
+              onOpenNotifications={() => goTo('notifications')}
             />
           )}
           {screen === 'map' && (
@@ -318,6 +357,7 @@ function Main() {
               hideClosed={hideClosed}
               onHideClosedChange={setHideClosed}
               visitedIds={visitedIds}
+              onOpenCheckin={() => goTo('checkin')}
               selectedId={selectedId}
               onSelect={setSelectedId}
               onMarkerPress={(id) => setSelectedId((current) => toggleSingle(current, id))}
@@ -334,11 +374,10 @@ function Main() {
               onShowOnMap={openVenueOnMap}
             />
           )}
-          {screen === 'favorites' && <FavoritesScreen onOpenVenue={openDetails} />}
+          {screen === 'favorites' && <FavoritesScreen onOpenVenue={openDetails} visits={visits} />}
           {screen === 'detail' && detailId !== null && (
             <VenueDetailScreen
               venueId={detailId}
-              userName={auth.user?.name ?? null}
               user={auth.user}
               onRegister={() => {
                 setAuthRole('personal');
@@ -348,6 +387,7 @@ function Main() {
               onLogin={() => setAuthForm('login')}
               onBack={goBack}
               onShowOnMap={openVenueOnMap}
+              onOpenUser={openProfile}
             />
           )}
           {screen === 'profile' && (
@@ -360,13 +400,14 @@ function Main() {
                 setAuthRole('personal');
                 setAuthForm('register');
               }}
-              onRename={auth.rename}
+              onChangeUsername={auth.changeUsername}
               onChangePassword={auth.changePassword}
               onDeleteAccount={async () => {
                 setEntered(false);
                 await auth.deleteAccount();
               }}
               onLogout={logout}
+              onOpenMyProfile={openMyProfile}
             />
           )}
           {screen === 'settings' && (
@@ -374,6 +415,8 @@ function Main() {
               onBack={goBack}
               isBusiness={isBusiness(auth.user)}
               venueId={isBusiness(auth.user) ? (auth.user?.venueId ?? null) : null}
+              onOpenPermissions={() => goTo('permissions')}
+              onOpenPrivacy={() => goTo('privacy')}
             />
           )}
           {screen === 'campaigns' && (
@@ -391,15 +434,58 @@ function Main() {
               }
               onLogin={() => setAuthForm('login')}
               onOpenVenue={(c) => openVenueOnMap({ id: c.venueId, lat: c.lat, lon: c.lon })}
+              onBack={isBusiness(auth.user) ? undefined : goBack}
             />
           )}
+          {screen === 'permissions' && <PermissionsScreen onBack={goBack} />}
+          {screen === 'privacy' && (
+            <PrivacyScreen
+              token={isRegistered(auth.user) ? (auth.user?.token ?? null) : null}
+              onBack={goBack}
+              onOpenPermissions={() => goTo('permissions')}
+              onOpenLegal={() => goTo('legal')}
+            />
+          )}
+          {screen === 'legal' && <LegalScreen initial="terms" onBack={goBack} />}
+          {screen === 'user' && profileUsername && auth.user?.token && (
+            <UserProfileScreen
+              key={profileUsername}
+              token={auth.user.token}
+              username={profileUsername}
+              onBack={goBack}
+              onOpenVenue={openDetails}
+              onOpenSettings={() => goTo('profile')}
+            />
+          )}
+          {screen === 'notifications' && (
+            <NotificationsScreen
+              signedIn={isRegistered(auth.user)}
+              onBack={goBack}
+              onRegister={() => {
+                setAuthRole('personal');
+                setAuthForm('register');
+              }}
+              onOpenVenue={openDetails}
+              onOpenFriends={() => {
+                setSocialTab('friends');
+                goTo('friends');
+              }}
+              onOpenSettings={() => goTo('settings')}
+            />
+          )}
+          {screen === 'checkin' && <CheckinScreen onBack={goBack} onOpenVenue={openDetails} />}
           {screen === 'about' && <AboutScreen role={role} onBack={goBack} />}
           {screen === 'support' && <SupportScreen email={auth.user?.email ?? null} onBack={goBack} />}
           {screen === 'verification' && <VerificationScreen onBack={goBack} />}
           {screen === 'friends' && (
-            <FriendsScreen
+            <SocialScreen
+              key={socialTab}
+              initialTab={socialTab}
               user={auth.user}
-              onBack={goBack}
+              onOpenVenue={openDetails}
+              onOpenProfile={openMyProfile}
+              onOpenNotifications={() => goTo('notifications')}
+              onOpenUser={openProfile}
               onRegister={() => {
                 setAuthRole('personal');
                 setAuthForm('register');
@@ -423,6 +509,7 @@ function Main() {
             tabs={isBusiness(auth.user) ? BUSINESS_TABS : CUSTOMER_TABS}
             current={screen}
             onSelect={(next) => {
+              if (next === 'friends') setSocialTab('feed');
               goTo(next);
               setSelectedId(null);
             }}
@@ -432,6 +519,16 @@ function Main() {
             <BusinessMonitor venueId={auth.user.venueId} />
           )}
           <WatchAlert />
+          {suggestion && !(screen === 'detail' && detailId === suggestion.venue.id) && (
+            <SuggestionBanner
+              suggestion={suggestion}
+              onCheckin={() => {
+                openDetails(suggestion.venue);
+                dismissSuggestion();
+              }}
+              onClose={dismissSuggestion}
+            />
+          )}
           {onboarding === 'intro' && (
             <IntroOverlay role={role} onDone={() => setOnboarding(role === 'business' ? null : 'first')} />
           )}
@@ -446,6 +543,8 @@ function Main() {
           )}
           <StatusBar style="dark" />
         </View>
+      </HeaderActionsContext.Provider>
+      </NotificationsProvider>
       </FavoritesProvider>
     </EngagementProvider>
   );

@@ -21,6 +21,8 @@ import {
   type Side,
 } from '../lib/istanbul';
 import { useLocation } from '../context/LocationContext';
+import { sortByDistance } from '../lib/geo';
+import { HeaderButtons } from '../components/HeaderButtons';
 import { SORT_OPTIONS, sortVenues, type SortMode } from '../lib/sort';
 import { stableShuffle } from '../lib/shuffle';
 import { colors } from '../theme';
@@ -45,6 +47,9 @@ type Props = {
   onOpenVenue: (venue: Venue) => void;
   // Free plan: show the ad slot (null for Premium users)
   onPremium: (() => void) | null;
+  // 🔔 and profile icons at the top right
+  onOpenProfile: () => void;
+  onOpenNotifications: () => void;
 };
 
 export function HomeScreen({
@@ -62,6 +67,8 @@ export function HomeScreen({
   onHideClosedChange,
   onOpenVenue,
   onPremium,
+  onOpenProfile,
+  onOpenNotifications,
 }: Props) {
   const visibleDistricts = districtsForSides(useDistricts(), sides);
   const { venues: found, loading, error, refreshing, refresh, updatedAt } = useSearch(query, null, tags);
@@ -84,11 +91,11 @@ export function HomeScreen({
 
   const { point } = useLocation();
 
-  // "Önerilen": open places first, then a mixed order (search results by name)
+  // "Önerilen": open places first, nearest first; without a location a mixed order (search results by name)
   const items = useMemo(
     () =>
       sortVenues(venues, sortMode, point, (list) => {
-        const ordered = searching ? list : stableShuffle(list, SESSION_SEED);
+        const ordered = point ? sortByDistance(list, point) : searching ? list : stableShuffle(list, SESSION_SEED);
         return [...ordered].sort((a, b) => Number(b.open_now) - Number(a.open_now));
       }),
     [venues, searching, point, sortMode],
@@ -99,6 +106,7 @@ export function HomeScreen({
     <View style={styles.header}>
       <View style={styles.topRow}>
         <Wordmark size={34} />
+        <HeaderButtons onOpenProfile={onOpenProfile} onOpenNotifications={onOpenNotifications} />
       </View>
 
       <View style={styles.sectionRow}>
@@ -197,7 +205,7 @@ export function HomeScreen({
 
 const styles = StyleSheet.create({
   header: { gap: 10 },
-  topRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 6 },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6 },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.text, marginTop: 8 },
   sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   row: { gap: 8 },

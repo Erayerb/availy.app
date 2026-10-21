@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { accountApi, ApiError, toUser, type LocalBusiness } from '../lib/accountApi';
-import { accountKey, type Role, type User } from '../lib/auth';
+import { accountKey, normalizeUsername, validateUsername, type Role, type User } from '../lib/auth';
 import { KEYS, loadJson, remove, saveJson } from '../lib/storage';
 
 const asMessage = (e: unknown) => (e instanceof Error ? e.message : 'Bilinmeyen hata');
@@ -64,14 +64,14 @@ export function useAuth() {
   }, [user?.token, user?.points, refreshMe]);
 
   const register = useCallback(
-    async (name: string, username: string, email: string, password: string, role: Role): Promise<string | null> => {
+    async (username: string, email: string, password: string, role: Role): Promise<string | null> => {
       try {
         if (user?.isGuest && user.token) {
           // A guest signs up: same account, so check-ins and points stay
-          const upgraded = await accountApi.upgrade(user.token, name, username, email, password, role);
+          const upgraded = await accountApi.upgrade(user.token, username, email, password, role);
           await signIn(toUser(upgraded, user.token, await localBusiness(upgraded.id)));
         } else {
-          const session = await accountApi.register(name, username, email, password, role);
+          const session = await accountApi.register(username, email, password, role);
           await signIn(toUser(session.user, session.token));
         }
         return null;
@@ -83,9 +83,9 @@ export function useAuth() {
   );
 
   const login = useCallback(
-    async (email: string, password: string, role: Role): Promise<string | null> => {
+    async (login: string, password: string, role: Role): Promise<string | null> => {
       try {
-        const session = await accountApi.login(email, password, role);
+        const session = await accountApi.login(login, password, role);
         await signIn(toUser(session.user, session.token, await localBusiness(session.user.id)));
         return null;
       } catch (e) {
@@ -118,14 +118,18 @@ export function useAuth() {
     [user, signIn],
   );
 
-  const rename = useCallback(
-    async (name: string) => {
-      if (!user?.token || name.trim().length < 2) return;
+  /** New user name (also the display name); resolves to an error message, or null on success. */
+  const changeUsername = useCallback(
+    async (username: string): Promise<string | null> => {
+      if (!user?.token) return 'Önce giriş yap.';
+      const problem = validateUsername(username);
+      if (problem) return problem;
       try {
-        const fresh = await accountApi.rename(user.token, name);
-        await signIn({ ...user, name: fresh.name });
-      } catch {
-        // Keep the old name; the profile screen shows the result
+        const fresh = await accountApi.changeUsername(user.token, normalizeUsername(username));
+        await signIn({ ...user, name: fresh.name, username: fresh.username });
+        return null;
+      } catch (e) {
+        return asMessage(e);
       }
     },
     [user, signIn],
@@ -163,7 +167,7 @@ export function useAuth() {
     continueAsGuest,
     refreshMe,
     updateProfile,
-    rename,
+    changeUsername,
     changePassword,
     deleteAccount,
     logout,

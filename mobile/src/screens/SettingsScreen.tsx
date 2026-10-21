@@ -1,10 +1,9 @@
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { LevelDot } from '../components/LevelDot';
 import { BackButton } from '../components/BackButton';
 import { VenueEditSection } from '../components/business/VenueEditSection';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
-import { useLocation } from '../context/LocationContext';
 import { useSettings } from '../context/SettingsContext';
 import { LEVELS } from '../lib/occupancy';
 import { colors } from '../theme';
@@ -14,14 +13,15 @@ type Props = {
   onBack: () => void;
   isBusiness: boolean;
   venueId: number | null; // business: its venue, edited here
+  onOpenPermissions: () => void;
+  onOpenPrivacy: () => void;
 };
 
-export function SettingsScreen({ onBack, isBusiness, venueId }: Props) {
+export function SettingsScreen({ onBack, isBusiness, venueId, onOpenPermissions, onOpenPrivacy }: Props) {
   const { venues } = useVenuesByIds(venueId ? [venueId] : []);
   const venue = venues[0];
-  const { colorBlind, watchNotifications, deadHourAlerts, autoCampaign, update, look } = useSettings();
-  const { point, loading } = useLocation();
-
+  const settings = useSettings();
+  const { colorBlind, watchNotifications, deadHourAlerts, autoCampaign, update, look } = settings;
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
@@ -68,36 +68,56 @@ export function SettingsScreen({ onBack, isBusiness, venueId }: Props) {
           />
         </View>
       ) : (
-        <View style={styles.card}>
-          <Row
-            title="Boşalınca haber ver bildirimleri"
-            subtitle={
-              Platform.OS === 'web'
-                ? 'Tarayıcıda bildirim yerine uygulama içinde uyarı gösterilir.'
-                : 'Takip ettiğin mekan %70 altına düşünce telefonuna bildirim gelir (uygulama açıkken).'
-            }
-            value={watchNotifications}
-            onChange={(v) => update({ watchNotifications: v })}
-          />
-          <Row
-            title="Kampanya bildirimleri"
-            subtitle="Yakında: yakındaki kampanyalar bildirim olarak gelecek."
-            value={false}
-            disabled
-          />
-        </View>
+        <>
+          <Text style={styles.heading}>Bildirimler</Text>
+          <View style={styles.card}>
+            <Row
+              title="Check-in önerileri"
+              subtitle="Açık bir mekanın 250 m yakınında birkaç dakika kalınca check-in yapmak isteyip istemediğini sorarız."
+              value={settings.checkinSuggestions}
+              onChange={(v) => update({ checkinSuggestions: v })}
+            />
+            <Row
+              title="Arkadaşlık"
+              subtitle="Biri seni eklemek istediğinde ya da isteğini kabul ettiğinde."
+              value={settings.friendNotifications}
+              onChange={(v) => update({ friendNotifications: v })}
+            />
+            <Row
+              title="Yorumlarıma yanıtlar"
+              subtitle="Biri mekan yorumunu yanıtladığında."
+              value={settings.replyNotifications}
+              onChange={(v) => update({ replyNotifications: v })}
+            />
+            <Row
+              title="Sakin olunca haber ver"
+              subtitle={
+                Platform.OS === 'web'
+                  ? 'Tarayıcıda bildirim yerine uygulama içinde uyarı gösterilir.'
+                  : '🔕 ile takip ettiğin mekan sakinleşince telefonuna bildirim gelir.'
+              }
+              value={watchNotifications}
+              onChange={(v) => update({ watchNotifications: v })}
+            />
+            <Row title="Kampanya bildirimleri" subtitle="Yakında: yakındaki kampanyalar." value={false} disabled />
+            <Text style={styles.muted}>
+              Şimdilik bildirimler uygulama açıkken gelir; kapalıyken gelmesi yayın sürümüyle eklenecek.
+            </Text>
+          </View>
+
+        </>
       )}
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Konum</Text>
-        <Text style={styles.muted}>
-          {loading
-            ? 'Konum kontrol ediliyor…'
-            : point
-              ? 'Konumun kullanılıyor: en yakın sıralama, mesafeler ve haritada mavi nokta.'
-              : 'Konum kapalı ya da İstanbul dışındasın. İzni telefonun ayarlarından açabilirsin.'}
-        </Text>
-      </View>
+      {!isBusiness && (
+        <Pressable style={styles.card} onPress={onOpenPrivacy}>
+          <Text style={styles.sectionTitle}>Gizlilik ›</Text>
+          <Text style={styles.muted}>Check-in'lerini kimin göreceği, sıralama, aranabilirlik ve engellediklerin.</Text>
+        </Pressable>
+      )}
+      <Pressable style={styles.card} onPress={onOpenPermissions}>
+        <Text style={styles.sectionTitle}>Konum ve izinler ›</Text>
+        <Text style={styles.muted}>Konum, kamera ve bildirim izinleri: neye izin veriyor, neye vermiyor.</Text>
+      </Pressable>
 
       <Text style={styles.version}>availy · prototip sürüm</Text>
     </ScrollView>
@@ -146,4 +166,6 @@ const styles = StyleSheet.create({
   preview: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, paddingTop: 4 },
   previewItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   version: { textAlign: 'center', fontSize: 12, color: colors.placeholder },
+  heading: { fontSize: 18, fontWeight: '700', color: colors.text, marginTop: 4 },
+  error: { fontSize: 13, color: colors.danger },
 });

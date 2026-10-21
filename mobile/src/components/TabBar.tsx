@@ -17,6 +17,12 @@ export type Screen =
   | 'friends'
   | 'verification'
   | 'about'
+  | 'checkin'
+  | 'permissions'
+  | 'notifications'
+  | 'privacy'
+  | 'legal'
+  | 'user'
   | 'detail';
 
 type Tab = { screen: Screen; label: string; icon: IconName };
@@ -26,13 +32,19 @@ const MAP: Tab = { screen: 'map', label: 'Harita', icon: 'map' };
 const CAMPAIGNS: Tab = { screen: 'campaigns', label: 'Kampanyalar', icon: 'tag' };
 const MORE: Tab = { screen: 'more', label: 'Daha fazla', icon: 'menu' };
 
-// The map sits in the middle of the bar
-export const CUSTOMER_TABS: Tab[] = [HOME, CAMPAIGNS, MAP, { screen: 'favorites', label: 'Favoriler', icon: 'heart' }, MORE];
+// The map sits in the middle of the bar; customers' campaigns are under "Daha fazla" (v2)
+export const CUSTOMER_TABS: Tab[] = [
+  HOME,
+  { screen: 'friends', label: 'Sosyal', icon: 'people' },
+  MAP,
+  { screen: 'favorites', label: 'Favoriler', icon: 'heart' },
+  MORE,
+];
 // Businesses: home, panel, map (middle), campaigns; the app still opens on the panel
 export const BUSINESS_TABS: Tab[] = [HOME, { screen: 'business', label: 'Panel', icon: 'chart' }, MAP, CAMPAIGNS, MORE];
 
 // Pages opened from the "Daha fazla" list keep that tab highlighted
-const MORE_PAGES: Screen[] = ['more', 'friends', 'subscription', 'profile', 'settings', 'support', 'verification', 'about'];
+const MORE_PAGES: Screen[] = ['more', 'campaigns', 'permissions', 'privacy', 'legal', 'subscription', 'profile', 'settings', 'support', 'verification', 'about'];
 
 type Props = {
   tabs: Tab[];
@@ -41,7 +53,13 @@ type Props = {
 };
 
 export function TabBar({ tabs, current, onSelect }: Props) {
-  const active = tabs.some((t) => t.screen === current) ? current : MORE_PAGES.includes(current) ? 'more' : null;
+  const active = tabs.some((t) => t.screen === current)
+    ? current
+    : MORE_PAGES.includes(current)
+      ? 'more'
+      : current === 'checkin'
+        ? 'map'
+        : null;
 
   return (
     <View style={styles.bar}>

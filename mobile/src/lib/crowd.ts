@@ -9,7 +9,7 @@ export type CrowdState = 'live' | 'stale' | 'unexplored';
 export type Crowd = {
   state: CrowdState;
   level: Level | null; // live only
-  ratio: number | null; // only with at least 3 people in the last 90 minutes
+  ratio: number | null; // only with at least 5 people in the last 90 minutes
   reporters: number;
   last_report_at: string | null;
   queue: boolean | null; // "Sıra var" (Kalabalık)
@@ -34,6 +34,14 @@ type HasCrowd = { open_now: boolean; crowd?: Crowd };
 /** The level to show right now: only for open venues with fresh check-ins. */
 export function liveLevel(venue: HasCrowd): Level | null {
   return venue.open_now && venue.crowd?.state === 'live' ? venue.crowd.level : null;
+}
+
+// Below this many people the level is shown faded, as "1 kişiye göre Kalabalık"
+export const CONFIRMED_REPORTERS = 2;
+
+/** Only one person reported so far: shown, but not yet confirmed by anyone else. */
+export function isTentative(venue: HasCrowd): boolean {
+  return liveLevel(venue) !== null && (venue.crowd?.reporters ?? 0) < CONFIRMED_REPORTERS;
 }
 
 /** For sorting: lower is emptier; venues without fresh check-ins go last. */

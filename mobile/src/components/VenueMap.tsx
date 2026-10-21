@@ -1,12 +1,13 @@
-import { memo, useCallback, useEffect, useRef } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, type MapPressEvent } from 'react-native-maps';
 
 import type { Venue } from '../lib/api';
 import type { Region } from '../lib/bbox';
 import { useSettings } from '../context/SettingsContext';
+import { LABEL_LINE_HEIGHT, LABEL_MAX_WIDTH as LABEL_WIDTH, labelPriority, visibleLabels } from '../lib/labels';
 import { colors } from '../theme';
-import { DOT_SIZE, SELECTED_DOT_SIZE, type VenueMapProps } from './VenueMap.types';
+import { DOT_SIZE, LABEL_MIN_ZOOM, SELECTED_DOT_SIZE, zoomForDelta, type VenueMapProps } from './VenueMap.types';
 
 // Invisible tap area around each dot: a little larger than the dot, but small
 // enough that neighbouring dots' areas don't cover each other
@@ -20,10 +21,12 @@ const TOUCH_SIZE = 34;
 const VenueMarker = memo(function VenueMarker({
   venue,
   selected,
+  label,
   onSelect,
 }: {
   venue: Venue;
   selected: boolean;
+  label: boolean;
   onSelect: (id: number) => void;
 }) {
   const size = selected ? SELECTED_DOT_SIZE : DOT_SIZE;
@@ -32,28 +35,36 @@ const VenueMarker = memo(function VenueMarker({
   return (
     <Marker
       coordinate={{ latitude: venue.lat, longitude: venue.lon }}
-      anchor={{ x: 0.5, y: 0.5 }}
+      // With a name to its right the marker is wider; keep the dot itself on the venue's spot
+      anchor={{ x: label ? TOUCH_SIZE / 2 / (TOUCH_SIZE + LABEL_WIDTH) : 0.5, y: 0.5 }}
       onPress={() => onSelect(venue.id)}
       zIndex={selected ? 10 : 1}
       tracksViewChanges={false}
     >
       {/* collapsable={false}: a view with only layout styles would otherwise be
           flattened away by React Native, shrinking the marker's touch area */}
-      <View style={styles.touchArea} collapsable={false}>
-        <View
-          style={[
-            styles.marker,
-            {
-              width: size,
-              height: size,
-              borderRadius: size / 2,
-              backgroundColor: color,
-            },
-            selected && styles.markerSelected,
-          ]}
-        >
-          {glyph && <Text style={[styles.glyph, { fontSize: size * 0.55 }]}>{glyph}</Text>}
+      <View style={label ? styles.labelled : undefined} collapsable={false}>
+        <View style={styles.touchArea} collapsable={false}>
+          <View
+            style={[
+              styles.marker,
+              {
+                width: size,
+                height: size,
+                borderRadius: size / 2,
+                backgroundColor: color,
+              },
+              selected && styles.markerSelected,
+            ]}
+          >
+            {glyph && <Text style={[styles.glyph, { fontSize: size * 0.55 }]}>{glyph}</Text>}
+          </View>
         </View>
+        {label && (
+          <Text style={[styles.label, { color }]} numberOfLines={2}>
+            {venue.name}
+          </Text>
+        )}
       </View>
     </Marker>
   );
@@ -69,8 +80,22 @@ export function VenueMap({
   onRegionChangeComplete,
   onSelectedPointChange,
   focus,
+  userPoint,
 }: VenueMapProps) {
   const mapRef = useRef<MapView>(null);
+  // Names under the dots once zoomed in to street level. The area is only updated when the
+  // zoom changes, since which names overlap does not change while panning
+  const [labelRegion, setLabelRegion] = useState<Region>(initialRegion);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const labelled = useMemo(() => {
+    if (zoomForDelta(labelRegion.longitudeDelta) < LABEL_MIN_ZOOM || size.width === 0) return new Set<number>();
+    // Close enough to the real projection at street level
+    const project = (v: Venue) => ({
+      x: ((v.lon - labelRegion.longitude) / labelRegion.longitudeDelta) * size.width,
+      y: ((labelRegion.latitude - v.lat) / labelRegion.latitudeDelta) * size.height,
+    });
+    return visibleLabels(labelPriority(venues, selectedId), project);
+  }, [venues, selectedId, labelRegion, size]);
 
   useEffect(() => {
     if (!focus || !mapRef.current) return;
@@ -106,21 +131,38 @@ export function VenueMap({
       initialRegion={initialRegion}
       onRegionChange={updatePoint}
       onRegionChangeComplete={(region: Region) => {
+        setLabelRegion((current) =>
+          Math.abs(zoomForDelta(current.longitudeDelta) - zoomForDelta(region.longitudeDelta)) < 0.25 ? current : region,
+        );
         updatePoint();
         onRegionChangeComplete(region);
       }}
       onPress={handleMapPress}
-      showsUserLocation
+      onLayout={(e) => setSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
       showsMyLocationButton={false}
     >
+      {userPoint && (
+        <Marker
+          coordinate={{ latitude: userPoint.lat, longitude: userPoint.lon }}
+          anchor={{ x: 0.5, y: 0.5 }}
+          zIndex={20}
+          tracksViewChanges={false}
+          tappable={false}
+        >
+          <View style={styles.userHalo} collapsable={false}>
+            <View style={styles.userDot} />
+          </View>
+        </Marker>
+      )}
       {venues.map((venue) => {
         const isSelected = venue.id === selectedId;
         return (
           <VenueMarker
             // tracksViewChanges is off, so a new key re-renders the dot when its look changes
-            key={`${venue.id}-${venue.crowd?.state}-${venue.crowd?.level}-${venue.open_now}-${isSelected}-${colorBlind}`}
+            key={`${venue.id}-${venue.crowd?.state}-${venue.crowd?.level}-${venue.open_now}-${isSelected}-${colorBlind}-${labelled.has(venue.id)}`}
             venue={venue}
             selected={isSelected}
+            label={labelled.has(venue.id)}
             onSelect={onMarkerPress}
           />
         );
@@ -150,5 +192,40 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
   },
   markerSelected: { borderColor: colors.text, borderWidth: 4 },
+  labelled: { width: TOUCH_SIZE + LABEL_WIDTH, flexDirection: 'row', alignItems: 'center' },
+  label: {
+    width: LABEL_WIDTH,
+    // Start just after the dot, not after the wider tap area around it
+    marginLeft: -(TOUCH_SIZE - DOT_SIZE) / 2 + 3,
+    lineHeight: LABEL_LINE_HEIGHT,
+    fontSize: 12,
+    fontWeight: '600',
+    // Colour comes from the venue's dot; white halo so the name reads on any map background
+    textShadowColor: colors.white,
+    textShadowRadius: 3,
+    textShadowOffset: { width: 0, height: 0 },
+  },
   glyph: { color: colors.white, fontWeight: '800', textAlign: 'center' },
+  // "You are here", like Google Maps
+  userHalo: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(26,115,232,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  userDot: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#1A73E8',
+    borderWidth: 3,
+    borderColor: colors.white,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.35,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 4,
+  },
 });

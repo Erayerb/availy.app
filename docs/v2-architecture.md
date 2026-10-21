@@ -97,8 +97,14 @@ Hesap tek bir saf fonksiyonda (`crowd_from_checkins`) olur; test edilmesi kolay,
 ## 8. API (v2)
 | Metot | Yol | Açıklama |
 |---|---|---|
-| POST | `/v1/auth/register` | Ad, e-posta, şifre, hesap türü → oturum anahtarı |
-| POST | `/v1/auth/login` | E-posta, şifre (ve seçilen hesap türü) → oturum anahtarı |
+| POST | `/v1/auth/register` | Kullanıcı adı, e-posta, şifre, hesap türü (ad isteğe bağlı) → oturum anahtarı |
+| POST | `/v1/auth/login` | Kullanıcı adı ya da e-posta (`login`), şifre (ve seçilen hesap türü) → oturum anahtarı |
+| GET | `/v1/venues/{id}/reviews` | Yorumlar ve yanıtları, ortalama puan (giriş gerekmez) |
+| POST | `/v1/venues/{id}/reviews` | Yorum yaz / değiştir: `rating`, `body`, `allow_replies` (kayıtlı kullanıcı) |
+| DELETE | `/v1/reviews/{id}` | Kendi yorumunu sil |
+| POST | `/v1/reviews/{id}/replies` | Yoruma yanıt (`allow_replies` açıksa ya da yorum senin) |
+| DELETE | `/v1/replies/{id}` | Kendi yanıtını sil |
+| GET | `/v1/feed` | Arkadaşların son 7 gündeki check-in, yorum ve yanıtları |
 | POST | `/v1/auth/guest` | Misafir hesabı açar (otomatik id) → oturum anahtarı |
 | POST | `/v1/auth/upgrade` | Misafir kayıt olur: ad, e-posta, şifre; aynı id kalır |
 | POST | `/v1/auth/logout` | Oturumu kapatır |
@@ -147,7 +153,7 @@ GitHub Pages bir repoda tek site yayınlar. v2 hazır olunca yayın işi iki sü
 - Puan: check-in 10, mekanın ilk check-in'i 50 (şimdilik)
 - Doluluk hesabı son 90 dakikanın check-in'lerini kullanır
 - Aynı kullanıcı aynı mekana 2 saatte bir check-in yapabilir
-- Yüzde: kullanıcı Sakin / Orta / Kalabalık seçer. Son 90 dk'da en az 3 kişi bildirdiyse ağırlıklı ortalamadan
+- Yüzde: kullanıcı Sakin / Orta / Kalabalık seçer. Son 90 dk'da en az 5 kişi bildirdiyse ağırlıklı ortalamadan
   hesaplanan yüzde de gösterilir ("~%60"), daha azsa yalnızca seviye
 - "Burayı X keşfetti" 30 gün görünür
 - Demo check-in'leri üretilir; pilot bölge Nişantaşı + Caddebostan + Yeditepe kampüsü ve çevresi

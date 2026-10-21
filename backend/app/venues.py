@@ -5,7 +5,7 @@ import psycopg
 from app.config import settings
 
 # Purpose tags used by the mobile filter chips
-TAGS = frozenset({"socializing", "coworking", "entertainment", "quiet", "food"})
+TAGS = frozenset({"socializing", "coworking", "entertainment", "quiet", "food", "nightlife", "nature"})
 
 
 @dataclass(frozen=True)

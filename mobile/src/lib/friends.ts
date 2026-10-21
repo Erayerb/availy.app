@@ -5,7 +5,10 @@ import { WEB_APP_URL } from './share.ts';
 
 export type Person = { id: number; username: string; name: string };
 export type Relation = 'friend' | 'outgoing' | 'incoming' | 'none';
-export type FriendLists = { friends: Person[]; incoming: Person[]; outgoing: Person[] };
+// A friend's newest public check-in: only the venue and the time, never a live location
+export type FriendCheckin = { venue_id: number; venue_name: string; at: string; is_first: boolean; points: number };
+export type Friend = Person & { last_checkin: FriendCheckin | null };
+export type FriendLists = { friends: Friend[]; incoming: Person[]; outgoing: Person[] };
 
 const QR_PREFIX = 'availy:friend:';
 

@@ -12,6 +12,9 @@ from pydantic import BaseModel
 from app.auth_api import router as auth_router
 from app.checkins_api import router as checkins_router
 from app.friends_api import router as friends_router
+from app.reviews_api import router as reviews_router
+from app.social_api import router as social_router
+from app.safety_api import router as safety_router
 from app.checkins import load_crowds, load_discoveries
 from app.config import settings
 from app.db import apply_schema, get_conn, pool
@@ -59,6 +62,9 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(checkins_router)
 app.include_router(friends_router)
+app.include_router(reviews_router)
+app.include_router(social_router)
+app.include_router(safety_router)
 
 
 class OccupancyOut(BaseModel):
@@ -88,6 +94,7 @@ class DiscoveryOut(BaseModel):
     """v2: "Burayı X keşfetti" (first check-in, shown for 30 days)."""
 
     name: str | None  # None when the first check-in was private
+    username: str | None = None  # shown as "@eray"; None when private (or a guest)
     at: datetime
 
 

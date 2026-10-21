@@ -27,11 +27,12 @@ const LOCATION_ERRORS = {
 
 /** v2 check-in: first say how busy it is (and the follow-up question), then the Check-in button opens. */
 export function CheckinPanel({ venue, user, onLogin, onRegister, onDone }: Props) {
-  const { look } = useSettings();
+  const { look, privateByDefault } = useSettings();
   const { locate } = useLocation();
   const [level, setLevel] = useState<Level | null>(null);
   const [answer, setAnswer] = useState<boolean | null>(null);
-  const [isPrivate, setIsPrivate] = useState(false);
+  // Gizlilik ayarları: "Check-in'lerim varsayılan olarak gizli olsun"
+  const [isPrivate, setIsPrivate] = useState(privateByDefault);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string; settings?: boolean } | null>(null);
   const question = followUpQuestion(level);

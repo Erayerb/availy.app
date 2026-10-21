@@ -29,12 +29,12 @@ def test_newer_reports_weigh_more():
     assert crowd.state == "live" and crowd.level == "low"
 
 
-def test_ratio_only_from_three_people():
-    two = [report(1, "medium", 5), report(2, "medium", 10)]
-    assert crowd_from_checkins(two, NOW, NOW).ratio is None
-    three = two + [report(3, "medium", 15)]
-    crowd = crowd_from_checkins(three, NOW, NOW)
-    assert crowd.ratio == 0.55 and crowd.reporters == 3 and crowd.level == "medium"
+def test_ratio_only_from_five_people():
+    four = [report(i, "medium", 5 * i) for i in range(1, 5)]
+    assert crowd_from_checkins(four, NOW, NOW).ratio is None
+    five = four + [report(5, "medium", 25)]
+    crowd = crowd_from_checkins(five, NOW, NOW)
+    assert crowd.ratio == 0.55 and crowd.reporters == 5 and crowd.level == "medium"
 
 
 def test_one_person_counts_once():
@@ -72,9 +72,9 @@ def test_venues_endpoint_includes_the_crowd(client, conn):
 
     kafe = conn.execute("SELECT id FROM venues WHERE name = 'Test Kafe A'").fetchone()["id"]
     users = [
-        conn.execute("INSERT INTO users (name) VALUES (%s) RETURNING id", (f"U{i}",)).fetchone()["id"] for i in range(3)
+        conn.execute("INSERT INTO users (name) VALUES (%s) RETURNING id", (f"U{i}",)).fetchone()["id"] for i in range(5)
     ]
-    for minutes, user in zip((5, 10, 15), users):
+    for minutes, user in zip((5, 10, 15, 20, 25), users):
         conn.execute(
             "INSERT INTO checkins (venue_id, user_id, level, queue, created_at) VALUES (%s, %s, 'high', true, now() - %s * interval '1 minute')",
             (kafe, user, minutes),
@@ -82,5 +82,21 @@ def test_venues_endpoint_includes_the_crowd(client, conn):
     venues = {v["name"]: v for v in client.get("/v1/venues", params={"bbox": KADIKOY_BBOX}).json()}
     crowd = venues["Test Kafe A"]["crowd"]
     assert crowd["state"] == "live" and crowd["level"] == "high"
-    assert crowd["reporters"] == 3 and crowd["ratio"] == 0.9 and crowd["queue"] is True
+    assert crowd["reporters"] == 5 and crowd["ratio"] == 0.98 and crowd["queue"] is True
     assert venues["Test Cowork B"]["crowd"]["state"] == "unexplored"
+
+
+def test_follow_up_answers_move_the_score():
+    from app.crowd import Report, report_score
+
+    def r(level, queue=None, seats=None):
+        return Report(1, level, queue, seats, NOW)
+
+    assert report_score(r("high", queue=True)) > report_score(r("high")) > report_score(r("high", queue=False))
+    assert report_score(r("medium", seats=False)) == 0.70 and report_score(r("medium", seats=True)) == 0.48
+    # Orta "no seats" + Kalabalık "queue": the venue counts as Kalabalık
+    full = [Report(1, "medium", None, False, NOW), Report(2, "high", True, None, NOW)]
+    assert crowd_from_checkins(full, NOW, NOW).level == "high"
+    # Orta "seats free" + Kalabalık "no queue": Orta
+    easy = [Report(1, "medium", None, True, NOW), Report(2, "high", False, None, NOW)]
+    assert crowd_from_checkins(easy, NOW, NOW).level == "medium"

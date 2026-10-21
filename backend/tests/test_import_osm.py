@@ -21,13 +21,21 @@ def test_cafe_with_hours_and_wifi():
 def test_ways_use_their_center_and_pubs_are_bars():
     way = {"type": "way", "id": 7, "center": {"lat": 41.05, "lon": 28.99}, "tags": {"amenity": "pub", "name": "Pub"}}
     venue = venue_from_element(way, NISANTASI)
-    assert venue["osm_id"] == "way/7" and venue["category"] == "bar"
+    assert venue["osm_id"] == "way/7" and venue["category"] == "bar" and "nightlife" in venue["tags"]
     assert venue["open_hour"] is None  # no hours: category default
 
 
 def test_unnamed_or_other_places_are_skipped():
     assert venue_from_element(element(amenity="cafe"), NISANTASI) is None
     assert venue_from_element(element(amenity="fast_food", name="Döner"), NISANTASI) is None
+
+
+def test_parks_and_beaches_are_nature():
+    park = venue_from_element(element(leisure="park", name="Maçka Parkı"), NISANTASI)
+    beach = venue_from_element(element(natural="beach", name="Caddebostan Plajı"), NISANTASI)
+    assert park["category"] == beach["category"] == "park"
+    assert "nature" in park["tags"] and "nature" in beach["tags"]
+    assert venue_from_element(element(amenity="nightclub", name="Kulüp"), NISANTASI)["tags"] == ["entertainment", "nightlife"]
 
 
 def test_coworking_and_address_suburb():

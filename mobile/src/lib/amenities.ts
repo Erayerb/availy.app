@@ -21,6 +21,7 @@ const BY_CATEGORY: Record<string, AmenityKey[]> = {
   restaurant: ['veggie', 'outdoor'],
   coworking: ['wifi', 'power', 'quiet', 'meeting'],
   library: ['wifi', 'power', 'quiet'],
+  park: ['outdoor'],
 };
 
 export function amenitiesFor(venue: Pick<Venue, 'category' | 'tags' | 'amenity_keys'>): Amenity[] {

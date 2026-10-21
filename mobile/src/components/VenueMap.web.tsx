@@ -1,16 +1,19 @@
 import 'leaflet/dist/leaflet.css';
 
 import L from 'leaflet';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useSettings } from '../context/SettingsContext';
+import { LABEL_LINE_HEIGHT, LABEL_MAX_WIDTH, labelPriority, visibleLabels } from '../lib/labels';
 import { colors } from '../theme';
-import { DOT_SIZE, SELECTED_DOT_SIZE, type VenueMapProps } from './VenueMap.types';
-
-// Leaflet zoom <-> react-native-maps style region (longitudeDelta in degrees)
-const zoomForDelta = (delta: number) => Math.log2(360 / delta);
+import { DOT_SIZE, LABEL_MIN_ZOOM, SELECTED_DOT_SIZE, zoomForDelta, type VenueMapProps } from './VenueMap.types';
 
 /** Web map (Leaflet + OpenStreetMap tiles); react-native-maps has no web support. */
+const USER_PANE = 'user';
+
+const escapeHtml = (text: string) =>
+  text.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+
 export function VenueMap({
   initialRegion,
   venues,
@@ -23,8 +26,10 @@ export function VenueMap({
   userPoint,
 }: VenueMapProps) {
   const { crowdLook, colorBlind } = useSettings();
-  const userLayerRef = useRef<L.CircleMarker | null>(null);
+  const userLayerRef = useRef<L.LayerGroup | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Names under the dots once zoomed in to street level; which ones fit depends on the zoom
+  const [zoom, setZoom] = useState(() => Math.round(zoomForDelta(initialRegion.longitudeDelta)));
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
   // Latest props for Leaflet event handlers registered once
@@ -51,6 +56,12 @@ export function VenueMap({
       attribution: '&copy; OpenStreetMap',
     }).addTo(map);
 
+    // The user's blue dot sits above the venue dots (Leaflet's marker pane is 600)
+    const userPane = map.createPane(USER_PANE);
+    userPane.style.zIndex = '650';
+    userPane.style.pointerEvents = 'none';
+
+    map.on('zoomend', () => setZoom(map.getZoom()));
     map.on('click', () => latest.current.onMapPress());
     map.on('move', reportSelectedPoint);
     map.on('moveend', () => {
@@ -86,8 +97,13 @@ export function VenueMap({
   // Redraw dots when data or selection changes
   useEffect(() => {
     const layer = layerRef.current;
-    if (!layer) return;
+    const map = mapRef.current;
+    if (!layer || !map) return;
     layer.clearLayers();
+    const labelled =
+      zoom >= LABEL_MIN_ZOOM
+        ? visibleLabels(labelPriority(venues, selectedId), (v) => map.latLngToContainerPoint([v.lat, v.lon]))
+        : new Set<number>();
     // Selected dot last so it is drawn on top
     const ordered = [...venues].sort((a, b) => Number(a.id === selectedId) - Number(b.id === selectedId));
     for (const venue of ordered) {
@@ -95,10 +111,13 @@ export function VenueMap({
       const size = isSelected ? SELECTED_DOT_SIZE : DOT_SIZE;
       const { color, glyph } = crowdLook(venue);
       const border = isSelected ? `4px solid ${colors.text}` : `3px solid ${colors.white}`;
+      const label = labelled.has(venue.id)
+        ? `<div style="position:absolute;left:${size + 3}px;top:50%;transform:translateY(-50%);width:max-content;max-width:${LABEL_MAX_WIDTH}px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font:600 12px/${LABEL_LINE_HEIGHT}px -apple-system,system-ui,sans-serif;color:${color};text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff;pointer-events:none">${escapeHtml(venue.name)}</div>`
+        : '';
       const icon = L.divIcon({
         className: '',
         iconSize: [size, size],
-        html: `<div style="width:${size}px;height:${size}px;box-sizing:border-box;border-radius:50%;background:${color};border:${border};box-shadow:0 1px 2px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#fff;font:800 ${Math.round(size * 0.5)}px sans-serif">${glyph ?? ''}</div>`,
+        html: `<div style="position:relative;width:${size}px;height:${size}px;box-sizing:border-box;border-radius:50%;background:${color};border:${border};box-shadow:0 1px 2px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#fff;font:800 ${Math.round(size * 0.5)}px sans-serif">${glyph ?? ''}${label}</div>`,
       });
       L.marker([venue.lat, venue.lon], { icon, zIndexOffset: isSelected ? 1000 : 0 })
         .on('click', (event) => {
@@ -110,21 +129,33 @@ export function VenueMap({
     onSelectedPointChange(null);
     reportSelectedPoint();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [venues, selectedId, colorBlind]);
+  }, [venues, selectedId, colorBlind, zoom]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     userLayerRef.current?.remove();
+    // Google Maps-style: light blue halo, blue dot with a white border
     userLayerRef.current = userPoint
-      ? L.circleMarker([userPoint.lat, userPoint.lon], {
-          radius: 7,
-          color: colors.white,
-          weight: 3,
-          fillColor: '#1A73E8',
-          fillOpacity: 1,
-          interactive: false,
-        }).addTo(map)
+      ? L.layerGroup([
+          L.circleMarker([userPoint.lat, userPoint.lon], {
+            radius: 20,
+            stroke: false,
+            fillColor: '#1A73E8',
+            fillOpacity: 0.18,
+            interactive: false,
+            pane: USER_PANE,
+          }),
+          L.circleMarker([userPoint.lat, userPoint.lon], {
+            radius: 8,
+            color: colors.white,
+            weight: 3,
+            fillColor: '#1A73E8',
+            fillOpacity: 1,
+            interactive: false,
+            pane: USER_PANE,
+          }),
+        ]).addTo(map)
       : null;
   }, [userPoint]);
 

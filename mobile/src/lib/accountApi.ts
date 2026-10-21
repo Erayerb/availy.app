@@ -80,16 +80,17 @@ export async function send<T>(method: string, path: string, body?: unknown, toke
 }
 
 export const accountApi = {
-  register: (name: string, username: string, email: string, password: string, role: Role) =>
-    send<Session>('POST', '/v1/auth/register', { name, username, email, password, role }),
-  login: (email: string, password: string, role: Role) => send<Session>('POST', '/v1/auth/login', { email, password, role }),
+  register: (username: string, email: string, password: string, role: Role) =>
+    send<Session>('POST', '/v1/auth/register', { username, email, password, role }),
+  // `login` is the e-mail or the user name
+  login: (login: string, password: string, role: Role) => send<Session>('POST', '/v1/auth/login', { login, password, role }),
   guest: () => send<Session>('POST', '/v1/auth/guest'),
   // A guest signs up; same id, the current token stays valid
-  upgrade: (token: string, name: string, username: string, email: string, password: string, role: Role) =>
-    send<ServerUser>('POST', '/v1/auth/upgrade', { name, username, email, password, role }, token),
+  upgrade: (token: string, username: string, email: string, password: string, role: Role) =>
+    send<ServerUser>('POST', '/v1/auth/upgrade', { username, email, password, role }, token),
   logout: (token: string) => send<void>('POST', '/v1/auth/logout', undefined, token),
   me: (token: string) => send<ServerUser>('GET', '/v1/me', undefined, token),
-  rename: (token: string, name: string) => send<ServerUser>('PATCH', '/v1/me', { name }, token),
+  changeUsername: (token: string, username: string) => send<ServerUser>('PATCH', '/v1/me', { username }, token),
   changePassword: (token: string, oldPassword: string, newPassword: string) =>
     send<void>('POST', '/v1/me/password', { old_password: oldPassword, new_password: newPassword }, token),
   remove: (token: string) => send<void>('DELETE', '/v1/me', undefined, token),

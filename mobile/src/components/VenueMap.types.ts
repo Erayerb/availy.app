@@ -14,9 +14,14 @@ export type VenueMapProps = {
   onSelectedPointChange: (point: Point | null) => void;
   // Move the map to this spot; a new `key` triggers the move again
   focus?: { lat: number; lon: number; key: number } | null;
-  // Shown as a blue dot (web; native maps draw their own)
+  // Google Maps-style blue dot with a light halo (drawn by us on every platform)
   userPoint?: { lat: number; lon: number } | null;
 };
 
 export const SELECTED_DOT_SIZE = 30;
+
+// Venue names appear under the dots from this zoom on (street level, about where Apple / Google Maps show place names)
+export const LABEL_MIN_ZOOM = 16;
+/** Map zoom level for a visible width in degrees of longitude. */
+export const zoomForDelta = (longitudeDelta: number) => Math.log2(360 / longitudeDelta);
 export const DOT_SIZE = 22;

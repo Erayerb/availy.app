@@ -47,18 +47,23 @@ PILOT_AREAS = [
 CATEGORIES = {
     "cafe": ("cafe", ["socializing"]),
     "restaurant": ("restaurant", ["food", "socializing"]),
-    "bar": ("bar", ["entertainment", "socializing"]),
-    "pub": ("bar", ["entertainment", "socializing"]),
+    "bar": ("bar", ["entertainment", "nightlife", "socializing"]),
+    "pub": ("bar", ["entertainment", "nightlife", "socializing"]),
+    "nightclub": ("bar", ["entertainment", "nightlife"]),
     "library": ("library", ["quiet", "coworking"]),
     "coworking": ("coworking", ["coworking", "quiet"]),
+    # leisure=park / garden, natural=beach
+    "park": ("park", ["nature", "quiet"]),
+    "beach": ("park", ["nature", "socializing"]),
 }
 DEFAULT_CAPACITY = 50
 
 
 def overpass_query(bbox: str) -> str:
     return (
-        f'[out:json][timeout:25];(nwr["amenity"~"^(cafe|restaurant|bar|pub|library)$"]({bbox});'
-        f'nwr["office"="coworking"]({bbox});nwr["amenity"="coworking_space"]({bbox}););out tags center;'
+        f'[out:json][timeout:25];(nwr["amenity"~"^(cafe|restaurant|bar|pub|nightclub|library)$"]({bbox});'
+        f'nwr["office"="coworking"]({bbox});nwr["amenity"="coworking_space"]({bbox});'
+        f'nwr["leisure"~"^(park|garden)$"]["name"]({bbox});nwr["natural"="beach"]["name"]({bbox}););out tags center;'
     )
 
 
@@ -84,6 +89,10 @@ def venue_from_element(element: dict, area: Area) -> dict | None:
     kind = tags.get("amenity")
     if kind == "coworking_space" or tags.get("office") == "coworking":
         kind = "coworking"
+    elif tags.get("leisure") in ("park", "garden"):
+        kind = "park"
+    elif tags.get("natural") == "beach":
+        kind = "beach"
     if not name or kind not in CATEGORIES:
         return None
     lat = element.get("lat", element.get("center", {}).get("lat"))

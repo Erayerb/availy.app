@@ -10,8 +10,16 @@ from app.occupancy import classify
 
 WINDOW = timedelta(minutes=90)  # only check-ins this recent count
 HALF_LIFE_MINUTES = 30  # a report half as old weighs twice as much
-MIN_REPORTERS_FOR_RATIO = 3  # below this only the level is shown, no "~%60"
+MIN_REPORTERS_FOR_RATIO = 5  # below this only the level is shown, no "~%60"
 LEVEL_SCORE = {"low": 0.2, "medium": 0.55, "high": 0.9}
+# The follow-up answer moves a report within (and sometimes across) its level:
+# Kalabalık + "Sıra var" is fuller than Kalabalık alone, Orta + "Oturacak yer yok" is close to Kalabalık
+ANSWER_SHIFT = {
+    ("high", "queue", True): +0.08,  # 0.98
+    ("high", "queue", False): -0.08,  # 0.82
+    ("medium", "seats", False): +0.15,  # 0.70
+    ("medium", "seats", True): -0.07,  # 0.48
+}
 DEFAULT_TRUST = 1.0
 
 State = Literal["live", "stale", "unexplored"]
@@ -53,6 +61,16 @@ def latest_per_person(reports: list[Report]) -> list[Report]:
     return list(latest.values())
 
 
+def report_score(r: Report) -> float:
+    """0-1 fullness of one report: its level, fine-tuned by "Sıra var mı?" / "Oturacak yer var mı?"."""
+    score = LEVEL_SCORE[r.level]
+    if r.queue is not None:
+        score += ANSWER_SHIFT.get((r.level, "queue", r.queue), 0)
+    if r.seats is not None:
+        score += ANSWER_SHIFT.get((r.level, "seats", r.seats), 0)
+    return round(min(max(score, 0.0), 1.0), 2)
+
+
 def _weighted_answer(pairs: list[tuple[bool, float]]) -> bool | None:
     """Weighted yes/no majority; None without answers or on a tie."""
     yes = sum(w for answer, w in pairs if answer)
@@ -72,7 +90,7 @@ def crowd_from_checkins(reports: list[Report], last_report_at: datetime | None, 
 
     weights = [age_weight(r.created_at, now) * r.trust for r in recent]
     total = sum(weights)
-    score = sum(w * LEVEL_SCORE[r.level] for r, w in zip(recent, weights)) / total if total > 0 else 0.5
+    score = sum(w * report_score(r) for r, w in zip(recent, weights)) / total if total > 0 else 0.5
     level = classify(score).value
     queue = _weighted_answer([(r.queue, w) for r, w in zip(recent, weights) if r.queue is not None])
     seats = _weighted_answer([(r.seats, w) for r, w in zip(recent, weights) if r.seats is not None])

@@ -48,3 +48,11 @@ const AREA_TEXT: Record<Level, string> = {
 export function areaStatus(level: string): string {
   return `Bölge: ${AREA_TEXT[level as Level] ?? 'Bilinmiyor'}`;
 }
+
+/** A level colour mixed with white, for a level only one person has reported. */
+export function fadeColor(hex: string, amount = 0.5): string {
+  const n = parseInt(hex.slice(1), 16);
+  const mix = (c: number) => Math.round(c + (255 - c) * amount);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(mix);
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+}

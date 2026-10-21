@@ -1,3 +1,4 @@
+import { HeaderButtons } from '../components/HeaderButtons';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -68,6 +69,7 @@ export function BusinessScreen({
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
         <Text style={styles.pageTitle}>İşletme Paneli</Text>
+        <HeaderButtons />
       </View>
 
       <Pressable style={styles.card} onPress={() => onShowOnMap(venue)}>
@@ -180,7 +182,7 @@ const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 48, gap: 14 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
-  topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   pageTitle: { fontSize: 24, fontWeight: '700', color: colors.text },
   card: {
     padding: 16,

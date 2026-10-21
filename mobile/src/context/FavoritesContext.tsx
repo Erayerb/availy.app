@@ -12,18 +12,28 @@ type Favorites = {
 const FavoritesContext = createContext<Favorites | null>(null);
 
 type Props = {
+  // Whose favorites: each account (and each guest) has its own list on the phone
+  accountKey: string | null;
   signedIn: boolean;
   onLoginRequired: () => void;
   children: ReactNode;
 };
 
-/** Favorite venue ids, kept on the device. */
-export function FavoritesProvider({ signedIn, onLoginRequired, children }: Props) {
+/** Favorite venue ids, kept on the device per account. */
+export function FavoritesProvider({ accountKey, signedIn, onLoginRequired, children }: Props) {
   const [ids, setIds] = useState<number[]>([]);
+  // The older shared list (KEYS.favorites, before lists were per account) is left untouched
+  const storageKey = accountKey ? `${KEYS.favorites}.${accountKey}` : null;
 
   useEffect(() => {
-    loadJson<unknown>(KEYS.favorites).then((raw) => setIds(parseFavorites(raw)));
-  }, []);
+    setIds([]);
+    if (!storageKey) return;
+    let stale = false;
+    loadJson<unknown>(storageKey).then((raw) => !stale && setIds(parseFavorites(raw)));
+    return () => {
+      stale = true;
+    };
+  }, [storageKey]);
 
   const toggle = useCallback(
     (id: number) => {
@@ -31,13 +41,14 @@ export function FavoritesProvider({ signedIn, onLoginRequired, children }: Props
         onLoginRequired();
         return;
       }
+      if (!storageKey) return;
       setIds((current) => {
         const next = toggleFavorite(current, id);
-        saveJson(KEYS.favorites, next);
+        saveJson(storageKey, next);
         return next;
       });
     },
-    [signedIn, onLoginRequired],
+    [signedIn, onLoginRequired, storageKey],
   );
 
   const isFavorite = useCallback((id: number) => ids.includes(id), [ids]);

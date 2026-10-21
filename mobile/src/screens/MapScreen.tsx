@@ -25,6 +25,8 @@ import { colors } from '../theme';
 
 // Fetch an area twice the visible size so small pans don't trigger a new request
 const QUERY_PADDING = 2;
+// "Konumuma git" and "+" are the same size
+const MAP_BUTTON = 52;
 type Props = {
   initialRegion: Region;
   onRegionSaved: (region: Region) => void;
@@ -40,6 +42,8 @@ type Props = {
   onOpenDetails: (venue: Venue) => void;
   // v2: venues the user checked in at, for "Ziyaret ettiklerim"
   visitedIds: ReadonlySet<number>;
+  // v2: the "+" button: nearest venues and search, to check in
+  onOpenCheckin: () => void;
 };
 
 export function MapScreen({
@@ -55,6 +59,7 @@ export function MapScreen({
   onBack,
   onOpenDetails,
   visitedIds,
+  onOpenCheckin,
 }: Props) {
   const [onlyVisited, setOnlyVisited] = useState(false);
   const { look } = useSettings();
@@ -73,7 +78,24 @@ export function MapScreen({
 
   const showPopup = selected !== undefined && alternativesFor === selected.id;
   const { campaigns, now, activeFor } = useCampaigns();
-  const { point } = useLocation();
+  const { point, locate } = useLocation();
+  const [legendHeight, setLegendHeight] = useState(0);
+  const [locateNote, setLocateNote] = useState<string | null>(null);
+
+  const goToMyLocation = async () => {
+    const position = point ? { coords: point, error: null } : await locate();
+    if (position.coords) {
+      setLocateNote(null);
+      setFocus({ lat: position.coords.lat, lon: position.coords.lon, key: Date.now() });
+    } else {
+      setLocateNote(
+        position.error === 'blocked'
+          ? 'Konum izni kapalı. Ayarlar > availy > Konum\'dan açabilirsin.'
+          : 'Konumun alınamadı.',
+      );
+      setTimeout(() => setLocateNote(null), 4000);
+    }
+  };
   // Campaigns whose radius reaches the user (or, without a location, the crowded venue they are looking at)
   const campaignIds = showPopup
     ? new Set(campaignsNear(campaigns, point ?? selected, now).map(({ campaign }) => campaign.venueId))
@@ -116,15 +138,24 @@ export function MapScreen({
         userPoint={point}
       />
 
-      {/* Jump back to the user's own position */}
-      {point && (
-        <Pressable
-          style={[styles.locate, { bottom: showPopup ? popupHeight + 40 : 84 }]}
-          onPress={() => setFocus({ lat: point.lat, lon: point.lon, key: Date.now() })}
-          accessibilityLabel="Konumuma git"
-        >
-          <Text style={styles.locateIcon}>◎</Text>
-        </Pressable>
+      {/* Jump to the user's own position; asks for permission again if it was not given */}
+      <Pressable
+        style={[styles.locate, { bottom: (showPopup ? popupHeight : legendHeight) + 48 }]}
+        onPress={goToMyLocation}
+        accessibilityLabel="Konumuma git"
+      >
+        <Text style={styles.locateIcon}>◎</Text>
+      </Pressable>
+      {/* Check in: nearest venues and a search */}
+      <Pressable
+        style={[styles.checkinButton, { bottom: (showPopup ? popupHeight : legendHeight) + 48 }]}
+        onPress={onOpenCheckin}
+        accessibilityLabel="Check-in yap"
+      >
+        <Text style={styles.checkinIcon}>+</Text>
+      </Pressable>
+      {locateNote && (
+        <Text style={[styles.locateNote, { bottom: (showPopup ? popupHeight : legendHeight) + 56 }]}>{locateNote}</Text>
       )}
 
       {selected && (
@@ -159,7 +190,7 @@ export function MapScreen({
           onLayout={(e) => setPopupHeight(e.nativeEvent.layout.height)}
         />
       ) : (
-        <View style={styles.legend}>
+        <View style={styles.legend} onLayout={(e) => setLegendHeight(e.nativeEvent.layout.height)}>
           <View style={styles.modeRow}>
             {[
               { visited: false, label: 'Tümü' },
@@ -186,16 +217,14 @@ export function MapScreen({
             </View>
           ))}
           <View style={styles.legendItem}>
-            <CrowdDot venue={{ open_now: true, crowd: { ...UNEXPLORED, state: 'stale' } }} />
-            <Text style={styles.legendText}>Bilgi yok</Text>
+            <LevelDot level="low" open={false} />
+            <Text style={styles.legendText}>Kapalı</Text>
           </View>
+          {/* Never checked in: on its own line under the others */}
+          <View style={styles.legendBreak} />
           <View style={styles.legendItem}>
             <CrowdDot venue={{ open_now: true, crowd: UNEXPLORED }} />
             <Text style={styles.legendText}>Keşfedilmedi</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <LevelDot level="low" open={false} />
-            <Text style={styles.legendText}>Kapalı</Text>
           </View>
           <Text style={error ? styles.error : styles.status}>
             {error ??
@@ -208,6 +237,8 @@ export function MapScreen({
 
       <View
         style={styles.header}
+        // The space next to the folded "Filtreler" button still lets the map be dragged
+        pointerEvents="box-none"
         onLayout={(e) => setHeaderBottom(e.nativeEvent.layout.y + e.nativeEvent.layout.height)}
       >
         <BackButton onPress={onBack} />
@@ -263,10 +294,10 @@ const styles = StyleSheet.create({
   modeTextActive: { color: colors.onPrimary },
   locate: {
     position: 'absolute',
-    right: 14,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    left: 14,
+    width: MAP_BUTTON,
+    height: MAP_BUTTON,
+    borderRadius: MAP_BUTTON / 2,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -276,7 +307,35 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 5,
   },
-  locateIcon: { fontSize: 22, color: '#1A73E8' },
+  locateIcon: { fontSize: 26, color: '#1A73E8' },
+  checkinButton: {
+    position: 'absolute',
+    right: 14,
+    width: MAP_BUTTON,
+    height: MAP_BUTTON,
+    borderRadius: MAP_BUTTON / 2,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 6,
+  },
+  checkinIcon: { fontSize: 32, lineHeight: 34, color: colors.onPrimary, fontWeight: '500' },
+  locateNote: {
+    position: 'absolute',
+    left: 14 + MAP_BUTTON + 8,
+    right: 14 + MAP_BUTTON + 8,
+    padding: 8,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: colors.surface,
+    fontSize: 12,
+    color: colors.text,
+  },
+  legendBreak: { width: '100%', height: 0 },
   legendText: { fontSize: 12 },
   dot: { width: 10, height: 10, borderRadius: 5 },
   status: { fontSize: 11, color: colors.textMuted },

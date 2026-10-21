@@ -9,7 +9,8 @@ from app.config import settings
 from app.hours import local_hour, venue_hours
 
 LEVELS = ("low", "medium", "high")
-CHECKIN_RADIUS_M = 150
+# TEMPORARY: 1 km so the app can be tried away from the venues; set back to 150 before the release
+CHECKIN_RADIUS_M = 1000
 # Same person, same venue: once every 2 hours (stops one person inflating "4 kişi" and farming points)
 VENUE_COOLDOWN = timedelta(hours=2)
 # At most this many check-ins in any 60 minutes, across all venues
@@ -107,7 +108,7 @@ def create_checkin(
     ).fetchone()["at"]
     if last is not None and now - last < VENUE_COOLDOWN:
         raise CheckinError(
-            f"Bu mekana 2 saatte bir check-in yapabilirsin. Tekrar: {_clock(last + VENUE_COOLDOWN)}", 429
+            f"Bu mekana 2 saatte bir check-in yapabilirsin.\nTekrar: {_clock(last + VENUE_COOLDOWN)}", 429
         )
     recent = conn.execute(
         "SELECT count(*) AS n FROM checkins WHERE user_id = %s AND created_at > %s",
@@ -243,13 +244,14 @@ def load_discoveries(conn: psycopg.Connection, venue_ids: list[int], now: dateti
         return {}
     rows = conn.execute(
         """
-        SELECT c.venue_id, CASE WHEN c.is_private THEN NULL ELSE u.name END AS name, c.created_at AS at
+        SELECT c.venue_id, CASE WHEN c.is_private THEN NULL ELSE u.name END AS name,
+               CASE WHEN c.is_private THEN NULL ELSE u.username END AS username, c.created_at AS at
         FROM checkins c LEFT JOIN users u ON u.id = c.user_id
         WHERE c.is_first AND NOT c.is_demo AND c.venue_id = ANY(%s) AND c.created_at > %s
         """,
         (venue_ids, now - DISCOVERY_SHOWN),
     ).fetchall()
-    return {r["venue_id"]: {"name": r["name"], "at": r["at"]} for r in rows}
+    return {r["venue_id"]: {"name": r["name"], "username": r["username"], "at": r["at"]} for r in rows}
 
 
 def load_crowds(conn: psycopg.Connection, venue_ids: list[int], now: datetime) -> dict[int, "Crowd"]:

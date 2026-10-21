@@ -5,7 +5,7 @@ import { crowdExtra, crowdRatioText, crowdScore, crowdSummary, liveLevel, timeAg
 
 const NOW = new Date('2026-10-20T12:00:00Z');
 const ago = (minutes: number) => new Date(NOW.getTime() - minutes * 60_000).toISOString();
-const live = { state: 'live' as const, level: 'high' as const, ratio: 0.82, reporters: 4, last_report_at: ago(12), queue: true, seats: null };
+const live = { state: 'live' as const, level: 'high' as const, ratio: 0.82, reporters: 6, last_report_at: ago(12), queue: true, seats: null };
 
 test('time ago in Turkish', () => {
   assert.equal(timeAgo(ago(0), NOW), 'az önce');
@@ -15,7 +15,7 @@ test('time ago in Turkish', () => {
 });
 
 test('summary line for each state', () => {
-  assert.equal(crowdSummary(live, NOW), 'Son bildirim 12 dk önce · 4 kişi');
+  assert.equal(crowdSummary(live, NOW), 'Son bildirim 12 dk önce · 6 kişi');
   assert.equal(crowdSummary({ ...UNEXPLORED, state: 'stale', last_report_at: ago(180) }, NOW), 'Son bildirim 3 saat önce · güncel bilgi yok');
   assert.match(crowdSummary(UNEXPLORED, NOW), /İlk check-in'i sen yap/);
 });
@@ -59,4 +59,14 @@ test('private check-ins are marked in the request', async () => {
   const { checkinBody } = await import('../src/lib/checkinApi.ts');
   assert.equal(checkinBody('low', null, { lat: 41, lon: 29 }, true).private, true);
   assert.equal(checkinBody('low', null, { lat: 41, lon: 29 }).private, false);
+});
+
+test('a level only one person reported is tentative', async () => {
+  const { isTentative } = await import('../src/lib/crowd.ts');
+  const { fadeColor } = await import('../src/lib/occupancy.ts');
+  assert.equal(isTentative({ open_now: true, crowd: { ...live, reporters: 1 } }), true);
+  assert.equal(isTentative({ open_now: true, crowd: { ...live, reporters: 2 } }), false);
+  assert.equal(isTentative({ open_now: false, crowd: { ...live, reporters: 1 } }), false);
+  assert.equal(fadeColor('#000000'), '#808080');
+  assert.equal(fadeColor('#D9480F', 0), '#d9480f');
 });

@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { Collapsible } from '../components/Collapsible';
 import { PhotoSection } from '../components/business/PhotoSection';
 import { BadgeGrid } from '../components/BadgeGrid';
 import { PlanSection } from '../components/business/PlanSection';
 import { BackButton } from '../components/BackButton';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
 import { useEngagement } from '../context/EngagementContext';
-import { useFavorites } from '../context/FavoritesContext';
-import { accountKey, MIN_PASSWORD_LENGTH, type User } from '../lib/auth';
+import { accountKey, MIN_PASSWORD_LENGTH, normalizeUsername, type User } from '../lib/auth';
 import { DEFAULT_PLAN, type PlanId } from '../lib/plans';
 import { availyPoints, customerCode } from '../lib/loyalty';
 import { colors } from '../theme';
@@ -19,10 +19,11 @@ type Props = {
   onPlanChange: (plan: PlanId) => void;
   onLogin: () => void;
   onRegister: () => void;
-  onRename: (name: string) => Promise<void>;
+  onChangeUsername: (username: string) => Promise<string | null>;
   onChangePassword: (oldPassword: string, newPassword: string) => Promise<string | null>;
   onDeleteAccount: () => Promise<void>;
   onLogout: () => void;
+  onOpenMyProfile: () => void;
 };
 
 export function ProfileScreen({
@@ -31,27 +32,29 @@ export function ProfileScreen({
   onPlanChange,
   onLogin,
   onRegister,
-  onRename,
+  onChangeUsername,
   onChangePassword,
   onDeleteAccount,
   onLogout,
+  onOpenMyProfile,
 }: Props) {
   const business = user?.role === 'business';
   // Business: its venue, edited from here
   const { venues } = useVenuesByIds(business && user?.venueId ? [user.venueId] : []);
   const venue = venues[0];
-  const { ids: favorites } = useFavorites();
   const { coupons, cards, programs } = useEngagement();
-  const [name, setName] = useState(user?.name ?? '');
+  const [username, setUsername] = useState(user?.username ?? '');
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  // Shown right under the user name field, where the change is made
+  const [usernameMessage, setUsernameMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   if (!user || user.isGuest) {
     return (
-      <View style={styles.page}>
-        <View style={[styles.content, styles.topRow]}>
+      <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+        <View style={styles.topRow}>
           <BackButton onPress={onBack} />
           <Text style={styles.title}>Profil</Text>
         </View>
@@ -79,7 +82,7 @@ export function ProfileScreen({
           )}
           {user?.badges && <BadgeGrid badges={user.badges} />}
         </View>
-      </View>
+      </ScrollView>
     );
   }
 
@@ -111,12 +114,11 @@ export function ProfileScreen({
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
         <BackButton onPress={onBack} />
-        <Text style={styles.title}>{business ? 'İşletme Profili' : 'Profil'}</Text>
+        <Text style={styles.title}>{business ? 'İşletme Profili' : 'Profil ayarları'}</Text>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.name}>{user.name}</Text>
-        {user.username && <Text style={styles.text}>@{user.username}</Text>}
+        <Text style={styles.name}>{user.username ? `@${user.username}` : user.name}</Text>
         <Text style={styles.muted}>
           {user.email} · {user.role === 'business' ? 'İşletme hesabı' : 'Bireysel hesap'}
         </Text>
@@ -133,38 +135,49 @@ export function ProfileScreen({
           <PlanSection plan={user.plan ?? DEFAULT_PLAN} onPlanChange={onPlanChange} />
         </View>
       ) : (
-        <View style={styles.section}>
-          <View style={styles.stats}>
-            <Stat value={(user.points ?? 0) + availyPoints(stamps, used)} label="availy puanı" />
-            <Stat value={user.checkins ?? 0} label="check-in" />
-            <Stat value={user.discoveries ?? 0} label="keşif" />
-            <Stat value={favorites.length} label="favori" />
-          </View>
-          {user.badges && <BadgeGrid badges={user.badges} />}
-        </View>
+        // Points, badges and visited venues are on the profile behind the top-right icon
+        <Pressable style={styles.secondary} onPress={onOpenMyProfile}>
+          <Text style={styles.secondaryText}>
+            Profilimi gör · {(user.points ?? 0) + availyPoints(stamps, used)} puan, rozetler, mekanlar
+          </Text>
+        </Pressable>
       )}
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Adını değiştir</Text>
+      <Collapsible title="Kullanıcı adını değiştir" summary={user.username ? `Şu an @${user.username}` : undefined}>
         <TextInput
-          value={name}
-          onChangeText={setName}
+          value={username}
+          onChangeText={(text) => {
+            setUsername(normalizeUsername(text));
+            setUsernameMessage(null);
+          }}
+          placeholder="kullaniciadi"
           style={styles.input}
           placeholderTextColor={colors.placeholder}
+          autoCapitalize="none"
+          autoCorrect={false}
         />
+        <Text style={styles.muted}>Arkadaşların seni bununla bulur; eski adın başkası tarafından alınabilir.</Text>
         <Pressable
           style={styles.secondary}
           onPress={async () => {
-            await onRename(name);
-            setMessage({ ok: true, text: 'Adın güncellendi.' });
+            if (normalizeUsername(username) === user.username) {
+              setUsernameMessage({ ok: false, text: 'Bu zaten senin kullanıcı adın.' });
+              return;
+            }
+            const error = await onChangeUsername(username);
+            setUsernameMessage(
+              error ? { ok: false, text: error } : { ok: true, text: `✓ Kullanıcı adın @${normalizeUsername(username)} olarak değişti.` },
+            );
           }}
         >
           <Text style={styles.secondaryText}>Kaydet</Text>
         </Pressable>
-      </View>
+        {usernameMessage && (
+          <Text style={usernameMessage.ok ? styles.success : styles.error}>{usernameMessage.text}</Text>
+        )}
+      </Collapsible>
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Şifreni değiştir</Text>
+      <Collapsible title="Şifreni değiştir" summary="Mevcut şifren ve yeni şifren">
         <TextInput
           value={oldPassword}
           onChangeText={setOldPassword}
@@ -184,18 +197,17 @@ export function ProfileScreen({
         <Pressable style={styles.secondary} onPress={savePassword}>
           <Text style={styles.secondaryText}>Şifreyi değiştir</Text>
         </Pressable>
-      </View>
-
-      {message && <Text style={message.ok ? styles.success : styles.error}>{message.text}</Text>}
+        {message && <Text style={message.ok ? styles.success : styles.error}>{message.text}</Text>}
+      </Collapsible>
 
       <Pressable style={styles.secondary} onPress={onLogout}>
         <Text style={styles.secondaryText}>Çıkış yap</Text>
       </Pressable>
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Hesabı sil</Text>
+      <Collapsible title="Hesabı sil" summary="Hesabın ve yorumların kalıcı olarak silinir">
         <Text style={styles.muted}>
-          Hesabın bu telefondan silinir. Favoriler ve kuponlar telefonda kalır.
+          Hesabın, yorumların, arkadaşlıkların ve puanların silinir; check-in'lerin yalnızca adsız doluluk bilgisi olarak
+          kalır. Bu geri alınamaz.
         </Text>
         {confirmDelete ? (
           <View style={styles.row}>
@@ -211,17 +223,8 @@ export function ProfileScreen({
             <Text style={styles.deleteLink}>Hesabımı sil</Text>
           </Pressable>
         )}
-      </View>
+      </Collapsible>
     </ScrollView>
-  );
-}
-
-function Stat({ value, label }: { value: number; label: string }) {
-  return (
-    <View style={styles.stat}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
   );
 }
 
@@ -230,7 +233,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 48, gap: 14 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
-  guest: { padding: 24, gap: 16 },
+  guest: { paddingHorizontal: 8, gap: 16 },
   card: {
     padding: 16,
     borderRadius: 16,
@@ -244,11 +247,7 @@ const styles = StyleSheet.create({
   text: { fontSize: 14, color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },
   code: { fontWeight: '800', letterSpacing: 1 },
-  stats: { flexDirection: 'row', gap: 8 },
   section: { gap: 14 },
-  stat: { flex: 1, padding: 10, borderRadius: 14, backgroundColor: colors.cream, alignItems: 'center' },
-  statValue: { fontSize: 20, fontWeight: '800', color: colors.primary },
-  statLabel: { fontSize: 11, color: colors.textMuted },
   input: { padding: 12, borderRadius: 12, backgroundColor: colors.cream, fontSize: 15, color: colors.text },
   row: { flexDirection: 'row', gap: 8 },
   flex: { flex: 1 },

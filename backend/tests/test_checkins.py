@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from app.checkins import HOURLY_LIMIT, validate_report
+from app.checkins import CHECKIN_RADIUS_M, HOURLY_LIMIT, validate_report
 from app.checkins_api import get_clock
 from app.main import app
 
@@ -10,9 +10,9 @@ from app.main import app
 NOON = datetime(2026, 10, 14, 9, 0, tzinfo=timezone.utc)
 # Test Kafe A in conftest.py
 KAFE_LAT, KAFE_LON = 40.9840, 29.0260
-# About 50 m and 250 m north of it (limit: 150 m)
+# About 50 m north of it, and 100 m beyond the check-in limit (1° of latitude ≈ 111 km)
 NEAR = {"lat": KAFE_LAT + 0.00045, "lon": KAFE_LON}
-FAR = {"lat": KAFE_LAT + 0.00225, "lon": KAFE_LON}
+FAR = {"lat": KAFE_LAT + (CHECKIN_RADIUS_M + 100) / 111_000, "lon": KAFE_LON}
 
 
 class Clock:
@@ -84,7 +84,7 @@ def test_needs_sign_in(client, conn, clock):
 def test_too_far_from_the_venue(client, conn, clock):
     response = checkin(client, guest_token(client), venue_id(conn, "Test Kafe A"), **FAR)
     assert response.status_code == 403
-    assert "150 m" in response.json()["detail"]
+    assert f"{CHECKIN_RADIUS_M} m" in response.json()["detail"]
 
 
 def test_closed_venue(client, conn, clock):
@@ -188,6 +188,16 @@ def test_venue_shows_who_discovered_it_for_30_days(client, conn, clock):
     assert load_discoveries(conn, [kafe], NOON + timedelta(days=31)) == {}
 
 
+def test_discovery_has_the_user_name(client, conn, clock):
+    from app.checkins import load_discoveries
+
+    kafe = venue_id(conn, "Test Kafe A")
+    body = {"email": "t_kasif@example.test", "password": "gizli123", "username": "t_kasif"}
+    token = client.post("/v1/auth/register", json=body).json()["token"]
+    checkin(client, token, kafe)
+    assert load_discoveries(conn, [kafe], NOON)[kafe]["username"] == "t_kasif"
+
+
 def test_visitor_rank_and_visits(client, conn, clock):
     kafe = venue_id(conn, "Test Kafe A")
     tokens = [guest_token(client) for _ in range(3)]
@@ -206,7 +216,8 @@ def test_private_checkin_hides_the_name(client, conn, clock):
     kafe = venue_id(conn, "Test Kafe A")
     body = checkin(client, guest_token(client), kafe, private=True).json()
     assert body["is_private"] and body["is_first"]
-    assert load_discoveries(conn, [kafe], NOON)[kafe]["name"] is None
+    found = load_discoveries(conn, [kafe], NOON)[kafe]
+    assert found["name"] is None and found["username"] is None
     # It still counts for the occupancy
     from app.checkins import load_crowds
 

@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, type ReactNode } from 'react';
 
 import { usePersistentState } from '../hooks/usePersistentState';
-import { liveLevel, type Crowd } from '../lib/crowd';
-import { CLOSED_STYLE, levelStyle, STALE_STYLE, UNEXPLORED_STYLE, type LevelLook } from '../lib/occupancy';
+import { isTentative, liveLevel, type Crowd } from '../lib/crowd';
+import { CLOSED_STYLE, fadeColor, levelStyle, STALE_STYLE, UNEXPLORED_STYLE, type LevelLook } from '../lib/occupancy';
 import { KEYS } from '../lib/storage';
 
 export type Settings = {
@@ -11,9 +11,25 @@ export type Settings = {
   deadHourAlerts: boolean; // business: tell me when my venue is in a dead hour
   autoCampaign: boolean; // business: send the ready-made campaign automatically in a dead hour
   premium: boolean; // B2C Premium (demo, no payment): no ads, unlimited watches
+  // v2 notifications
+  checkinSuggestions: boolean; // "Mado'dasın gibi, check-in yap?" after a few minutes near a venue
+  friendNotifications: boolean; // friend requests and accepted requests
+  replyNotifications: boolean; // replies to my reviews
+  // v2 privacy kept on the phone (the rest is on the server)
+  privateByDefault: boolean; // the check-in screen starts with "Gizli check-in" on
 };
 
-const DEFAULTS: Settings = { colorBlind: false, watchNotifications: true, deadHourAlerts: true, autoCampaign: false, premium: false };
+const DEFAULTS: Settings = {
+  colorBlind: false,
+  watchNotifications: true,
+  deadHourAlerts: true,
+  autoCampaign: false,
+  premium: false,
+  checkinSuggestions: true,
+  friendNotifications: true,
+  replyNotifications: true,
+  privateByDefault: false,
+};
 
 type SettingsValue = Settings & {
   update: (patch: Partial<Settings>) => void;
@@ -41,7 +57,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     (venue: { open_now: boolean; crowd?: Crowd }): LevelLook => {
       if (!venue.open_now) return look('low', false);
       const level = liveLevel(venue);
-      if (level) return look(level);
+      if (level) {
+        const base = look(level);
+        // One report only: faded until someone else confirms it
+        return isTentative(venue)
+          ? { ...base, color: fadeColor(base.color), label: `${venue.crowd!.reporters} kişiye göre ${base.label}` }
+          : base;
+      }
       return venue.crowd?.state === 'stale' ? STALE_STYLE : UNEXPLORED_STYLE;
     },
     [look],

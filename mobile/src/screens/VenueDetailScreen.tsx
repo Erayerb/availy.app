@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Linking, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BackButton } from '../components/BackButton';
 import { CampaignBox } from '../components/CampaignBox';
@@ -18,7 +18,9 @@ import type { Venue } from '../lib/api';
 import { categoryLabel } from '../lib/filters';
 import { distanceKm, formatDistance } from '../lib/geo';
 import { directionsUrl, shortLocation } from '../lib/location';
-import { MAX_COMMENT, stars, validateFeedback, venueRating } from '../lib/feedback';
+import { stars } from '../lib/feedback';
+import { useReviews } from '../hooks/useReviews';
+import { ReviewsSection } from '../components/ReviewsSection';
 import { describeProgram, isProgramActive } from '../lib/loyalty';
 import type { User } from '../lib/auth';
 import { crowdExtra, crowdRatioText, crowdSummary } from '../lib/crowd';
@@ -28,33 +30,32 @@ import { colors } from '../theme';
 
 type Props = {
   venueId: number;
-  userName: string | null; // signed-in customer, needed to leave feedback
   user: User | null; // for check-ins
   onRegister: () => void;
   onCheckedIn: () => void; // reload the user's points
   onLogin: () => void;
   onBack: () => void;
   onShowOnMap: (venue: Venue) => void;
+  onOpenUser: (username: string) => void; // a reviewer's profile
 };
 
 export function VenueDetailScreen({
   venueId,
-  userName,
   user,
   onLogin,
   onRegister,
   onCheckedIn,
   onBack,
   onShowOnMap,
+  onOpenUser,
 }: Props) {
   const { venues, loading, error, refreshing, refresh } = useVenuesByIds([venueId]);
   const venue = venues[0];
   const { crowdLook } = useSettings();
   const { activeFor } = useCampaigns();
-  const { programs, watches, feedback, leaveFeedback, userKey } = useEngagement();
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState('');
-  const [feedbackNote, setFeedbackNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const { programs, watches } = useEngagement();
+  // v2: reviews and replies live on the server
+  const { reviews, setReviews, reload: reloadReviews } = useReviews(venueId, user?.token);
   const { point } = useLocation();
   const [note, setNote] = useState<string | null>(null);
 
@@ -72,16 +73,6 @@ export function VenueDetailScreen({
   const { label } = crowdLook(venue);
   const campaign = venue.open_now ? activeFor(venue.id) : null;
   const program = programs.find((p) => p.venueId === venue.id && isProgramActive(p));
-  const reviews = venueRating(feedback, venue.id);
-  const mine = reviews.items.find((f) => f.userKey === userKey);
-
-  const sendFeedback = () => {
-    const problem = validateFeedback(rating, comment);
-    if (problem) return setFeedbackNote({ ok: false, text: problem });
-    leaveFeedback({ venueId: venue.id, userName: userName ?? 'Misafir', rating, comment: comment.trim() });
-    setFeedbackNote({ ok: true, text: 'Teşekkürler! Geri bildirimin işletmeye iletildi.' });
-    setComment('');
-  };
   const watching = watches.some((w) => w.venueId === venue.id);
 
   return (
@@ -115,13 +106,13 @@ export function VenueDetailScreen({
         <Text style={styles.name}>{venue.name}</Text>
         {venue.discovery && (
           <Text style={styles.discovery}>
-            ✨ Burayı {venue.discovery.name ?? 'gizli bir kullanıcı'} keşfetti ·{' '}
+            ✨ Burayı {discoverer(venue.discovery)} keşfetti ·{' '}
             {new Date(venue.discovery.at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}
           </Text>
         )}
         {reviews.average !== null && (
           <Text style={styles.rating}>
-            {stars(Math.round(reviews.average))} {reviews.average} · {reviews.count} değerlendirme
+            {stars(Math.round(reviews.average))} {reviews.average} · {reviews.count} yorum
           </Text>
         )}
         <Text style={styles.muted}>
@@ -163,6 +154,17 @@ export function VenueDetailScreen({
         }}
       />
 
+      <View style={styles.buttons}>
+        <Pressable style={styles.secondary} onPress={() => onShowOnMap(venue)}>
+          <Text style={styles.secondaryText}>Haritada gör</Text>
+        </Pressable>
+        <Pressable
+          style={styles.primary}
+          onPress={() => Linking.openURL(directionsUrl(Platform.OS, venue.lat, venue.lon))}
+        >
+          <Text style={styles.primaryText}>Yol tarifi</Text>
+        </Pressable>
+      </View>
       {campaign && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Kampanya</Text>
@@ -189,64 +191,16 @@ export function VenueDetailScreen({
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Değerlendir</Text>
-        {userName === null ? (
-          <Pressable onPress={onLogin}>
-            <Text style={styles.link}>Puan ve yorum bırakmak için giriş yap</Text>
-          </Pressable>
-        ) : (
-          <>
-            {mine && (
-              <Text style={styles.muted}>
-                Önceki değerlendirmen: {stars(mine.rating)} (yenisi eskisinin yerine geçer)
-              </Text>
-            )}
-            <View style={styles.starsRow}>
-              {[1, 2, 3, 4, 5].map((n) => (
-                <Pressable key={n} onPress={() => setRating(n)} hitSlop={6}>
-                  <Text style={[styles.star, n <= rating && styles.starOn]}>{n <= rating ? '★' : '☆'}</Text>
-                </Pressable>
-              ))}
-            </View>
-            <TextInput
-              value={comment}
-              onChangeText={setComment}
-              placeholder="Kısa bir yorum (isteğe bağlı)"
-              placeholderTextColor={colors.placeholder}
-              maxLength={MAX_COMMENT}
-              multiline
-              style={styles.input}
-            />
-            {feedbackNote && (
-              <Text style={feedbackNote.ok ? styles.note : styles.error}>{feedbackNote.text}</Text>
-            )}
-            <Pressable style={styles.secondary} onPress={sendFeedback}>
-              <Text style={styles.secondaryText}>Gönder</Text>
-            </Pressable>
-          </>
-        )}
-        {reviews.items.slice(0, 3).map((f) => (
-          <View key={f.id} style={styles.review}>
-            <Text style={styles.text}>
-              {stars(f.rating)} · {f.userName}
-            </Text>
-            {f.comment ? <Text style={styles.muted}>{f.comment}</Text> : null}
-          </View>
-        ))}
-      </View>
+      <ReviewsSection
+        venueId={venue.id}
+        user={user}
+        reviews={reviews}
+        onChange={setReviews}
+        reload={reloadReviews}
+        onRegister={onRegister}
+        onOpenUser={onOpenUser}
+      />
 
-      <View style={styles.buttons}>
-        <Pressable style={styles.secondary} onPress={() => onShowOnMap(venue)}>
-          <Text style={styles.secondaryText}>Haritada gör</Text>
-        </Pressable>
-        <Pressable
-          style={styles.primary}
-          onPress={() => Linking.openURL(directionsUrl(Platform.OS, venue.lat, venue.lon))}
-        >
-          <Text style={styles.primaryText}>Yol tarifi</Text>
-        </Pressable>
-      </View>
       <Text style={styles.demo}>
         Mekan bilgileri © OpenStreetMap katkıcıları · doluluk kullanıcıların check-in'lerinden
       </Text>
@@ -318,18 +272,11 @@ const styles = StyleSheet.create({
   secondaryText: { color: colors.primary, fontWeight: '700' },
   demo: { textAlign: 'center', fontSize: 12, color: colors.placeholder },
   rating: { fontSize: 14, color: colors.primary, marginTop: 2 },
-  starsRow: { flexDirection: 'row', gap: 6 },
-  star: { fontSize: 30, color: colors.disabled },
-  starOn: { color: colors.primary },
-  input: {
-    minHeight: 60,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: colors.cream,
-    fontSize: 15,
-    color: colors.text,
-    textAlignVertical: 'top',
-  },
   error: { fontSize: 13, color: colors.danger },
-  review: { gap: 2, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border },
 });
+
+/** "@eray"; guests have no user name ("Misafir 12"); private first check-ins stay anonymous. */
+function discoverer(discovery: { name: string | null; username?: string | null }): string {
+  if (discovery.username) return `@${discovery.username}`;
+  return discovery.name ?? 'gizli bir kullanıcı';
+}

@@ -21,6 +21,7 @@ export const KEYS = {
   feedback: 'availy.feedback',
   monitor: 'availy.monitor', // dead-hour alert / auto campaign timestamps
   support: 'availy.support', // bug reports and contact messages
+  notificationsSeen: 'availy.notificationsSeen', // account -> when the 🔔 list was last opened (v2)
 } as const;
 
 export async function loadJson<T>(key: string): Promise<T | null> {

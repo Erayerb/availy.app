@@ -109,6 +109,7 @@ const SUGGESTED_ITEMS: Record<string, string> = {
   restaurant: 'tüm menüde',
   coworking: 'günlük masa ücretinde',
   library: 'kafeteryada',
+  park: 'büfede',
 };
 
 /** Ready-made "dead hour" campaign, as in the B2B scenario: one tap to send. */

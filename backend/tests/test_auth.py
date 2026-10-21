@@ -41,7 +41,7 @@ def test_password_hash_round_trip():
 @pytest.mark.parametrize(
     "name,email,password,role,message",
     [
-        ("A", EMAIL, PASSWORD, "personal", "Adını gir."),
+        ("A", EMAIL, PASSWORD, "personal", "Ad en az 2 karakter olmalı."),
         ("Ayşe", "eposta-degil", PASSWORD, "personal", "Geçerli bir e-posta gir."),
         ("Ayşe", EMAIL, "123", "personal", "Şifre en az 6 karakter olmalı."),
         ("Ayşe", EMAIL, PASSWORD, "admin", "Hesap türü bireysel ya da işletme olmalı."),
@@ -88,7 +88,7 @@ def test_wrong_password_and_unknown_email_get_the_same_message(client):
     wrong = client.post("/v1/auth/login", json={"email": EMAIL, "password": "yanlis123"})
     unknown = client.post("/v1/auth/login", json={"email": "yok@example.test", "password": PASSWORD})
     assert wrong.status_code == unknown.status_code == 401
-    assert wrong.json()["detail"] == unknown.json()["detail"] == "E-posta ya da şifre hatalı."
+    assert wrong.json()["detail"] == unknown.json()["detail"] == "Kullanıcı adı, e-posta ya da şifre hatalı."
 
 
 def test_login_with_the_other_account_type(client):
@@ -223,12 +223,12 @@ def test_bad_usernames(username):
 
 
 def test_usernames_are_unique_ignoring_case(client):
-    first = register(client, username="Eray")
-    assert first.status_code == 201 and first.json()["user"]["username"] == "eray"
-    second = register(client, email="baska@example.test", username="ERAY")
+    first = register(client, username="T_Kemal")
+    assert first.status_code == 201 and first.json()["user"]["username"] == "t_kemal"
+    second = register(client, email="baska@example.test", username="T_KEMAL")
     assert second.status_code == 409 and "kullanıcı adı alınmış" in second.json()["detail"]
     # "@" in front is fine
-    assert register(client, email="ucuncu@example.test", username="@eray_2").json()["user"]["username"] == "eray_2"
+    assert register(client, email="ucuncu@example.test", username="@t_kemal_2").json()["user"]["username"] == "t_kemal_2"
 
 
 def test_guest_upgrade_needs_a_free_username(client):
@@ -236,3 +236,29 @@ def test_guest_upgrade_needs_a_free_username(client):
     token = client.post("/v1/auth/guest").json()["token"]
     body = {"name": "Ayşe", "email": "yeni@example.test", "password": PASSWORD, "username": "alinmis"}
     assert client.post("/v1/auth/upgrade", json=body, headers=auth(token)).status_code == 409
+
+
+def test_register_without_a_name_uses_the_user_name(client):
+    body = {"email": EMAIL, "password": PASSWORD, "username": "isimsiz"}
+    user = client.post("/v1/auth/register", json=body).json()["user"]
+    assert user["name"] == "isimsiz" and user["username"] == "isimsiz"
+
+
+def test_login_with_the_user_name(client):
+    register(client, username="Girisci")
+    for login in ("girisci", "@Girisci", EMAIL.upper()):
+        response = client.post("/v1/auth/login", json={"login": login, "password": PASSWORD})
+        assert response.status_code == 200, login
+    wrong = client.post("/v1/auth/login", json={"login": "girisci", "password": "yanlis123"})
+    assert wrong.status_code == 401
+
+
+def test_change_username(client):
+    token = register(client, username="t_eski").json()["token"]
+    register(client, email="diger@example.test", username="t_dolu")
+    changed = client.patch("/v1/me", json={"username": "@T_Yeni"}, headers=auth(token)).json()
+    assert changed["username"] == "t_yeni" and changed["name"] == "t_yeni"
+    assert client.patch("/v1/me", json={"username": "T_DOLU"}, headers=auth(token)).status_code == 409
+    assert client.patch("/v1/me", json={"username": "a b"}, headers=auth(token)).status_code == 400
+    # The old name is free again; sign-in works with the new one
+    assert client.post("/v1/auth/login", json={"login": "t_yeni", "password": PASSWORD}).status_code == 200

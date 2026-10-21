@@ -1,6 +1,7 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { Screen } from '../components/TabBar';
+import { HeaderButtons } from '../components/HeaderButtons';
 import { Wordmark } from '../components/Wordmark';
 import { isBusiness, type User } from '../lib/auth';
 import { colors } from '../theme';
@@ -8,10 +9,12 @@ import { colors } from '../theme';
 type Item = { screen: Screen; label: string; hint?: string; badge?: string };
 
 const CUSTOMER_ITEMS: Item[] = [
-  { screen: 'profile', label: 'Profil', hint: 'Puan, rozetler, ad ve şifre' },
-  { screen: 'friends', label: 'Arkadaşlar', hint: 'Kullanıcı adıyla bul, QR ve davet bağlantısı' },
+  { screen: 'profile', label: 'Profil ayarları', hint: 'Kullanıcı adı, şifre, çıkış ve hesabı silme' },
+  { screen: 'campaigns', label: 'Kampanyalar', hint: 'Yakındaki kampanyalar, kuponların ve sadakat kartların' },
   { screen: 'subscription', label: 'Abonelik', hint: 'Ücretsiz ya da Premium (₺79/ay)' },
-  { screen: 'settings', label: 'Ayarlar', hint: 'Renk körlüğü modu, bildirimler, konum' },
+  { screen: 'settings', label: 'Ayarlar', hint: 'Bildirimler, renk körlüğü modu' },
+  { screen: 'privacy', label: 'Gizlilik', hint: "Check-in'lerimi kim görür, sıralama, engellenenler" },
+  { screen: 'permissions', label: 'Konum ve izinler', hint: 'Konum, kamera ve bildirim izinleri ne için kullanılıyor' },
 ];
 
 const BUSINESS_ITEMS: Item[] = [
@@ -23,6 +26,7 @@ const BUSINESS_ITEMS: Item[] = [
 const COMMON_ITEMS: Item[] = [
   { screen: 'support', label: 'Hata bildir ve iletişim', hint: 'Sorun bildir ya da bize yaz' },
   { screen: 'about', label: 'Hakkında', hint: 'Nasıl kullanılır: renkler, bildirimler, kampanyalar' },
+  { screen: 'legal', label: 'Kullanım koşulları', hint: 'Kullanım koşulları ve gizlilik politikası (KVKK)' },
 ];
 
 type Props = {
@@ -38,10 +42,13 @@ export function MoreScreen({ user, onSelect, onLogin, onLogout }: Props) {
 
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
-      <Wordmark size={34} />
+      <View style={styles.topRow}>
+        <Wordmark size={34} />
+        <HeaderButtons />
+      </View>
       <Text style={styles.greeting}>
         {user && !user.isGuest
-          ? `Merhaba, ${user.name}${isBusiness(user) ? ' (İşletme)' : ''}`
+          ? `Merhaba, ${user.username ? `@${user.username}` : user.name}${isBusiness(user) ? ' (İşletme)' : ''}`
           : `Misafir olarak geziyorsun${user ? ` (${user.name})` : ''}`}
       </Text>
 
@@ -76,6 +83,7 @@ export function MoreScreen({ user, onSelect, onLogin, onLogout }: Props) {
 }
 
 const styles = StyleSheet.create({
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 32, gap: 14 },
   greeting: { fontSize: 14, color: colors.textMuted, marginTop: -6 },

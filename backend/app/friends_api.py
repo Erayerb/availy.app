@@ -1,4 +1,5 @@
 """v2 friend endpoints."""
+from datetime import datetime
 from typing import Literal
 
 import psycopg
@@ -22,8 +23,20 @@ class PersonWithRelation(Person):
     relation: Literal["friend", "outgoing", "incoming", "none"]
 
 
+class FriendCheckin(BaseModel):
+    venue_id: int
+    venue_name: str
+    at: datetime
+    is_first: bool  # the venue's first check-in: "keşfetti"
+    points: int  # earned with this check-in (10, or 60 for a venue's first)
+
+
+class Friend(Person):
+    last_checkin: FriendCheckin | None  # newest public check-in; no live location
+
+
 class FriendsOut(BaseModel):
-    friends: list[Person]
+    friends: list[Friend]
     incoming: list[Person]  # they asked me
     outgoing: list[Person]  # I asked them
 

@@ -31,7 +31,7 @@ SALT_BYTES = 16
 KEY_BYTES = 32
 
 # Same message for an unknown e-mail and a wrong password, so the API does not reveal who has an account
-LOGIN_FAILED = "E-posta ya da şifre hatalı."
+LOGIN_FAILED = "Kullanıcı adı, e-posta ya da şifre hatalı."
 
 
 @dataclass
@@ -55,8 +55,9 @@ def validate_username(username: str) -> str | None:
 
 
 def validate_registration(name: str, email: str, password: str, role: str, username: str = "") -> str | None:
-    if len(name.strip()) < 2:
-        return "Adını gir."
+    # The name is optional at sign-up (the user name is shown instead); if given it must not be a single letter
+    if name.strip() and len(name.strip()) < 2:
+        return "Ad en az 2 karakter olmalı."
     problem = validate_username(username)
     if problem:
         return problem
@@ -102,8 +103,16 @@ def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-USER_COLUMNS = "id, email, username, name, role, venue_id, plan, trust, is_guest, created_at"
+USER_COLUMNS = (
+    "id, email, username, name, role, venue_id, plan, trust, is_guest, created_at, "
+    "share_checkins, show_in_leaderboard, searchable"
+)
 USERNAME_TAKEN = "Bu kullanıcı adı alınmış, başka bir tane dene."
+
+
+def display_name(name: str, username: str) -> str:
+    """Sign-up asks only for a user name; it is the display name until the user sets one."""
+    return name.strip() or normalize_username(username)
 
 
 def username_taken(conn: psycopg.Connection, username: str, except_id: int | None = None) -> bool:
@@ -131,7 +140,7 @@ def create_user(
                 VALUES (%s, %s, %s, %s, %s)
                 RETURNING {USER_COLUMNS}
                 """,
-                (normalize_email(email), normalize_username(username), name.strip(), hash_password(password), role),
+                (normalize_email(email), normalize_username(username), display_name(name, username), hash_password(password), role),
             ).fetchone()
     except psycopg.errors.UniqueViolation:
         # Someone took the e-mail or user name at the same moment
@@ -176,15 +185,17 @@ def upgrade_guest(
         WHERE id = %s
         RETURNING {USER_COLUMNS}
         """,
-        (name.strip(), normalize_email(email), normalize_username(username), hash_password(password), role, GUEST_TRUST, user["id"]),
+        (display_name(name, username), normalize_email(email), normalize_username(username), hash_password(password), role, GUEST_TRUST, user["id"]),
     ).fetchone()
 
 
-def authenticate(conn: psycopg.Connection, email: str, password: str, role: str | None = None) -> dict:
-    row = conn.execute(
-        f"SELECT {USER_COLUMNS}, password_hash FROM users WHERE email = %s",
-        (normalize_email(email),),
-    ).fetchone()
+def authenticate(conn: psycopg.Connection, login: str, password: str, role: str | None = None) -> dict:
+    """`login` is the e-mail address or the user name ("eray" or "@eray")."""
+    if EMAIL_PATTERN.match(login.strip()):
+        query, value = "email = %s", normalize_email(login)
+    else:
+        query, value = "lower(username) = %s", normalize_username(login)
+    row = conn.execute(f"SELECT {USER_COLUMNS}, password_hash FROM users WHERE {query}", (value,)).fetchone()
     if row is None:
         verify_password(password, _dummy_hash())
         raise AccountError(LOGIN_FAILED, 401)
@@ -193,9 +204,9 @@ def authenticate(conn: psycopg.Connection, email: str, password: str, role: str 
         raise AccountError(LOGIN_FAILED, 401)
     if role is not None and row["role"] != role:
         raise AccountError(
-            'Bu e-posta işletme hesabı olarak kayıtlı. Yukarıdan "İşletme"yi seç.'
+            'Bu hesap işletme hesabı olarak kayıtlı. Yukarıdan "İşletme"yi seç.'
             if row["role"] == "business"
-            else 'Bu e-posta bireysel hesap olarak kayıtlı. Yukarıdan "Bireysel"i seç.',
+            else 'Bu hesap bireysel hesap olarak kayıtlı. Yukarıdan "Bireysel"i seç.',
             403,
         )
     return row
@@ -207,6 +218,25 @@ def rename_user(conn: psycopg.Connection, user: dict, name: str) -> dict:
     return conn.execute(
         f"UPDATE users SET name = %s WHERE id = %s RETURNING {USER_COLUMNS}", (name.strip(), user["id"])
     ).fetchone()
+
+
+def change_username(conn: psycopg.Connection, user: dict, username: str) -> dict:
+    """New user name; it is also the display name (sign-up no longer asks for a separate name)."""
+    if user["is_guest"]:
+        raise AccountError("Kullanıcı adı için kayıt ol.", 403)
+    problem = validate_username(username)
+    if problem:
+        raise AccountError(problem)
+    if username_taken(conn, username, except_id=user["id"]):
+        raise AccountError(USERNAME_TAKEN, 409)
+    try:
+        with conn.transaction():
+            return conn.execute(
+                f"UPDATE users SET username = %s, name = %s WHERE id = %s RETURNING {USER_COLUMNS}",
+                (normalize_username(username), normalize_username(username), user["id"]),
+            ).fetchone()
+    except psycopg.errors.UniqueViolation:
+        raise AccountError(USERNAME_TAKEN, 409) from None
 
 
 def change_password(conn: psycopg.Connection, user: dict, old_password: str, new_password: str) -> None:

@@ -8,6 +8,7 @@ const HOURS_BY_CATEGORY: Record<string, [number, number]> = {
   restaurant: [11, 24],
   coworking: [8, 22],
   library: [9, 21],
+  park: [0, 24],
 };
 const DEFAULT_HOURS: [number, number] = [9, 22];
 const ALL_DAY: [number, number] = [0, 24];
