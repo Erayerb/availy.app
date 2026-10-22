@@ -1,10 +1,14 @@
-# Builds the web version of the mobile app with bundled demo data (no backend
-# needed) and publishes it to GitHub Pages: https://<user>.github.io/<repo>/
+# Publishes both web versions to GitHub Pages in one site (a deploy replaces the whole site,
+# so every run builds both):
+#   https://<user>.github.io/<repo>/     v1 from `main`: bundled demo data, no backend needed
+#   https://<user>.github.io/<repo>/v2/  v2 from `v2-checkin`: talks to the online backend
+#                                        (repository variable V2_API_URL; skipped while it is unset)
+# This file is the same on both branches, so a push to either one keeps the other version online.
 name: Deploy web demo to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, v2-checkin]
   workflow_dispatch:
 
 permissions:
@@ -19,38 +23,61 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      BASE: /${{ github.event.repository.name }}
     steps:
-      - uses: actions/checkout@v7
+      - name: Check out v1 (main)
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          path: v1
+
+      - name: Check out v2 (v2-checkin)
+        uses: actions/checkout@v7
+        with:
+          ref: v2-checkin
+          path: v2
 
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: mobile/package-lock.json
 
-      - name: Export demo venues from the backend seed data
+      # v1: unchanged build, at the site root
+      - name: v1 - export demo venues from the backend seed data
+        working-directory: v1
         run: python3 backend/scripts/export_demo_venues.py
 
-      - name: Install dependencies
-        working-directory: mobile
-        run: npm ci
-
-      - name: Test and typecheck
-        working-directory: mobile
-        run: npm test && npm run typecheck
-
-      - name: Build web app with bundled demo data
-        working-directory: mobile
+      - name: v1 - install, test and build
+        working-directory: v1/mobile
         env:
           EXPO_PUBLIC_DATA_MODE: static
-          EXPO_BASE_URL: /${{ github.event.repository.name }}
-        run: npx expo export --platform web
+          EXPO_BASE_URL: ${{ env.BASE }}
+        run: |
+          npm ci
+          npm test && npm run typecheck
+          npx expo export --platform web
+
+      # v2: under /v2/, against the online backend
+      - name: v2 - install, test and build
+        if: vars.V2_API_URL != ''
+        working-directory: v2/mobile
+        env:
+          EXPO_PUBLIC_API_URL: ${{ vars.V2_API_URL }}
+          EXPO_BASE_URL: ${{ env.BASE }}/v2
+        run: |
+          npm ci
+          npm test && npx tsc --noEmit
+          npx expo export --platform web
+
+      - name: Put v2 under /v2/
+        if: vars.V2_API_URL != ''
+        run: cp -R v2/mobile/dist v1/mobile/dist/v2
 
       - uses: actions/configure-pages@v6
 
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: mobile/dist
+          path: v1/mobile/dist
 
   deploy:
     needs: build
