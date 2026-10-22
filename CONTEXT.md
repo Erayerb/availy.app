@@ -125,6 +125,15 @@ Yalnızca v2 (check-in) ile ilgili işler. v2 dışındakiler "Rafa kaldırıld�
 - Check-in önerisi uygulama kapalıyken de (yayına yaklaşırken): telefonun "bölgeye girdin" özelliği (geofencing, expo-location + TaskManager); "Her zaman" konum izni ve development build gerekir; telefon en fazla ~20 bölge izler, en yakın 20 açık mekan sürekli güncellenmeli. Konum ve izinler sayfasındaki "uygulama kapalıyken konumunu almak" maddesi o zaman güncellenmeli
 - Haftalık sıralama ödülleri: ne verileceği (rozet, işletme kuponu…) ve nasıl dağıtılacağı belirlenecek
 
+**Yayın öncesi altyapı** (deneme ortamı: Render ücretsiz + Neon ücretsiz, Frankfurt; Mac kapalıyken de çalışır)
+- Deneme ve gerçek ortam ayrı: uygulama çıkarken ikinci bir Render servisi ve ikinci bir Neon veritabanı ("gerçek"); deneme ortamı v2-checkin'den, gerçek ortam main'den yayınlanır. Kod değişmez, yalnızca adresler / ayarlar
+- Planlar: Render Starter (~7 $/ay, uyumaz), Neon kullanıcı artınca ücretli plan (~19 $/ay; 7–30 gün geriye dönük yedek). Ücretsiz Neon yalnızca son 24 saate döner
+- Veritabanı değişiklikleri sürümlü olsun (migration aracı, ör. Alembic ya da numaralı SQL dosyaları); şimdiki "her açılışta schema.sql" yaklaşımı yalnızca demo için
+- Hata takibi: Sentry (backend + uygulama), Render / Neon uyarıları
+- Mağaza sürümü: Expo EAS Build ile App Store / Google Play; uygulama kapalıyken bildirimler ve check-in önerisi (geofencing) bu sürümle
+- KVKK: sunucular yurt dışında (Frankfurt); yurt dışına aktarım gizlilik politikasında yazmalı, standart sözleşme / açık rıza şartları hukukçuya sorulmalı; gerekirse Türkiye'de barındırma değerlendirilir
+- Yayından önce check-in mesafesini 1 km'den 150 m'ye geri al
+
 **KVKK ve güvenlik**
 - Verilerimi indir (KVKK erişim hakkı): Profil ayarları'nda hesabındaki her şeyi (hesap, check-in'ler, puanlar, arkadaşlar, yorumlar, ayarlar) tek dosya (JSON) olarak indirme
 - Gizlilik politikası ve kullanım koşulları taslak (mobile/src/lib/legal.ts): yayından önce bir hukukçuya kontrol ettirilmeli; şirket unvanı / adresi / MERSİS ve iletişim e-postası doldurulmalı; mağazalar için web'de de yayınlanmalı (bağlantı App Store / Google Play formuna)
