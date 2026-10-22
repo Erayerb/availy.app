@@ -1,0 +1,16 @@
+# Render Blueprint: the v2 backend (FastAPI) as a free web service.
+# The database is on Neon (free PostgreSQL with PostGIS); its connection string goes
+# into DATABASE_URL in Render's dashboard (never into this file).
+services:
+  - type: web
+    name: availy-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: v2-checkin
+    dockerContext: ./backend
+    dockerfilePath: ./docker/backend.Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false

@@ -191,22 +191,6 @@ export function MapScreen({
         />
       ) : (
         <View style={styles.legend} onLayout={(e) => setLegendHeight(e.nativeEvent.layout.height)}>
-          <View style={styles.modeRow}>
-            {[
-              { visited: false, label: 'Tümü' },
-              { visited: true, label: `Ziyaret ettiklerim${visitedIds.size ? ` (${visitedIds.size})` : ''}` },
-            ].map(({ visited, label }) => (
-              <Pressable
-                key={label}
-                onPress={() => setOnlyVisited(visited)}
-                style={[styles.mode, onlyVisited === visited && styles.modeActive]}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: onlyVisited === visited }}
-              >
-                <Text style={[styles.modeText, onlyVisited === visited && styles.modeTextActive]}>{label}</Text>
-              </Pressable>
-            ))}
-          </View>
           {onlyVisited && visitedIds.size === 0 && (
             <Text style={styles.status}>Henüz check-in yapmadın. Check-in yaptığın mekanlar burada görünür.</Text>
           )}
@@ -237,21 +221,27 @@ export function MapScreen({
 
       <View
         style={styles.header}
-        // The space next to the folded "Filtreler" button still lets the map be dragged
+        // Empty space around the buttons still lets the map be dragged
         pointerEvents="box-none"
         onLayout={(e) => setHeaderBottom(e.nativeEvent.layout.y + e.nativeEvent.layout.height)}
       >
         <BackButton onPress={onBack} />
-        <FilterBar
-          selected={tags}
-          onToggle={(tag) => onTagsChange(toggleTag(tags, tag))}
-          hideClosed={hideClosed}
-          onHideClosedChange={onHideClosedChange}
-          onClear={() => {
-            onTagsChange([]);
-            onHideClosedChange(false);
-          }}
-        />
+        <View style={styles.filters}>
+          <FilterBar
+            selected={tags}
+            onToggle={(tag) => onTagsChange(toggleTag(tags, tag))}
+            hideClosed={hideClosed}
+            onHideClosedChange={onHideClosedChange}
+            onlyVisited={onlyVisited}
+            onOnlyVisitedChange={setOnlyVisited}
+            visitedCount={visitedIds.size}
+            onClear={() => {
+              onTagsChange([]);
+              onHideClosedChange(false);
+              setOnlyVisited(false);
+            }}
+          />
+        </View>
       </View>
     </View>
   );
@@ -263,7 +253,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 60,
     left: 12,
-    right: 12,
+    // The pill row runs to the screen edge and scrolls under it
+    right: 0,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
@@ -287,11 +278,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  modeRow: { width: '100%', flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 2 },
-  mode: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: 14, backgroundColor: colors.cream },
-  modeActive: { backgroundColor: colors.primary },
-  modeText: { fontSize: 13, fontWeight: '600', color: colors.text },
-  modeTextActive: { color: colors.onPrimary },
+  filters: { flex: 1, marginTop: -6 },
   locate: {
     position: 'absolute',
     left: 14,

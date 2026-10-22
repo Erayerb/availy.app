@@ -1,81 +1,90 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
-import type { Tag } from '../lib/filters';
-import { ClearButton, TogglePill } from './ClearButton';
-import { TagChips } from './TagChips';
+import { TAG_OPTIONS, type Tag } from '../lib/filters';
 import { colors } from '../theme';
+
+const TAG_ICONS: Record<Tag, string> = {
+  socializing: '👥',
+  coworking: '💻',
+  entertainment: '🎉',
+  quiet: '🤫',
+  food: '🍽️',
+  nightlife: '🌙',
+  nature: '🌳',
+};
 
 type Props = {
   selected: Tag[];
   onToggle: (tag: Tag) => void;
   hideClosed: boolean;
   onHideClosedChange: (hide: boolean) => void;
+  // v2 "Ziyaret ettiklerim": only venues I checked in at
+  onlyVisited: boolean;
+  onOnlyVisitedChange: (on: boolean) => void;
+  visitedCount: number;
   onClear: () => void;
 };
 
-/** Only a "Filtreler" button on the map; tapping it opens the filter card. */
-export function FilterBar({ selected, onToggle, hideClosed, onHideClosedChange, onClear }: Props) {
-  const [open, setOpen] = useState(false);
-  // Selected purposes plus "Kapalıları gizle"
-  const count = selected.length + (hideClosed ? 1 : 0);
-  const hasSelection = count > 0;
-  const title = (
-    <Pressable onPress={() => setOpen((o) => !o)} style={styles.toggle} hitSlop={8}>
-      <Text style={styles.title}>Filtreler{count > 0 ? ` (${count})` : ''}</Text>
-      <Text style={styles.chevron}>{open ? '▲' : '▼'}</Text>
-    </Pressable>
-  );
-
-  // Folded: no card, only the "Filtreler" button and the two quick pills, each on its own
-  if (!open) {
-    return (
-      <View style={styles.folded} pointerEvents="box-none">
-        <View style={styles.button}>{title}</View>
-        <View style={styles.pills} pointerEvents="box-none">
-          <View style={styles.pillBack}>
-            <ClearButton onPress={onClear} disabled={!hasSelection} />
-          </View>
-          <View style={styles.pillBack}>
-            <TogglePill label="Kapalıları gizle" active={hideClosed} onPress={() => onHideClosedChange(!hideClosed)} />
-          </View>
-        </View>
-      </View>
-    );
-  }
-
+/** Map filters as one row of pills that scrolls sideways (like Snapchat's map). */
+export function FilterBar({
+  selected,
+  onToggle,
+  hideClosed,
+  onHideClosedChange,
+  onlyVisited,
+  onOnlyVisitedChange,
+  visitedCount,
+  onClear,
+}: Props) {
+  const any = selected.length > 0 || hideClosed || onlyVisited;
   return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        {title}
-        <View style={styles.pills}>
-          <ClearButton onPress={onClear} disabled={!hasSelection} />
-          <TogglePill label="Kapalıları gizle" active={hideClosed} onPress={() => onHideClosedChange(!hideClosed)} />
-        </View>
-      </View>
-      <TagChips selected={selected} onToggle={onToggle} />
-    </View>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.row}
+      style={styles.strip}
+      keyboardShouldPersistTaps="handled"
+    >
+      {any && <Pill icon="✕" label="Temizle" active={false} onPress={onClear} />}
+      <Pill
+        icon="📍"
+        label={`Ziyaret ettiklerim${visitedCount ? ` (${visitedCount})` : ''}`}
+        active={onlyVisited}
+        onPress={() => onOnlyVisitedChange(!onlyVisited)}
+      />
+      <Pill icon="🚪" label="Kapalıları gizle" active={hideClosed} onPress={() => onHideClosedChange(!hideClosed)} />
+      {TAG_OPTIONS.map(({ tag, label }) => (
+        <Pill key={tag} icon={TAG_ICONS[tag]} label={label} active={selected.includes(tag)} onPress={() => onToggle(tag)} />
+      ))}
+    </ScrollView>
+  );
+}
+
+function Pill({ icon, label, active, onPress }: { icon: string; label: string; active: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.pill, active && styles.pillActive]}
+      accessibilityRole="switch"
+      accessibilityState={{ checked: active }}
+    >
+      <Text style={styles.icon}>{icon}</Text>
+      <Text style={[styles.label, active && styles.labelActive]}>{label}</Text>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 16,
-    backgroundColor: colors.surface,
-    gap: 10,
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 6,
-  },
-  folded: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  // Solid background so the faded "Kapalıları gizle" pill stays readable on the map
-  pillBack: {
-    borderRadius: 12,
+  strip: { flexGrow: 0 },
+  // Room at both ends so the first and last pill's shadows are not cut off
+  row: { gap: 8, paddingVertical: 6, paddingRight: 12 },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: colors.surface,
     shadowColor: colors.shadow,
     shadowOpacity: 0.18,
@@ -83,21 +92,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 4,
   },
-  button: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 6,
-  },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  pills: { alignItems: 'flex-end', gap: 6 },
-  toggle: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
-  title: { fontSize: 14, fontWeight: '700', color: colors.text },
-  chevron: { fontSize: 10, color: colors.textMuted },
+  pillActive: { backgroundColor: colors.primary },
+  icon: { fontSize: 15 },
+  label: { fontSize: 14, fontWeight: '600', color: colors.text },
+  labelActive: { color: colors.onPrimary },
 });

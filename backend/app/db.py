@@ -13,6 +13,9 @@ pool = ConnectionPool(
     settings.database_url,
     kwargs={"row_factory": dict_row},
     open=False,
+    min_size=1,
+    # Hosted databases (Neon) close idle connections: check one before handing it out
+    check=ConnectionPool.check_connection,
 )
 
 

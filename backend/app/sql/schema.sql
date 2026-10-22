@@ -1,3 +1,6 @@
+-- PostGIS (the local Docker image creates it in docker/db/init.sql; hosted databases such as Neon need it here)
+CREATE EXTENSION IF NOT EXISTS postgis;
+
 CREATE TABLE IF NOT EXISTS venues (
     id          BIGSERIAL PRIMARY KEY,
     name        TEXT NOT NULL,
