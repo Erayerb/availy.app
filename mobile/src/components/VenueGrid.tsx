@@ -5,7 +5,7 @@ import { useLocation } from '../context/LocationContext';
 import type { Venue } from '../lib/api';
 import { distanceKm, formatDistance } from '../lib/geo';
 import { VenueTile } from './VenueTile';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 const PADDING = 16;
 const GAP = 12;
@@ -55,11 +55,11 @@ export function VenueGrid({ venues, header, emptyText, error, onOpenVenue, refre
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   // Space for the status bar sits outside the list, so the pull-to-refresh spinner is not hidden behind it
   container: { flex: 1, marginTop: 50, backgroundColor: colors.background },
   content: { paddingHorizontal: PADDING, paddingTop: 10, paddingBottom: 40, gap: 16 },
   columns: { gap: GAP },
   empty: { textAlign: 'center', color: colors.textMuted, marginTop: 24 },
   error: { textAlign: 'center', color: colors.danger, marginTop: 24 },
-});
+}));

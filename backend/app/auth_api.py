@@ -17,6 +17,8 @@ from app.accounts import (
     delete_user,
     rename_user,
     change_username,
+    freeze_user,
+    change_email,
     upgrade_guest,
     user_for_token,
 )
@@ -178,12 +180,34 @@ def rename(body: RenameIn, user: dict = Depends(current_user), conn: psycopg.Con
         raise _fail(e) from None
 
 
+class EmailIn(BaseModel):
+    email: str
+    password: str  # current password
+
+
+@router.post("/me/email", response_model=UserOut)
+def email(body: EmailIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    try:
+        return change_email(conn, user, body.password, body.email)
+    except AccountError as e:
+        raise _fail(e) from None
+
+
 @router.post("/me/password", status_code=204)
 def password(body: PasswordIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
     try:
         change_password(conn, user, body.old_password, body.new_password)
     except AccountError as e:
         raise _fail(e) from None
+    return Response(status_code=204)
+
+
+@router.post("/me/freeze", status_code=204)
+def freeze_me(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    """Hesabı dondur: registered accounts only (a guest has nothing to hide)."""
+    if user["is_guest"]:
+        raise HTTPException(status_code=403, detail="Misafir hesap dondurulamaz.")
+    freeze_user(conn, user)
     return Response(status_code=204)
 
 

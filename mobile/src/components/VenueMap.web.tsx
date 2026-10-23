@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useSettings } from '../context/SettingsContext';
 import { LABEL_LINE_HEIGHT, LABEL_MAX_WIDTH, labelPriority, visibleLabels } from '../lib/labels';
-import { colors } from '../theme';
+import { colors, getScheme } from '../theme';
 import { DOT_SIZE, LABEL_MIN_ZOOM, SELECTED_DOT_SIZE, zoomForDelta, type VenueMapProps } from './VenueMap.types';
 
 /** Web map (Leaflet + OpenStreetMap tiles); react-native-maps has no web support. */
@@ -26,6 +26,7 @@ export function VenueMap({
   userPoint,
 }: VenueMapProps) {
   const { crowdLook, colorBlind } = useSettings();
+  const scheme = getScheme();
   const userLayerRef = useRef<L.LayerGroup | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   // Names under the dots once zoomed in to street level; which ones fit depends on the zoom
@@ -51,15 +52,16 @@ export function VenueMap({
       zoomControl: false,
     }).setView([initialRegion.latitude, initialRegion.longitude], zoomForDelta(initialRegion.longitudeDelta));
 
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap',
-    }).addTo(map);
 
     // The user's blue dot sits above the venue dots (Leaflet's marker pane is 600)
     const userPane = map.createPane(USER_PANE);
     userPane.style.zIndex = '650';
     userPane.style.pointerEvents = 'none';
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap',
+    }).addTo(map);
 
     map.on('zoomend', () => setZoom(map.getZoom()));
     map.on('click', () => latest.current.onMapPress());
@@ -89,6 +91,15 @@ export function VenueMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Map tiles: OpenStreetMap; in the dark theme the same tiles are darkened in the browser
+  // (free, no API key; the dark tile services need one)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.getPane('tilePane')!.style.filter =
+      scheme === 'dark' ? 'invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.6)' : '';
+  }, [scheme]);
+
   useEffect(() => {
     if (focus && mapRef.current) mapRef.current.panTo([focus.lat, focus.lon]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -100,6 +111,7 @@ export function VenueMap({
     const map = mapRef.current;
     if (!layer || !map) return;
     layer.clearLayers();
+    const halo = colors.background;
     const labelled =
       zoom >= LABEL_MIN_ZOOM
         ? visibleLabels(labelPriority(venues, selectedId), (v) => map.latLngToContainerPoint([v.lat, v.lon]))
@@ -112,7 +124,7 @@ export function VenueMap({
       const { color, glyph } = crowdLook(venue);
       const border = isSelected ? `4px solid ${colors.text}` : `3px solid ${colors.white}`;
       const label = labelled.has(venue.id)
-        ? `<div style="position:absolute;left:${size + 3}px;top:50%;transform:translateY(-50%);width:max-content;max-width:${LABEL_MAX_WIDTH}px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font:600 12px/${LABEL_LINE_HEIGHT}px -apple-system,system-ui,sans-serif;color:${color};text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff;pointer-events:none">${escapeHtml(venue.name)}</div>`
+        ? `<div style="position:absolute;left:${size + 3}px;top:50%;transform:translateY(-50%);width:max-content;max-width:${LABEL_MAX_WIDTH}px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font:600 12px/${LABEL_LINE_HEIGHT}px -apple-system,system-ui,sans-serif;color:${color};text-shadow:0 0 2px ${halo},0 0 2px ${halo},0 0 3px ${halo};pointer-events:none">${escapeHtml(venue.name)}</div>`
         : '';
       const icon = L.divIcon({
         className: '',
@@ -129,7 +141,7 @@ export function VenueMap({
     onSelectedPointChange(null);
     reportSelectedPoint();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [venues, selectedId, colorBlind, zoom]);
+  }, [venues, selectedId, colorBlind, zoom, scheme]);
 
   useEffect(() => {
     const map = mapRef.current;

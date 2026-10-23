@@ -9,9 +9,9 @@ import type { Venue } from '../lib/api';
 import { categoryLabel } from '../lib/filters';
 import { distanceKm, formatDistance } from '../lib/geo';
 import { directionsUrl, shortLocation } from '../lib/location';
-import { crowdExtra, crowdRatioText, crowdSummary } from '../lib/crowd';
+import { crowdExtra, crowdRatioText, crowdSummary, crowdYesterday } from '../lib/crowd';
 import { shareVenue } from '../lib/shareVenue';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 import { CampaignBox } from './CampaignBox';
 import { FavoriteButton } from './FavoriteButton';
 import { CrowdDot } from './CrowdDot';
@@ -66,6 +66,7 @@ export function VenueCard({ venue, onClose, onDetails, onShowAlternatives, onLay
 
       {venue.open_now && <Text style={styles.secondary}>{crowdSummary(venue.crowd, new Date())}</Text>}
       {venue.open_now && crowdExtra(venue.crowd) && <Text style={styles.secondary}>{crowdExtra(venue.crowd)}</Text>}
+      {venue.open_now && crowdYesterday(venue.crowd) && <Text style={styles.secondary}>🕘 {crowdYesterday(venue.crowd)}</Text>}
       {watching && <Text style={styles.watching}>🔔 Sakin olunca haber vereceğiz</Text>}
       {campaign && <CampaignBox campaign={campaign} />}
       <Text style={styles.secondary}>
@@ -95,7 +96,7 @@ export function VenueCard({ venue, onClose, onDetails, onShowAlternatives, onLay
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: {
     width: CARD_WIDTH,
     padding: 14,
@@ -135,4 +136,4 @@ const styles = StyleSheet.create({
   button: { flex: 1, paddingVertical: 9, borderRadius: 10, backgroundColor: colors.primary, alignItems: 'center' },
   pressed: { opacity: 0.8 },
   buttonText: { color: colors.onPrimary, fontWeight: '600' },
-});
+}));

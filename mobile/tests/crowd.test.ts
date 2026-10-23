@@ -70,3 +70,11 @@ test('a level only one person reported is tentative', async () => {
   assert.equal(fadeColor('#000000'), '#808080');
   assert.equal(fadeColor('#D9480F', 0), '#d9480f');
 });
+
+test('no fresh check-ins: how full it was at this time yesterday', async () => {
+  const { crowdYesterday } = await import('../src/lib/crowd.ts');
+  const stale = { ...live, state: 'stale' as const, level: null, ratio: null };
+  assert.equal(crowdYesterday({ ...stale, yesterday_level: 'high' }), 'Dün bu saatlerde kalabalıktı');
+  assert.equal(crowdYesterday({ ...stale, yesterday_level: null }), null);
+  assert.equal(crowdYesterday({ ...live, yesterday_level: 'low' }), null);
+});

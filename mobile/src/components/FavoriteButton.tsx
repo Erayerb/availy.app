@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 
 import { useFavorites } from '../context/FavoritesContext';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 type Props = {
   venueId: number;
@@ -27,7 +27,7 @@ export function FavoriteButton({ venueId, size = 20, floating = false }: Props) 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   floating: { backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   heart: { lineHeight: undefined },
-});
+}));

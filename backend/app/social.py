@@ -26,9 +26,9 @@ def leaderboard(conn: psycopg.Connection, me: dict, period: str, scope: str, now
     """
     # Friends: me and my friends, also with 0 points. Everyone: registered people who want to be shown
     people = (
-        f"u.id = %(me)s OR u.id IN ({friends})"
+        f"u.id = %(me)s OR (u.id IN ({friends}) AND NOT u.frozen)"
         if scope == "friends"
-        else f"u.id = %(me)s OR (u.show_in_leaderboard AND NOT u.is_guest AND u.username IS NOT NULL AND u.id NOT IN {BLOCKED})"
+        else f"u.id = %(me)s OR (u.show_in_leaderboard AND NOT u.is_guest AND u.role = 'personal' AND u.username IS NOT NULL AND u.id NOT IN {BLOCKED})"
     )
     rows = conn.execute(
         f"""
@@ -60,11 +60,11 @@ def notifications(conn: psycopg.Connection, me: dict, now: datetime) -> list[dic
             SELECT 'friend_request' AS kind, f.created_at AS at, u.username, NULL::bigint AS venue_id,
                    NULL AS venue_name, NULL AS body
             FROM friendships f JOIN users u ON u.id = f.requester_id
-            WHERE f.addressee_id = %(me)s AND f.status = 'pending'
+            WHERE f.addressee_id = %(me)s AND f.status = 'pending' AND NOT u.frozen
             UNION ALL
             SELECT 'friend_accepted', f.accepted_at, u.username, NULL, NULL, NULL
             FROM friendships f JOIN users u ON u.id = f.addressee_id
-            WHERE f.requester_id = %(me)s AND f.status = 'accepted' AND f.accepted_at > %(since)s
+            WHERE f.requester_id = %(me)s AND f.status = 'accepted' AND f.accepted_at > %(since)s AND NOT u.frozen
             UNION ALL
             SELECT 'reply', p.created_at, u.username, v.id, v.name, p.body
             FROM review_replies p JOIN reviews r ON r.id = p.review_id JOIN users u ON u.id = p.user_id

@@ -5,14 +5,14 @@ import QRCode from 'react-native-qrcode-svg';
 import { HeaderButtons } from '../components/HeaderButtons';
 import { QrScanner } from '../components/QrScanner';
 import type { User } from '../lib/auth';
-import { timeAgo } from '../lib/crowd';
+import { sentence, timeAgo } from '../lib/crowd';
 import { friendQrPayload, friendsApi, inviteMessage, parseFriendCode, type FriendLists, type Person, type Relation } from '../lib/friends';
 import { author, groupByPerson, MAX_REVIEW, reviewsApi, type FeedItem } from '../lib/reviews';
 import { confirmAction } from '../lib/confirm';
 import { Leaderboard } from '../components/Leaderboard';
 import { stars } from '../lib/feedback';
 import { shareText } from '../lib/shareVenue';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 type Props = {
   user: User | null;
@@ -171,7 +171,7 @@ export function SocialScreen({
                         <Text style={styles.quote}>{stars(item.rating)}</Text>
                       ) : null}
                       <Text style={styles.muted}>
-                        {timeAgo(item.at, new Date())}
+                        {sentence(timeAgo(item.at, new Date()))}
                         {item.points > 0 && <Text style={styles.points}> · +{item.points} puan</Text>}
                       </Text>
                     </View>
@@ -326,7 +326,7 @@ function Action({ label, onPress, quiet = false }: { label: string; onPress: () 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   feedRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
   feedItem: { gap: 4, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border },
@@ -334,9 +334,9 @@ const styles = StyleSheet.create({
   replyBar: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   replyLink: { color: colors.primary, fontWeight: '600', fontSize: 13 },
   replyForm: { gap: 8 },
-  bold: { fontWeight: '700' },
+  bold: { fontWeight: '700', color: colors.text },
   points: { color: colors.primary, fontWeight: '700' },
-  discovered: { color: '#7B5EA7' },
+  discovered: { color: colors.discovery },
   quote: { fontSize: 14, color: colors.text, fontWeight: '400', marginTop: 2 },
   tabs: { flexDirection: 'row', gap: 8 },
   tab: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 16, backgroundColor: colors.cream },
@@ -371,23 +371,22 @@ const styles = StyleSheet.create({
   secondaryText: { color: colors.primary, fontWeight: '700', textAlign: 'center' },
   success: { color: colors.success, fontWeight: '600' },
   error: { color: colors.danger },
-});
+}));
 
-/** Under the person's name: "keşfetti: ✨ Mado", "📍 Mado", "yorum yaptı: Mado", "senin yorumunu yanıtladı: Mado" */
+/** Under the person's name: "Keşfetti: ✨ Mado", "📍 Mado", "Yorum yaptı: Mado", "Yanıt verdi: Mado" */
 function FeedText({ item, me }: { item: FeedItem; me: string | null | undefined }) {
   if (item.kind === 'checkin' && item.is_first) {
     return (
       <Text style={styles.text}>
-        keşfetti: <Text style={styles.discovered}>✨ {item.venue_name}</Text>
+        Keşfetti: <Text style={styles.discovered}>✨ {item.venue_name}</Text>
       </Text>
     );
   }
   if (item.kind === 'checkin') return <Text style={styles.text}>📍 {item.venue_name}</Text>;
-  if (item.kind === 'review') return <Text style={styles.text}>yorum yaptı: {item.venue_name}</Text>;
+  if (item.kind === 'review') return <Text style={styles.text}>Yorum yaptı: {item.venue_name}</Text>;
   return (
     <Text style={styles.text}>
-      {item.review_author && item.review_author === me ? 'senin yorumunu' : `${author(item.review_author)} kişisinin yorumunu`}{' '}
-      yanıtladı: {item.venue_name}
+      Yanıt verdi: {item.venue_name}
     </Text>
   );
 }

@@ -94,4 +94,10 @@ export const accountApi = {
   changePassword: (token: string, oldPassword: string, newPassword: string) =>
     send<void>('POST', '/v1/me/password', { old_password: oldPassword, new_password: newPassword }, token),
   remove: (token: string) => send<void>('DELETE', '/v1/me', undefined, token),
+  changeEmail: (token: string, email: string, password: string) =>
+    send<ServerUser>('POST', '/v1/me/email', { email, password }, token),
+  // Business: its venue on the server (panel statistics, "İşletme" replies)
+  setVenue: (token: string, venueId: number) => send<{ venue_id: number }>('PUT', '/v1/me/venue', { venue_id: venueId }, token),
+  // Hide the account until the next sign-in (signs out everywhere)
+  freeze: (token: string) => send<void>('POST', '/v1/me/freeze', undefined, token),
 };

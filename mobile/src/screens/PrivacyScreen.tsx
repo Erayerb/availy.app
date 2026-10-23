@@ -6,7 +6,7 @@ import { ThemedSwitch } from '../components/ThemedSwitch';
 import { useSettings } from '../context/SettingsContext';
 import { safetyApi } from '../lib/safety';
 import { socialApi, type Privacy } from '../lib/social';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 type Props = {
   token: string | null; // registered users only; privacy settings are on the server
@@ -125,7 +125,7 @@ function Row({ title, subtitle, value, onChange }: { title: string; subtitle: st
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 48, gap: 14 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -138,4 +138,4 @@ const styles = StyleSheet.create({
   muted: { fontSize: 13, color: colors.textMuted },
   link: { color: colors.primary, fontWeight: '600' },
   error: { fontSize: 13, color: colors.danger },
-});
+}));

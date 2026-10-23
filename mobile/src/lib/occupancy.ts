@@ -56,3 +56,12 @@ export function fadeColor(hex: string, amount = 0.5): string {
   const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(mix);
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
 }
+
+// Dark theme: the same level colours a little brighter, so they stand out on dark brown
+const DARK_LEVEL_COLORS: Record<string, string> = {
+  '#2e9d4f': '#3DB862',
+  '#e0a800': '#F2BC1B',
+  '#D9480F': '#F0602A',
+};
+
+export const levelColorFor = (color: string, dark: boolean): string => (dark ? (DARK_LEVEL_COLORS[color] ?? color) : color);

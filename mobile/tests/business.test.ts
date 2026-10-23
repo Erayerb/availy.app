@@ -78,16 +78,21 @@ test('scheduled campaign fires once inside its weekly window', () => {
 });
 
 test('business monitor: dead-hour alert and auto campaign with cool-downs', () => {
-  const dead = { open_now: true, occupancy: { ratio: 0.2 } };
+  const crowd = (level: 'low' | 'medium' | 'high') => ({
+    state: 'live' as const, level, ratio: null, reporters: 3, last_report_at: null, queue: null, seats: null,
+  });
+  const dead = { open_now: true, crowd: crowd('low') };
   const opts = { deadHourAlerts: true, autoCampaign: true, hasActiveCampaign: false };
   assert.deepEqual(decideBusinessActions(dead, {}, opts, TUESDAY_1330), { alert: true, autoCampaign: true });
   const recent = { lastAlertAt: '2026-10-13T10:00:00Z', lastAutoAt: '2026-10-13T10:00:00Z' };
   assert.deepEqual(decideBusinessActions(dead, recent, opts, TUESDAY_1330), { alert: false, autoCampaign: false });
   assert.equal(decideBusinessActions(dead, {}, { ...opts, hasActiveCampaign: true }, TUESDAY_1330).autoCampaign, false);
-  assert.deepEqual(decideBusinessActions({ open_now: false, occupancy: { ratio: 0 } }, {}, opts, TUESDAY_1330), {
+  assert.deepEqual(decideBusinessActions({ open_now: false, crowd: crowd('low') }, {}, opts, TUESDAY_1330), {
     alert: false, autoCampaign: false,
   });
-  assert.equal(decideBusinessActions({ open_now: true, occupancy: { ratio: 0.6 } }, {}, opts, TUESDAY_1330).alert, false);
+  assert.equal(decideBusinessActions({ open_now: true, crowd: crowd('medium') }, {}, opts, TUESDAY_1330).alert, false);
+  // No fresh check-ins: nothing is known, so no alert
+  assert.equal(decideBusinessActions({ open_now: true }, {}, opts, TUESDAY_1330).alert, false);
 });
 
 test('ownership verification code', () => {
@@ -119,4 +124,13 @@ test('a business can rename its venue; the name must be 2–60 characters', () =
   assert.equal(validateOverride({ name: 'Yeni Ad Kafe' }), null);
   const renamed = applyOverride({ name: 'Eski Ad', tags: [] } as never, { name: '  Yeni Ad Kafe ' });
   assert.equal(renamed.name, 'Yeni Ad Kafe');
+});
+
+test('panel: busiest hour today and quietest weekday from check-ins', async () => {
+  const { busiestHour, quietestWeekday } = await import('../src/lib/business.ts');
+  const hours = Array.from({ length: 24 }, (_, hour) => ({ hour, checkins: hour === 14 ? 3 : hour === 9 ? 1 : 0, level: null }));
+  assert.equal(busiestHour(hours), 14);
+  assert.equal(busiestHour(hours.map((h) => ({ ...h, checkins: 0 }))), null);
+  assert.equal(quietestWeekday([3, 1, 4, 4, 5, 9, 7]), 1);
+  assert.equal(quietestWeekday([0, 0, 0, 0, 0, 0, 0]), null);
 });

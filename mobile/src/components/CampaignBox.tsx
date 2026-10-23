@@ -5,7 +5,7 @@ import { useCampaigns } from '../context/CampaignsContext';
 import { useEngagement } from '../context/EngagementContext';
 import { timeLeft, type Campaign } from '../lib/campaigns';
 import { remainingCoupons } from '../lib/coupons';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 /** Campaign line with "Kuponu al"; after claiming, the code to show at the counter. */
 export function CampaignBox({ campaign }: { campaign: Campaign }) {
@@ -44,7 +44,7 @@ export function CampaignBox({ campaign }: { campaign: Campaign }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   box: { padding: 8, borderRadius: 10, backgroundColor: colors.cream, gap: 4 },
   message: { fontSize: 13, color: colors.primary, fontWeight: '600' },
   time: { fontSize: 12, color: colors.textMuted },
@@ -68,4 +68,4 @@ const styles = StyleSheet.create({
   codeLabel: { fontSize: 11, color: colors.textMuted },
   codeText: { fontSize: 18, fontWeight: '800', letterSpacing: 2, color: colors.text },
   used: { textDecorationLine: 'line-through', color: colors.textMuted },
-});
+}));

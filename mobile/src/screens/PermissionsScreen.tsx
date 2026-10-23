@@ -6,7 +6,7 @@ import { AppState, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, V
 
 import { Collapsible } from '../components/Collapsible';
 import { BackButton } from '../components/BackButton';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 type Status = 'granted' | 'denied' | 'undetermined' | 'unknown';
 
@@ -16,9 +16,8 @@ type Permission = {
   summary: string; // shown while the section is closed
   to: string; // "Konuma", "Kameraya": for "… izin vermezsen"
   status: Status;
-  // What availy uses it for, and what it never does
+  // What availy uses it for
   uses: string[];
-  never: string[];
   withoutIt: string;
   onAsk: () => void;
 };
@@ -33,7 +32,7 @@ const STATUS_TEXT: Record<Status, string> = {
 const asStatus = (s: string | undefined): Status =>
   s === 'granted' || s === 'denied' || s === 'undetermined' ? s : 'unknown';
 
-/** "Konum ve izinler": what each phone permission is for, what availy never does with it, and its state. */
+/** "Konum ve izinler": what each phone permission is for, what happens without it, and its state. */
 export function PermissionsScreen({ onBack }: { onBack: () => void }) {
   const [location, setLocation] = useState<Status>('unknown');
   const [notifications, setNotifications] = useState<Status>('unknown');
@@ -76,11 +75,6 @@ export function PermissionsScreen({ onBack }: { onBack: () => void }) {
         'Yakındaki mekanları ve mesafeleri göstermek, haritada mavi nokta',
         'Check-in önerisi: açık bir mekanın yakınında birkaç dakika kalınca sormak (uygulama açıkken)',
       ],
-      never: [
-        'Konumunu sunucuya kaydetmek ya da geçmişini tutmak',
-        'Arkadaşlarına ya da işletmelere nerede olduğunu göstermek (yalnızca check-in yaptığın mekan görünür)',
-        'Uygulama kapalıyken konumunu almak',
-      ],
       withoutIt: 'Mekanlara bakabilir, arayabilirsin ama check-in yapamazsın.',
       onAsk: () => ask(Location.requestForegroundPermissionsAsync),
     },
@@ -91,7 +85,6 @@ export function PermissionsScreen({ onBack }: { onBack: () => void }) {
       summary: 'Yalnızca QR okutmak için',
       status: asStatus(camera?.status),
       uses: ['Arkadaşının QR kodunu okutmak', 'İşletmede damga / kupon QR kodunu okutmak'],
-      never: ['Fotoğraf ya da video kaydetmek', 'QR okutma dışında kamerayı açmak'],
       withoutIt: 'Arkadaşlarını kullanıcı adıyla ya da davet bağlantısıyla ekleyebilirsin.',
       onAsk: () => ask(requestCamera),
     },
@@ -102,7 +95,6 @@ export function PermissionsScreen({ onBack }: { onBack: () => void }) {
       summary: 'Check-in önerileri, arkadaşlık ve yanıtlar; reklam yok',
       status: Platform.OS === 'web' ? 'unknown' : notifications,
       uses: ['Check-in önerileri', 'Arkadaşlık istekleri ve yorumlarına gelen yanıtlar', '"Sakin olunca haber ver"'],
-      never: ['Reklam bildirimi göndermek', 'Saat başı / zamanlanmış hatırlatma göndermek: yalnızca bir şey olunca'],
       withoutIt: 'Bildirimler yine uygulamadaki 🔔 listesinde görünür.',
       onAsk: () => ask(Notifications.requestPermissionsAsync),
     },
@@ -132,12 +124,6 @@ export function PermissionsScreen({ onBack }: { onBack: () => void }) {
               ✓ {u}
             </Text>
           ))}
-          <Text style={styles.label}>Asla yapmıyoruz</Text>
-          {p.never.map((n) => (
-            <Text key={n} style={styles.text}>
-              ✕ {n}
-            </Text>
-          ))}
           <Text style={styles.without}>
             {p.to} izin vermezsen: {p.withoutIt}
           </Text>
@@ -163,13 +149,13 @@ export function PermissionsScreen({ onBack }: { onBack: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 48, gap: 14 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
   status: { fontSize: 12, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, overflow: 'hidden' },
-  on: { backgroundColor: '#dcf0dc', color: colors.success },
+  on: { backgroundColor: colors.successBg, color: colors.success },
   off: { backgroundColor: colors.cream, color: colors.textMuted },
   label: { fontSize: 13, fontWeight: '700', color: colors.text, marginTop: 6 },
   text: { fontSize: 14, color: colors.text },
@@ -185,4 +171,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   secondaryText: { color: colors.primary, fontWeight: '700' },
-});
+}));

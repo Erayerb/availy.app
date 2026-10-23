@@ -2,7 +2,7 @@ import { createContext, useContext } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useNotifications } from '../context/NotificationsContext';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 import { TabIcon } from './TabIcon';
 
 type Actions = { onOpenProfile: () => void; onOpenNotifications: () => void };
@@ -38,7 +38,7 @@ export function HeaderButtons(props: Partial<Actions>) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   row: { flexDirection: 'row', gap: 10 },
   button: {
     width: 40,
@@ -63,4 +63,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeText: { color: colors.onPrimary, fontSize: 11, fontWeight: '800' },
-});
+}));

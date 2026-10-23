@@ -7,7 +7,6 @@ import { usePersistentState } from '../hooks/usePersistentState';
 import { fetchVenuesByIds } from '../lib/api';
 import { decideBusinessActions, type MonitorState } from '../lib/businessMonitor';
 import { deadHourSuggestion } from '../lib/campaigns';
-import { percent } from '../lib/stats';
 import { KEYS } from '../lib/storage';
 
 const CHECK_MS = 60_000;
@@ -48,9 +47,9 @@ export function BusinessMonitor({ venueId }: { venueId: number }) {
             durationHours: 2,
             radiusKm: 2,
           });
-          notify('Otomatik kampanya gönderildi', `${venue.name} ${percent(venue.occupancy.ratio)} dolu; 2 km içindekilere %20 indirim gitti.`, true);
+          notify('Otomatik kampanya gönderildi', `${venue.name} şu an sakin görünüyor; 2 km içindekilere %20 indirim gitti.`, true);
         } else if (actions.alert) {
-          notify('Ölü saat', `${venue.name} şu an ${percent(venue.occupancy.ratio)} dolu. Panelden tek tıkla kampanya gönderebilirsin.`, true);
+          notify('Ölü saat', `${venue.name} şu an sakin görünüyor. Panelden tek dokunuşla kampanya gönderebilirsin.`, true);
         }
         if (actions.alert || actions.autoCampaign) {
           const stamp = now.toISOString();

@@ -15,7 +15,8 @@ from app.friends_api import router as friends_router
 from app.reviews_api import router as reviews_router
 from app.social_api import router as social_router
 from app.safety_api import router as safety_router
-from app.checkins import load_crowds, load_discoveries
+from app.business_api import router as business_router
+from app.checkins import load_crowds, load_discoveries, load_trends
 from app.config import settings
 from app.db import apply_schema, get_conn, pool
 from app.hours import local_hour, venue_hours
@@ -65,6 +66,7 @@ app.include_router(friends_router)
 app.include_router(reviews_router)
 app.include_router(social_router)
 app.include_router(safety_router)
+app.include_router(business_router)
 
 
 class OccupancyOut(BaseModel):
@@ -83,11 +85,12 @@ class CrowdOut(BaseModel):
 
     state: Literal["live", "stale", "unexplored"]
     level: Level | None
-    ratio: float | None  # only with at least 3 people in the last 90 minutes
+    ratio: float | None  # only with at least 5 people in the last 90 minutes
     reporters: int
     last_report_at: datetime | None
     queue: bool | None
     seats: bool | None
+    yesterday_level: Level | None = None  # stale only: the level at this time yesterday
 
 
 class DiscoveryOut(BaseModel):
@@ -113,6 +116,7 @@ class Venue(BaseModel):
     district_occupancy: AreaOccupancyOut
     crowd: CrowdOut
     discovery: DiscoveryOut | None
+    trend: int = 0  # different people who checked in during the last 24 hours ("Trendler")
     open_now: bool
     hours: str  # e.g. "08:00–23:00" or "24 saat açık"
     opens_at: str  # next opening time, shown when closed
@@ -285,6 +289,7 @@ def with_occupancy(conn: psycopg.Connection, provider: OccupancyProvider, venues
     hour = local_hour(now)
     crowds = load_crowds(conn, [v["id"] for v in venues], now)
     discoveries = load_discoveries(conn, [v["id"] for v in venues], now)
+    trends = load_trends(conn, [v["id"] for v in venues], now)
     result = []
     for v in venues:
         opening = venue_hours(v)
@@ -295,6 +300,7 @@ def with_occupancy(conn: psycopg.Connection, provider: OccupancyProvider, venues
                 "district_occupancy": district_occupancy[v["district"]],
                 "crowd": crowds[v["id"]],
                 "discovery": discoveries.get(v["id"]),
+                "trend": trends.get(v["id"], 0),
                 "open_now": opening.is_open_at_hour(hour),
                 "hours": opening.label(),
                 "opens_at": opening.opens_at,

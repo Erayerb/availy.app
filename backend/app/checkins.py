@@ -80,6 +80,9 @@ def create_checkin(
     now: datetime,
     private: bool = False,
 ) -> dict:
+    # A business could make its own venue look empty: occupancy comes from customers only
+    if user.get("role") == "business":
+        raise CheckinError("İşletme hesapları check-in yapamaz.", 403)
     problem = validate_report(level, queue, seats)
     if problem:
         raise CheckinError(problem)
@@ -244,14 +247,32 @@ def load_discoveries(conn: psycopg.Connection, venue_ids: list[int], now: dateti
         return {}
     rows = conn.execute(
         """
-        SELECT c.venue_id, CASE WHEN c.is_private THEN NULL ELSE u.name END AS name,
-               CASE WHEN c.is_private THEN NULL ELSE u.username END AS username, c.created_at AS at
+        SELECT c.venue_id, CASE WHEN c.is_private OR u.frozen THEN NULL ELSE u.name END AS name,
+               CASE WHEN c.is_private OR u.frozen THEN NULL ELSE u.username END AS username, c.created_at AS at
         FROM checkins c LEFT JOIN users u ON u.id = c.user_id
         WHERE c.is_first AND NOT c.is_demo AND c.venue_id = ANY(%s) AND c.created_at > %s
         """,
         (venue_ids, now - DISCOVERY_SHOWN),
     ).fetchall()
     return {r["venue_id"]: {"name": r["name"], "username": r["username"], "at": r["at"]} for r in rows}
+
+
+TREND_WINDOW = timedelta(hours=24)
+
+
+def load_trends(conn: psycopg.Connection, venue_ids: list[int], now: datetime) -> dict[int, int]:
+    """How many different people checked in at each venue in the last 24 hours ("Trendler")."""
+    if not venue_ids:
+        return {}
+    rows = conn.execute(
+        """
+        SELECT venue_id, count(DISTINCT COALESCE(user_id, -id))::int AS people FROM checkins
+        WHERE venue_id = ANY(%s) AND created_at > %s AND created_at <= %s
+        GROUP BY venue_id
+        """,
+        (venue_ids, now - TREND_WINDOW, now),
+    ).fetchall()
+    return {r["venue_id"]: r["people"] for r in rows}
 
 
 def load_crowds(conn: psycopg.Connection, venue_ids: list[int], now: datetime) -> dict[int, "Crowd"]:
@@ -279,4 +300,34 @@ def load_crowds(conn: psycopg.Connection, venue_ids: list[int], now: datetime) -
         reports.setdefault(r["venue_id"], []).append(
             Report(r["user_id"], r["level"], r["queue"], r["seats"], r["created_at"], r["trust"])
         )
-    return {vid: crowd_from_checkins(reports.get(vid, []), last.get(vid), now) for vid in venue_ids}
+    crowds = {vid: crowd_from_checkins(reports.get(vid, []), last.get(vid), now) for vid in venue_ids}
+    return _with_yesterday(conn, crowds, now)
+
+
+def _with_yesterday(conn: psycopg.Connection, crowds: dict[int, "Crowd"], now: datetime) -> dict[int, "Crowd"]:
+    """For venues without fresh check-ins: how full they were at this time yesterday ("Dün bu saatlerde")."""
+    from dataclasses import replace
+
+    from app.crowd import WINDOW, Report, crowd_from_checkins
+
+    stale = [vid for vid, crowd in crowds.items() if crowd.state == "stale"]
+    if not stale:
+        return crowds
+    then = now - timedelta(days=1)
+    reports: dict[int, list[Report]] = {}
+    for r in conn.execute(
+        """
+        SELECT c.venue_id, c.user_id, c.level, c.queue, c.seats, c.created_at, COALESCE(u.trust, 1) AS trust
+        FROM checkins c LEFT JOIN users u ON u.id = c.user_id
+        WHERE c.venue_id = ANY(%s) AND c.created_at > %s AND c.created_at <= %s
+        """,
+        (stale, then - WINDOW, then),
+    ).fetchall():
+        reports.setdefault(r["venue_id"], []).append(
+            Report(r["user_id"], r["level"], r["queue"], r["seats"], r["created_at"], r["trust"])
+        )
+    for vid, rows in reports.items():
+        past = crowd_from_checkins(rows, max(x.created_at for x in rows), then)
+        if past.state == "live":
+            crowds[vid] = replace(crowds[vid], yesterday_level=past.level)
+    return crowds

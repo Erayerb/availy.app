@@ -36,6 +36,7 @@ export type Venue = {
   crowd: Crowd; // v2: occupancy from check-ins
   // v2: "Burayı X keşfetti" (first 30 days); name is null when that check-in was private
   discovery?: { name: string | null; username?: string | null; at: string } | null;
+  trend?: number; // v2: different people who checked in during the last 24 hours
   district_occupancy: AreaOccupancy;
   open_now: boolean;
   hours: string; // "08:00–23:00" or "24 saat açık"

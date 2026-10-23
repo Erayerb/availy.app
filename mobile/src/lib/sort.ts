@@ -30,3 +30,13 @@ export function sortVenues(
   if (mode === 'quietest') return byQuietest(venues);
   return recommended(venues);
 }
+
+// "Trendler" on the map: the venues most people checked in at in the last 24 hours
+export const TRENDING_LIMIT = 20;
+
+export function trending<T extends { trend?: number }>(venues: T[]): T[] {
+  return venues
+    .filter((v) => (v.trend ?? 0) > 0)
+    .sort((a, b) => (b.trend ?? 0) - (a.trend ?? 0))
+    .slice(0, TRENDING_LIMIT);
+}

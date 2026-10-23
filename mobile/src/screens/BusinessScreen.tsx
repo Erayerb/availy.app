@@ -1,44 +1,67 @@
-import { HeaderButtons } from '../components/HeaderButtons';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { HourlyChart } from '../components/HourlyChart';
-
+import { HeaderButtons } from '../components/HeaderButtons';
+import { CrowdDot } from '../components/CrowdDot';
+import { ReviewsSection } from '../components/ReviewsSection';
 import { useCampaigns } from '../context/CampaignsContext';
-import { useBusinessData } from '../hooks/useBusinessData';
-import type { Venue } from '../lib/api';
+import { useEngagement } from '../context/EngagementContext';
+import { useSettings } from '../context/SettingsContext';
+import { useReviews } from '../hooks/useReviews';
+import { fetchVenues, fetchVenuesByIds, type Venue } from '../lib/api';
+import type { User } from '../lib/auth';
+import { busiestHour, businessApi, quietestWeekday, WEEKDAY_NAMES, type VenueStats } from '../lib/business';
 import { deadHourSuggestion, timeLeft } from '../lib/campaigns';
+import { crowdRatioText, crowdSummary, crowdYesterday, liveLevel } from '../lib/crowd';
 import { categoryLabel } from '../lib/filters';
 import { formatDistance } from '../lib/geo';
+import { campaignTotals } from '../lib/history';
 import { shortLocation } from '../lib/location';
-import { FeedbackSection } from '../components/business/FeedbackSection';
+import { bboxAround } from '../lib/nearby';
+import { formatHour, nearbyCompetitors } from '../lib/stats';
+import { colors, themed } from '../theme';
 
-import { StatsSection } from '../components/business/StatsSection';
-
-
-import { LevelDot } from '../components/LevelDot';
-import { useSettings } from '../context/SettingsContext';
-
-import { formatHour, isDeadHour, nearbyCompetitors, percent, summarizeDay } from '../lib/stats';
-import { colors } from '../theme';
-
-// Istanbul is UTC+3 all year
-const istanbulHour = (now: Date) => (now.getUTCHours() + 3) % 24;
+const REFRESH_MS = 30_000;
+const CHART_HEIGHT = 80;
 
 type Props = {
   venueId: number;
+  user: User;
   onShowOnMap: (venue: Venue) => void;
+  onOpenUser: (username: string) => void;
+  onRegister: () => void;
 };
 
-export function BusinessScreen({
-  venueId,
-  onShowOnMap,
-}: Props) {
-  const { venue, hourly, all, error } = useBusinessData(venueId);
-  const { now, create, activeFor } = useCampaigns();
-
+/** v2 business panel: everything from customers' check-ins (no estimated occupancy). */
+export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegister }: Props) {
+  const [venue, setVenue] = useState<Venue | null>(null);
+  const [nearby, setNearby] = useState<Venue[]>([]);
+  const [stats, setStats] = useState<VenueStats | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
-  const { look } = useSettings();
+  const { now, create, activeFor, campaigns } = useCampaigns();
+  const { views, coupons } = useEngagement();
+  const { crowdLook } = useSettings();
+  const { reviews, setReviews, reload: reloadReviews } = useReviews(venueId, user.token);
+
+  const load = useCallback(async () => {
+    try {
+      const [mine] = await fetchVenuesByIds([venueId]);
+      if (!mine) return setError('Mekan bulunamadı.');
+      setVenue(mine);
+      setError(null);
+      fetchVenues(bboxAround(mine, 0.02), []).then(setNearby).catch(() => {});
+      if (user.token) businessApi.stats(user.token, venueId).then(setStats).catch(() => setStats(null));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Yüklenemedi.');
+    }
+  }, [venueId, user.token]);
+
+  useEffect(() => {
+    load();
+    const timer = setInterval(load, REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [load]);
 
   if (!venue) {
     return (
@@ -49,20 +72,29 @@ export function BusinessScreen({
   }
 
   const active = activeFor(venue.id);
-  const { label } = look(venue.occupancy.level, venue.open_now);
-  // Dead-hour prompt only while the venue is open
-  const dead = venue.open_now && isDeadHour(venue.occupancy.ratio);
-  const day = hourly.length ? summarizeDay(hourly) : null;
-  const competitors = nearbyCompetitors(venue, all);
+  const look = crowdLook(venue);
+  // Dead hour: open, and customers' fresh check-ins say Sakin
+  const dead = liveLevel(venue) === 'low';
+  const competitors = nearbyCompetitors(venue, nearby, 2, 5);
+  const totals = campaignTotals(campaigns, views, coupons, venue.id, 7);
+  const busiest = stats ? busiestHour(stats.today) : null;
+  const quietDay = stats && stats.weekday.some((n) => n > 0) ? quietestWeekday(stats.weekday) : null;
+  const maxToday = stats ? Math.max(1, ...stats.today.map((h) => h.checkins)) : 1;
+  const maxWeekday = stats ? Math.max(1, ...stats.weekday) : 1;
+  const hourNow = (now.getUTCHours() + 3) % 24; // Istanbul
 
-  const send = (input: {
-    message: string;
-    discount: number | null;
-    durationHours: number;
-    radiusKm: number;
-  }) => {
-    create({ venueId: venue.id, venueName: venue.name, lat: venue.lat, lon: venue.lon, ...input });
-    setSent(`Kampanya ${input.radiusKm} km içindeki kullanıcılara gönderildi.`);
+  const sendReady = () => {
+    create({
+      venueId: venue.id,
+      venueName: venue.name,
+      lat: venue.lat,
+      lon: venue.lon,
+      message: deadHourSuggestion(venue.category),
+      discount: 20,
+      durationHours: 2,
+      radiusKm: 2,
+    });
+    setSent('Kampanya 2 km içindeki kullanıcılara gönderildi.');
   };
 
   return (
@@ -75,43 +107,33 @@ export function BusinessScreen({
       <Pressable style={styles.card} onPress={() => onShowOnMap(venue)}>
         <Text style={styles.venueName}>{venue.name}</Text>
         <Text style={styles.muted}>
-          {categoryLabel(venue.category)} · {shortLocation(venue.neighborhood, venue.district)} · Haritada gör
-          ›
+          {categoryLabel(venue.category)} · {shortLocation(venue.neighborhood, venue.district)} · Haritada gör ›
         </Text>
+        {stats?.discovered_by && (
+          <Text style={styles.discovery}>
+            ✨ Mekanını {stats.discovered_by.username ? `@${stats.discovered_by.username}` : 'gizli bir kullanıcı'} keşfetti
+          </Text>
+        )}
       </Pressable>
 
-      {/* Now */}
+      {/* Now: what customers see */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Şu an</Text>
-        <View style={styles.nowRow}>
-          <Text style={styles.bigPercent}>{venue.open_now ? percent(venue.occupancy.ratio) : 'Kapalı'}</Text>
-          <View style={styles.nowInfo}>
-            <View style={styles.levelRow}>
-              <LevelDot level={venue.occupancy.level} open={venue.open_now} />
-              <Text style={styles.text}>{venue.open_now ? label : `${venue.opens_at}'de açılır`}</Text>
-            </View>
-            <Text style={styles.muted}>🕒 {venue.hours}</Text>
-          </View>
+        <View style={styles.levelRow}>
+          <CrowdDot venue={venue} size={16} />
+          <Text style={styles.nowLabel}>{look.label}</Text>
+          {crowdRatioText(venue.crowd) && <Text style={styles.nowRatio}>{crowdRatioText(venue.crowd)}</Text>}
         </View>
+        <Text style={styles.text}>{venue.open_now ? crowdSummary(venue.crowd, new Date()) : `${venue.opens_at}'de açılır`}</Text>
+        {venue.open_now && crowdYesterday(venue.crowd) && <Text style={styles.text}>🕘 {crowdYesterday(venue.crowd)}</Text>}
+        <Text style={styles.muted}>🕒 {venue.hours} · Müşterilerin gördüğü durum, onların check-in'lerinden.</Text>
 
         {dead && !active && (
           <View style={styles.alert}>
-            <Text style={styles.alertTitle}>Ölü saat: mekanın {percent(venue.occupancy.ratio)} dolu</Text>
-            <Text style={styles.text}>
-              Boş masaları doldurmak için yakındaki kullanıcılara tek tıkla kampanya gönder.
-            </Text>
+            <Text style={styles.alertTitle}>Ölü saat: müşteriler mekanını Sakin bildiriyor</Text>
+            <Text style={styles.text}>Boş masaları doldurmak için yakındaki kullanıcılara tek dokunuşla kampanya gönder.</Text>
             <Text style={styles.quote}>“{deadHourSuggestion(venue.category)}”</Text>
-            <Pressable
-              style={styles.primary}
-              onPress={() =>
-                send({
-                  message: deadHourSuggestion(venue.category),
-                  discount: 20,
-                  durationHours: 2,
-                  radiusKm: 2,
-                })
-              }
-            >
+            <Pressable style={styles.primary} onPress={sendReady}>
               <Text style={styles.primaryText}>Hazır kampanyayı gönder (2 saat · 2 km)</Text>
             </Pressable>
           </View>
@@ -122,63 +144,127 @@ export function BusinessScreen({
 
       {/* Today */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Bugünkü doluluk</Text>
-        {hourly.length > 0 && <HourlyChart hours={hourly} currentHour={istanbulHour(now)} />}
-        {day && day.busiest.ratio > day.quietest.ratio && (
-          <Text style={styles.text}>
-            En sakin saat {formatHour(day.quietest.hour)} ({percent(day.quietest.ratio)}), en yoğun saat{' '}
-            {formatHour(day.busiest.hour)} ({percent(day.busiest.ratio)}).
-          </Text>
-        )}
-        {day && day.busiest.ratio === day.quietest.ratio && (
-          <Text style={styles.text}>Bugün gün boyu {percent(day.busiest.ratio)} dolu görünüyor.</Text>
+        <Text style={styles.sectionTitle}>Bugün · {stats?.today_checkins ?? 0} check-in</Text>
+        {!stats || stats.today_checkins === 0 ? (
+          <Text style={styles.muted}>Bugün henüz check-in yok. Müşterilerin check-in yaptıkça saat saat burada görünür.</Text>
+        ) : (
+          <>
+            <View style={styles.chart}>
+              {stats.today.map((h) => (
+                <View key={h.hour} style={styles.slot}>
+                  <View
+                    style={[
+                      styles.bar,
+                      {
+                        height: h.checkins ? Math.max(6, (h.checkins / maxToday) * CHART_HEIGHT) : 2,
+                        backgroundColor: h.level ? crowdLook({ open_now: true, crowd: { state: 'live', level: h.level, ratio: null, reporters: 2, last_report_at: null, queue: null, seats: null } }).color : colors.border,
+                      },
+                      h.hour === hourNow && styles.barNow,
+                    ]}
+                  />
+                </View>
+              ))}
+            </View>
+            <View style={styles.axis}>
+              {['00', '06', '12', '18', '23'].map((t) => (
+                <Text key={t} style={styles.axisText}>
+                  {t}
+                </Text>
+              ))}
+            </View>
+            {busiest !== null && (
+              <Text style={styles.text}>En çok check-in {formatHour(busiest)} civarında. Çubuğun rengi o saatteki doluluk.</Text>
+            )}
+          </>
         )}
       </View>
 
-      {/* Comparison */}
+      {/* Last 7 days */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Kıyaslama</Text>
-        <CompareBar label="Sen" ratio={venue.occupancy.ratio} />
-        <CompareBar label={`${venue.district} ortalaması`} ratio={venue.district_occupancy.ratio} />
-        <Text style={[styles.label, styles.spaced]}>Yakındaki benzer mekanlar (2 km)</Text>
+        <Text style={styles.sectionTitle}>Son 7 gün</Text>
+        <View style={styles.stats}>
+          <Stat value={stats?.week_checkins ?? 0} label="check-in" />
+          <Stat value={stats?.week_people ?? 0} label="kişi" />
+          <Stat value={stats?.week_new ?? 0} label="ilk kez" />
+          <Stat value={stats?.week_returning ?? 0} label="tekrar gelen" />
+        </View>
+        <Text style={styles.muted}>Toplam {stats?.total_checkins ?? 0} check-in. Kişiler adsız sayılır; kim olduklarını göremezsin.</Text>
+      </View>
+
+      {/* Weekdays */}
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Haftanın günleri (son 30 gün)</Text>
+        {!stats || stats.weekday.every((n) => n === 0) ? (
+          <Text style={styles.muted}>Henüz yeterli check-in yok.</Text>
+        ) : (
+          <>
+            <View style={styles.weekChart}>
+              {stats.weekday.map((n, i) => (
+                <View key={WEEKDAY_NAMES[i]} style={styles.weekSlot}>
+                  <Text style={styles.axisText}>{n}</Text>
+                  <View style={[styles.weekBar, { height: Math.max(3, (n / maxWeekday) * CHART_HEIGHT) }]} />
+                  <Text style={styles.axisText}>{WEEKDAY_NAMES[i]}</Text>
+                </View>
+              ))}
+            </View>
+            {quietDay !== null && (
+              <Text style={styles.text}>
+                En az check-in {WEEKDAY_NAMES[quietDay]} günü. Bu güne zamanlanmış bir kampanya iyi bir fikir olabilir.
+              </Text>
+            )}
+          </>
+        )}
+      </View>
+
+      {/* Nearby similar venues, as customers see them now */}
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Yakındaki benzer mekanlar (2 km)</Text>
         {competitors.length === 0 && <Text style={styles.muted}>Yakında benzer mekan yok.</Text>}
         {competitors.map(({ venue: other, distanceKm }) => (
           <View key={other.id} style={styles.compRow}>
-            <LevelDot level={other.occupancy.level} open={other.open_now} />
+            <CrowdDot venue={other} />
             <Text style={[styles.text, styles.flex]} numberOfLines={1}>
               {other.name}
             </Text>
             <Text style={styles.muted}>{formatDistance(distanceKm)}</Text>
-            <Text style={styles.compPercent}>
-              {other.open_now ? percent(other.occupancy.ratio) : 'Kapalı'}
+            <Text style={styles.compLabel} numberOfLines={1}>
+              {crowdLook(other).label}
             </Text>
           </View>
         ))}
       </View>
 
-      <StatsSection venue={venue} />
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Son 7 gün kampanya sonuçları</Text>
+        <Text style={styles.text}>
+          📣 {totals.campaigns} kampanya · 👁 {totals.views} gösterim · 🎟 {totals.claims} kupon · ✅ {totals.redemptions} kullanım
+        </Text>
+      </View>
 
-      <FeedbackSection venueId={venue.id} />
-
+      {/* Customers' reviews; the business answers as "İşletme" */}
+      <ReviewsSection
+        venueId={venue.id}
+        user={user}
+        reviews={reviews}
+        onChange={setReviews}
+        reload={reloadReviews}
+        onRegister={onRegister}
+        onOpenUser={onOpenUser}
+      />
     </ScrollView>
   );
 }
 
-function CompareBar({ label, ratio }: { label: string; ratio: number }) {
+function Stat({ value, label }: { value: number; label: string }) {
   return (
-    <View style={styles.compare}>
-      <View style={styles.compareHeader}>
-        <Text style={styles.text}>{label}</Text>
-        <Text style={styles.text}>{percent(ratio)}</Text>
-      </View>
-      <View style={styles.track}>
-        <View style={[styles.fillBar, { width: `${Math.round(ratio * 100)}%` }]} />
-      </View>
+    <View style={styles.stat}>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 48, gap: 14 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
@@ -193,40 +279,34 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   venueName: { fontSize: 18, fontWeight: '700', color: colors.text },
+  discovery: { fontSize: 13, fontWeight: '600', color: colors.discovery },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
   text: { fontSize: 14, color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },
-  label: { fontSize: 13, fontWeight: '600', color: colors.text },
-  spaced: { marginTop: 6 },
   flex: { flex: 1 },
-  nowRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  bigPercent: { fontSize: 44, fontWeight: '800', color: colors.text },
-  nowInfo: { gap: 4, flex: 1 },
-  levelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  alert: {
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: colors.cream,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    gap: 8,
-  },
+  levelRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  nowLabel: { fontSize: 22, fontWeight: '800', color: colors.text },
+  nowRatio: { fontSize: 18, fontWeight: '700', color: colors.textMuted },
+  alert: { padding: 12, borderRadius: 12, backgroundColor: colors.cream, borderWidth: 1, borderColor: colors.primary, gap: 8 },
   alertTitle: { fontSize: 15, fontWeight: '700', color: colors.primary },
   quote: { fontSize: 14, fontStyle: 'italic', color: colors.text },
   activeNote: { fontSize: 14, color: colors.primary, fontWeight: '600' },
   success: { fontSize: 14, color: colors.success, fontWeight: '600' },
-  compare: { gap: 4 },
-  compareHeader: { flexDirection: 'row', justifyContent: 'space-between' },
-  track: { height: 8, borderRadius: 4, backgroundColor: colors.cream, overflow: 'hidden' },
-  fillBar: { height: 8, borderRadius: 4, backgroundColor: colors.primary },
+  chart: { flexDirection: 'row', alignItems: 'flex-end', height: CHART_HEIGHT, gap: 2 },
+  slot: { flex: 1, justifyContent: 'flex-end' },
+  bar: { borderRadius: 2 },
+  barNow: { borderWidth: 1.5, borderColor: colors.text },
+  axis: { flexDirection: 'row', justifyContent: 'space-between' },
+  axisText: { fontSize: 11, color: colors.textMuted, textAlign: 'center' },
+  weekChart: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  weekSlot: { flex: 1, alignItems: 'center', gap: 4 },
+  weekBar: { width: '100%', borderRadius: 4, backgroundColor: colors.primary },
+  stats: { flexDirection: 'row', gap: 8 },
+  stat: { flex: 1, padding: 10, borderRadius: 14, backgroundColor: colors.cream, alignItems: 'center' },
+  statValue: { fontSize: 20, fontWeight: '800', color: colors.primary },
+  statLabel: { fontSize: 11, color: colors.textMuted, textAlign: 'center' },
   compRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  compPercent: { fontSize: 14, fontWeight: '600', color: colors.text, minWidth: 52, textAlign: 'right' },
-  primary: {
-    paddingVertical: 13,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-  },
+  compLabel: { fontSize: 13, fontWeight: '600', color: colors.text, maxWidth: 110, textAlign: 'right' },
+  primary: { paddingVertical: 13, paddingHorizontal: 12, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center' },
   primaryText: { color: colors.onPrimary, fontSize: 15, fontWeight: '600', textAlign: 'center' },
-});
+}));

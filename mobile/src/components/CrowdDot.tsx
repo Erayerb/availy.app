@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useSettings } from '../context/SettingsContext';
 import type { Crowd } from '../lib/crowd';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 type Props = { venue: { open_now: boolean; crowd?: Crowd }; size?: number };
 
@@ -18,7 +18,7 @@ export function CrowdDot({ venue, size = 10 }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   dot: { alignItems: 'center', justifyContent: 'center' },
   glyph: { color: colors.white, fontWeight: '800', textAlign: 'center' },
-});
+}));

@@ -4,7 +4,7 @@ import type { Screen } from '../components/TabBar';
 import { HeaderButtons } from '../components/HeaderButtons';
 import { Wordmark } from '../components/Wordmark';
 import { isBusiness, type User } from '../lib/auth';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 type Item = { screen: Screen; label: string; hint?: string; badge?: string };
 
@@ -13,6 +13,7 @@ const CUSTOMER_ITEMS: Item[] = [
   { screen: 'campaigns', label: 'Kampanyalar', hint: 'Yakındaki kampanyalar, kuponların ve sadakat kartların' },
   { screen: 'subscription', label: 'Abonelik', hint: 'Ücretsiz ya da Premium (₺79/ay)' },
   { screen: 'settings', label: 'Ayarlar', hint: 'Bildirimler, renk körlüğü modu' },
+  { screen: 'appearance', label: 'Görünüm', hint: 'Cihaz ayarı, açık ya da koyu' },
   { screen: 'privacy', label: 'Gizlilik', hint: "Check-in'lerimi kim görür, sıralama, engellenenler" },
   { screen: 'permissions', label: 'Konum ve izinler', hint: 'Konum, kamera ve bildirim izinleri ne için kullanılıyor' },
 ];
@@ -20,6 +21,7 @@ const CUSTOMER_ITEMS: Item[] = [
 const BUSINESS_ITEMS: Item[] = [
   { screen: 'profile', label: 'İşletme Profili', hint: 'Fotoğraf, paket ve hesap' },
   { screen: 'settings', label: 'İşletme Ayarları', hint: 'Mekan bilgileri, ölü saat bildirimi, otomatik kampanya' },
+  { screen: 'appearance', label: 'Görünüm', hint: 'Cihaz ayarı, açık ya da koyu' },
   { screen: 'verification', label: 'İşletme doğrulama', hint: 'Mekan sahipliğini kanıtla', badge: 'Yakında' },
 ];
 
@@ -82,7 +84,7 @@ export function MoreScreen({ user, onSelect, onLogin, onLogout }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 32, gap: 14 },
@@ -115,4 +117,4 @@ const styles = StyleSheet.create({
   loginText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
   logout: { paddingVertical: 13, borderRadius: 12, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
   logoutText: { fontSize: 16, color: colors.danger, fontWeight: '600' },
-});
+}));

@@ -25,7 +25,7 @@ import { sortByDistance } from '../lib/geo';
 import { HeaderButtons } from '../components/HeaderButtons';
 import { SORT_OPTIONS, sortVenues, type SortMode } from '../lib/sort';
 import { stableShuffle } from '../lib/shuffle';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 // New mixed order each app start, stable while the app is open
 const SESSION_SEED = String(Date.now());
@@ -203,7 +203,7 @@ export function HomeScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   header: { gap: 10 },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6 },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.text, marginTop: 8 },
@@ -226,4 +226,4 @@ const styles = StyleSheet.create({
   searchIcon: { fontSize: 15 },
   searchInput: { flex: 1, fontSize: 16, color: colors.text, padding: 0 },
   searchClear: { fontSize: 15, color: colors.textMuted },
-});
+}));

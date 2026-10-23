@@ -3,9 +3,9 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BackButton } from '../components/BackButton';
 import { useNotifications } from '../context/NotificationsContext';
-import { timeAgo } from '../lib/crowd';
+import { sentence, timeAgo } from '../lib/crowd';
 import { notificationText, type AppNotification } from '../lib/social';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 type Props = {
   signedIn: boolean;
@@ -55,7 +55,7 @@ export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue,
               <Text style={styles.icon}>{ICONS[n.kind]}</Text>
               <View style={styles.flex}>
                 <Text style={styles.text}>{notificationText(n)}</Text>
-                <Text style={styles.muted}>{timeAgo(n.at, new Date())}</Text>
+                <Text style={styles.muted}>{sentence(timeAgo(n.at, new Date()))}</Text>
               </View>
               <Text style={styles.chevron}>›</Text>
             </Pressable>
@@ -70,7 +70,7 @@ export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue,
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 48, gap: 14 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -93,4 +93,4 @@ const styles = StyleSheet.create({
   link: { color: colors.primary, fontWeight: '600', textAlign: 'center' },
   primary: { paddingVertical: 13, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center' },
   primaryText: { color: colors.onPrimary, fontWeight: '700' },
-});
+}));

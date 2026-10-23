@@ -23,10 +23,10 @@ import { useReviews } from '../hooks/useReviews';
 import { ReviewsSection } from '../components/ReviewsSection';
 import { describeProgram, isProgramActive } from '../lib/loyalty';
 import type { User } from '../lib/auth';
-import { crowdExtra, crowdRatioText, crowdSummary } from '../lib/crowd';
+import { crowdExtra, crowdRatioText, crowdSummary, crowdYesterday } from '../lib/crowd';
 import { shareVenue } from '../lib/shareVenue';
 import { canWatch } from '../lib/watch';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 type Props = {
   venueId: number;
@@ -37,6 +37,7 @@ type Props = {
   onBack: () => void;
   onShowOnMap: (venue: Venue) => void;
   onOpenUser: (username: string) => void; // a reviewer's profile
+  lastCheckinAt?: string | null; // the user's last check-in here
 };
 
 export function VenueDetailScreen({
@@ -48,6 +49,7 @@ export function VenueDetailScreen({
   onBack,
   onShowOnMap,
   onOpenUser,
+  lastCheckinAt = null,
 }: Props) {
   const { venues, loading, error, refreshing, refresh } = useVenuesByIds([venueId]);
   const venue = venues[0];
@@ -133,6 +135,7 @@ export function VenueDetailScreen({
         </View>
         {venue.open_now && <Text style={styles.text}>{crowdSummary(venue.crowd, new Date())}</Text>}
         {venue.open_now && crowdExtra(venue.crowd) && <Text style={styles.text}>{crowdExtra(venue.crowd)}</Text>}
+        {venue.open_now && crowdYesterday(venue.crowd) && <Text style={styles.text}>🕘 {crowdYesterday(venue.crowd)}</Text>}
         <Text style={styles.text}>🕒 {venue.hours}</Text>
         {watching ? (
           <Text style={styles.watch}>🔔 Sakin olunca haber vereceğiz</Text>
@@ -152,6 +155,7 @@ export function VenueDetailScreen({
           refresh();
           onCheckedIn();
         }}
+        lastCheckinAt={lastCheckinAt}
       />
 
       <View style={styles.buttons}>
@@ -208,8 +212,8 @@ export function VenueDetailScreen({
   );
 }
 
-const styles = StyleSheet.create({
-  discovery: { fontSize: 13, color: '#7B5EA7', fontWeight: '600', marginTop: 2 },
+const styles = themed(() => StyleSheet.create({
+  discovery: { fontSize: 13, color: colors.discovery, fontWeight: '600', marginTop: 2 },
   // Space for the status bar sits outside the scroll view, so the pull-to-refresh spinner stays visible
   page: { flex: 1, marginTop: 50, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 48, gap: 14 },
@@ -273,7 +277,7 @@ const styles = StyleSheet.create({
   demo: { textAlign: 'center', fontSize: 12, color: colors.placeholder },
   rating: { fontSize: 14, color: colors.primary, marginTop: 2 },
   error: { fontSize: 13, color: colors.danger },
-});
+}));
 
 /** "@eray"; guests have no user name ("Misafir 12"); private first check-ins stay anonymous. */
 function discoverer(discovery: { name: string | null; username?: string | null }): string {

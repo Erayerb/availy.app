@@ -36,6 +36,7 @@ class ReplyOut(BaseModel):
     body: str
     created_at: datetime
     mine: bool
+    is_business: bool = False  # written by the venue's own business account ("İşletme")
 
 
 class ReviewOut(BaseModel):

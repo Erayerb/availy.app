@@ -44,6 +44,8 @@ class Crowd:
     last_report_at: datetime | None = None
     queue: bool | None = None  # "Sıra var" (from Kalabalık reports)
     seats: bool | None = None  # "Oturacak yer var" (from Orta reports)
+    # No recent check-ins: the level at this time yesterday, if there were check-ins then ("Dün bu saatlerde")
+    yesterday_level: str | None = None
 
 
 def age_weight(created_at: datetime, now: datetime) -> float:

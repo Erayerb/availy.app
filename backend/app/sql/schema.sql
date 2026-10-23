@@ -174,3 +174,6 @@ CREATE TABLE IF NOT EXISTS reports (
     CHECK ((review_id IS NULL) <> (reply_id IS NULL))
 );
 CREATE UNIQUE INDEX IF NOT EXISTS reports_once ON reports (reporter_id, COALESCE(review_id, 0), COALESCE(reply_id, 0));
+
+-- v2: "Hesabı dondur": the account stays, but its profile and activity are hidden until the next sign-in
+ALTER TABLE users ADD COLUMN IF NOT EXISTS frozen BOOLEAN NOT NULL DEFAULT false;

@@ -8,7 +8,7 @@ import { fetchHistory, type Venue } from '../../lib/api';
 import { campaignTotals, WEEKDAYS, type History } from '../../lib/history';
 import { classify } from '../../lib/dummyOccupancy';
 import { percent } from '../../lib/stats';
-import { colors } from '../../theme';
+import { colors, themed } from '../../theme';
 import { Chip } from '../TagChips';
 import { panel } from './panelStyles';
 
@@ -83,10 +83,10 @@ export function StatsSection({ venue }: { venue: Venue }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   bars: { height: HEIGHT, flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
   slot: { flex: 1, justifyContent: 'flex-end' },
   bar: { borderRadius: 3 },
   labels: { flexDirection: 'row', gap: 2 },
   label: { flex: 1, fontSize: 10, color: colors.textMuted, textAlign: 'center' },
-});
+}));

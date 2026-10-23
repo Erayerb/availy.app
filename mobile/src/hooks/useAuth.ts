@@ -2,9 +2,17 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { accountApi, ApiError, toUser, type LocalBusiness } from '../lib/accountApi';
 import { accountKey, normalizeUsername, validateUsername, type Role, type User } from '../lib/auth';
+import { moveAccountData } from '../lib/accountData';
+import { isLocalVenueId } from '../lib/localVenues';
 import { KEYS, loadJson, remove, saveJson } from '../lib/storage';
 
 const asMessage = (e: unknown) => (e instanceof Error ? e.message : 'Bilinmeyen hata');
+
+/** A business's venue on the server; venues added only on this phone are not there. */
+async function syncVenue(token: string, venueId: number) {
+  if (isLocalVenueId(venueId)) return;
+  await accountApi.setVenue(token, venueId).catch(() => {});
+}
 
 /** Accounts on the server (v2). Actions resolve to an error message, or null on success. */
 export function useAuth() {
@@ -12,6 +20,11 @@ export function useAuth() {
   const [ready, setReady] = useState(false);
 
   const signIn = useCallback(async (next: User) => {
+    // Same account with a new e-mail (changed here or on another phone): keep its data on this phone
+    const previous = await loadJson<User>(KEYS.user);
+    if (previous && previous.id === next.id && accountKey(previous) !== accountKey(next)) {
+      await moveAccountData(accountKey(previous), accountKey(next));
+    }
     setUser(next);
     await saveJson(KEYS.user, next);
     // Remember who used this phone, so a business here can find a customer by code (loyalty stamps)
@@ -31,6 +44,8 @@ export function useAuth() {
 
   useEffect(() => {
     loadJson<User>(KEYS.user).then(async (stored) => {
+      // Businesses that chose their venue before it was kept on the server
+      if (stored?.token && stored.role === 'business' && stored.venueId) syncVenue(stored.token, stored.venueId);
       // v1 users lived only on the phone and have no server session: they sign in again
       if (stored?.token) setUser(stored);
       else if (stored) await remove(KEYS.user);
@@ -111,6 +126,7 @@ export function useAuth() {
     async (patch: Partial<LocalBusiness>) => {
       if (!user) return;
       await signIn({ ...user, ...patch });
+      if (patch.venueId && user.token && user.role === 'business') await syncVenue(user.token, patch.venueId);
       if (user.id === undefined) return;
       const all = (await loadJson<Record<string, LocalBusiness>>(KEYS.businessProfiles)) ?? {};
       await saveJson(KEYS.businessProfiles, { ...all, [user.id]: { ...all[user.id], ...patch } });
@@ -154,6 +170,32 @@ export function useAuth() {
     await signOutLocally();
   }, [user, signOutLocally]);
 
+  const changeEmail = useCallback(
+    async (email: string, password: string): Promise<string | null> => {
+      if (!user?.token) return 'Önce giriş yap.';
+      try {
+        const fresh = await accountApi.changeEmail(user.token, email, password);
+        await signIn({ ...user, email: fresh.email });
+        return null;
+      } catch (e) {
+        return asMessage(e);
+      }
+    },
+    [user, signIn],
+  );
+
+  /** "Hesabı dondur": the server signs out every session, so only this phone is cleared here. */
+  const freezeAccount = useCallback(async (): Promise<string | null> => {
+    if (!user?.token) return 'Önce giriş yap.';
+    try {
+      await accountApi.freeze(user.token);
+      await signOutLocally();
+      return null;
+    } catch (e) {
+      return asMessage(e);
+    }
+  }, [user, signOutLocally]);
+
   const logout = useCallback(async () => {
     if (user?.token) await accountApi.logout(user.token).catch(() => {});
     await signOutLocally();
@@ -169,7 +211,9 @@ export function useAuth() {
     updateProfile,
     changeUsername,
     changePassword,
+    changeEmail,
     deleteAccount,
+    freezeAccount,
     logout,
   };
 }

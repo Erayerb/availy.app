@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { useSettings } from '../context/SettingsContext';
 import { FREE_FEATURES, PREMIUM_FEATURES, PREMIUM_PRICE } from '../lib/premium';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 type Props = { signedIn: boolean; onBack: () => void; onLogin: () => void };
 
@@ -59,7 +59,7 @@ function Plan(props: { name: string; price: string; features: string[]; current:
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 40, gap: 14 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -76,4 +76,4 @@ const styles = StyleSheet.create({
   secondary: { paddingVertical: 14, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center' },
   secondaryText: { color: colors.primary, fontSize: 16, fontWeight: '700' },
   note: { textAlign: 'center', fontSize: 12, color: colors.placeholder },
-});
+}));

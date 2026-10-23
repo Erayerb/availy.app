@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Logo } from '../components/Logo';
 import { Wordmark } from '../components/Wordmark';
 import type { Role } from '../lib/auth';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 type Props = {
   onLogin: (role: Role) => void;
@@ -64,16 +64,19 @@ export function WelcomeScreen({ onLogin, onRegister, onGuest }: Props) {
             </Pressable>
           </>
         )}
-        <Pressable onPress={continueAsGuest} disabled={opening} hitSlop={10} style={styles.guest}>
-          <Text style={styles.guestText}>{opening ? 'Açılıyor…' : 'Kayıt olmadan devam et'}</Text>
-        </Pressable>
+        {/* A business needs an account; only customers can look around as a guest */}
+        {role !== 'business' && (
+          <Pressable onPress={continueAsGuest} disabled={opening} hitSlop={10} style={styles.guest}>
+            <Text style={styles.guestText}>{opening ? 'Açılıyor…' : 'Kayıt olmadan devam et'}</Text>
+          </Pressable>
+        )}
         {guestError && <Text style={styles.error}>{guestError}</Text>}
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 24, paddingBottom: 50 },
   brand: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },
   tagline: { fontSize: 16, color: colors.textMuted },
@@ -95,4 +98,4 @@ const styles = StyleSheet.create({
   guest: { alignItems: 'center', paddingVertical: 10 },
   error: { color: colors.danger, fontSize: 14, textAlign: 'center' },
   guestText: { color: colors.textMuted, fontSize: 15, textDecorationLine: 'underline' },
-});
+}));

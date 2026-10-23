@@ -7,7 +7,7 @@ import type { Venue } from '../lib/api';
 import type { User } from '../lib/auth';
 import { checkinBody, checkinMessage, followUpQuestion, sendCheckin } from '../lib/checkinApi';
 import { LEVELS, type Level } from '../lib/occupancy';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 import { ThemedSwitch } from './ThemedSwitch';
 
 type Props = {
@@ -17,7 +17,14 @@ type Props = {
   onRegister: () => void;
   // Called after a successful check-in (e.g. to reload the venue and the user's points)
   onDone: () => void;
+  // The user's last check-in here (ISO), if any: a new one is possible 2 hours later
+  lastCheckinAt?: string | null;
 };
+
+// Same as the server: one check-in per venue every 2 hours
+const COOLDOWN_MS = 2 * 60 * 60_000;
+
+const clock = (ms: number) => new Date(ms).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 
 const LOCATION_ERRORS = {
   denied: 'Check-in için konum izni gerekli.',
@@ -26,7 +33,7 @@ const LOCATION_ERRORS = {
 };
 
 /** v2 check-in: first say how busy it is (and the follow-up question), then the Check-in button opens. */
-export function CheckinPanel({ venue, user, onLogin, onRegister, onDone }: Props) {
+export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastCheckinAt = null }: Props) {
   const { look, privateByDefault } = useSettings();
   const { locate } = useLocation();
   const [level, setLevel] = useState<Level | null>(null);
@@ -35,7 +42,22 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone }: Props
   const [isPrivate, setIsPrivate] = useState(privateByDefault);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string; settings?: boolean } | null>(null);
+  // Set right after a check-in, before the visits list has reloaded
+  const [justCheckedIn, setJustCheckedIn] = useState<number | null>(null);
   const question = followUpQuestion(level);
+  const last = Math.max(justCheckedIn ?? 0, lastCheckinAt ? new Date(lastCheckinAt).getTime() : 0);
+  const nextAt = last ? last + COOLDOWN_MS : 0;
+  const coolingDown = nextAt > Date.now();
+
+  // Occupancy comes from customers only
+  if (user?.role === 'business') {
+    return (
+      <View style={styles.card}>
+        <Text style={styles.title}>Check-in</Text>
+        <Text style={styles.muted}>İşletme hesabıyla check-in yapılamaz; mekanların doluluğunu müşteriler bildirir.</Text>
+      </View>
+    );
+  }
 
   if (!venue.open_now) {
     return (
@@ -69,6 +91,7 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone }: Props
     try {
       const done = await sendCheckin(user.token, venue.id, checkinBody(level, answer, position.coords, isPrivate));
       setResult({ ok: true, text: checkinMessage(done) });
+      setJustCheckedIn(Date.now());
       setLevel(null);
       setAnswer(null);
       onDone();
@@ -78,6 +101,20 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone }: Props
       setSending(false);
     }
   };
+
+  // Checked in here less than 2 hours ago: say when the next one is possible instead of the form
+  if (coolingDown) {
+    return (
+      <View style={styles.card}>
+        <Text style={styles.title}>✓ Buraya check-in yaptın</Text>
+        {result?.ok && <Text style={styles.success}>{result.text}</Text>}
+        <View style={styles.cooldown}>
+          <Text style={styles.text}>Bu mekana tekrar check-in yapabilirsin: {clock(nextAt)}</Text>
+          <Text style={styles.muted}>Son check-in'in {clock(last)}. Aynı mekana 2 saatte bir check-in yapılabilir.</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.card}>
@@ -157,7 +194,8 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone }: Props
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
+  cooldown: { gap: 4, padding: 12, borderRadius: 12, backgroundColor: colors.cream },
   card: { padding: 16, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 10 },
   title: { fontSize: 16, fontWeight: '700', color: colors.text },
   text: { fontSize: 14, color: colors.text },
@@ -178,4 +216,4 @@ const styles = StyleSheet.create({
   link: { color: colors.primary, fontWeight: '700' },
   privateRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   privateText: { flex: 1, gap: 2 },
-});
+}));

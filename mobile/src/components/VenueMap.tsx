@@ -6,7 +6,7 @@ import type { Venue } from '../lib/api';
 import type { Region } from '../lib/bbox';
 import { useSettings } from '../context/SettingsContext';
 import { LABEL_LINE_HEIGHT, LABEL_MAX_WIDTH as LABEL_WIDTH, labelPriority, visibleLabels } from '../lib/labels';
-import { colors } from '../theme';
+import { colors, getScheme, themed } from '../theme';
 import { DOT_SIZE, LABEL_MIN_ZOOM, SELECTED_DOT_SIZE, zoomForDelta, type VenueMapProps } from './VenueMap.types';
 
 // Invisible tap area around each dot: a little larger than the dot, but small
@@ -104,6 +104,7 @@ export function VenueMap({
   }, [focus?.key]);
   const selected = venues.find((v) => v.id === selectedId);
   const { colorBlind } = useSettings();
+  const scheme = getScheme();
 
   // Track the selected dot's screen position so the card follows it while the map moves
   const updatePoint = useCallback(async () => {
@@ -140,6 +141,8 @@ export function VenueMap({
       onPress={handleMapPress}
       onLayout={(e) => setSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
       showsMyLocationButton={false}
+      // Apple Maps' own dark style in the dark theme
+      userInterfaceStyle={scheme}
     >
       {userPoint && (
         <Marker
@@ -159,7 +162,7 @@ export function VenueMap({
         return (
           <VenueMarker
             // tracksViewChanges is off, so a new key re-renders the dot when its look changes
-            key={`${venue.id}-${venue.crowd?.state}-${venue.crowd?.level}-${venue.open_now}-${isSelected}-${colorBlind}-${labelled.has(venue.id)}`}
+            key={`${venue.id}-${venue.crowd?.state}-${venue.crowd?.level}-${venue.open_now}-${isSelected}-${colorBlind}-${labelled.has(venue.id)}-${scheme}`}
             venue={venue}
             selected={isSelected}
             label={labelled.has(venue.id)}
@@ -171,7 +174,7 @@ export function VenueMap({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   map: { width: '100%', height: '100%' },
   touchArea: {
     width: TOUCH_SIZE,
@@ -200,8 +203,8 @@ const styles = StyleSheet.create({
     lineHeight: LABEL_LINE_HEIGHT,
     fontSize: 12,
     fontWeight: '600',
-    // Colour comes from the venue's dot; white halo so the name reads on any map background
-    textShadowColor: colors.white,
+    // Colour comes from the venue's dot; a halo in the page colour so the name reads on any map
+    textShadowColor: colors.background,
     textShadowRadius: 3,
     textShadowOffset: { width: 0, height: 0 },
   },
@@ -228,4 +231,4 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     elevation: 4,
   },
-});
+}));

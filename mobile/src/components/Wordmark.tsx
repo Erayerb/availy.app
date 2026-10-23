@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 export const WORDMARK_FONT = 'DancingScript_700Bold';
 
@@ -56,7 +56,7 @@ function swashPath(width: number, height: number, size: number): string {
   ].join(' ');
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   // flex-start: the measured width is the word itself, even inside a stretched column
   text: { fontFamily: WORDMARK_FONT, includeFontPadding: false, alignSelf: 'flex-start' },
-});
+}));

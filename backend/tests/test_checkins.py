@@ -267,3 +267,26 @@ def test_trust_has_a_floor(client, conn, clock):
     for _ in range(12):
         update_trust(conn, user, kafe, "high", NOON)
     assert trust_of(conn, token, client) == TRUST_FLOOR
+
+
+def test_trend_counts_people_in_the_last_24_hours(client, conn, clock):
+    from app.checkins import load_trends
+
+    kafe = venue_id(conn, "Test Kafe A")
+    tokens = [guest_token(client) for _ in range(2)]
+    for token in tokens:
+        checkin(client, token, kafe)
+    assert load_trends(conn, [kafe], NOON) == {kafe: 2}
+    assert load_trends(conn, [kafe], NOON + timedelta(hours=25)) == {}
+
+
+def test_stale_venue_shows_how_full_it_was_yesterday(client, conn, clock):
+    from app.checkins import load_crowds
+
+    kafe = venue_id(conn, "Test Kafe A")
+    checkin(client, guest_token(client), kafe, level="high")
+    tomorrow = NOON + timedelta(days=1)
+    crowd = load_crowds(conn, [kafe], tomorrow)[kafe]
+    assert crowd.state == "stale" and crowd.yesterday_level == "high"
+    # Two hours later nothing happened "yesterday at this time"
+    assert load_crowds(conn, [kafe], tomorrow + timedelta(hours=2))[kafe].yesterday_level is None

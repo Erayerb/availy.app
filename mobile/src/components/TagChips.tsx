@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { TAG_OPTIONS, type Tag } from '../lib/filters';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 type Props = {
   selected: Tag[];
@@ -33,7 +33,7 @@ export function Chip({ label, active, onPress, disabled = false }: ChipProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     paddingHorizontal: 12,
@@ -47,4 +47,4 @@ const styles = StyleSheet.create({
   chipDisabled: { opacity: 0.35 },
   chipText: { fontSize: 13, color: colors.text, fontWeight: '500' },
   chipTextActive: { color: colors.onPrimary },
-});
+}));

@@ -14,6 +14,7 @@ import { quieterAlternatives, shouldSuggestAlternatives } from '../lib/alternati
 import { campaignsNear } from '../lib/campaigns';
 import { containsBounds, formatBBox, regionToBounds, type Region } from '../lib/bbox';
 import { cardPosition, type Point } from '../lib/cardPosition';
+import { trending } from '../lib/sort';
 import { toggleTag, type Tag } from '../lib/filters';
 import { LEVELS } from '../lib/occupancy';
 import { CrowdDot } from '../components/CrowdDot';
@@ -21,7 +22,7 @@ import { LevelDot } from '../components/LevelDot';
 import { UNEXPLORED } from '../lib/crowd';
 import { useSettings } from '../context/SettingsContext';
 import type { Venue } from '../lib/api';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 // Fetch an area twice the visible size so small pans don't trigger a new request
 const QUERY_PADDING = 2;
@@ -62,6 +63,14 @@ export function MapScreen({
   onOpenCheckin,
 }: Props) {
   const [onlyVisited, setOnlyVisited] = useState(false);
+  const [onlyTrending, setOnlyTrending] = useState(false);
+  const anyFilter = tags.length > 0 || hideClosed || onlyTrending || onlyVisited;
+  const clearFilters = () => {
+    onTagsChange([]);
+    onHideClosedChange(false);
+    setOnlyVisited(false);
+    setOnlyTrending(false);
+  };
   const { look } = useSettings();
   const window = useWindowDimensions();
   const [queryBounds, setQueryBounds] = useState(() => regionToBounds(initialRegion, QUERY_PADDING));
@@ -128,7 +137,9 @@ export function MapScreen({
     <View style={styles.container}>
       <VenueMap
         initialRegion={initialRegion}
-        venues={venues.filter((v) => (!hideClosed || v.open_now) && (!onlyVisited || visitedIds.has(v.id)))}
+        venues={(onlyTrending ? trending(venues) : venues).filter(
+          (v) => (!hideClosed || v.open_now) && (!onlyVisited || visitedIds.has(v.id)),
+        )}
         selectedId={selectedId}
         onMarkerPress={onMarkerPress}
         onMapPress={() => onSelect(null)}
@@ -191,6 +202,25 @@ export function MapScreen({
         />
       ) : (
         <View style={styles.legend} onLayout={(e) => setLegendHeight(e.nativeEvent.layout.height)}>
+          <View style={styles.modeRow}>
+            {[
+              { visited: false, label: 'Tümü' },
+              { visited: true, label: `📍 Ziyaret ettiklerim${visitedIds.size ? ` (${visitedIds.size})` : ''}` },
+            ].map(({ visited, label }) => (
+              <Pressable
+                key={label}
+                onPress={() => setOnlyVisited(visited)}
+                style={[styles.mode, onlyVisited === visited && styles.modeActive]}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: onlyVisited === visited }}
+              >
+                <Text style={[styles.modeText, onlyVisited === visited && styles.modeTextActive]}>{label}</Text>
+              </Pressable>
+            ))}
+          </View>
+          {onlyTrending && trending(venues).length === 0 && (
+            <Text style={styles.status}>Son 24 saatte bu bölgede check-in yok. Haritayı kaydır ya da sonra bak.</Text>
+          )}
           {onlyVisited && visitedIds.size === 0 && (
             <Text style={styles.status}>Henüz check-in yapmadın. Check-in yaptığın mekanlar burada görünür.</Text>
           )}
@@ -225,40 +255,57 @@ export function MapScreen({
         pointerEvents="box-none"
         onLayout={(e) => setHeaderBottom(e.nativeEvent.layout.y + e.nativeEvent.layout.height)}
       >
-        <BackButton onPress={onBack} />
-        <View style={styles.filters}>
-          <FilterBar
-            selected={tags}
-            onToggle={(tag) => onTagsChange(toggleTag(tags, tag))}
-            hideClosed={hideClosed}
-            onHideClosedChange={onHideClosedChange}
-            onlyVisited={onlyVisited}
-            onOnlyVisitedChange={setOnlyVisited}
-            visitedCount={visitedIds.size}
-            onClear={() => {
-              onTagsChange([]);
-              onHideClosedChange(false);
-              setOnlyVisited(false);
-            }}
-          />
+        <View style={styles.topBar} pointerEvents="box-none">
+          <BackButton onPress={onBack} />
+          {anyFilter && (
+            <Pressable style={styles.clear} onPress={clearFilters} accessibilityLabel="Filtreleri temizle">
+              <Text style={styles.clearText}>✕ Temizle</Text>
+            </Pressable>
+          )}
         </View>
+        {/* Filters right under the back button, edge to edge */}
+        <FilterBar
+          selected={tags}
+          onToggle={(tag) => onTagsChange(toggleTag(tags, tag))}
+          hideClosed={hideClosed}
+          onHideClosedChange={onHideClosedChange}
+          onlyTrending={onlyTrending}
+          onOnlyTrendingChange={setOnlyTrending}
+        />
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   container: { flex: 1 },
   header: {
     position: 'absolute',
-    top: 60,
-    left: 12,
-    // The pill row runs to the screen edge and scrolls under it
+    top: 56,
+    left: 0,
+    // The pill row runs from edge to edge and scrolls under them
     right: 0,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
+    gap: 6,
   },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12 },
+  clear: {
+    paddingHorizontal: 12,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 3,
+  },
+  clearText: { color: colors.onPrimary, fontWeight: '700', fontSize: 13 },
+  modeRow: { width: '100%', flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 2 },
+  mode: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: 14, backgroundColor: colors.cream },
+  modeActive: { backgroundColor: colors.primary },
+  modeText: { fontSize: 13, fontWeight: '600', color: colors.text },
+  modeTextActive: { color: colors.onPrimary },
   cardContainer: { position: 'absolute' },
   cardMeasuring: { left: 0, top: 0, opacity: 0 },
   legend: {
@@ -278,7 +325,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  filters: { flex: 1, marginTop: -6 },
   locate: {
     position: 'absolute',
     left: 14,
@@ -323,8 +369,8 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   legendBreak: { width: '100%', height: 0 },
-  legendText: { fontSize: 12 },
+  legendText: { fontSize: 12, color: colors.text },
   dot: { width: 10, height: 10, borderRadius: 5 },
   status: { fontSize: 11, color: colors.textMuted },
   error: { fontSize: 11, color: colors.danger, maxWidth: 140 },
-});
+}));

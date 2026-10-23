@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { Badge } from '../lib/auth';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 /** Round badges: earned ones in colour, locked ones grey with their progress ("1/5"). */
 export function BadgeGrid({ badges }: { badges: Badge[] }) {
@@ -38,7 +38,7 @@ export function BadgeGrid({ badges }: { badges: Badge[] }) {
 
 const SIZE = 64;
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { padding: 16, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 12 },
   title: { fontSize: 16, fontWeight: '700', color: colors.text },
   grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 16 },
@@ -53,4 +53,4 @@ const styles = StyleSheet.create({
   muted: { color: colors.textMuted },
   description: { fontSize: 11, color: colors.textMuted, textAlign: 'center' },
   progress: { fontSize: 11, fontWeight: '700', color: colors.primary },
-});
+}));

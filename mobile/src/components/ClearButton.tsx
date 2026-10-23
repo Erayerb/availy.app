@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 type Props = {
   onPress: () => void;
@@ -38,11 +38,11 @@ export function TogglePill({ label, active, onPress }: { label: string; active: 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   button: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: colors.primary },
   disabled: { backgroundColor: colors.disabled },
   text: { color: colors.onPrimary, fontSize: 12, fontWeight: '600' },
   // Faded until switched on
   off: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.primary, paddingVertical: 4, opacity: 0.5 },
   offText: { color: colors.primary },
-});
+}));

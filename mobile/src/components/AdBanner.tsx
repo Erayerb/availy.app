@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 /** Free plan: place of the location-based ad (demo); tapping opens the Premium page. */
 export function AdBanner({ onPremium }: { onPremium: () => void }) {
@@ -14,7 +14,7 @@ export function AdBanner({ onPremium }: { onPremium: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   banner: {
     marginTop: 12,
     padding: 12,
@@ -27,4 +27,4 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 10, fontWeight: '800', letterSpacing: 1, color: colors.placeholder },
   text: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
-});
+}));

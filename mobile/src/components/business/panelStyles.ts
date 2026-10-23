@@ -1,9 +1,9 @@
 import { StyleSheet } from 'react-native';
 
-import { colors } from '../../theme';
+import { colors, themed } from '../../theme';
 
 /** Shared look for the business panel sections. */
-export const panel = StyleSheet.create({
+export const panel = themed(() => StyleSheet.create({
   card: { padding: 16, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 10 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
   text: { fontSize: 14, color: colors.text },
@@ -18,4 +18,4 @@ export const panel = StyleSheet.create({
   primaryText: { color: colors.onPrimary, fontSize: 15, fontWeight: '600', textAlign: 'center' },
   secondary: { paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center' },
   secondaryText: { color: colors.primary, fontSize: 15, fontWeight: '600', textAlign: 'center' },
-});
+}));

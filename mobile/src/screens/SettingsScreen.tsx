@@ -6,7 +6,7 @@ import { VenueEditSection } from '../components/business/VenueEditSection';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
 import { useSettings } from '../context/SettingsContext';
 import { LEVELS } from '../lib/occupancy';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 import { ThemedSwitch } from '../components/ThemedSwitch';
 
 type Props = {
@@ -56,7 +56,7 @@ export function SettingsScreen({ onBack, isBusiness, venueId, onOpenPermissions,
         <View style={styles.card}>
           <Row
             title="Ölü saat bildirimi"
-            subtitle="Mekanın %40'ın altına düşünce haber veririz (en fazla 2 saatte bir, uygulama açıkken)."
+            subtitle="Müşteriler mekanını açıkken Sakin bildirdiğinde haber veririz (en fazla 2 saatte bir, uygulama açıkken)."
             value={deadHourAlerts}
             onChange={(v) => update({ deadHourAlerts: v })}
           />
@@ -144,7 +144,7 @@ function Row({ title, subtitle, value, onChange, disabled }: RowProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 48, gap: 14 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -168,4 +168,4 @@ const styles = StyleSheet.create({
   version: { textAlign: 'center', fontSize: 12, color: colors.placeholder },
   heading: { fontSize: 18, fontWeight: '700', color: colors.text, marginTop: 4 },
   error: { fontSize: 13, color: colors.danger },
-});
+}));

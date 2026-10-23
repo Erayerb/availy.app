@@ -5,7 +5,7 @@ import { useSettings } from '../context/SettingsContext';
 import type { Role } from '../lib/auth';
 import { BUSINESS_SLIDES, CUSTOMER_SLIDES } from '../lib/intro';
 import { LEVELS } from '../lib/occupancy';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 import { LevelDot } from './LevelDot';
 
 /** Skippable how-to slides, shown right after an account is created (same text as the Hakkında page). */
@@ -63,7 +63,7 @@ export function IntroOverlay({ role, onDone }: { role: Role; onDone: () => void 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   overlay: {
     position: 'absolute',
     top: 0,
@@ -94,4 +94,4 @@ const styles = StyleSheet.create({
   primaryText: { color: colors.onPrimary, fontSize: 16, fontWeight: '700' },
   secondary: { paddingVertical: 15, borderRadius: 14, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center' },
   secondaryText: { color: colors.primary, fontSize: 16, fontWeight: '700' },
-});
+}));

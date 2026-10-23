@@ -48,7 +48,7 @@ def search_users(conn: psycopg.Connection, me: dict, query: str) -> list[dict]:
     rows = conn.execute(
         f"""
         SELECT id, username, name FROM users
-        WHERE NOT is_guest AND username IS NOT NULL AND id <> %(me)s AND searchable AND id NOT IN {BLOCKED}
+        WHERE NOT is_guest AND role = 'personal' AND username IS NOT NULL AND id <> %(me)s AND searchable AND id NOT IN {BLOCKED}
           AND (lower(username) LIKE %(text)s || '%%' OR lower(name) LIKE '%%' || %(text)s || '%%')
         ORDER BY lower(username) LIMIT %(limit)s
         """,
@@ -108,7 +108,7 @@ def list_friends(conn: psycopg.Connection, me: dict) -> dict:
         """
         SELECT u.id, u.username, u.name, f.status, f.requester_id = %(me)s AS mine
         FROM friendships f JOIN users u ON u.id = CASE WHEN f.requester_id = %(me)s THEN f.addressee_id ELSE f.requester_id END
-        WHERE f.requester_id = %(me)s OR f.addressee_id = %(me)s
+        WHERE (f.requester_id = %(me)s OR f.addressee_id = %(me)s) AND NOT u.frozen
         ORDER BY lower(u.username)
         """,
         {"me": me["id"]},

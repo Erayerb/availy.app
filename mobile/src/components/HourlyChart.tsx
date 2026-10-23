@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import type { HourlyPoint } from '../lib/api';
 import { useSettings } from '../context/SettingsContext';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 const HEIGHT = 110;
 
@@ -35,11 +35,11 @@ export function HourlyChart({ hours, currentHour }: { hours: HourlyPoint[]; curr
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   bars: { height: HEIGHT, flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
   slot: { flex: 1, justifyContent: 'flex-end' },
   bar: { borderRadius: 3 },
   current: { borderWidth: 2, borderColor: colors.text },
   labels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
   label: { fontSize: 11, color: colors.textMuted },
-});
+}));

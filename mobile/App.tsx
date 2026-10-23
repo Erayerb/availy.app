@@ -1,7 +1,7 @@
 import { DancingScript_700Bold, useFonts } from '@expo-google-fonts/dancing-script';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, Text, View, useColorScheme } from 'react-native';
 
 import { Logo } from './src/components/Logo';
 import { Wordmark } from './src/components/Wordmark';
@@ -13,6 +13,7 @@ import { useCheckinSuggestion } from './src/hooks/useCheckinSuggestion';
 import { SuggestionBanner } from './src/components/SuggestionBanner';
 import { HeaderActionsContext } from './src/components/HeaderButtons';
 import { PermissionsScreen } from './src/screens/PermissionsScreen';
+import { AppearanceScreen } from './src/screens/AppearanceScreen';
 import { PrivacyScreen } from './src/screens/PrivacyScreen';
 import { LegalScreen } from './src/screens/LegalScreen';
 import { UserProfileScreen } from './src/screens/UserProfileScreen';
@@ -57,7 +58,7 @@ import { VerificationScreen } from './src/screens/VerificationScreen';
 import { MapScreen } from './src/screens/MapScreen';
 import { VenueSetupScreen } from './src/screens/VenueSetupScreen';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
-import { colors } from './src/theme';
+import { colors, themed, setScheme, type Scheme } from './src/theme';
 
 const DEFAULT_REGION: Region = {
   latitude: 41.03,
@@ -117,7 +118,12 @@ function Main() {
   const [socialTab, setSocialTab] = useState<SocialTab>('feed');
   const role: Role = isBusiness(auth.user) ? 'business' : 'personal';
   const goBack = () => setNav((h) => back(h, landingFor(role)));
-  const { premium, checkinSuggestions } = useSettings();
+  const { premium, checkinSuggestions, appearance } = useSettings();
+  // Görünüm: set the colors before any screen below reads them; a change re-renders everything
+  const systemScheme = useColorScheme();
+  const scheme: Scheme = appearance === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : appearance;
+  setScheme(scheme);
+  const statusBar = scheme === 'dark' ? 'light' : 'dark';
   const { point } = useLocation();
   // v2: venues the user checked in at (reloaded after each check-in, when the check-in count changes)
   const visits = useVisits(auth.user?.token, auth.user?.checkins);
@@ -233,7 +239,7 @@ function Main() {
       <View style={[styles.container, styles.splash]}>
         <Logo />
         <Wordmark size={56} />
-        <StatusBar style="dark" />
+        <StatusBar style={statusBar} />
       </View>
     );
   }
@@ -259,7 +265,7 @@ function Main() {
             return error;
           }}
         />
-        <StatusBar style="dark" />
+        <StatusBar style={statusBar} />
       </>
     );
   }
@@ -289,7 +295,7 @@ function Main() {
             return error;
           }}
         />
-        <StatusBar style="dark" />
+        <StatusBar style={statusBar} />
       </>
     );
   }
@@ -308,13 +314,17 @@ function Main() {
             await auth.logout();
           }}
         />
-        <StatusBar style="dark" />
+        <StatusBar style={statusBar} />
       </>
     );
   }
 
   return (
-    <EngagementProvider userKey={auth.user ? accountKey(auth.user) : 'guest'}>
+    <EngagementProvider
+      // A new key (e.g. a changed e-mail) loads that account's data again
+      key={auth.user ? accountKey(auth.user) : 'guest'}
+      userKey={auth.user ? accountKey(auth.user) : 'guest'}
+    >
       <FavoritesProvider
         accountKey={auth.user ? accountKey(auth.user) : null}
         signedIn={isRegistered(auth.user)} onLoginRequired={() => setAuthForm('login')}>
@@ -371,7 +381,10 @@ function Main() {
           {screen === 'business' && auth.user?.venueId && (
             <BusinessScreen
               venueId={auth.user.venueId}
+              user={auth.user}
               onShowOnMap={openVenueOnMap}
+              onOpenUser={openProfile}
+              onRegister={() => setAuthForm('register')}
             />
           )}
           {screen === 'favorites' && <FavoritesScreen onOpenVenue={openDetails} visits={visits} />}
@@ -388,6 +401,7 @@ function Main() {
               onBack={goBack}
               onShowOnMap={openVenueOnMap}
               onOpenUser={openProfile}
+              lastCheckinAt={visits.find((v) => v.venue_id === detailId)?.last_at ?? null}
             />
           )}
           {screen === 'profile' && (
@@ -402,9 +416,19 @@ function Main() {
               }}
               onChangeUsername={auth.changeUsername}
               onChangePassword={auth.changePassword}
+              onChangeEmail={async (email, password) => {
+                const error = await auth.changeEmail(email, password);
+                // The screen reloads for the new e-mail's data, so confirm with a dialog that stays
+                if (!error) notifyDone(`E-posta adresin ${email.trim().toLowerCase()} olarak değişti.`);
+                return error;
+              }}
               onDeleteAccount={async () => {
                 setEntered(false);
                 await auth.deleteAccount();
+              }}
+              onFreezeAccount={async () => {
+                setEntered(false);
+                await auth.freezeAccount();
               }}
               onLogout={logout}
               onOpenMyProfile={openMyProfile}
@@ -438,6 +462,7 @@ function Main() {
             />
           )}
           {screen === 'permissions' && <PermissionsScreen onBack={goBack} />}
+          {screen === 'appearance' && <AppearanceScreen onBack={goBack} />}
           {screen === 'privacy' && (
             <PrivacyScreen
               token={isRegistered(auth.user) ? (auth.user?.token ?? null) : null}
@@ -541,7 +566,7 @@ function Main() {
               }}
             />
           )}
-          <StatusBar style="dark" />
+          <StatusBar style={statusBar} />
         </View>
       </HeaderActionsContext.Provider>
       </NotificationsProvider>
@@ -550,7 +575,7 @@ function Main() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   screen: { flex: 1 },
   splash: { alignItems: 'center', justifyContent: 'center', gap: 14 },
@@ -571,9 +596,16 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 10,
   },
-  alertText: { flex: 1, color: colors.onPrimary, fontWeight: '600' },
-  alertClose: { color: colors.onPrimary, fontSize: 16 },
-});
+  // Inverse of the page: dark banner in the light theme, light banner in the dark theme
+  alertText: { flex: 1, color: colors.background, fontWeight: '600' },
+  alertClose: { color: colors.background, fontSize: 16 },
+}));
+
+/** A short "done" message that stays on screen (web: the browser's dialog). */
+function notifyDone(message: string) {
+  if (Platform.OS === 'web') window.alert(message);
+  else Alert.alert('Tamam', message);
+}
 
 /** In-app banner when a watched venue drops below 70% (also the only signal on web). */
 function WatchAlert() {

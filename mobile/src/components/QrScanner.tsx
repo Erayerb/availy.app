@@ -2,7 +2,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRef } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 type Props = {
   visible: boolean;
@@ -53,7 +53,7 @@ export function QrScanner({ visible, title, onScanned, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: '#000' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 },
   text: { color: colors.onPrimary, fontSize: 16, textAlign: 'center' },
@@ -81,4 +81,4 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: colors.onPrimary,
   },
-});
+}));

@@ -26,7 +26,7 @@ import {
   describeProgram,
   isProgramActive,
 } from '../lib/loyalty';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 type Tab = 'campaigns' | 'coupons' | 'loyalty' | 'myCampaigns' | 'myPrograms' | 'venueCoupons' | 'rivals';
 
@@ -415,7 +415,7 @@ function VenueCoupons({ venueId }: { venueId: number }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   flex: { flex: 1 },
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 40, gap: 12 },
@@ -481,4 +481,4 @@ const styles = StyleSheet.create({
   endText: { color: colors.danger, fontWeight: '600' },
   repeatText: { color: colors.primary, fontWeight: '600' },
   actions: { flexDirection: 'row', gap: 18 },
-});
+}));

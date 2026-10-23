@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 export function BackButton({ onPress }: { onPress: () => void }) {
   return (
@@ -9,7 +9,7 @@ export function BackButton({ onPress }: { onPress: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   button: {
     width: 44,
     height: 44,
@@ -24,4 +24,4 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   icon: { fontSize: 30, lineHeight: 32, marginTop: -2, marginRight: 2, color: colors.text },
-});
+}));

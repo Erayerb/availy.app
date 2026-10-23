@@ -5,7 +5,14 @@ export const MAX_REVIEW = 280;
 // Same as the server: two reviews per person and venue
 export const MAX_REVIEWS_PER_VENUE = 2;
 
-export type Reply = { id: number; username: string | null; body: string; created_at: string; mine: boolean };
+export type Reply = {
+  id: number;
+  username: string | null;
+  body: string;
+  created_at: string;
+  mine: boolean;
+  is_business?: boolean; // written by the venue's own business ("İşletme")
+};
 export type Review = {
   id: number;
   username: string | null;

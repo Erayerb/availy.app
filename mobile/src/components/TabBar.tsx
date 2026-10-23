@@ -1,6 +1,6 @@
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 import { TabIcon, type IconName } from './TabIcon';
 
 export type Screen =
@@ -23,6 +23,7 @@ export type Screen =
   | 'privacy'
   | 'legal'
   | 'user'
+  | 'appearance'
   | 'detail';
 
 type Tab = { screen: Screen; label: string; icon: IconName };
@@ -44,7 +45,7 @@ export const CUSTOMER_TABS: Tab[] = [
 export const BUSINESS_TABS: Tab[] = [HOME, { screen: 'business', label: 'Panel', icon: 'chart' }, MAP, CAMPAIGNS, MORE];
 
 // Pages opened from the "Daha fazla" list keep that tab highlighted
-const MORE_PAGES: Screen[] = ['more', 'campaigns', 'permissions', 'privacy', 'legal', 'subscription', 'profile', 'settings', 'support', 'verification', 'about'];
+const MORE_PAGES: Screen[] = ['more', 'campaigns', 'appearance', 'permissions', 'privacy', 'legal', 'subscription', 'profile', 'settings', 'support', 'verification', 'about'];
 
 type Props = {
   tabs: Tab[];
@@ -86,7 +87,7 @@ export function TabBar({ tabs, current, onSelect }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   bar: {
     flexDirection: 'row',
     backgroundColor: colors.surface,
@@ -98,4 +99,4 @@ const styles = StyleSheet.create({
   },
   tab: { flex: 1, alignItems: 'center', gap: 3, paddingVertical: 2 },
   label: { fontSize: 10 },
-});
+}));

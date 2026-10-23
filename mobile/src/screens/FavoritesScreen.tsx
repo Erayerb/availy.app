@@ -9,7 +9,7 @@ import { sortByDistance } from '../lib/geo';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
 import type { Venue } from '../lib/api';
 import type { Visit } from '../lib/checkinApi';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 type Tab = 'saved' | 'visited';
 
@@ -81,13 +81,13 @@ export function FavoritesScreen({ onOpenVenue, visits }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   header: { gap: 12, marginBottom: 6 },
-  title: { fontSize: 26, fontWeight: '700' },
+  title: { fontSize: 26, fontWeight: '700', color: colors.text },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   tabs: { flexDirection: 'row', gap: 8 },
   tab: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 16, backgroundColor: colors.cream },
   tabActive: { backgroundColor: colors.primary },
   tabText: { fontSize: 14, fontWeight: '600', color: colors.text },
   tabTextActive: { color: colors.onPrimary },
-});
+}));

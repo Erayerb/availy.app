@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { isRegistered, type User } from '../lib/auth';
-import { timeAgo } from '../lib/crowd';
+import { sentence, timeAgo } from '../lib/crowd';
 import { stars } from '../lib/feedback';
 import { author, MAX_REVIEW, MAX_REVIEWS_PER_VENUE, reviewsApi, type Review, type Reviews } from '../lib/reviews';
 import { REPORT_REASONS, safetyApi, type ReportReason } from '../lib/safety';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 import { ThemedSwitch } from './ThemedSwitch';
 
 // Reviews shown before "Tümünü göster"
@@ -26,6 +26,9 @@ type Props = {
 export function ReviewsSection({ venueId, user, reviews, onChange, reload, onRegister, onOpenUser }: Props) {
   const registered = isRegistered(user) && !!user?.token;
   const token = user?.token;
+  // Businesses do not write reviews; on their own venue they answer them ("İşletme")
+  const business = user?.role === 'business';
+  const ownerBusiness = business && user?.venueId === venueId;
   const mineCount = reviews.items.filter((r) => r.mine).length;
   const [rating, setRating] = useState(0);
   const [body, setBody] = useState('');
@@ -54,7 +57,13 @@ export function ReviewsSection({ venueId, user, reviews, onChange, reload, onReg
         Yorumlar{reviews.count > 0 ? ` · ${stars(Math.round(reviews.average ?? 0))} ${reviews.average} (${reviews.count})` : ''}
       </Text>
 
-      {registered && mineCount >= MAX_REVIEWS_PER_VENUE ? (
+      {business ? (
+        <Text style={styles.muted}>
+          {ownerBusiness
+            ? 'Müşterilerinin yorumlarına "Yanıtla" ile işletme olarak cevap verebilirsin.'
+            : 'İşletme hesapları yorum yazamaz.'}
+        </Text>
+      ) : registered && mineCount >= MAX_REVIEWS_PER_VENUE ? (
         <Text style={styles.muted}>
           Bu mekana {MAX_REVIEWS_PER_VENUE} yorum yazdın. Yeni yorum için birini sil.
         </Text>
@@ -97,7 +106,8 @@ export function ReviewsSection({ venueId, user, reviews, onChange, reload, onReg
         <ReviewItem
           key={review.id}
           review={review}
-          token={registered ? token : undefined}
+          token={registered && (!business || ownerBusiness) ? token : undefined}
+          ownerBusiness={ownerBusiness}
           reload={reload}
           onOpenUser={onOpenUser}
         />
@@ -114,18 +124,21 @@ export function ReviewsSection({ venueId, user, reviews, onChange, reload, onReg
 function ReviewItem({
   review,
   token,
+  ownerBusiness = false,
   reload,
   onOpenUser,
 }: {
   review: Review;
   token: string | undefined;
+  ownerBusiness?: boolean;
   reload: () => void;
   onOpenUser: (username: string) => void;
 }) {
   const [replying, setReplying] = useState(false);
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const canReply = !!token && (review.allow_replies || review.mine);
+  // The venue's business can always answer; others when the author allows it
+  const canReply = !!token && (review.allow_replies || review.mine || ownerBusiness);
   const now = new Date();
 
   const sendReply = async () => {
@@ -157,11 +170,11 @@ function ReviewItem({
           <Text style={styles.text}>
             <Text style={styles.bold} onPress={() => reply.username && token && onOpenUser(reply.username)}>
               {author(reply.username)}
-            </Text>{' '}
-            {reply.body}
+            </Text>
+            {reply.is_business && <Text style={styles.businessTag}> İşletme </Text>} {reply.body}
           </Text>
           <View style={styles.row}>
-            <Text style={styles.muted}>{timeAgo(reply.created_at, now)}</Text>
+            <Text style={styles.muted}>{sentence(timeAgo(reply.created_at, now))}</Text>
             {reply.mine && token && (
               <Pressable onPress={() => reviewsApi.removeReply(token, reply.id).then(reload)} hitSlop={6}>
                 <Text style={styles.delete}>Sil</Text>
@@ -180,7 +193,7 @@ function ReviewItem({
             <Text style={styles.action}>Yanıtla</Text>
           </Pressable>
         )}
-        {!review.allow_replies && !review.mine && <Text style={styles.muted}>Yanıtlar kapalı</Text>}
+        {!review.allow_replies && !review.mine && !ownerBusiness && <Text style={styles.muted}>Yanıtlar kapalı</Text>}
         {review.mine && token && (
           <Pressable onPress={() => reviewsApi.remove(token, review.id).then(reload)} hitSlop={6}>
             <Text style={styles.delete}>Yorumumu sil</Text>
@@ -260,7 +273,7 @@ function ReportButton({ onReport, onDone }: { onReport: (reason: ReportReason) =
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   section: {
     padding: 16,
     borderRadius: 16,
@@ -279,7 +292,7 @@ const styles = StyleSheet.create({
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   flex: { flex: 1 },
   text: { fontSize: 14, color: colors.text },
-  bold: { fontWeight: '700' },
+  bold: { fontWeight: '700', color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },
   link: { color: colors.primary, fontWeight: '600' },
   review: { gap: 4, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border },
@@ -289,6 +302,7 @@ const styles = StyleSheet.create({
   action: { color: colors.primary, fontWeight: '600', fontSize: 13 },
   delete: { color: colors.danger, fontSize: 13 },
   report: { color: colors.textMuted, fontSize: 13 },
+  businessTag: { color: colors.onPrimary, backgroundColor: colors.primary, fontSize: 11, fontWeight: '700', borderRadius: 6, overflow: 'hidden' },
   reportBox: { gap: 6, padding: 10, borderRadius: 12, backgroundColor: colors.cream, width: '100%' },
   reasons: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   reason: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: colors.surface },
@@ -305,4 +319,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   secondaryText: { color: colors.primary, fontWeight: '700' },
-});
+}));

@@ -2,7 +2,8 @@ import { createContext, useCallback, useContext, type ReactNode } from 'react';
 
 import { usePersistentState } from '../hooks/usePersistentState';
 import { isTentative, liveLevel, type Crowd } from '../lib/crowd';
-import { CLOSED_STYLE, fadeColor, levelStyle, STALE_STYLE, UNEXPLORED_STYLE, type LevelLook } from '../lib/occupancy';
+import { CLOSED_STYLE, fadeColor, levelColorFor, levelStyle, STALE_STYLE, UNEXPLORED_STYLE, type LevelLook } from '../lib/occupancy';
+import { getScheme } from '../theme';
 import { KEYS } from '../lib/storage';
 
 export type Settings = {
@@ -17,7 +18,11 @@ export type Settings = {
   replyNotifications: boolean; // replies to my reviews
   // v2 privacy kept on the phone (the rest is on the server)
   privateByDefault: boolean; // the check-in screen starts with "Gizli check-in" on
+  // Görünüm: follow the phone, or always light / dark
+  appearance: Appearance;
 };
+
+export type Appearance = 'system' | 'light' | 'dark';
 
 const DEFAULTS: Settings = {
   colorBlind: false,
@@ -29,6 +34,7 @@ const DEFAULTS: Settings = {
   friendNotifications: true,
   replyNotifications: true,
   privateByDefault: false,
+  appearance: 'system',
 };
 
 type SettingsValue = Settings & {
@@ -48,8 +54,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const update = useCallback((patch: Partial<Settings>) => setSettings((s) => ({ ...s, ...patch })), [setSettings]);
   const look = useCallback(
-    (level: string, open = true): LevelLook =>
-      open ? levelStyle(level, settings.colorBlind) : { ...CLOSED_STYLE, glyph: settings.colorBlind ? CLOSED_STYLE.glyph : null },
+    (level: string, open = true): LevelLook => {
+      if (!open) return { ...CLOSED_STYLE, glyph: settings.colorBlind ? CLOSED_STYLE.glyph : null };
+      const base = levelStyle(level, settings.colorBlind);
+      return { ...base, color: levelColorFor(base.color, getScheme() === 'dark') };
+    },
+    // The scheme is read when called, so the colours always follow Görünüm
     [settings.colorBlind],
   );
 

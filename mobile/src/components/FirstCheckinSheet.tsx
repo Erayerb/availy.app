@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocation } from '../context/LocationContext';
 import { fetchVenues, type Venue } from '../lib/api';
 import { bboxAround, nearestOpenVenue } from '../lib/nearby';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 type Props = {
   // The venue the user is at was found: open its page (with the check-in panel) behind this sheet
@@ -70,7 +70,7 @@ export function FirstCheckinSheet({ onFound, onDone }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   backdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: colors.backdrop, justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.surface,
@@ -91,4 +91,4 @@ const styles = StyleSheet.create({
   muted: { fontSize: 13, color: colors.textMuted, textAlign: 'center' },
   primary: { alignSelf: 'stretch', paddingVertical: 15, borderRadius: 14, backgroundColor: colors.primary, alignItems: 'center' },
   primaryText: { color: colors.onPrimary, fontSize: 16, fontWeight: '700' },
-});
+}));

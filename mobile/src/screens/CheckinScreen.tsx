@@ -10,7 +10,7 @@ import { categoryLabel } from '../lib/filters';
 import { distanceKm, formatDistance, sortByDistance } from '../lib/geo';
 import { shortLocation } from '../lib/location';
 import { bboxAround, CHECKIN_RADIUS_KM } from '../lib/nearby';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 // Nearest venues: about 1.5 km around the user, at most this many
 const NEARBY_DELTA = 0.015;
@@ -138,7 +138,7 @@ export function CheckinScreen({ onBack, onOpenVenue }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 40, gap: 8 },
   header: { gap: 12, marginBottom: 4 },
@@ -172,4 +172,4 @@ const styles = StyleSheet.create({
   },
   secondaryText: { color: colors.primary, fontWeight: '700' },
   error: { color: colors.danger },
-});
+}));

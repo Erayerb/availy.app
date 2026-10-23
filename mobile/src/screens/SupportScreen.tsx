@@ -13,7 +13,7 @@ import {
   type SupportKind,
   type SupportMessage,
 } from '../lib/support';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 type Props = { email: string | null; onBack: () => void };
 
@@ -109,7 +109,7 @@ export function SupportScreen({ email, onBack }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 40, gap: 14 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -132,4 +132,4 @@ const styles = StyleSheet.create({
   primary: { paddingVertical: 13, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center' },
   primaryText: { color: colors.onPrimary, fontSize: 15, fontWeight: '600' },
   note: { fontSize: 12, color: colors.placeholder, textAlign: 'center' },
-});
+}));

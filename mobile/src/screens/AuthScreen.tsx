@@ -15,7 +15,7 @@ import { BackButton } from '../components/BackButton';
 import { Logo } from '../components/Logo';
 import { Chip } from '../components/TagChips';
 import { normalizeUsername, validateLogin, validateRegister, type Role } from '../lib/auth';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 type Mode = 'login' | 'register';
 
@@ -162,13 +162,13 @@ export function AuthScreen({ mode, initialRole = 'personal', onBack, onSwitchMod
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   legal: { fontSize: 12, color: colors.textMuted, textAlign: 'center', lineHeight: 18 },
   legalLink: { color: colors.primary, fontWeight: '600' },
   container: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 40, gap: 14 },
   brand: { alignItems: 'center', gap: 12, marginVertical: 16 },
-  title: { fontSize: 26, fontWeight: '700' },
+  title: { fontSize: 26, fontWeight: '700', color: colors.text },
   input: {
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -188,4 +188,4 @@ const styles = StyleSheet.create({
   switch: { alignItems: 'center', paddingVertical: 6 },
   switchText: { color: colors.primary, fontSize: 15 },
   note: { textAlign: 'center', color: colors.placeholder, fontSize: 12, marginTop: 8 },
-});
+}));

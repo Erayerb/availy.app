@@ -24,7 +24,7 @@ import { saveOverride } from '../lib/overrideStore';
 import { validateNewVenue } from '../lib/localVenues';
 import { shortLocation } from '../lib/location';
 import { districtCenter, geocodeAddress, nearestVenueAddress, reverseGeocode } from '../lib/reverseGeocode';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 const CATEGORIES = ['cafe', 'bar', 'restaurant', 'coworking', 'library'];
 const ISTANBUL: Region = { latitude: 41.03, longitude: 29.01, latitudeDelta: 0.12, longitudeDelta: 0.12 };
@@ -272,7 +272,7 @@ export function VenueSetupScreen({ onDone, onLogout }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 40, gap: 12 },
   header: { gap: 12, marginBottom: 4 },
@@ -339,4 +339,4 @@ const styles = StyleSheet.create({
   mapHint: { flex: 1, padding: 12, borderRadius: 14, backgroundColor: colors.surface },
   mapHintText: { fontSize: 14, color: colors.text },
   mapConfirm: { position: 'absolute', left: 20, right: 20, bottom: 40 },
-});
+}));

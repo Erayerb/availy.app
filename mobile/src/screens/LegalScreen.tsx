@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BackButton } from '../components/BackButton';
 import { LEGAL_DOCS, type LegalDoc } from '../lib/legal';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 type Props = { initial?: LegalDoc['id']; onBack: () => void };
 
@@ -40,7 +40,7 @@ export function LegalScreen({ initial = 'privacy', onBack }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 48, gap: 14 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -54,4 +54,4 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
   text: { fontSize: 14, lineHeight: 20, color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },
-});
+}));

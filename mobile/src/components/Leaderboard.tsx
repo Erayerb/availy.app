@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { socialApi, type Leaderboard as Board, type Period, type Scope } from '../lib/social';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -100,7 +100,7 @@ function Segment<T extends string>({ options, value, onChange }: { options: Choi
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: {
     padding: 16,
     borderRadius: 16,
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   rank: { width: 30, fontSize: 16, fontWeight: '800', color: colors.text, textAlign: 'center' },
   name: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.text },
   points: { fontSize: 14, fontWeight: '700', color: colors.primary },
-  prize: { fontSize: 14, fontWeight: '700', color: '#B7791F', textAlign: 'center', marginTop: 6 },
+  prize: { fontSize: 14, fontWeight: '700', color: colors.gold, textAlign: 'center', marginTop: 6 },
   muted: { fontSize: 13, color: colors.textMuted, textAlign: 'center' },
   error: { color: colors.danger },
-});
+}));

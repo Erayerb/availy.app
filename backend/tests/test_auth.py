@@ -262,3 +262,18 @@ def test_change_username(client):
     assert client.patch("/v1/me", json={"username": "a b"}, headers=auth(token)).status_code == 400
     # The old name is free again; sign-in works with the new one
     assert client.post("/v1/auth/login", json={"login": "t_yeni", "password": PASSWORD}).status_code == 200
+
+
+def test_change_email(client):
+    token = register(client, username="t_eposta").json()["token"]
+    register(client, email="dolu@example.test", username="t_dolu2")
+    wrong = client.post("/v1/me/email", json={"email": "yeni@example.test", "password": "yanlis123"}, headers=auth(token))
+    assert wrong.status_code == 403
+    taken = client.post("/v1/me/email", json={"email": "DOLU@example.test", "password": PASSWORD}, headers=auth(token))
+    assert taken.status_code == 409
+    bad = client.post("/v1/me/email", json={"email": "olmaz", "password": PASSWORD}, headers=auth(token))
+    assert bad.status_code == 400
+    ok = client.post("/v1/me/email", json={"email": " Yeni@Example.test ", "password": PASSWORD}, headers=auth(token))
+    assert ok.status_code == 200 and ok.json()["email"] == "yeni@example.test"
+    assert client.post("/v1/auth/login", json={"login": "yeni@example.test", "password": PASSWORD}).status_code == 200
+    assert client.post("/v1/auth/login", json={"login": EMAIL, "password": PASSWORD}).status_code == 401

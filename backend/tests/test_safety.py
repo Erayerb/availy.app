@@ -91,3 +91,25 @@ def test_reported_reply(client, conn):
     assert client.post(f"/v1/replies/{reply['id']}/report", json={"reason": "insult"}, headers=auth(ali)).status_code == 204
     items = client.get(f"/v1/venues/{kafe(conn)}/reviews", headers=auth(ali)).json()["items"]
     assert items[0]["replies"] == []
+
+
+def test_frozen_account_is_hidden_until_the_next_sign_in(client, conn):
+    ali, ayse = account(client, "t_ali"), account(client, "t_ayse")
+    befriend(client, ali, ayse, "t_ali", "t_ayse")
+    client.post(f"/v1/venues/{kafe(conn)}/reviews", json={"rating": 5, "body": "Güzel"}, headers=auth(ayse))
+    assert client.post("/v1/me/freeze", headers=auth(ayse)).status_code == 204
+    # Signed out everywhere
+    assert client.get("/v1/me", headers=auth(ayse)).status_code == 401
+    # Hidden: profile, friends list, feed, reviews, search
+    assert client.get("/v1/users/t_ayse", headers=auth(ali)).status_code == 404
+    assert client.get("/v1/friends", headers=auth(ali)).json()["friends"] == []
+    assert client.get("/v1/feed", headers=auth(ali)).json() == []
+    assert client.get(f"/v1/venues/{kafe(conn)}/reviews").json()["count"] == 0
+    assert client.get("/v1/users/search", params={"q": "t_ay"}, headers=auth(ali)).json() == []
+    # Signing in again opens it, with everything still there
+    login = client.post("/v1/auth/login", json={"login": "t_ayse", "password": "gizli123"})
+    assert login.status_code == 200
+    assert client.get("/v1/users/t_ayse", headers=auth(ali)).status_code == 200
+    assert client.get(f"/v1/venues/{kafe(conn)}/reviews").json()["count"] == 1
+    guest = client.post("/v1/auth/guest").json()["token"]
+    assert client.post("/v1/me/freeze", headers=auth(guest)).status_code == 403

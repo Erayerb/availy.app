@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 /** App mark: a red "@" inside a red-outlined cream circle. */
 export function Logo({ size = 96 }: { size?: number }) {
@@ -16,7 +16,7 @@ export function Logo({ size = 96 }: { size?: number }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   circle: {
     backgroundColor: colors.surface,
     borderColor: colors.primary,
@@ -24,4 +24,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   at: { color: colors.primary, fontWeight: '800', textAlign: 'center' },
-});
+}));

@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useEngagement } from '../../context/EngagementContext';
 import type { Venue } from '../../lib/api';
-import { colors } from '../../theme';
+import { colors, themed } from '../../theme';
 import { VenuePhoto } from '../VenuePhoto';
 import { panel } from './panelStyles';
 
@@ -45,7 +45,7 @@ export function PhotoSection({ venue }: { venue: Venue }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   button: { flex: 1 },
-});
+}));

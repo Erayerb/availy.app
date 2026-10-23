@@ -15,9 +15,11 @@ from app.checkins import user_stats
 REPORTS_TO_HIDE = 3
 REASONS = {"insult": "Hakaret / taciz", "spam": "Spam / reklam", "false": "Yanlış bilgi", "other": "Diğer"}
 
-# SQL pieces: ids I blocked or who blocked me; ids I muted
+# SQL pieces: ids I should not see (I blocked them, they blocked me, or their account is frozen); ids I muted
 BLOCKED = """(SELECT blocked_id FROM blocks WHERE blocker_id = %(me)s
-              UNION SELECT blocker_id FROM blocks WHERE blocked_id = %(me)s)"""
+              UNION SELECT blocker_id FROM blocks WHERE blocked_id = %(me)s
+              UNION SELECT id FROM users WHERE frozen)"""
+FROZEN = "(SELECT id FROM users WHERE frozen)"
 MUTED = "(SELECT muted_id FROM mutes WHERE muter_id = %(me)s)"
 
 
@@ -114,10 +116,11 @@ def report(conn: psycopg.Connection, me: dict, reason: str, review_id: int | Non
 def profile(conn: psycopg.Connection, me: dict, username: str) -> dict:
     """A person's profile: stats, earned badges, and (for me and my friends) the venues they checked in at."""
     other = conn.execute(
-        "SELECT id, username, share_checkins FROM users WHERE lower(username) = %s AND NOT is_guest",
+        "SELECT id, username, share_checkins, frozen FROM users WHERE lower(username) = %s AND NOT is_guest",
         (normalize_username(username),),
     ).fetchone()
-    if other is None or (other["id"] != me["id"] and is_blocked_between(conn, me["id"], other["id"])):
+    hidden = other is not None and other["id"] != me["id"] and (other["frozen"] or is_blocked_between(conn, me["id"], other["id"]))
+    if other is None or hidden:
         raise SafetyError("Bu kullanıcı adıyla kimse yok.", 404)
     is_me = other["id"] == me["id"]
     from app.friends import relation

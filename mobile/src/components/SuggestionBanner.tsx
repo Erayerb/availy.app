@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Suggestion } from '../hooks/useCheckinSuggestion';
 import { suggestionText } from '../lib/suggestion';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 type Props = { suggestion: Suggestion; onCheckin: () => void; onClose: () => void };
 
@@ -28,7 +28,7 @@ export function SuggestionBanner({ suggestion, onCheckin, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   banner: {
     position: 'absolute',
     top: 54,
@@ -56,4 +56,4 @@ const styles = StyleSheet.create({
   button: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: colors.primary },
   buttonText: { color: colors.onPrimary, fontWeight: '700', fontSize: 13 },
   close: { fontSize: 16, color: colors.textMuted },
-});
+}));

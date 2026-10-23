@@ -36,3 +36,9 @@ test('foldTr removes Turkish letters for English-keyboard search', () => {
   assert.equal(foldTr('İSTANBUL Üsküdar Çengelköy Ağa'), 'istanbul uskudar cengelkoy aga');
   assert.equal(foldTr('KADIKÖY'), 'kadikoy');
 });
+
+test('trending: venues with check-ins in the last 24 hours, most people first', async () => {
+  const { trending } = await import('../src/lib/sort.ts');
+  const list = [{ id: 1, trend: 2 }, { id: 2, trend: 0 }, { id: 3, trend: 5 }, { id: 4 }];
+  assert.deepEqual(trending(list).map((v) => v.id), [3, 1]);
+});

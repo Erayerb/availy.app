@@ -105,7 +105,7 @@ def hash_token(token: str) -> str:
 
 USER_COLUMNS = (
     "id, email, username, name, role, venue_id, plan, trust, is_guest, created_at, "
-    "share_checkins, show_in_leaderboard, searchable"
+    "share_checkins, show_in_leaderboard, searchable, frozen"
 )
 USERNAME_TAKEN = "Bu kullanıcı adı alınmış, başka bir tane dene."
 
@@ -202,6 +202,10 @@ def authenticate(conn: psycopg.Connection, login: str, password: str, role: str 
     stored = row.pop("password_hash")
     if stored is None or not verify_password(password, stored):
         raise AccountError(LOGIN_FAILED, 401)
+    # Signing in opens a frozen account again
+    if row.get("frozen"):
+        conn.execute("UPDATE users SET frozen = false WHERE id = %s", (row["id"],))
+        row["frozen"] = False
     if role is not None and row["role"] != role:
         raise AccountError(
             'Bu hesap işletme hesabı olarak kayıtlı. Yukarıdan "İşletme"yi seç.'
@@ -248,6 +252,35 @@ def change_password(conn: psycopg.Connection, user: dict, old_password: str, new
     if not MIN_PASSWORD_LENGTH <= len(new_password) <= MAX_PASSWORD_LENGTH:
         raise AccountError(f"Yeni şifre en az {MIN_PASSWORD_LENGTH} karakter olmalı.")
     conn.execute("UPDATE users SET password_hash = %s WHERE id = %s", (hash_password(new_password), user["id"]))
+
+
+def change_email(conn: psycopg.Connection, user: dict, password: str, email: str) -> dict:
+    """New e-mail address; the current password is asked so a borrowed phone cannot take the account over."""
+    stored = conn.execute("SELECT password_hash FROM users WHERE id = %s", (user["id"],)).fetchone()["password_hash"]
+    if stored is None:
+        raise AccountError("Misafir hesabının e-postası yok. Önce kayıt ol.", 409)
+    if not verify_password(password, stored):
+        raise AccountError("Şifre hatalı.", 403)
+    if not EMAIL_PATTERN.match(email.strip()):
+        raise AccountError("Geçerli bir e-posta gir.")
+    new = normalize_email(email)
+    if new == user["email"]:
+        raise AccountError("Bu zaten senin e-posta adresin.")
+    if conn.execute("SELECT 1 FROM users WHERE email = %s AND id <> %s", (new, user["id"])).fetchone():
+        raise AccountError("Bu e-posta başka bir hesapta kayıtlı.", 409)
+    try:
+        with conn.transaction():
+            return conn.execute(
+                f"UPDATE users SET email = %s WHERE id = %s RETURNING {USER_COLUMNS}", (new, user["id"])
+            ).fetchone()
+    except psycopg.errors.UniqueViolation:
+        raise AccountError("Bu e-posta başka bir hesapta kayıtlı.", 409) from None
+
+
+def freeze_user(conn: psycopg.Connection, user: dict) -> None:
+    """"Hesabı dondur": hide the profile and activity and sign out everywhere; the next sign-in opens it again."""
+    conn.execute("UPDATE users SET frozen = true WHERE id = %s", (user["id"],))
+    conn.execute("DELETE FROM sessions WHERE user_id = %s", (user["id"],))
 
 
 def delete_user(conn: psycopg.Connection, user: dict) -> None:

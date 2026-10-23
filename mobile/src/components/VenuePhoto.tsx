@@ -2,6 +2,7 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { useEngagement } from '../context/EngagementContext';
 import { categoryVisual } from '../lib/visuals';
+import { themed } from '../theme';
 
 type Props = { venueId: number; category: string; size: number | '100%'; height: number; radius?: number };
 
@@ -18,7 +19,7 @@ export function VenuePhoto({ venueId, category, size, height, radius = 16 }: Pro
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   image: { overflow: 'hidden' },
   placeholder: { alignItems: 'center', justifyContent: 'center' },
-});
+}));

@@ -9,7 +9,7 @@ import { friendsApi } from '../lib/friends';
 import { safetyApi, splitVenues, type Profile, type ProfileVenue } from '../lib/safety';
 import { categoryVisual } from '../lib/visuals';
 import { confirmAction } from '../lib/confirm';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 // Venue lists show this many rows, the rest scroll
 const VISIBLE_VENUES = 3;
@@ -28,6 +28,7 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [fullList, setFullList] = useState(false);
 
   const load = useCallback(() => {
     safetyApi
@@ -80,6 +81,43 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
 
   const me = profile.relation === 'self';
   const venues = profile.venues ? splitVenues(profile.venues) : null;
+
+  // "Tümü": both lists in full on one page
+  if (fullList && venues) {
+    const row = (v: ProfileVenue) => (
+      <Pressable key={v.venue_id} onPress={() => onOpenVenue({ id: v.venue_id })} style={styles.venue}>
+        <Text style={styles.emoji}>{categoryVisual(v.category).emoji}</Text>
+        <View style={styles.flex}>
+          <Text style={styles.text}>{v.venue_name}</Text>
+          <Text style={styles.muted}>
+            {categoryLabel(v.category)} · {v.visits} kez · son {timeAgo(v.last_at, new Date())}
+          </Text>
+        </View>
+        <Text style={styles.chevron}>›</Text>
+      </Pressable>
+    );
+    return (
+      <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+        <View style={styles.topRow}>
+          <BackButton onPress={() => setFullList(false)} />
+          <Text style={styles.title} numberOfLines={1}>
+            Mekanlar
+          </Text>
+        </View>
+        <Text style={styles.muted}>@{profile.username}</Text>
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>✨ Keşfettiği mekanlar · {venues.discovered.length}</Text>
+          {venues.discovered.length === 0 && <Text style={styles.muted}>Henüz keşfettiği mekan yok.</Text>}
+          {venues.discovered.map(row)}
+        </View>
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>📍 Check-in yaptığı mekanlar · {venues.visited.length}</Text>
+          {venues.visited.length === 0 && <Text style={styles.muted}>Henüz check-in yok.</Text>}
+          {venues.visited.map(row)}
+        </View>
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
@@ -156,8 +194,20 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
         </Text>
       ) : (
         <>
-          <VenueList title={`✨ Keşfettiği mekanlar · ${venues.discovered.length}`} venues={venues.discovered} empty="Henüz keşfettiği mekan yok." onOpenVenue={onOpenVenue} />
-          <VenueList title={`📍 Check-in yaptığı mekanlar · ${venues.visited.length}`} venues={venues.visited} empty="Henüz check-in yok." onOpenVenue={onOpenVenue} />
+          <VenueList
+            title={`✨ Keşfettiği mekanlar · ${venues.discovered.length}`}
+            venues={venues.discovered}
+            empty="Henüz keşfettiği mekan yok."
+            onOpenVenue={onOpenVenue}
+            onShowAll={() => setFullList(true)}
+          />
+          <VenueList
+            title={`📍 Check-in yaptığı mekanlar · ${venues.visited.length}`}
+            venues={venues.visited}
+            empty="Henüz check-in yok."
+            onOpenVenue={onOpenVenue}
+            onShowAll={() => setFullList(true)}
+          />
         </>
       )}
 
@@ -166,10 +216,26 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
   );
 }
 
-function VenueList({ title, venues, empty, onOpenVenue }: { title: string; venues: ProfileVenue[]; empty: string; onOpenVenue: (v: { id: number }) => void }) {
+function VenueList({
+  title,
+  venues,
+  empty,
+  onOpenVenue,
+  onShowAll,
+}: {
+  title: string;
+  venues: ProfileVenue[];
+  empty: string;
+  onOpenVenue: (v: { id: number }) => void;
+  onShowAll: () => void;
+}) {
   return (
     <View style={styles.card}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      {/* The title opens the whole list on its own page */}
+      <Pressable onPress={onShowAll} style={styles.listHead} disabled={venues.length === 0}>
+        <Text style={[styles.sectionTitle, styles.flex]}>{title}</Text>
+        {venues.length > 0 && <Text style={styles.link}>Tümü ›</Text>}
+      </Pressable>
       {venues.length === 0 && <Text style={styles.muted}>{empty}</Text>}
       {/* Three rows are shown; the rest scroll inside the card */}
       <ScrollView style={venues.length > VISIBLE_VENUES ? styles.venueScroll : undefined} nestedScrollEnabled>
@@ -186,7 +252,7 @@ function VenueList({ title, venues, empty, onOpenVenue }: { title: string; venue
           </Pressable>
         ))}
       </ScrollView>
-      {venues.length > VISIBLE_VENUES && <Text style={styles.muted}>Tümü için kutunun içinde aşağı kaydır.</Text>}
+
     </View>
   );
 }
@@ -208,7 +274,7 @@ function Action({ label, onPress, primary, danger }: { label: string; onPress: (
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 48, gap: 14 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -232,6 +298,8 @@ const styles = StyleSheet.create({
   actionTextPrimary: { color: colors.onPrimary },
   actionTextDanger: { color: colors.danger },
   note: { fontSize: 13, color: colors.success, fontWeight: '600' },
+  listHead: { flexDirection: 'row', alignItems: 'center' },
+  link: { color: colors.primary, fontWeight: '600', fontSize: 14 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
   venue: { flexDirection: 'row', alignItems: 'center', gap: 12, height: VENUE_ROW },
   venueScroll: { maxHeight: VENUE_ROW * VISIBLE_VENUES },
@@ -241,4 +309,4 @@ const styles = StyleSheet.create({
   chevron: { fontSize: 22, color: colors.textMuted },
   secondary: { paddingVertical: 11, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center' },
   secondaryText: { color: colors.primary, fontWeight: '700' },
-});
+}));

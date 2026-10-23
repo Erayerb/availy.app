@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 type Props = {
   title: string;
@@ -36,7 +36,7 @@ export function Collapsible({ title, summary, badge, initiallyOpen = false, chil
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   card: { padding: 16, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   flex: { flex: 1, gap: 2 },
@@ -44,4 +44,4 @@ const styles = StyleSheet.create({
   summary: { fontSize: 13, color: colors.textMuted },
   chevron: { fontSize: 11, color: colors.textMuted },
   body: { gap: 8, marginTop: 12 },
-});
+}));

@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useCampaigns } from '../context/CampaignsContext';
 import type { Venue } from '../lib/api';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 import { FavoriteButton } from './FavoriteButton';
 import { CrowdDot } from './CrowdDot';
 import { VenuePhoto } from './VenuePhoto';
@@ -41,9 +41,9 @@ export function VenueTile({ venue, size, distance, onPress }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   pressed: { opacity: 0.75 },
-  closedShade: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(255,255,255,0.45)' },
+  closedShade: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: colors.closedShade },
   badge: {
     position: 'absolute',
     top: 10,
@@ -81,4 +81,4 @@ const styles = StyleSheet.create({
   favorite: { position: 'absolute', top: 6, left: 6 },
   distance: { marginTop: 2, fontSize: 12, color: colors.textMuted },
   name: { marginTop: 6, fontSize: 14, fontWeight: '600', color: colors.text },
-});
+}));

@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BackButton } from '../components/BackButton';
 import { VerificationSection } from '../components/business/VerificationSection';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 /** Ownership verification: designed, but switched off for the prototype (see CONTEXT.md). */
 export function VerificationScreen({ onBack }: { onBack: () => void }) {
@@ -26,7 +26,7 @@ export function VerificationScreen({ onBack }: { onBack: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 40, gap: 14 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -35,4 +35,4 @@ const styles = StyleSheet.create({
   noticeTitle: { fontSize: 15, fontWeight: '700', color: colors.primary },
   text: { fontSize: 14, color: colors.text, lineHeight: 20 },
   disabled: { opacity: 0.45 },
-});
+}));

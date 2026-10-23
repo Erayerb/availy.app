@@ -7,7 +7,7 @@ import { useSettings } from '../context/SettingsContext';
 import type { Role } from '../lib/auth';
 import { BUSINESS_SLIDES, CUSTOMER_SLIDES } from '../lib/intro';
 import { LEVELS } from '../lib/occupancy';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 /** What availy is and how to use it (for now the intro lives here). */
 export function AboutScreen({ role, onBack }: { role: Role; onBack: () => void }) {
@@ -62,7 +62,7 @@ export function AboutScreen({ role, onBack }: { role: Role; onBack: () => void }
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 40, gap: 14 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -75,4 +75,4 @@ const styles = StyleSheet.create({
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendText: { fontSize: 13, color: colors.text },
   note: { fontSize: 13, color: colors.textMuted, textAlign: 'center' },
-});
+}));

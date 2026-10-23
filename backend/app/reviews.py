@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 import psycopg
 
-from app.safety import BLOCKED, MUTED, hidden_reply, hidden_review
+from app.safety import BLOCKED, FROZEN, MUTED, hidden_reply, hidden_review
 
 MAX_BODY = 280
 MAX_REVIEWS_PER_VENUE = 2
@@ -35,6 +35,8 @@ def _clean(body: str) -> str:
 
 def save_review(conn: psycopg.Connection, user: dict, venue_id: int, rating: int, body: str, allow_replies: bool, now: datetime) -> dict:
     _require_registered(user, "Yorum yazmak")
+    if user.get("role") == "business":
+        raise ReviewError("İşletme hesapları yorum yazamaz; yorumlara yanıt verebilir.", 403)
     if rating not in range(1, 6):
         raise ReviewError("Puan seç (1–5).")
     if conn.execute("SELECT 1 FROM venues WHERE id = %s", (venue_id,)).fetchone() is None:
@@ -60,15 +62,19 @@ def delete_review(conn: psycopg.Connection, user: dict, review_id: int) -> None:
 
 def add_reply(conn: psycopg.Connection, user: dict, review_id: int, body: str, now: datetime) -> dict:
     _require_registered(user, "Yanıt yazmak")
-    review = conn.execute("SELECT user_id, allow_replies FROM reviews WHERE id = %s", (review_id,)).fetchone()
+    review = conn.execute("SELECT user_id, venue_id, allow_replies FROM reviews WHERE id = %s", (review_id,)).fetchone()
     if review is None:
         raise ReviewError("Yorum bulunamadı.", 404)
     from app.safety import is_blocked_between
 
     if is_blocked_between(conn, user["id"], review["user_id"]):
         raise ReviewError("Bu yoruma yanıt verilemiyor.", 403)
-    # The author can always answer under their own review
-    if not review["allow_replies"] and review["user_id"] != user["id"]:
+    owner = user.get("role") == "business" and user.get("venue_id") == review["venue_id"]
+    # Businesses answer only on their own venue (not on competitors')
+    if user.get("role") == "business" and not owner:
+        raise ReviewError("İşletme hesabıyla yalnızca kendi mekanının yorumlarını yanıtlayabilirsin.", 403)
+    # The author, and the venue's business, can always answer
+    if not review["allow_replies"] and review["user_id"] != user["id"] and not owner:
         raise ReviewError("Bu yoruma yanıt verilemiyor.", 403)
     text = _clean(body)
     if not text:
@@ -98,8 +104,9 @@ def venue_reviews(conn: psycopg.Connection, venue_id: int, me: dict | None) -> d
     ).fetchall()
     replies = conn.execute(
         f"""
-        SELECT p.id, p.review_id, p.body, p.created_at, u.username, p.user_id = %(me)s AS mine
-        FROM review_replies p JOIN users u ON u.id = p.user_id
+        SELECT p.id, p.review_id, p.body, p.created_at, u.username, p.user_id = %(me)s AS mine,
+               (u.role = 'business' AND u.venue_id = r.venue_id) AS is_business
+        FROM review_replies p JOIN users u ON u.id = p.user_id JOIN reviews r ON r.id = p.review_id
         WHERE p.review_id = ANY(%(ids)s) AND p.user_id NOT IN {BLOCKED} AND NOT {hidden_reply("p")}
         ORDER BY p.created_at
         """,
@@ -123,7 +130,7 @@ def friend_feed(conn: psycopg.Connection, me: dict, now: datetime) -> list[dict]
     friends = f"""
         SELECT CASE WHEN requester_id = %(me)s THEN addressee_id ELSE requester_id END
         FROM friendships WHERE status = 'accepted' AND %(me)s IN (requester_id, addressee_id)
-        EXCEPT {MUTED}
+        EXCEPT {MUTED} EXCEPT {FROZEN}
     """
     return conn.execute(
         f"""

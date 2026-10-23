@@ -14,6 +14,7 @@ export type Crowd = {
   last_report_at: string | null;
   queue: boolean | null; // "Sıra var" (Kalabalık)
   seats: boolean | null; // "Oturacak yer var" (Orta)
+  yesterday_level?: Level | null; // no fresh check-ins: the level at this time yesterday
 };
 
 export const UNEXPLORED: Crowd = {
@@ -51,6 +52,9 @@ export function crowdScore(venue: HasCrowd): number {
   return venue.crowd?.ratio ?? LEVEL_SCORE[level];
 }
 
+/** First letter in upper case, for text that starts a line ("Az önce", "Keşfetti"). */
+export const sentence = (text: string) => text.charAt(0).toLocaleUpperCase('tr-TR') + text.slice(1);
+
 /** "az önce" / "12 dk önce" / "3 saat önce" / "2 gün önce" */
 export function timeAgo(iso: string, now: Date): string {
   const minutes = Math.max(0, Math.floor((now.getTime() - new Date(iso).getTime()) / 60_000));
@@ -73,6 +77,14 @@ export function crowdSummary(crowd: Crowd, now: Date): string {
 /** "~%60" when enough people reported, otherwise null. */
 export const crowdRatioText = (crowd: Crowd): string | null =>
   crowd.state === 'live' && crowd.ratio !== null ? `~%${Math.round(crowd.ratio * 100)}` : null;
+
+const YESTERDAY: Record<Level, string> = { low: 'sakindi', medium: 'orta doluydu', high: 'kalabalıktı' };
+
+/** No fresh check-ins: "Dün bu saatlerde kalabalıktı", or null when nobody checked in then either. */
+export function crowdYesterday(crowd: Crowd): string | null {
+  if (crowd.state !== 'stale' || !crowd.yesterday_level) return null;
+  return `Dün bu saatlerde ${YESTERDAY[crowd.yesterday_level]}`;
+}
 
 /** "Sıra var" / "Oturacak yer yok" … from the follow-up answers, or null. */
 export function crowdExtra(crowd: Crowd): string | null {

@@ -13,7 +13,7 @@ import { formatDistance } from '../lib/geo';
 import { CrowdDot } from './CrowdDot';
 import { useSettings } from '../context/SettingsContext';
 import { crowdRatioText } from '../lib/crowd';
-import { colors } from '../theme';
+import { colors, themed } from '../theme';
 
 // Every row has the same height so exactly 4 fit; more alternatives scroll
 const ROW_HEIGHT = 50;
@@ -89,7 +89,7 @@ export function AlternativesPopup({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   popup: {
     position: 'absolute',
     left: 12,
@@ -140,4 +140,4 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   chevron: { fontSize: 18, color: colors.textMuted },
-});
+}));
