@@ -5,7 +5,10 @@ import { useLocation } from '../context/LocationContext';
 import { useSettings } from '../context/SettingsContext';
 import type { Venue } from '../lib/api';
 import type { User } from '../lib/auth';
-import { checkinBody, checkinMessage, followUpQuestion, sendCheckin } from '../lib/checkinApi';
+import { useCampaigns } from '../context/CampaignsContext';
+import { checkinBody, checkinMessage, followUpQuestion, sendCheckin, type CheckinResult } from '../lib/checkinApi';
+import { checkinShareMessage } from '../lib/share';
+import { shareText } from '../lib/shareVenue';
 import { LEVELS, type Level } from '../lib/occupancy';
 import { colors, themed } from '../theme';
 import { ThemedSwitch } from './ThemedSwitch';
@@ -17,12 +20,12 @@ type Props = {
   onRegister: () => void;
   // Called after a successful check-in (e.g. to reload the venue and the user's points)
   onDone: () => void;
-  // The user's last check-in here (ISO), if any: a new one is possible 2 hours later
+  // The user's last check-in here (ISO), if any: a new one is possible 90 minutes later
   lastCheckinAt?: string | null;
 };
 
-// Same as the server: one check-in per venue every 2 hours
-const COOLDOWN_MS = 2 * 60 * 60_000;
+// Same as the server: one check-in per venue every 90 minutes
+const COOLDOWN_MS = 90 * 60_000;
 
 const clock = (ms: number) => new Date(ms).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 
@@ -44,6 +47,14 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
   const [result, setResult] = useState<{ ok: boolean; text: string; settings?: boolean } | null>(null);
   // Set right after a check-in, before the visits list has reloaded
   const [justCheckedIn, setJustCheckedIn] = useState<number | null>(null);
+  // What was just reported, for the celebration and "Arkadaşlarına paylaş"
+  const [shared, setShared] = useState<{
+    label: string;
+    first: boolean;
+    note: string | null;
+    coupons: NonNullable<CheckinResult['coupons']>;
+  } | null>(null);
+  const { reload: reloadCoupons } = useCampaigns();
   const question = followUpQuestion(level);
   const last = Math.max(justCheckedIn ?? 0, lastCheckinAt ? new Date(lastCheckinAt).getTime() : 0);
   const nextAt = last ? last + COOLDOWN_MS : 0;
@@ -91,6 +102,8 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
     try {
       const done = await sendCheckin(user.token, venue.id, checkinBody(level, answer, position.coords, isPrivate));
       setResult({ ok: true, text: checkinMessage(done) });
+      setShared({ label: look(level).label, first: done.is_first, note: null, coupons: done.coupons ?? [] });
+      if (done.coupons?.length) reloadCoupons(); // shows up in Kuponlarım
       setJustCheckedIn(Date.now());
       setLevel(null);
       setAnswer(null);
@@ -102,21 +115,44 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
     }
   };
 
-  // Checked in here less than 2 hours ago: the button stays, closed, with the time it opens above it
+  // Checked in here less than 90 minutes ago: the button stays, closed, with the time it opens above it
   if (coolingDown) {
     return (
       <View style={styles.card}>
-        <Text style={styles.title}>✓ Check-in yapıldı</Text>
-        {result?.ok ? (
-          <Text style={styles.success}>{result.text}</Text>
+        {result?.ok && shared ? (
+          // A short celebration right after the check-in
+          <View style={styles.party}>
+            <Text style={styles.partyIcon}>{shared.first ? '✨' : '🎉'}</Text>
+            <Text style={styles.partyTitle}>{shared.first ? 'Burayı sen keşfettin!' : 'Check-in yapıldı!'}</Text>
+            <Text style={styles.success}>{result.text}</Text>
+            {shared.coupons.map((c) => (
+              <View key={c.code} style={styles.coupon}>
+                <Text style={styles.couponTitle}>🎟 Kupon kazandın: {c.code}</Text>
+                <Text style={styles.muted}>{c.message} · Kasada göster (Kampanyalar → Kuponlarım)</Text>
+              </View>
+            ))}
+            <Pressable
+              style={styles.share}
+              onPress={async () => {
+                const note = await shareText(checkinShareMessage(venue.name, shared.label, shared.first));
+                setShared({ ...shared, note });
+              }}
+            >
+              <Text style={styles.shareText}>📣 Arkadaşlarına paylaş</Text>
+            </Pressable>
+            {shared.note && <Text style={styles.muted}>{shared.note}</Text>}
+          </View>
         ) : (
-          <Text style={styles.muted}>Son check-in'in {clock(last)}.</Text>
+          <>
+            <Text style={styles.title}>✓ Check-in yapıldı</Text>
+            <Text style={styles.muted}>Son check-in'in {clock(last)}.</Text>
+          </>
         )}
         <Text style={styles.text}>Tekrar check-in: {clock(nextAt)}</Text>
         <View style={[styles.primary, styles.disabled]}>
           <Text style={styles.primaryText}>📍 Check-in yap</Text>
         </View>
-        <Text style={styles.muted}>Aynı mekana 2 saatte bir check-in yapılabilir.</Text>
+        <Text style={styles.muted}>Aynı mekana 90 dakikada bir check-in yapılabilir.</Text>
       </View>
     );
   }
@@ -219,5 +255,12 @@ const styles = themed(() => StyleSheet.create({
   error: { color: colors.danger, fontSize: 14 },
   link: { color: colors.primary, fontWeight: '700' },
   privateRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  party: { alignItems: 'center', gap: 6, paddingVertical: 6 },
+  coupon: { alignSelf: 'stretch', padding: 10, borderRadius: 12, backgroundColor: colors.cream, gap: 2, alignItems: 'center' },
+  couponTitle: { fontSize: 15, fontWeight: '800', color: colors.primary },
+  partyIcon: { fontSize: 44 },
+  partyTitle: { fontSize: 20, fontWeight: '800', color: colors.text },
+  share: { marginTop: 4, paddingVertical: 11, paddingHorizontal: 20, borderRadius: 12, backgroundColor: colors.primary },
+  shareText: { color: colors.onPrimary, fontWeight: '700', fontSize: 15 },
   privateText: { flex: 1, gap: 2 },
 }));

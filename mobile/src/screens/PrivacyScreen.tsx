@@ -26,7 +26,9 @@ export function PrivacyScreen({ token, onBack, onOpenPermissions, onOpenLegal }:
     if (!token) return;
     socialApi
       .privacy(token)
-      .then(({ share_checkins, show_in_leaderboard, searchable }) => setPrivacy({ share_checkins, show_in_leaderboard, searchable }))
+      .then(({ share_checkins, show_in_leaderboard, searchable, suggest_by_venues }) =>
+        setPrivacy({ share_checkins, show_in_leaderboard, searchable, suggest_by_venues: suggest_by_venues ?? true }),
+      )
       .catch(() => setError('Gizlilik ayarları yüklenemedi.'));
     safetyApi.blocked(token).then(setBlocked).catch(() => {});
   }, [token]);
@@ -78,6 +80,12 @@ export function PrivacyScreen({ token, onBack, onOpenPermissions, onOpenLegal }:
               subtitle="Kapalıysa yalnızca QR kodun ya da davet bağlantınla eklenebilirsin."
               value={privacy.searchable}
               onChange={(v) => change({ searchable: v })}
+            />
+            <Row
+              title="Arkadaş olarak önerilmeye izin ver"
+              subtitle="Açıksa aynı mekanlara gittiğin kişilerin Sosyal'deki “Önerilen kişiler”inde görünürsün (gizli check-in'ler sayılmaz). Profilin yine yalnızca arkadaşlarına açık."
+              value={privacy.suggest_by_venues}
+              onChange={(v) => change({ suggest_by_venues: v })}
             />
           </>
         )}

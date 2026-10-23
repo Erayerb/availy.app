@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { Linking, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BackButton } from '../components/BackButton';
+import { BusinessRequest } from '../components/BusinessRequest';
 import { CampaignBox } from '../components/CampaignBox';
+import { FriendsHere } from '../components/FriendsHere';
 import { FavoriteButton } from '../components/FavoriteButton';
 import { CheckinPanel } from '../components/CheckinPanel';
 import { CrowdDot } from '../components/CrowdDot';
@@ -10,6 +12,7 @@ import { VenuePhoto } from '../components/VenuePhoto';
 import { WatchButton } from '../components/WatchButton';
 import { useCampaigns } from '../context/CampaignsContext';
 import { useEngagement } from '../context/EngagementContext';
+import { useLoyalty } from '../context/LoyaltyContext';
 import { useLocation } from '../context/LocationContext';
 import { useSettings } from '../context/SettingsContext';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
@@ -23,7 +26,7 @@ import { useReviews } from '../hooks/useReviews';
 import { ReviewsSection } from '../components/ReviewsSection';
 import { describeProgram, isProgramActive } from '../lib/loyalty';
 import type { User } from '../lib/auth';
-import { crowdExtra, crowdRatioText, crowdSummary, crowdYesterday } from '../lib/crowd';
+import { crowdRatioText, crowdSummary, crowdYesterday } from '../lib/crowd';
 import { shareVenue } from '../lib/shareVenue';
 import { instagramUrl, phoneUrl } from '../lib/venueApi';
 import { canWatch } from '../lib/watch';
@@ -58,7 +61,11 @@ export function VenueDetailScreen({
   const venue = venues[0];
   const { crowdLook } = useSettings();
   const { activeFor } = useCampaigns();
-  const { programs, watches } = useEngagement();
+  const { watches } = useEngagement();
+  const { programs, join, leave } = useLoyalty();
+  const [loyaltyNote, setLoyaltyNote] = useState<string | null>(null);
+  // "👥 @ayse burada" is for registered customers
+  const herePerson = user?.token && !user.isGuest && user.role !== 'business' ? user.token : null;
   // v2: reviews and replies live on the server
   const { reviews, setReviews, reload: reloadReviews } = useReviews(venueId, user?.token);
   const { point } = useLocation();
@@ -167,8 +174,8 @@ export function VenueDetailScreen({
           </Text>
         </View>
         {venue.open_now && <Text style={styles.text}>{crowdSummary(venue.crowd, new Date())}</Text>}
-        {venue.open_now && crowdExtra(venue.crowd) && <Text style={styles.text}>{crowdExtra(venue.crowd)}</Text>}
         {venue.open_now && crowdYesterday(venue.crowd) && <Text style={styles.text}>🕘 {crowdYesterday(venue.crowd)}</Text>}
+        <FriendsHere venueId={venue.id} token={herePerson} onOpenUser={onOpenUser} reloadKey={venue} />
         <Text style={styles.text}>🕒 {venue.hours}</Text>
         {watching ? (
           <Text style={styles.watch}>🔔 Sakin olunca haber vereceğiz</Text>
@@ -214,9 +221,28 @@ export function VenueDetailScreen({
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Sadakat programı</Text>
           <Text style={styles.text}>⭐ {describeProgram(program)}</Text>
-          <Text style={styles.muted}>Ayrıntılar ve kartın: Kampanyalar → Sadakat</Text>
+          {program.member ? (
+            <>
+              <Text style={styles.text}>
+                {program.kind === 'stamps'
+                  ? `✓ Katıldın · kartında ${program.member.stamps}/${program.stampsRequired} damga${program.member.rewards ? ` · 🎁 ${program.member.rewards} ödül` : ''}`
+                  : '✓ Üyesin'}
+              </Text>
+              <Text style={styles.muted}>Kasada QR'ını göster: Kampanyalar → Sadakat</Text>
+              <Pressable onPress={() => leave(program.venueId)} hitSlop={6}>
+                <Text style={styles.muted}>Programdan çık</Text>
+              </Pressable>
+            </>
+          ) : user?.role !== 'business' ? (
+            <Pressable style={styles.primary} onPress={async () => setLoyaltyNote(await join(program.venueId))}>
+              <Text style={styles.primaryText}>{program.kind === 'stamps' ? 'Sadakat programına katıl' : `Üye ol (₺${program.price}/ay, demo)`}</Text>
+            </Pressable>
+          ) : null}
+          {loyaltyNote && <Text style={styles.muted}>{loyaltyNote}</Text>}
         </View>
       )}
+
+      {user?.role !== 'business' && <BusinessRequest venueId={venue.id} token={user?.token ?? null} onLogin={onLogin} />}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Özellikler</Text>

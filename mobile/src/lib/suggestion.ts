@@ -4,8 +4,8 @@
  */
 export const SUGGEST_RADIUS_KM = 0.25;
 export const DWELL_MS = 3 * 60_000;
-// Same as the server: one check-in per venue every 2 hours
-export const COOLDOWN_MS = 2 * 60 * 60_000;
+// Same as the server: one check-in per venue every 90 minutes
+export const COOLDOWN_MS = 90 * 60_000;
 
 /** Where the user has been standing, and since when. */
 export type Stay = { venueId: number; since: number; suggested: boolean };

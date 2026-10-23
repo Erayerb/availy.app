@@ -76,6 +76,15 @@ def notifications(conn: psycopg.Connection, me: dict, now: datetime) -> list[dic
             SELECT 'reward', w.created_at, NULL, v.id, v.name, w.message
             FROM discoverer_rewards w JOIN venues v ON v.id = w.venue_id
             WHERE w.user_id = %(me)s
+            UNION ALL
+            -- A venue I checked in at (or discovered) started a loyalty program I have not joined
+            SELECT 'loyalty', p.activated_at, NULL, v.id, v.name,
+                   CASE WHEN p.kind = 'stamps' THEN p.stamps_required || ' damga = ' || p.reward
+                        ELSE p.price || ' ₺/ay · ' || p.perk END
+            FROM loyalty_programs p JOIN venues v ON v.id = p.venue_id
+            WHERE p.active AND p.activated_at > %(since)s
+              AND EXISTS (SELECT 1 FROM checkins c WHERE c.venue_id = p.venue_id AND c.user_id = %(me)s)
+              AND NOT EXISTS (SELECT 1 FROM loyalty_members m WHERE m.venue_id = p.venue_id AND m.user_id = %(me)s)
         ) items
         ORDER BY at DESC LIMIT 50
         """,

@@ -30,7 +30,7 @@ export const BUSINESS_SLIDES: IntroSection[] = [
   {
     icon: '📊',
     title: 'Panel',
-    lines: ["Müşterilerin check-in'lerinden mekanının doluluğu ve istatistikleri.", 'Yorumlara "İşletme" olarak yanıt ver.'],
+    lines: ["Müşterilerin check-in'lerinden mekanının doluluğu ve istatistikleri.", 'Müşteriler: müdavimlerin, sadakat üyelerin ve yanıt bekleyen yorumlar.'],
   },
   {
     icon: '🏷️',

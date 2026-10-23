@@ -3,10 +3,8 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 
 import { HeaderButtons } from '../components/HeaderButtons';
 import { CrowdDot } from '../components/CrowdDot';
-import { ReviewsSection } from '../components/ReviewsSection';
 import { useCampaigns } from '../context/CampaignsContext';
 import { useSettings } from '../context/SettingsContext';
-import { useReviews } from '../hooks/useReviews';
 import { fetchVenues, fetchVenuesByIds, type Venue } from '../lib/api';
 import type { User } from '../lib/auth';
 import { busiestHour, businessApi, MAX_REWARD, quietestWeekday, WEEKDAY_NAMES, type VenueStats } from '../lib/business';
@@ -39,7 +37,6 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
   const [sent, setSent] = useState<{ ok: boolean; text: string } | null>(null);
   const { now, create, activeFor } = useCampaigns();
   const { crowdLook } = useSettings();
-  const { reviews, setReviews, reload: reloadReviews } = useReviews(venueId, user.token);
 
   const load = useCallback(async () => {
     try {
@@ -235,16 +232,6 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
         ))}
       </View>
 
-      {/* Customers' reviews; the business answers as "İşletme" */}
-      <ReviewsSection
-        venueId={venue.id}
-        user={user}
-        reviews={reviews}
-        onChange={setReviews}
-        reload={reloadReviews}
-        onRegister={onRegister}
-        onOpenUser={onOpenUser}
-      />
     </ScrollView>
   );
 }

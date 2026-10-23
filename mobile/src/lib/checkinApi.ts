@@ -19,8 +19,12 @@ export type CheckinResult = {
   created_at: string;
   is_private: boolean;
   points_earned: number;
+  // Why it earned no points: a check-in at another venue in the last 30 minutes, or 8 already today
+  points_note?: 'too_soon' | 'daily_limit' | null;
   visitor_rank: number | null; // "Burayı keşfeden 12. kişisin" (first visit only)
   my_visits: number;
+  // Coupons of the venue's "Check-in yapana kupon" campaigns, given with this check-in
+  coupons?: { code: string; message: string; discount: number | null }[];
 };
 
 export type Visit = { venue_id: number; visits: number; last_at: string };
@@ -29,8 +33,11 @@ export const fetchVisits = (token: string) => send<Visit[]>('GET', '/v1/me/visit
 
 /** Message after a check-in: points, and the explorer note for a venue's first one. */
 export function checkinMessage(
-  result: Pick<CheckinResult, 'is_first' | 'points_earned' | 'visitor_rank' | 'my_visits'>,
+  result: Pick<CheckinResult, 'is_first' | 'points_earned' | 'visitor_rank' | 'my_visits' | 'points_note'>,
 ): string {
+  // Counted for the occupancy, but no points (against farming points in cafes side by side)
+  if (result.points_note === 'too_soon') return 'Doluluğa sayıldı · son 30 dakikada başka bir mekanda check-in yaptığın için puan yok';
+  if (result.points_note === 'daily_limit') return 'Doluluğa sayıldı · bugünkü puanlı check-in hakkın doldu (günde 8)';
   const points = `+${result.points_earned} puan`;
   // Shown under "✓ Check-in yapıldı", so it does not say it again
   if (result.is_first) return `✨ Burayı sen keşfettin! ${points} · Kâşif rozeti`;

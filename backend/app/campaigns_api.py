@@ -31,6 +31,7 @@ class CampaignIn(BaseModel):
     radius_km: float
     max_claims: int | None = None
     duration_hours: int
+    checkin_only: bool = False  # "Check-in yapana kupon"
 
 
 class CampaignOut(BaseModel):
@@ -46,6 +47,7 @@ class CampaignOut(BaseModel):
     duration_hours: int
     starts_at: datetime
     ends_at: datetime
+    checkin_only: bool = False
     claims: int
     redemptions: int
     views: int
@@ -88,7 +90,10 @@ def create(
     now: datetime = Depends(get_clock),
 ):
     try:
-        return create_campaign(conn, user, body.message, body.discount, body.radius_km, body.max_claims, body.duration_hours, now)
+        return create_campaign(
+            conn, user, body.message, body.discount, body.radius_km, body.max_claims, body.duration_hours, now,
+            body.checkin_only,
+        )
     except CampaignError as e:
         raise _fail(e) from None
 

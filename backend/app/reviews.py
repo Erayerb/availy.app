@@ -11,6 +11,7 @@ from app.safety import BLOCKED, FROZEN, MUTED, hidden_reply, hidden_review
 
 MAX_BODY = 280
 MAX_REVIEWS_PER_CHECKIN = 2  # each check-in at a venue allows 2 reviews there
+MAX_REPLIES_PER_PERSON = 2  # replies one person may write under one review
 FEED_DAYS = 7
 FEED_LIMIT = 50
 
@@ -93,6 +94,11 @@ def add_reply(conn: psycopg.Connection, user: dict, review_id: int, body: str, n
     text = _clean(body)
     if not text:
         raise ReviewError("Yanıt boş olamaz.")
+    written = conn.execute(
+        "SELECT count(*)::int AS n FROM review_replies WHERE review_id = %s AND user_id = %s", (review_id, user["id"])
+    ).fetchone()["n"]
+    if written >= MAX_REPLIES_PER_PERSON:
+        raise ReviewError(f"Bir yoruma en fazla {MAX_REPLIES_PER_PERSON} yanıt yazabilirsin.", 409)
     return conn.execute(
         "INSERT INTO review_replies (review_id, user_id, body, created_at) VALUES (%s, %s, %s, %s) RETURNING id",
         (review_id, user["id"], text, now),

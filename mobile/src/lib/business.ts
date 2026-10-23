@@ -14,6 +14,10 @@ export type VenueStats = {
   total_checkins: number;
   // username is null for a private check-in; reward is what the business already sent
   discovered_by: { username: string | null; at: string; can_reward: boolean; reward: string | null } | null;
+  // Müşteriler (anonymous): different people and regulars (3+ check-ins) in 30 days, the top visit counts
+  month_people: number;
+  regulars: number;
+  top_visits: number[];
 };
 
 export const MAX_REWARD = 120;

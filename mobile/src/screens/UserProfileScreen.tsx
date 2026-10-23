@@ -186,6 +186,16 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
         {note && <Text style={styles.note}>{note}</Text>}
       </View>
 
+      {/* "Az önce X'te check-in yaptı": the newest venue (the list is newest first) */}
+      {!me && profile.venues && profile.venues.length > 0 && (
+        <Pressable style={styles.latest} onPress={() => onOpenVenue({ id: profile.venues![0].venue_id })}>
+          <Text style={styles.latestText}>
+            📍 {profile.venues[0].venue_name}'de check-in yaptı · {timeAgo(profile.venues[0].last_at, new Date())}
+          </Text>
+          <Text style={styles.chevronSmall}>›</Text>
+        </Pressable>
+      )}
+
       {venues === null ? (
         <Text style={styles.muted}>
           {profile.relation === 'friend'
@@ -302,6 +312,18 @@ const styles = themed(() => StyleSheet.create({
   link: { color: colors.primary, fontWeight: '600', fontSize: 14 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
   venue: { flexDirection: 'row', alignItems: 'center', gap: 12, height: VENUE_ROW },
+  latest: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 8,
+  },
+  latestText: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.text },
+  chevronSmall: { fontSize: 20, color: colors.textMuted },
   venueScroll: { maxHeight: VENUE_ROW * VISIBLE_VENUES },
   emoji: { fontSize: 22 },
   text: { fontSize: 15, fontWeight: '600', color: colors.text },

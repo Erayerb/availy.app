@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
-import { useEngagement } from '../../context/EngagementContext';
-import type { Venue } from '../../lib/api';
+import { useLoyalty } from '../../context/LoyaltyContext';
 import {
   describeProgram,
   isProgramActive,
@@ -16,10 +15,10 @@ import { Chip } from '../TagChips';
 import { panel } from './panelStyles';
 import { ThemedSwitch } from '../ThemedSwitch';
 
-/** Business side of loyalty: set up a stamp card or a paid membership, then stamp customers. */
-export function LoyaltySetup({ venue }: { venue: Venue }) {
-  const { programs, memberships, saveProgram, removeProgram, giveStamp, redeemReward } = useEngagement();
-  const program = programs.find((p) => p.venueId === venue.id);
+/** Business side of loyalty (on the server): set up a stamp card or a paid membership, then stamp members. */
+export function LoyaltySetup() {
+  const { mine, saveProgram, removeProgram, giveStamp, redeemReward } = useLoyalty();
+  const program = mine?.program ?? null;
   // The form opens only when the business asks for it, and can always be cancelled
   const [editing, setEditing] = useState(false);
   const [kind, setKind] = useState<LoyaltyProgram['kind']>(program?.kind ?? 'stamps');
@@ -37,7 +36,7 @@ export function LoyaltySetup({ venue }: { venue: Venue }) {
   const apply = async (action: 'stamp' | 'reward', raw: string) => {
     const code = parseCustomerQr(raw);
     if (!code) return setMessage('Bu bir availy müşteri kodu değil.');
-    setMessage(action === 'stamp' ? await giveStamp(code, venue.id) : await redeemReward(code, venue.id));
+    setMessage(action === 'stamp' ? await giveStamp(code) : await redeemReward(code));
   };
 
   // Drop unsaved changes and go back to what is stored
@@ -51,21 +50,14 @@ export function LoyaltySetup({ venue }: { venue: Venue }) {
     setEditing(false);
   };
 
-  const save = () => {
+  const save = async () => {
     const input = { kind, stampsRequired: Number(stamps), reward, price: Number(price), perk };
-    const problem = validateProgram(input);
+    const problem = validateProgram(input) ?? (await saveProgram({ ...input, active: program ? isProgramActive(program) : true }));
     setFormError(problem);
-    if (problem) return;
-    saveProgram({
-      venueId: venue.id,
-      venueName: venue.name,
-      ...input,
-      active: program ? isProgramActive(program) : true,
-    });
-    setEditing(false);
+    if (!problem) setEditing(false);
   };
 
-  const members = memberships.filter((m) => m.venueId === venue.id).length;
+  const members = mine?.members ?? 0;
 
   return (
     <View style={panel.card}>
@@ -82,6 +74,10 @@ export function LoyaltySetup({ venue }: { venue: Venue }) {
               onValueChange={(active) => saveProgram({ ...program, active })}
             />
           </View>
+          <Text style={panel.muted}>
+            {members} müşteri katıldı{program.kind === 'stamps' ? ` · ${mine?.stampsGiven ?? 0} damga verildi` : ''}. Müşteriler
+            programı Kampanyalar → Sadakat'ta görür ve "Katıl"a basar; burada check-in yapmış olanlara bildirim gider.
+          </Text>
           {program.kind === 'stamps' ? (
             <>
               <Text style={panel.muted}>
@@ -146,14 +142,14 @@ export function LoyaltySetup({ venue }: { venue: Venue }) {
               {message && <Text style={panel.muted}>{message}</Text>}
             </>
           ) : (
-            <Text style={panel.muted}>Üye sayısı: {members} (demo, ödeme alınmaz)</Text>
+            <Text style={panel.muted}>Ücretli üyelik şimdilik gösterim içindir; ödeme alınmaz.</Text>
           )}
           <View style={panel.row}>
             <Pressable onPress={() => setEditing(true)}>
               <Text style={{ color: colors.primary, fontWeight: '600' }}>Düzenle</Text>
             </Pressable>
             <Text style={panel.muted}> · </Text>
-            <Pressable onPress={() => removeProgram(venue.id)}>
+            <Pressable onPress={removeProgram}>
               <Text style={{ color: colors.danger, fontWeight: '600' }}>Programı kaldır</Text>
             </Pressable>
           </View>

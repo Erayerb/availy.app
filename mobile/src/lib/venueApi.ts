@@ -26,6 +26,8 @@ export type NewVenue = {
   confirm_near?: boolean; // "Yine de ekle": another venue is right at that spot
 };
 
+export type BusinessRequest = { has_business: boolean; count: number; mine: boolean };
+
 /** The cover photo; `photoAt` changes with every upload, so an old picture is never shown. */
 export const photoUrl = (venueId: number, photoAt: string) =>
   `${API_URL}/v1/venues/${venueId}/photo?v=${encodeURIComponent(photoAt)}`;
@@ -53,5 +55,10 @@ export const venueApi = {
     ),
   savePhoto: (token: string, venueId: number, photo: string) =>
     send<{ photo_at: string }>('PUT', `/v1/venues/${venueId}/photo`, { photo }, token),
+  // "İşletmeye haber ver": venues without a business account
+  businessRequest: (venueId: number, token?: string) =>
+    send<BusinessRequest>('GET', `/v1/venues/${venueId}/business-request`, undefined, token),
+  askBusiness: (token: string, venueId: number) =>
+    send<BusinessRequest>('POST', `/v1/venues/${venueId}/business-request`, undefined, token),
   add: (token: string, venue: NewVenue) => send<{ id: number; name: string }>('POST', '/v1/venues', venue, token),
 };

@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { isRegistered, type User } from '../lib/auth';
 import { sentence, timeAgo } from '../lib/crowd';
 import { stars } from '../lib/feedback';
-import { author, MAX_REVIEW, MAX_REVIEWS_PER_CHECKIN, reviewsApi, type Review, type Reviews } from '../lib/reviews';
+import { author, MAX_REPLIES_PER_PERSON, MAX_REVIEW, MAX_REVIEWS_PER_CHECKIN, reviewsApi, type Review, type Reviews } from '../lib/reviews';
 import { REPORT_REASONS, safetyApi, type ReportReason } from '../lib/safety';
 import { colors, themed } from '../theme';
 import { ThemedSwitch } from './ThemedSwitch';
@@ -139,8 +139,10 @@ function ReviewItem({
   const [replying, setReplying] = useState(false);
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
-  // The venue's business can always answer; others when the author allows it
-  const canReply = !!token && (review.allow_replies || review.mine || ownerBusiness);
+  // The venue's business can always answer; others when the author allows it; at most 2 replies each
+  const myReplies = review.replies.filter((r) => r.mine).length;
+  const allowed = !!token && (review.allow_replies || review.mine || ownerBusiness);
+  const canReply = allowed && myReplies < MAX_REPLIES_PER_PERSON;
   const now = new Date();
 
   const sendReply = async () => {
@@ -202,6 +204,7 @@ function ReviewItem({
           </Pressable>
         )}
         {!review.allow_replies && !review.mine && !ownerBusiness && <Text style={styles.muted}>Yanıtlar kapalı</Text>}
+        {allowed && !canReply && <Text style={styles.muted}>Bu yoruma {MAX_REPLIES_PER_PERSON} yanıt yazdın</Text>}
         {review.mine && token && (
           <Pressable onPress={() => reviewsApi.remove(token, review.id).then(reload)} hitSlop={6}>
             <Text style={styles.delete}>Yorumumu sil</Text>

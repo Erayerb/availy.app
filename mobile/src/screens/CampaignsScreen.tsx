@@ -10,7 +10,7 @@ import { LoyaltySetup } from '../components/business/LoyaltySetup';
 import { ScheduleSection } from '../components/business/ScheduleSection';
 import { Chip } from '../components/TagChips';
 import { useCampaigns } from '../context/CampaignsContext';
-import { useEngagement } from '../context/EngagementContext';
+import { useLoyalty } from '../context/LoyaltyContext';
 import { useLocation } from '../context/LocationContext';
 import { isActive, repeatCampaign, timeLeft, visibleCampaigns, type Campaign } from '../lib/campaigns';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
@@ -20,16 +20,10 @@ import { distanceKm, formatDistance } from '../lib/geo';
 import type { PlanId } from '../lib/plans';
 import QRCode from 'react-native-qrcode-svg';
 
-import {
-  availyPoints,
-  customerCode,
-  customerQrPayload,
-  describeProgram,
-  isProgramActive,
-} from '../lib/loyalty';
+import { availyPoints, customerQrPayload, describeProgram } from '../lib/loyalty';
 import { colors, themed } from '../theme';
 
-type Tab = 'campaigns' | 'coupons' | 'loyalty' | 'myCampaigns' | 'myPrograms' | 'venueCoupons' | 'rivals';
+export type Tab = 'campaigns' | 'coupons' | 'loyalty' | 'myCampaigns' | 'myPrograms' | 'venueCoupons' | 'rivals';
 
 // Campaigns, coupons and loyalty share one bottom tab
 const CUSTOMER_TABS: { tab: Tab; label: string }[] = [
@@ -58,16 +52,18 @@ export type BusinessInfo = {
 type Props = {
   signedIn: boolean;
   serverPoints: number; // v2: points from check-ins
+  customerCode: string | null; // loyalty QR ("M-123456", from the server)
   business: BusinessInfo | null; // set for business accounts
   onLogin: () => void;
   onOpenVenue: (campaign: Pick<Campaign, 'venueId' | 'lat' | 'lon'>) => void;
   // Set when opened from "Daha fazla" (customers); businesses have it as a tab
   onBack?: () => void;
+  initialTab?: Tab; // e.g. "myPrograms" from Müşteriler
 };
 
-export function CampaignsScreen({ signedIn, serverPoints, business, onLogin, onOpenVenue, onBack }: Props) {
+export function CampaignsScreen({ signedIn, serverPoints, customerCode, business, onLogin, onOpenVenue, onBack, initialTab }: Props) {
   const tabs = business ? BUSINESS_TABS : CUSTOMER_TABS;
-  const [tab, setTab] = useState<Tab>(tabs[0].tab);
+  const [tab, setTab] = useState<Tab>(initialTab && tabs.some((t) => t.tab === initialTab) ? initialTab : tabs[0].tab);
 
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
@@ -83,9 +79,9 @@ export function CampaignsScreen({ signedIn, serverPoints, business, onLogin, onO
       </View>
       {tab === 'campaigns' && <CampaignList onOpenVenue={onOpenVenue} />}
       {tab === 'coupons' && <MyCoupons />}
-      {tab === 'loyalty' && <Loyalty signedIn={signedIn} serverPoints={serverPoints} onLogin={onLogin} />}
+      {tab === 'loyalty' && <Loyalty signedIn={signedIn} serverPoints={serverPoints} customerCode={customerCode} onLogin={onLogin} />}
       {tab === 'myCampaigns' && business && <MyCampaigns business={business} />}
-      {tab === 'myPrograms' && business && <MyPrograms business={business} />}
+      {tab === 'myPrograms' && business && <MyPrograms />}
       {tab === 'venueCoupons' && business && <VenueCoupons venueId={business.venueId} />}
       {tab === 'rivals' && business && <Rivals venueId={business.venueId} />}
     </ScrollView>
@@ -175,17 +171,25 @@ function MyCoupons() {
   );
 }
 
-function Loyalty({ signedIn, serverPoints, onLogin }: { signedIn: boolean; serverPoints: number; onLogin: () => void }) {
-  const { programs, cards, memberships, userKey, toggleMembership } = useEngagement();
+function Loyalty({
+  signedIn,
+  serverPoints,
+  customerCode,
+  onLogin,
+}: {
+  signedIn: boolean;
+  serverPoints: number;
+  customerCode: string | null;
+  onLogin: () => void;
+}) {
+  const { programs, join, leave } = useLoyalty();
   const { coupons } = useCampaigns();
-  // Programs saved on this phone for v1 demo venues stay stored, but those venues are hidden in v2
-  const { venues: shownVenues } = useVenuesByIds(programs.map((p) => p.venueId));
-  const shownIds = new Set(shownVenues.map((v) => v.id));
+  const [error, setError] = useState<string | null>(null);
 
   if (!signedIn) {
     return (
       <View style={styles.list}>
-        <Text style={styles.empty}>Damga toplamak ve availy puanı kazanmak için giriş yap.</Text>
+        <Text style={styles.empty}>Sadakat programlarına katılmak ve availy puanı kazanmak için giriş yap.</Text>
         <Pressable style={styles.primary} onPress={onLogin}>
           <Text style={styles.primaryText}>Giriş yap</Text>
         </Pressable>
@@ -193,17 +197,10 @@ function Loyalty({ signedIn, serverPoints, onLogin }: { signedIn: boolean; serve
     );
   }
 
-  const myCards = cards.filter((c) => c.userKey === userKey);
-  // Paused programs are hidden from customers
-  const visiblePrograms = programs.filter((p) => isProgramActive(p) && shownIds.has(p.venueId));
-  const stampsCollected = myCards.reduce(
-    (sum, c) =>
-      sum +
-      c.stamps +
-      c.rewardsAvailable * (programs.find((p) => p.venueId === c.venueId)?.stampsRequired ?? 0),
-    0,
-  );
+  const stampsCollected = programs.reduce((sum, p) => sum + (p.member?.totalStamps ?? 0), 0);
   const couponsUsed = coupons.filter((c) => c.redeemedAt).length;
+  // The ones I joined first
+  const sorted = [...programs].sort((a, b) => Number(!!b.member) - Number(!!a.member));
 
   return (
     <View style={styles.list}>
@@ -213,52 +210,54 @@ function Loyalty({ signedIn, serverPoints, onLogin }: { signedIn: boolean; serve
         <Text style={styles.muted}>
           Her check-in 10, bir mekanın ilk check-in'i +50; her damga 5, kullandığın her kupon 10 puan.
         </Text>
-        <View style={styles.qr}>
-          <QRCode
-            value={customerQrPayload(customerCode(userKey))}
-            size={170}
-            backgroundColor={colors.cream}
-            color={colors.text}
-          />
-        </View>
-        <Text style={[styles.text, styles.centered]}>
-          <Text style={styles.code}>{customerCode(userKey)}</Text>
-        </Text>
-        <Text style={[styles.muted, styles.centered]}>Kasada bu QR'ı okut: işletme damganı ekler ya da kart dolduysa ödülünü verir.</Text>
+        {customerCode && (
+          <>
+            <View style={styles.qr}>
+              <QRCode value={customerQrPayload(customerCode)} size={170} backgroundColor={colors.cream} color={colors.text} />
+            </View>
+            <Text style={[styles.text, styles.centered]}>
+              <Text style={styles.code}>{customerCode}</Text>
+            </Text>
+            <Text style={[styles.muted, styles.centered]}>
+              Katıldığın mekanda kasada bu QR'ı okut: işletme damganı ekler ya da kart dolduysa ödülünü verir.
+            </Text>
+          </>
+        )}
       </View>
 
-      {visiblePrograms.length === 0 && (
-        <Text style={styles.empty}>Henüz sadakat programı olan mekan yok.</Text>
-      )}
-      {visiblePrograms.map((program) => {
-        const card = myCards.find((c) => c.venueId === program.venueId);
-        const member = memberships.some((m) => m.venueId === program.venueId && m.userKey === userKey);
+      {error && <Text style={styles.endText}>{error}</Text>}
+      {sorted.length === 0 && <Text style={styles.empty}>Henüz sadakat programı olan mekan yok.</Text>}
+      {sorted.map((program) => {
+        const member = program.member;
         return (
           <View key={program.venueId} style={styles.card}>
             <Text style={styles.venue}>{program.venueName}</Text>
             <Text style={styles.text}>⭐ {describeProgram(program)}</Text>
-            {program.kind === 'stamps' ? (
+            {member && program.kind === 'stamps' && (
               <>
                 <View style={styles.stamps}>
                   {Array.from({ length: program.stampsRequired }, (_, i) => (
-                    <View key={i} style={[styles.stamp, i < (card?.stamps ?? 0) && styles.stampFull]}>
-                      {i < (card?.stamps ?? 0) && <Text style={styles.stampMark}>☕</Text>}
+                    <View key={i} style={[styles.stamp, i < member.stamps && styles.stampFull]}>
+                      {i < member.stamps && <Text style={styles.stampMark}>☕</Text>}
                     </View>
                   ))}
                 </View>
-                {(card?.rewardsAvailable ?? 0) > 0 && (
-                  <Text style={styles.reward}>
-                    🎁 Kullanılabilir ödül: {card!.rewardsAvailable} · kasada QR'ını okut
-                  </Text>
+                {member.rewards > 0 && (
+                  <Text style={styles.reward}>🎁 Kullanılabilir ödül: {member.rewards} · kasada QR'ını okut</Text>
                 )}
               </>
+            )}
+            {member ? (
+              <Pressable onPress={() => leave(program.venueId)} hitSlop={8}>
+                <Text style={styles.endText}>{program.kind === 'stamps' ? 'Programdan çık' : 'Üyelikten çık'}</Text>
+              </Pressable>
             ) : (
               <Pressable
-                style={member ? styles.secondary : styles.primary}
-                onPress={() => toggleMembership(program.venueId)}
+                style={styles.primary}
+                onPress={async () => setError(await join(program.venueId))}
               >
-                <Text style={member ? styles.secondaryText : styles.primaryText}>
-                  {member ? 'Üyesin · üyeliği bitir' : `Üye ol (₺${program.price}/ay, demo)`}
+                <Text style={styles.primaryText}>
+                  {program.kind === 'stamps' ? 'Katıl' : `Üye ol (₺${program.price}/ay, demo)`}
                 </Text>
               </Pressable>
             )}
@@ -312,7 +311,7 @@ function MyCampaigns({ business }: { business: BusinessInfo }) {
           <View key={c.id} style={styles.card}>
             <Text style={[styles.text, !live && styles.faded]}>{c.message}</Text>
             <Text style={[styles.muted, !live && styles.faded]}>
-              {live ? `Aktif · ${timeLeft(c, now)}` : 'Bitti'} · {c.radiusKm} km · 👁 {stats.views} gösterim ·
+              {live ? `Aktif · ${timeLeft(c, now)}` : 'Bitti'} · {c.radiusKm} km{c.checkinOnly ? ' · 📍 check-in yapana' : ''} · 👁 {stats.views} gösterim ·
               🎟 {stats.claims} kupon · ✅ {stats.redemptions} kullanım
             </Text>
             {live ? (
@@ -370,23 +369,11 @@ function Rivals({ venueId }: { venueId: number }) {
   );
 }
 
-/** Business: set up the loyalty program, switch it on/off and stamp customers. */
-function MyPrograms({ business }: { business: BusinessInfo }) {
-  const { cards, memberships, programs } = useEngagement();
-  const { venues } = useVenuesByIds([business.venueId]);
-  const venue = venues[0];
-  const program = programs.find((p) => p.venueId === business.venueId);
-
+/** Business: set up the loyalty program, switch it on/off and stamp members. */
+function MyPrograms() {
   return (
     <View style={styles.list}>
-      {venue && <LoyaltySetup venue={venue} />}
-      {program && (
-        <Text style={styles.muted}>
-          {program.kind === 'stamps'
-            ? `${cards.filter((c) => c.venueId === business.venueId).length} müşterinin damga kartı var`
-            : `${memberships.filter((m) => m.venueId === business.venueId).length} üye`}
-        </Text>
-      )}
+      <LoyaltySetup />
     </View>
   );
 }

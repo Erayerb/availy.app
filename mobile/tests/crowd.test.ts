@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { crowdExtra, crowdRatioText, crowdScore, crowdSummary, liveLevel, timeAgo, UNEXPLORED } from '../src/lib/crowd.ts';
+import { crowdRatioText, crowdScore, crowdSummary, liveLevel, timeAgo, UNEXPLORED } from '../src/lib/crowd.ts';
 
 const NOW = new Date('2026-10-20T12:00:00Z');
 const ago = (minutes: number) => new Date(NOW.getTime() - minutes * 60_000).toISOString();
@@ -23,9 +23,6 @@ test('summary line for each state', () => {
 test('percent only with enough people, extras from the follow-up answers', () => {
   assert.equal(crowdRatioText(live), '~%82');
   assert.equal(crowdRatioText({ ...live, ratio: null }), null);
-  assert.equal(crowdExtra(live), 'Sıra var');
-  assert.equal(crowdExtra({ ...live, level: 'medium', queue: null, seats: false }), 'Oturacak yer yok');
-  assert.equal(crowdExtra(UNEXPLORED), null);
 });
 
 test('level and sort score only for open venues with fresh check-ins', () => {
@@ -53,6 +50,8 @@ test('check-in message: points, explorer note, "keşfeden 12. kişi", visit coun
   assert.match(checkinMessage({ ...base, is_first: true, points_earned: 60, visitor_rank: 1, my_visits: 1 }), /Burayı sen keşfettin! \+60 puan · Kâşif rozeti/);
   assert.equal(checkinMessage({ ...base, visitor_rank: 12, my_visits: 1 }), '+10 puan · Burayı keşfeden 12. kişisin!');
   assert.equal(checkinMessage(base), "+10 puan · Buraya 3. check-in'in");
+  assert.match(checkinMessage({ ...base, points_earned: 0, points_note: 'too_soon' }), /30 dakikada.*puan yok/);
+  assert.match(checkinMessage({ ...base, points_earned: 0, points_note: 'daily_limit' }), /günde 8/);
 });
 
 test('private check-ins are marked in the request', async () => {

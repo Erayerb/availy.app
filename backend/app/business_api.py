@@ -44,6 +44,9 @@ class StatsOut(BaseModel):
     weekday: list[int]  # check-ins in the last 30 days, Monday first
     total_checkins: int
     discovered_by: Discoverer | None
+    month_people: int = 0  # different people in the last 30 days
+    regulars: int = 0  # of them, people with 3+ check-ins
+    top_visits: list[int] = []  # check-ins of the 5 most frequent people (anonymous)
 
 
 def _fail(e: BusinessError) -> HTTPException:

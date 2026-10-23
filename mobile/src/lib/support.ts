@@ -1,4 +1,6 @@
-/** Bug reports and contact messages sent from the app (prototype: kept on this phone). */
+/** Bug reports and contact messages sent from the app to the server (support_messages). */
+import { send } from './accountApi.ts';
+
 export type SupportKind = 'bug' | 'contact';
 
 export const SUPPORT_TOPICS: Record<SupportKind, string[]> = {
@@ -7,18 +9,14 @@ export const SUPPORT_TOPICS: Record<SupportKind, string[]> = {
 };
 
 export type SupportMessage = {
-  id: string;
   kind: SupportKind;
   topic: string;
   text: string;
   email: string; // where we can reply; empty for anonymous bug reports
-  createdAt: string;
 };
 
 export const MIN_TEXT = 10;
 export const MAX_TEXT = 1000;
-// Only the most recent messages are kept on the phone
-const MAX_STORED = 50;
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -32,6 +30,7 @@ export function validateSupport(kind: SupportKind, text: string, email: string):
   return null;
 }
 
-export function addSupportMessage(list: SupportMessage[], message: SupportMessage): SupportMessage[] {
-  return [message, ...list].slice(0, MAX_STORED);
-}
+export const supportApi = {
+  send: (m: Pick<SupportMessage, 'kind' | 'topic' | 'text' | 'email'>, appInfo: string, token?: string) =>
+    send<{ id: number }>('POST', '/v1/support', { kind: m.kind, topic: m.topic, body: m.text, email: m.email, app_info: appInfo }, token),
+};

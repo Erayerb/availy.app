@@ -32,10 +32,6 @@ export function useAuth() {
     sessionUser.current = next;
     if (remember.current) await saveJson(KEYS.user, next);
     else await remove(KEYS.user);
-    // Remember who used this phone, so a business here can find a customer by code (loyalty stamps)
-    const known = (await loadJson<string[]>(KEYS.knownCustomers)) ?? [];
-    const key = accountKey(next);
-    if (!known.includes(key)) await saveJson(KEYS.knownCustomers, [...known, key]);
   }, []);
 
   const signOutLocally = useCallback(async () => {
@@ -86,14 +82,14 @@ export function useAuth() {
   }, [user?.token, user?.points, refreshMe]);
 
   const register = useCallback(
-    async (username: string, email: string, password: string, role: Role): Promise<string | null> => {
+    async (username: string, email: string, password: string, role: Role, invitedBy: string | null = null): Promise<string | null> => {
       try {
         if (user?.isGuest && user.token) {
           // A guest signs up: same account, so check-ins and points stay
-          const upgraded = await accountApi.upgrade(user.token, username, email, password, role);
+          const upgraded = await accountApi.upgrade(user.token, username, email, password, role, invitedBy);
           await signIn(toUser(upgraded, user.token, await localBusiness(upgraded.id)));
         } else {
-          const session = await accountApi.register(username, email, password, role);
+          const session = await accountApi.register(username, email, password, role, invitedBy);
           await signIn(toUser(session.user, session.token));
         }
         return null;

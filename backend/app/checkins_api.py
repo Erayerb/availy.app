@@ -28,6 +28,12 @@ class CheckinIn(BaseModel):
     private: bool = False
 
 
+class CheckinCoupon(BaseModel):
+    code: str
+    message: str
+    discount: int | None
+
+
 class CheckinOut(BaseModel):
     id: int
     venue_id: int
@@ -38,8 +44,10 @@ class CheckinOut(BaseModel):
     created_at: datetime
     is_private: bool
     points_earned: int
+    points_note: str | None = None  # no points: "too_soon" (30 min since the last) or "daily_limit"
     visitor_rank: int | None  # "Burayı keşfeden 12. kişisin" (first visit only)
     my_visits: int
+    coupons: list[CheckinCoupon] = []  # from "Check-in yapana kupon" campaigns
 
 
 class VisitOut(BaseModel):

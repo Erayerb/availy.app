@@ -1,8 +1,5 @@
-/**
- * Prototype: guests may favorite too. Set to true for launch so only signed-in
- * users can use favorites (guests are asked to sign in).
- */
-export const FAVORITES_REQUIRE_LOGIN = false;
+/** Only registered users have favorites; guests and visitors are asked to sign in. */
+export const FAVORITES_REQUIRE_LOGIN = true;
 
 export function toggleFavorite(ids: number[], id: number): number[] {
   return ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];

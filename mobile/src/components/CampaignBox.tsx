@@ -30,6 +30,8 @@ export function CampaignBox({ campaign }: { campaign: Campaign }) {
         </View>
       ) : remaining === 0 ? (
         <Text style={styles.full}>Kuponlar tükendi</Text>
+      ) : campaign.checkinOnly ? (
+        <Text style={styles.checkin}>📍 Check-in yap, kuponu kap</Text>
       ) : (
         <Pressable
           style={({ pressed }) => [styles.button, (pressed || taking) && styles.pressed]}
@@ -62,6 +64,7 @@ const styles = themed(() => StyleSheet.create({
   buttonText: { color: colors.onPrimary, fontWeight: '700', fontSize: 13 },
   pressed: { opacity: 0.8 },
   full: { fontSize: 12, color: colors.danger, fontWeight: '600' },
+  checkin: { fontSize: 13, color: colors.primary, fontWeight: '700', textAlign: 'center', paddingVertical: 4 },
   code: {
     marginTop: 2,
     alignItems: 'center',

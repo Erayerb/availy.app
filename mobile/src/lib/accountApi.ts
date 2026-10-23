@@ -22,6 +22,7 @@ export type ServerUser = {
   venue_id: number | null;
   plan: string | null;
   email_verified?: boolean;
+  customer_code?: string | null; // only from GET /v1/me: "M-123456" for loyalty stamps
   // Only from GET /v1/me
   points?: number;
   checkins?: number;
@@ -56,6 +57,7 @@ export function toUser(server: ServerUser, token: string, local: LocalBusiness =
     plan: (server.plan as User['plan']) ?? local.plan,
     venueVerified: local.venueVerified,
     emailVerified: server.email_verified ?? false,
+    customerCode: server.customer_code ?? undefined,
     points: server.points,
     checkins: server.checkins,
     discoveries: server.discoveries,
@@ -85,14 +87,15 @@ export async function send<T>(method: string, path: string, body?: unknown, toke
 }
 
 export const accountApi = {
-  register: (username: string, email: string, password: string, role: Role) =>
-    send<Session>('POST', '/v1/auth/register', { username, email, password, role }),
+  // invitedBy: the user name in an invite link; the two become friends and the inviter earns points
+  register: (username: string, email: string, password: string, role: Role, invitedBy: string | null = null) =>
+    send<Session>('POST', '/v1/auth/register', { username, email, password, role, invited_by: invitedBy }),
   // `login` is the e-mail or the user name
   login: (login: string, password: string, role: Role) => send<Session>('POST', '/v1/auth/login', { login, password, role }),
   guest: () => send<Session>('POST', '/v1/auth/guest'),
   // A guest signs up; same id, the current token stays valid
-  upgrade: (token: string, username: string, email: string, password: string, role: Role) =>
-    send<ServerUser>('POST', '/v1/auth/upgrade', { username, email, password, role }, token),
+  upgrade: (token: string, username: string, email: string, password: string, role: Role, invitedBy: string | null = null) =>
+    send<ServerUser>('POST', '/v1/auth/upgrade', { username, email, password, role, invited_by: invitedBy }, token),
   logout: (token: string) => send<void>('POST', '/v1/auth/logout', undefined, token),
   me: (token: string) => send<ServerUser>('GET', '/v1/me', undefined, token),
   changeUsername: (token: string, username: string) => send<ServerUser>('PATCH', '/v1/me', { username }, token),

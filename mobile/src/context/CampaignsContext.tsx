@@ -22,6 +22,7 @@ type Campaigns = {
   claim: (campaign: Campaign) => Promise<string | null>;
   redeem: (code: string) => Promise<string | null>;
   recordView: (campaignId: string) => void;
+  reload: () => Promise<void>; // e.g. after a check-in that gave a coupon
   activeFor: (venueId: number) => Campaign | null;
   schedules: ScheduledCampaign[];
   saveSchedule: (schedule: ScheduledCampaign) => void;
@@ -175,7 +176,7 @@ export function CampaignsProvider({ token, business, children }: { token: string
 
   return (
     <CampaignsContext.Provider
-      value={{ campaigns, coupons, now, create, end, remove, claim, redeem, recordView, activeFor, schedules, saveSchedule, removeSchedule }}
+      value={{ campaigns, coupons, now, create, end, remove, claim, redeem, recordView, reload, activeFor, schedules, saveSchedule, removeSchedule }}
     >
       {children}
     </CampaignsContext.Provider>

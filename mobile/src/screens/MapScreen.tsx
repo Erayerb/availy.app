@@ -29,6 +29,7 @@ const QUERY_PADDING = 2;
 // "Konumuma git" and "+" are the same size
 const MAP_BUTTON = 52;
 type Props = {
+  friendsToken: string | null; // the map card shows friends who are there (registered customers)
   initialRegion: Region;
   onRegionSaved: (region: Region) => void;
   tags: Tag[];
@@ -48,6 +49,7 @@ type Props = {
 };
 
 export function MapScreen({
+  friendsToken,
   initialRegion,
   onRegionSaved,
   tags,
@@ -178,6 +180,7 @@ export function MapScreen({
         >
           <VenueCard
             venue={selected}
+            friendsToken={friendsToken}
             onClose={() => onSelect(null)}
             onDetails={() => onOpenDetails(selected)}
             onShowAlternatives={

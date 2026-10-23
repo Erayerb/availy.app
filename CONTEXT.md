@@ -65,14 +65,14 @@ Kod: backend/app/crowd.py (`crowd_from_checkins`, `report_score`, `age_weight`),
    - Güven (users.trust): herkes 1.0'dan başlar, misafir en fazla 0.5. Yeni bildirim, aynı mekana son 30 dakikada bildirimde bulunan en az 2 kişinin ortalamasıyla karşılaştırılır (tazelikten bağımsız, ağırlıksız ortalama): fark ≥ 0.5 (ör. diğerleri Kalabalık derken Sakin) → −0.1 (alt sınır 0.2); fark ≤ 0.2 → +0.02 (üst sınır 1.0, misafirde 0.5); arası değişmez. Kayıt olan misafirin güveni ikiye katlanır (en fazla 1).
    - Örnek: sürekli çelişen biri 5 bildirimde 0.5'e, 8 bildirimde 0.2'ye düşer; geri 1.0'a çıkması için 40 uyumlu bildirim gerekir.
 4. Sonuç: ağırlıklı ortalama < 0.40 Sakin, 0.40–0.75 Orta, > 0.75 Kalabalık. En az 5 kişi bildirdiyse "~%60" oranı da gösterilir; tek kişi bildirdiyse soluk renkte ve "1 kişiye göre Kalabalık".
-5. "Sıra var" / "Oturacak yer var": aynı ağırlıklarla çoğunluk (eşitlikte gösterilmez).
+5. "Sıra var mı?" / "Oturacak yer var mı?" cevapları yalnızca puanı kaydırır; uygulamada ayrıca gösterilmez (sunucu `crowd.queue` / `crowd.seats` olarak yine hesaplıyor).
 6. İşletme hesapları check-in yapamaz (kendi mekanını boş gösteremesin).
 7. Bilgi yoksa: son 90 dk boşsa "🕘 Dün bu saatlerde …" (dünün aynı saatindeki check-in'lerle aynı hesap); hiç check-in yoksa ✨ Keşfedilmedi.
 8. Trend (🔥 Trendler): son 24 saatte check-in yapan farklı kişi sayısı.
-9. Hile koruması: mekana yakın olmak (GPS; konum yalnızca o an kontrol edilir, saklanmaz), aynı mekana 2 saatte bir check-in, kayan 60 dakikada en fazla 10 check-in, giriş ya da misafir hesabı zorunlu, güven puanı.
+9. Hile koruması: mekana yakın olmak (GPS; konum yalnızca o an kontrol edilir, saklanmaz), aynı mekana 90 dakikada bir check-in, kayan 60 dakikada en fazla 10 check-in, giriş ya da misafir hesabı zorunlu, güven puanı.
 
 ## Durum (v2)
-Testler: backend 202, mobil 125 (son ölçüm).
+Testler: backend 215, mobil 122 (son ölçüm).
 
 ### Bitti
 **Hesaplar**
@@ -85,53 +85,70 @@ Testler: backend 202, mobil 125 (son ölçüm).
 
 **Check-in ve doluluk**
 - Mekan sayfasında "Şu an burası nasıl?" Sakin / Orta / Kalabalık → (Kalabalık'ta "Sıra var mı?", Orta'da "Oturacak yer var mı?") → Check-in. Gizli check-in (doluluğa sayılır, ad gösterilmez; Gizlilik'te varsayılan yapılabilir)
-- Check-in sonrası buton kapalı kalır, üstünde "Tekrar check-in: 17:47"; sonuç tek satır: "+10 puan · Buraya 3. check-in'in" / "Burayı keşfeden 12. kişisin!" / "✨ Burayı sen keşfettin!"
+- Check-in sonrası kısa kutlama (🎉 "Check-in yapıldı!" / ✨ "Burayı sen keşfettin!" + "+10 puan · Buraya 3. check-in'in") ve "📣 Arkadaşlarına paylaş" (mekan, doluluk ve web bağlantısı); buton kapalı kalır, üstünde "Tekrar check-in: 17:47"
 - Haritada sağ altta "+" → Check-in yap: en yakın mekanlar ve arama; sağ üstte "➕ Mekan ekle"
-- Check-in önerisi: açık bir mekanın 250 m yakınında 3 dk kalınca (uygulama açıkken) şerit + telefon bildirimi; son 2 saatte orada check-in yaptıysan sormaz
+- Check-in önerisi: açık bir mekanın 250 m yakınında 3 dk kalınca (uygulama açıkken) şerit + telefon bildirimi; son 90 dakikada orada check-in yaptıysan sormaz
 - Kayıt sonrası kısa tanıtım (müşteri 4, işletme 3 slayt; sağa / sola kaydırılır) ve "İlk check-in'in" (yakındaki en yakın açık mekan)
 
 **Puan, rozet, keşif**
-- Puanlar (`points`): check-in 10, mekanın ilk check-in'i +50 (Kâşif), onaylanan mekan eklemesi +50; misafire yarısı
+- Puanlar (`points`): check-in 10, mekanın ilk check-in'i +50 (Kâşif), onaylanan mekan eklemesi +50, davet +50; misafire yarısı
+- Puan kasmaya karşı (dip dibe kafeler): başka bir mekanda check-in yaptıktan sonraki 30 dakika içinde yapılan check-in puan getirmez; günde en fazla 8 check-in puan getirir; doluluğa yine sayılır, mesajda neden puan olmadığı yazar (points_note)
 - "✨ Burayı @eray keşfetti" 30 gün; rozet kataloğu (İlk Adım, Kâşif, Büyük Kâşif, Gezgin, Müdavim, Gece Kuşu, Yardımsever) ilerlemeyle
 - Sıralama (Sosyal > Sıralama): Bu hafta / Tüm zamanlar × Arkadaşlar / Herkes (hafta pazartesi 00:00'da başlar)
 
 **Sosyal**
-- Arkadaşlar: kullanıcı adıyla arama, istek / kabul / reddet / çıkar (onaylı), QR'ım, QR okut, davet bağlantısı (?invite=ad). Telefon numarası, rehber ve Instagram arkadaş listesi istenmez; canlı konum yok
-- Akış (GET /v1/feed): arkadaşların son 7 gündeki check-in'leri (keşif + puan), yorumları ve yanıtları, kişi başına ayrı bloklarda; Akış'tan yanıt. Akış boşken "Arkadaş ekle / Mekan keşfet / Check-in yap" kartları
+- Arkadaşlar: kullanıcı adıyla arama, istek / kabul / reddet / çıkar (onaylı), QR'ım, QR okut, davet bağlantısı (?invite=ad). Davet bağlantısıyla kayıt olan davet edenle otomatik arkadaş olur, davet eden 50 puan alır (ayda en fazla 5 davet ödülü; users.invited_by). Canlı konum yok
+- "📱 Rehberden bul" (isteğe bağlı, yalnızca telefonda; app/contacts.py): rehber izni yeter; kendi numaranı da yazarsan (isteğe bağlı; telefonlar uygulamaya kendi numarasını vermez) seni de bulurlar (yalnızca gizli anahtarlı özeti saklanır: users.phone_hash, PHONE_PEPPER; "Numaramı kaldır"); rehberdeki numaralar sunucuda eşleştirilir ve saklanmaz; yalnızca aranabilir bireysel hesaplar bulunur. Tüm rehber listelenir: availy'de olanlarda Ekle / Kabul et, olmayanlarda "Davet et" (SMS: "Arkadaşın seni availy'ye davet ediyor. Sen de ilk check-in'i yap." + bağlantı); uzun rehberde arama
+- Akış (GET /v1/feed): arkadaşların son 7 gündeki check-in'leri (keşif + puan), yorumları ve yanıtları, kişi başına ayrı bloklarda; Akış'tan yanıt. Akış boşken (arkadaşı yoksa en üstte "📨 Arkadaşlarını davet et") "Arkadaş ekle / Mekan keşfet / Check-in yap" kartları, "Önerilen kişiler" (ortak arkadaşı olanlar, aynı mekanlara gidenler (ikisi de izin verdiyse: Gizlilik > "Arkadaş olarak önerilmeye izin ver", users.suggest_by_venues, gizli check-in sayılmaz), sonra bu hafta en çok puan alanlar; Ekle) ve "✨ Yakında yeni keşfedilen mekanlar" (son 14 günün ilk check-in'leri, yakından uzağa) (GET /v1/suggestions)
+- "👥 @ayse ve @can burada · 20 dk önce check-in": mekan sayfasında ve haritadaki kartta, son 60 dakikada orada (gizli olmayan) check-in yapan arkadaşlar (GET /v1/venues/{id}/friends-here; check-in'lerini paylaşmayanlar görünmez). Arkadaşın profilinde en üstte son check-in'i ("📍 X'de check-in yaptı · 20 dk önce"). Haritada arkadaş işareti yok (istenmedi)
 - Kullanıcı profili: puan, check-in, keşif, rozetler, mekanlar (yalnızca kendin ve paylaşan arkadaşların); Arkadaş ekle / Sessize al / Arkadaşlıktan çıkar / Engelle
 - 🔔 Bildirimler (GET /v1/notifications, uygulama açıkken dakikada bir): arkadaşlık isteği, kabul, yorumuna yanıt, keşif ödülü; yenileri telefona bildirim olarak da gelir
 
 **Yorumlar**
-- 1–5 yıldız + en fazla 280 karakter; her check-in o mekana 2 yorum hakkı verir (check-in yoksa yorum yok); "Başkaları yanıt verebilsin" anahtarı; kendi yorumunu / yanıtını silme
+- 1–5 yıldız + en fazla 280 karakter; her check-in o mekana 2 yorum hakkı verir; bir yoruma kişi başı en fazla 2 yanıt (check-in yoksa yorum yok); "Başkaları yanıt verebilsin" anahtarı; kendi yorumunu / yanıtını silme
 - Şikâyet (Hakaret / Spam / Yanlış bilgi / Diğer): şikâyet edene hemen, 3 şikâyette herkese gizlenir
 
+**Destek**
+- "Hata bildir" / "İletişime geç" sunucuya gider (support_messages; POST /v1/support, giriş olmadan da; kişi başı günde 10); SUPPORT_EMAIL ayarlıysa oraya e-posta da gider (Render'da girilmeli)
+
 **Gizlilik ve güvenlik**
-- Gizlilik: arkadaşlar check-in'lerimi görsün, herkese açık sıralamada görüneyim, kullanıcı adımla aranabileyim; Engellenenler
-- Konum ve izinler sayfası (konum / kamera / bildirim: ne için, izin vermezsen ne olur, durum ve "İzin ver"; web'de tarayıcı engellediyse nereden açılacağı). İşletmede yalnızca kamera ve bildirim ("İzinler")
+- Gizlilik: arkadaşlar check-in'lerimi görsün, herkese açık sıralamada görüneyim, kullanıcı adımla aranabileyim, arkadaş olarak önerilmeye izin ver; Engellenenler
+- Konum ve izinler sayfası (konum / kamera / bildirim: ne için, izin vermezsen ne olur, durum ve "İzin ver"; izin verilmişse "Ayarlara git"; web'de tarayıcı ayarlarının yeri). İşletmede yalnızca kamera ve bildirim ("İzinler")
 - Gizlilik politikası ve kullanım koşulları taslağı (mobile/src/lib/legal.ts), kayıt ekranında onay satırı
 
 **Harita ve ana sayfa**
 - Ana sayfa: Konum (pilot semtler Ataşehir, Kadıköy, Şişli; diğerleri soluk), Ne arıyorsun (Sosyalleşme, Ortak çalışma, Eğlence, Sessizlik, Yemek, Gece hayatı, Doğa), arama (Türkçe karakterden bağımsız), Önerilen / En yakın / En sakin, Kapalıları gizle
 - Harita: renkli noktalar (soluk = tek kişi, gri ? = bilgi yok, mor ✨ = keşfedilmedi), yakınlaşınca mekan adları, mavi konum noktası, "Konumuma git", yana kayan filtre şeridi, Tümü / Ziyaret ettiklerim, 🔥 Trendler
 - Mekan sayfası (✓ haritadaki kartta da): kapak fotoğrafı, ✓ Doğrulanmış işletme rozeti, ⏳ Onay bekliyor, keşfeden, yıldız ortalaması, doluluk, saatler, Instagram / Ara düğmeleri, check-in, Haritada gör / Yol tarifi, kampanya, özellikler, yorumlar; "Sakin olunca haber ver" (🔕)
-- Favoriler: Kaydedilenler / Ziyaret edilenler (telefonda, hesap başına)
+- Favoriler: yalnızca kayıtlı kullanıcılar (misafire "Kayıt ol / Giriş yap"); Kaydedilenler / Ziyaret edilenler (telefonda, hesap başına)
 - Görünüm: Cihaz ayarı / Açık / Koyu (koyu harita: telefonda Apple koyu mod, web'de koyulaştırılmış OSM)
 
 **Mekanlar**
+- "🏪 İşletmeye haber ver": işletmesi olmayan mekanın sayfasında; kişi başı bir kez, "N kişi istedi"; 3 / 5 / 10 / 25 / 50 / 100 kişide mekanın e-postası biliniyorsa yalnızca sayıyı yazan bir e-posta gider, kimin istediği yazmaz (venue_requests, venues.contact_email)
 - "Mekan ekle" (giriş yapmış bireysel kullanıcı; Check-in yap ekranında sağ üstte; mobile/src/components/NewVenueForm.tsx): ad, tür, Konum seç (📍 şu anki konum ya da 🗺️ haritadan; harita çevredeki mekanları ve mavi noktanı gösterir), seçilen noktadan semt / mahalle / açık adres kendiliğinden dolar (Nominatim, değiştirilebilir), "Adresi doğrula" özeti → "Doğru, gönder". Kullanıcı seçtiği noktaya check-in mesafesinden yakın olmalı. Semt arama kutusuyla seçilir (yazınca altta liste). Yakında (60 m) aynı adlı mekan varsa eklenmez; 25 m içinde başka mekan varsa "haritada üst üste görünürler" uyarısı ve "Aynı mekan değil, yine de ekle"; kişi başı en fazla 3 onay bekleyen mekan. "⏳ Onay bekliyor" görünür, check-in alır; ekleyen dışında 3 farklı kişi en az 3 farklı günde check-in yapınca onaylanır, ekleyen 50 puan alır; 30 günde onaylanmazsa listelerden kalkar (veri silinmez)
 
 **İşletme**
+- Mekanı yalnızca telefonda kalmış (sunucu öncesi eklenmiş) işletme hesapları açılışta yeniden "Mekanını seç / ekle" ekranına gelir
 - İşletme hesabı: kayıtta mekan seçer (sunucuda: PUT /v1/me/venue; bir mekana tek işletme hesabı, başkasına bağlı mekanlar listede soluk; GET /v1/venues/taken) ya da listede yoksa aynı formla kendi mekanını ekler (her yerden, onay bekler, hesaba hemen bağlanır); check-in ve yorum yapamaz, aramada ve herkese açık sıralamada görünmez
-- Panel (GET /v1/venues/{id}/stats, check-in verisinden): şu an, bugün saat saat, son 7 gün (check-in, kişi, tekrar gelen), son 30 gün hafta günleri, yakındaki benzer mekanlar, yorumlar; ölü saat uyarısı (müşteriler açık mekanı Sakin bildiriyor) + hazır kampanya; keşfedene "🎁 Ödül ver" (mekan başına bir kez, bildirim olarak gider)
+- Alt sekmeler: Panel (açılış), Müşteriler, Harita, Kampanyalar, Daha fazla (Ana Sayfa yok)
+- Müşteriler: son 30 gün farklı kişi, müdavim (3+ check-in), en sık gelenlerin check-in sayıları (adsız), sadakat üye ve damga sayısı (program yoksa "Sadakat programı oluştur", varsa "Programı yönet" → Kampanyalar > Sadakat programım), "💬 N yorum yanıt bekliyor" ve yorumlar ("İşletme" etiketiyle yanıt)
+- Panel (GET /v1/venues/{id}/stats, check-in verisinden): şu an, bugün saat saat, son 7 gün (check-in, kişi, tekrar gelen), son 30 gün hafta günleri, yakındaki benzer mekanlar; ölü saat uyarısı (müşteriler açık mekanı Sakin bildiriyor) + hazır kampanya; keşfedene "🎁 Ödül ver" (mekan başına bir kez, bildirim olarak gider)
 - Kendi mekanının yorumlarına "İşletme" etiketiyle yanıt (yanıtlar kapalı olsa da)
 - İşletme Profili'nde üstte kalın "E-posta henüz doğrulanmadı" ve "Doğrulanmamış işletme" kartları, yanlarında Doğrula (ikincisi İşletme doğrulama'ya gider)
 - İşletme profili = mekan sayfası: sağ üstteki profil ikonu kendi mekan sayfasını "👁 Müşteriler mekanını böyle görüyor" olarak açar; sağ üstte "✏️ Düzenle" → Daha fazla > İşletme Profili. Orada düzenlenenler sunucuda, herkese görünür: kapak fotoğrafı, adres ve konum (açık adres, mahalle, semt; yol tarifi noktası adresten bulunur ya da "Mekandayım: konumum"; en fazla 1 km kaydırılabilir, check-in mesafesi de bu noktaya göre; OSM yeniden içe aktarılınca korunur: `venues.edited_by_business`), Instagram, telefon. ✓ rozeti `venue_profiles.verified` ile (doğrulama henüz yok; elle açılır)
 - Daha fazla: İşletme Profili, İşletme doğrulama ("Yakında"), Abonelik (kampanya başı ₺150 / SaaS ₺1.899/ay; ödeme yok), Ayarlar (hesap + mekan bilgileri + ölü saat / otomatik kampanya), Görünüm, İzinler
 - Kalıcı işletme test hesabı @availy_isletme
 
+**Sadakat** (sunucuda: loyalty_programs, loyalty_members; app/loyalty.py)
+- İşletme damga kartı ya da ücretli üyelik (gösterim, ödeme yok) kurar, açar / kapatır; müşteri Kampanyalar → Sadakat'ta ya da mekan sayfasında "Katıl" der (otomatik katılım yok), çıkabilir
+- Kasada müşterinin QR'ı / kodu (M-123456, sunucuda hesaba bağlı; GET /v1/me `customer_code`) okutulur: damga (kart dolunca ödül), ödülü kullandır; katılmamış müşteriye damga yok
+- O mekanda check-in yapmış (keşfetmiş, sık giden) ve katılmamış müşterilere 🔔 "⭐ … sadakat programı başlattı" bildirimi; program yeniden açılınca tekrar
+- Damga başına 5 availy puanı (uygulamada sayılır)
+
 **Kampanya ve kupon** (sunucuda)
 - İşletme kampanya gönderir (mesaj, indirim, 1/2/3 saat, 1/2/5 km, kişi sınırı); her telefondaki müşteri yakınındaki aktif kampanyayı görür, "Kuponu al" → AV-XXXX (0/O, 1/I, 8/B yok; kişi başı bir; sınır kilitle korunur), kasada QR ya da elle; kampanya bitince kupon kullanılamaz
 - Kampanyalarım: son 7 gün sonuçları, gösterim (kişi başı bir) / kupon / kullanım; bitir, tekrar gönder, bitenleri sil (yalnızca listeden); Rakipler (3 km)
+- "Check-in yapana kupon": kampanyada "Kupon kimlere? Yalnızca check-in yapanlar"; müşteride "📍 Check-in yap, kuponu kap", check-in yapınca kupon kendiliğinden verilir ve kutlamada görünür (campaigns.checkin_only; kampanya başladıktan sonraki check-in gerekir)
 - Zamanlanmış / haftalık kampanyalar işletmenin telefonunda tutulur, zamanı gelince (uygulama açıkken) sunucuya gönderilir
 
 **Yayın ve altyapı**
@@ -146,7 +163,7 @@ Testler: backend 202, mobil 125 (son ölçüm).
 - Veritabanı değişiklikleri sürümlü olsun (Alembic ya da numaralı SQL dosyaları)
 - Hata takibi: Sentry (backend + uygulama)
 - Mağaza sürümü: Expo EAS Build ile App Store / Google Play
-- E-posta: Resend hesabı aç, anahtarı Render'da RESEND_API_KEY olarak gir; herkese gönderebilmek için kendi alan adını Resend'de doğrula ve MAIL_FROM'u ona çevir
+- E-posta: Resend hesabı açıldı, anahtar Render'da (`resend` ortam grubu, RESEND_API_KEY). Alan adı olmadan Resend yalnızca hesap sahibinin adresine gönderir; herkese gidebilmesi için alan adı al (ör. availy.app), Resend → Domains'te doğrula (DNS: SPF, DKIM) ve Render'da MAIL_FROM = "availy <no-reply@alanadı>" yap
 - Gizlilik politikası ve kullanım koşulları: hukukçu kontrolü, şirket bilgileri, web'de yayın; KVKK: sunucular Frankfurt'ta, yurt dışına aktarım şartları hukukçuya sorulmalı
 
 **Bildirimler** (olay olunca, uygulama kapalıyken de)
@@ -164,19 +181,32 @@ Testler: backend 202, mobil 125 (son ölçüm).
 - Verilerimi indir (KVKK): hesabındaki her şey tek JSON dosyası
 
 **İşletme**
-- Sadakat (damga kartı, aylık üyelik, müşteri kodu) sunucuya: şimdi telefonda, başka telefondaki müşteri damgasını göremez
 - Mekan bilgisi düzenlemeleri (saatler, özellikler, açıklama; İşletme Ayarları) sunucuya: şimdi yalnızca işletmenin telefonunda
-- Mekan sahipliği doğrulaması (✓ rozeti): OSM'deki mekan e-postası / telefonu içe aktarılıp oraya kod gönderilebilir (e-posta Resend ile ücretsiz, SMS ücretli servis ister); olmayanlar için belge + yönetici incelemesi. Başka işletmeye bağlı mekanı isteyen için "bu mekan benim" itirazı
-- Zamanlanmış ve otomatik kampanyalar sunucuda çalışsın
+- Mekan sahipliği doğrulaması (✓ rozeti; şimdi ekran "Yakında", `venue_profiles.verified` elle): OSM'den telefon / e-posta içe aktar (pilot: 282 mekanın 32'sinde telefon, 7'sinde e-posta) → e-postası varsa kod, telefonu varsa SMS (ücretli) ya da arama → yoksa vergi levhası / ruhsat + mekandayken konum + yönetici onayı → ✓, kampanya ve sadakat açılır; başkasına bağlı mekan için "Bu mekan benim" aynı yolla
+- Ölü saat bildirimi ve otomatik kampanya sunucuya (şimdi işletmenin telefonunda, uygulama açıkken; tek kişinin "Sakin"i yetiyor): her check-in'den sonra, açık mekanda 2+ kişiyle Sakin ise işletmeye push (2 saatte bir), otomatik kampanya açıksa hazır kampanya (3 saatte bir, aktif kampanya yoksa). Push ile birlikte
+- Zamanlanmış kampanyalar sunucuda çalışsın (şimdi işletmenin telefonunda)
 - "Check-in yapana %10" gibi check-in'e bağlı kampanyalar
 - İşletme profiline belki: "Hakkımızda", menü / fiyat aralığı, genelde en sakin saatler
 
 **Mekanlar**
 - "Bilgi yanlış mı?": saatler / kapanmış / konum / ad; 3 farklı kişi aynı şeyi bildirirse "kontrol edilecek" (yönetici ekranı)
 
-**availy puanı**
+**Görsel**
+- Kullanıcı profil fotoğrafı (şimdi baş harf); mekan kapak fotoğrafı yalnızca işletmesi yüklerse var (yoksa türün emojisi)
+
+**Tanıdıkları bulmak**
+- Render'da PHONE_PEPPER ayarı girilmeli. Ne işe yarar: "Rehberden bul"da telefon numaraları açık hâliyle saklanmaz, bu gizli metinle karıştırılıp geri çevrilemez bir özete (hash) dönüştürülür. Türkiye'de olası numara sayısı az olduğu için gizli metin olmadan özetler denenerek numaraya geri çevrilebilir; gizli metin bunu imkânsız yapar. Değer: uzun, rastgele bir metin (ör. 40+ karakter); bir kez girilir, sonra değiştirilmez (değişirse kayıtlı numaralar artık eşleşmez). Girilmezse geliştirme için yazılmış varsayılan metin kullanılır (güvensiz)
+- Kayıttan hemen sonra "Arkadaşlarını davet et" adımı (şimdi yalnızca boş akışta)
+- Rehberden bul için gizlilik politikasına madde (hukukçu kontrolü)
+
+**availy puanı** (kullanıcı "puan ne işe yarar?" diye soracak: yayından önce bir karşılığı olmalı ve uygulamada anlatılmalı)
+- Puan harcama: ör. 200 puan = katılan bir kafede %10 kupon (işletme ödülü kendisi belirler, sponsor olur); işletmeleri sisteme bağlamanın da yolu. Puan kasmaya karşı kurallar (başka mekandan sonra 30 dk / günde 8) ödül verilmeden önce yeniden gözden geçirilmeli (ör. aynı sokakta art arda check-in'lere bakmak, hesap yaşı)
 - Harcama: ödül kataloğu (ör. 200 puan = kafede %10 kupon), Premium indirimi, ortak kuponlar (Getir / Trendyol)
 - Ek kazanım: yorum yazmak, Sakin saatte gitmek
+
+**İşletmeye haber ver / işletme bildirimi**
+- Mekanların e-postasını (ve telefonunu) OpenStreetMap'ten içe aktarmak (venues.contact_email); yoksa ekip arar
+- İşletme katılınca haber veren müşterilere bildirim
 
 **Belki (v1'de vardı, sahte veriye dayanıyordu)**
 - Tahmini boşalma ("~15:20"), geçmiş haftaların check-in'lerine göre
@@ -187,7 +217,7 @@ Testler: backend 202, mobil 125 (son ölçüm).
 - Backend: v1'in sahte doluluğu (`occupancy` alanı, /v1/venues/{id}/hourly, /history, /forecast, app/occupancy.py, demo_data.py, seed.py); stats'taki `week_new` artık gösterilmiyor
 - Mobil kod: lib/campaigns.ts'te `createCampaign`, `endCampaign`, `parseCampaigns` yalnızca testlerde; v1'in telefonda mekan ekleme kodu (lib/localVenueStore.ts, localVenues.ts; eski telefonda eklenmiş mekanlar hâlâ okunuyor); telefona kaydedilmiş mekan fotoğrafları (`availy.photos`) sunucuda fotoğraf yoksa yedek
 - Silindi: yerel veritabanındaki 43 v1 demo mekanı (Neon'da hiç yoktu; v1 web demosu kendi gömülü verisini kullanır; backend/app/seed.py yalnızca elle çalıştırılırsa yeniden ekler)
-- Silindi (uygulama açılınca, mobile/src/lib/cleanup.ts): telefondaki eski kampanyalar, kuponlar, gösterim sayıları, eski ortak favori listesi, v1 değerlendirmeleri; artık gösterilmeyen mekanların sadakat programları, damga kartları ve üyelikleri
+- Silindi (uygulama açılınca, mobile/src/lib/cleanup.ts): telefondaki eski kampanyalar, kuponlar, gösterim sayıları, eski ortak favori listesi, v1 değerlendirmeleri, telefondaki sadakat programları / damga kartları / üyelikler ve telefonda kullanılmış hesap listesi (artık hepsi sunucuda)
 
 ---
 

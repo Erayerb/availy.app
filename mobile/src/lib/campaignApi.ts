@@ -16,6 +16,7 @@ type ServerCampaign = {
   duration_hours: number;
   starts_at: string;
   ends_at: string;
+  checkin_only?: boolean;
   claims: number;
   redemptions: number;
   views: number;
@@ -47,6 +48,7 @@ export const toCampaign = (c: ServerCampaign): Campaign => ({
   startsAt: c.starts_at,
   endsAt: c.ends_at,
   stats: { views: c.views, claims: c.claims, redemptions: c.redemptions },
+  checkinOnly: c.checkin_only ?? false,
 });
 
 export const toCoupon = (c: ServerCoupon): Coupon => ({
@@ -75,6 +77,7 @@ export const campaignApi = {
           radius_km: c.radiusKm,
           max_claims: c.maxClaims ?? null,
           duration_hours: c.durationHours,
+          checkin_only: c.checkinOnly ?? false,
         },
         token,
       ),

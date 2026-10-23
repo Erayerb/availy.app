@@ -2,7 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
+import { ContactsFinder } from '../components/ContactsFinder';
 import { HeaderButtons } from '../components/HeaderButtons';
+import { useLocation } from '../context/LocationContext';
+import { formatDistance } from '../lib/geo';
+import { socialApi, type Suggestions } from '../lib/social';
 import { QrScanner } from '../components/QrScanner';
 import type { User } from '../lib/auth';
 import { sentence, timeAgo } from '../lib/crowd';
@@ -51,6 +55,9 @@ export function SocialScreen({
   const [tab, setTab] = useState<SocialTab>(initialTab);
 
   const [feed, setFeed] = useState<FeedItem[]>([]);
+  // Shown while Akış is empty: "Önerilen kişiler" and "Yakında yeni keşfedilen mekanlar"
+  const [suggestions, setSuggestions] = useState<Suggestions | null>(null);
+  const { point } = useLocation();
 
   const reload = useCallback(() => {
     if (!token) return;
@@ -58,6 +65,11 @@ export function SocialScreen({
     reviewsApi.feed(token).then(setFeed).catch(() => {});
   }, [token]);
   useEffect(reload, [reload]);
+
+  useEffect(() => {
+    if (!token || feed.length > 0) return;
+    socialApi.suggestions(token, point).then(setSuggestions).catch(() => {});
+  }, [token, feed.length, point?.lat, point?.lon]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Search as the user types (user names start with the text)
   useEffect(() => {
@@ -85,6 +97,12 @@ export function SocialScreen({
       </ScrollView>
     );
   }
+
+  // Invite link to WhatsApp / Instagram…; a friend who signs up with it is added automatically
+  const shareInvite = async () => {
+    const result = await shareText(inviteMessage(user.username!));
+    return result ? { ok: true, text: result } : null;
+  };
 
   const add = async (username: string) => {
     try {
@@ -146,6 +164,17 @@ export function SocialScreen({
                   : "Arkadaşlarının son 7 günde check-in'i ya da yorumu yok. Bu arada:"}
               </Text>
               {[
+                // No friends yet: inviting is the quickest way (both become friends when they sign up)
+                ...(lists.friends.length === 0
+                  ? [
+                      {
+                        icon: '📨',
+                        title: 'Arkadaşlarını davet et',
+                        text: 'Bağlantınla kayıt olan arkadaşın otomatik eklenir, sen 50 puan kazanırsın.',
+                        onPress: async () => setNote(await shareInvite()),
+                      },
+                    ]
+                  : []),
                 {
                   icon: '👋',
                   title: 'Arkadaş ekle',
@@ -178,6 +207,52 @@ export function SocialScreen({
                   <Text style={styles.chevron}>›</Text>
                 </Pressable>
               ))}
+              {!!suggestions?.people.length && (
+                <View style={styles.card}>
+                  <Text style={styles.bold}>Önerilen kişiler</Text>
+                  {suggestions.people.map((p) => (
+                    <View key={p.username} style={styles.suggestRow}>
+                      <Pressable style={styles.flex} onPress={() => onOpenUser(p.username)}>
+                        <Text style={styles.bold}>@{p.username}</Text>
+                        <Text style={styles.muted}>
+                          {p.mutual > 0
+                            ? `${p.mutual} ortak arkadaş`
+                            : p.shared_venues > 0
+                              ? `Aynı mekanlara gidiyorsunuz (${p.shared_venues})`
+                              : `Bu hafta ${p.week_points} puan`}
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        style={styles.smallButton}
+                        onPress={async () => {
+                          await add(p.username);
+                          setSuggestions((s) => s && { ...s, people: s.people.filter((x) => x.username !== p.username) });
+                        }}
+                      >
+                        <Text style={styles.smallButtonText}>Ekle</Text>
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              )}
+              {!!suggestions?.venues.length && (
+                <View style={styles.card}>
+                  <Text style={styles.bold}>✨ Yakında yeni keşfedilen mekanlar</Text>
+                  {suggestions.venues.map((v) => (
+                    <Pressable key={v.id} style={styles.suggestRow} onPress={() => onOpenVenue({ id: v.id })}>
+                      <View style={styles.flex}>
+                        <Text style={styles.bold}>{v.name}</Text>
+                        <Text style={styles.muted}>
+                          {v.username ? `@${v.username} keşfetti` : 'Gizli bir kullanıcı keşfetti'} ·{' '}
+                          {sentence(timeAgo(v.discovered_at, new Date()))}
+                          {v.distance_m !== null ? ` · ${formatDistance(v.distance_m / 1000)}` : ''}
+                        </Text>
+                      </View>
+                      <Text style={styles.chevron}>›</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
             </>
           )}
           {/* One block per person; their items in a row stay together */}
@@ -272,6 +347,8 @@ export function SocialScreen({
             ))}
             {query.trim().length >= 2 && results.length === 0 && <Text style={styles.muted}>Bu adla kimse bulunamadı.</Text>}
           </View>
+
+          <ContactsFinder token={token} me={user.username!} onAdd={add} onOpenUser={onOpenUser} />
 
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Beni ekle</Text>
@@ -395,6 +472,9 @@ const styles = themed(() => StyleSheet.create({
   row: { flexDirection: 'row', gap: 8 },
   flex: { flex: 1 },
   startRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  suggestRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+  smallButton: { paddingVertical: 7, paddingHorizontal: 14, borderRadius: 12, backgroundColor: colors.primary },
+  smallButtonText: { color: colors.onPrimary, fontWeight: '700', fontSize: 13 },
   startIcon: { fontSize: 26 },
   pressed: { opacity: 0.7 },
   input: { padding: 12, borderRadius: 12, backgroundColor: colors.cream, fontSize: 15, color: colors.text },

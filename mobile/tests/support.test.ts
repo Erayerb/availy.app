@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { couponQrPayload, parseCouponQr } from '../src/lib/coupons.ts';
-import { addSupportMessage, validateSupport, type SupportMessage } from '../src/lib/support.ts';
+import { validateSupport } from '../src/lib/support.ts';
 
 test('bug reports need some text; e-mail is optional but must be valid', () => {
   assert.match(validateSupport('bug', 'kısa', '') ?? '', /En az/);
@@ -14,21 +14,6 @@ test('bug reports need some text; e-mail is optional but must be valid', () => {
 test('contact messages need an e-mail to reply to', () => {
   assert.match(validateSupport('contact', 'İş birliği yapmak istiyoruz', '') ?? '', /e-posta/);
   assert.equal(validateSupport('contact', 'İş birliği yapmak istiyoruz', 'a@b.co'), null);
-});
-
-test('only the latest 50 messages are kept, newest first', () => {
-  const make = (i: number): SupportMessage => ({
-    id: String(i),
-    kind: 'bug',
-    topic: 'Öneri',
-    text: 'mesaj metni burada',
-    email: '',
-    createdAt: '2026-10-15T10:00:00Z',
-  });
-  let list: SupportMessage[] = [];
-  for (let i = 0; i < 55; i++) list = addSupportMessage(list, make(i));
-  assert.equal(list.length, 50);
-  assert.equal(list[0].id, '54');
 });
 
 test('coupon QR codes round-trip and other codes are rejected', () => {
@@ -51,7 +36,7 @@ test('"Tekrar gönder" copies the campaign with its planned length', async () =>
   const first = createCampaign({ ...base, durationHours: 3 }, new Date('2026-10-14T10:00:00Z'), 'a');
   // Ended early, after 10 minutes
   const ended = { ...first, endsAt: '2026-10-14T10:10:00Z' };
-  assert.deepEqual(repeatCampaign(ended), { ...base, durationHours: 3 });
+  assert.deepEqual(repeatCampaign(ended), { ...base, checkinOnly: false, durationHours: 3 });
   // Older campaigns without the field fall back to start..end (at least 1 hour)
   const { durationHours: _, ...old } = ended;
   assert.equal(repeatCampaign(old).durationHours, 1);

@@ -63,6 +63,9 @@ def reward_discoverer(conn: psycopg.Connection, user: dict, venue_id: int, messa
     return row
 
 
+REGULAR_VISITS = 3  # check-ins in 30 days that make a regular ("müdavim")
+
+
 def _level_of(score: float) -> str:
     from app.occupancy import classify
 
@@ -119,7 +122,16 @@ def venue_stats(conn: psycopg.Connection, user: dict, venue_id: int, now: dateti
         (venue_id,),
     ).fetchone()
     total = conn.execute("SELECT count(*)::int AS n FROM checkins WHERE venue_id = %s", (venue_id,)).fetchone()["n"]
+    # Müşteriler: how often people came in the last 30 days (anonymous counts only)
+    per_person: dict[int, int] = {}
+    for r in rows:
+        if r["user_id"] is not None:
+            per_person[r["user_id"]] = per_person.get(r["user_id"], 0) + 1
+    visits = sorted(per_person.values(), reverse=True)
     return {
+        "month_people": len(visits),
+        "regulars": sum(1 for n in visits if n >= REGULAR_VISITS),
+        "top_visits": visits[:5],
         "today": today,
         "today_checkins": sum(h["checkins"] for h in today),
         "week_checkins": sum(1 for r in rows if r["created_at"] > week_ago),

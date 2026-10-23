@@ -63,7 +63,7 @@ def test_privacy_settings_and_search(client):
     ali, ayse = account(client, "t_ali"), account(client, "t_ayse")
     assert client.get("/v1/me", headers=auth(ayse)).json()["searchable"] is True
     changed = client.patch("/v1/me/privacy", json={"searchable": False}, headers=auth(ayse)).json()
-    assert changed == {"share_checkins": True, "show_in_leaderboard": True, "searchable": False}
+    assert changed == {"share_checkins": True, "show_in_leaderboard": True, "searchable": False, "suggest_by_venues": True}
     assert client.get("/v1/users/search", params={"q": "t_ay"}, headers=auth(ali)).json() == []
     # An exact user name (QR code, invite link) still works
     assert client.post("/v1/friends", json={"username": "t_ayse"}, headers=auth(ali)).status_code == 200

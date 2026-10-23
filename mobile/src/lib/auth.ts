@@ -32,6 +32,7 @@ export type User = {
   plan?: PlanId;
   venueVerified?: boolean; // business proved it owns the venue
   emailVerified?: boolean; // the code sent to the e-mail was entered (v2)
+  customerCode?: string; // "M-123456": the loyalty QR shown at the counter (v2, from the server)
 };
 
 export const isBusiness = (user: User | null) => user?.role === 'business';

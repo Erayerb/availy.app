@@ -9,18 +9,20 @@ import type { Venue } from '../lib/api';
 import { categoryLabel } from '../lib/filters';
 import { distanceKm, formatDistance } from '../lib/geo';
 import { directionsUrl, shortLocation } from '../lib/location';
-import { crowdExtra, crowdRatioText, crowdSummary, crowdYesterday } from '../lib/crowd';
+import { crowdRatioText, crowdSummary, crowdYesterday } from '../lib/crowd';
 import { shareVenue } from '../lib/shareVenue';
 import { colors, themed } from '../theme';
 import { CampaignBox } from './CampaignBox';
 import { FavoriteButton } from './FavoriteButton';
 import { CrowdDot } from './CrowdDot';
+import { FriendsHere } from './FriendsHere';
 import { WatchButton } from './WatchButton';
 
 export const CARD_WIDTH = 260;
 
 type Props = {
   venue: Venue;
+  friendsToken?: string | null; // "👥 @ayse burada" for registered customers
   onClose: () => void;
   onDetails: () => void;
   // Shown only for crowded venues: opens the quieter alternatives pop-up
@@ -29,7 +31,7 @@ type Props = {
 };
 
 /** Plain React Native view (not a map callout) so taps never reach other pins. */
-export function VenueCard({ venue, onClose, onDetails, onShowAlternatives, onLayout }: Props) {
+export function VenueCard({ venue, friendsToken = null, onClose, onDetails, onShowAlternatives, onLayout }: Props) {
   const { crowdLook } = useSettings();
   const { label } = crowdLook(venue);
   const { activeFor } = useCampaigns();
@@ -58,6 +60,7 @@ export function VenueCard({ venue, onClose, onDetails, onShowAlternatives, onLay
         </View>
       </View>
       <Text style={styles.category}>{categoryLabel(venue.category)}</Text>
+      <FriendsHere venueId={venue.id} token={friendsToken} />
 
       <View style={styles.row}>
         <CrowdDot venue={venue} />
@@ -68,7 +71,6 @@ export function VenueCard({ venue, onClose, onDetails, onShowAlternatives, onLay
       </View>
 
       {venue.open_now && <Text style={styles.secondary}>{crowdSummary(venue.crowd, new Date())}</Text>}
-      {venue.open_now && crowdExtra(venue.crowd) && <Text style={styles.secondary}>{crowdExtra(venue.crowd)}</Text>}
       {venue.open_now && crowdYesterday(venue.crowd) && <Text style={styles.secondary}>🕘 {crowdYesterday(venue.crowd)}</Text>}
       {watching && <Text style={styles.watching}>🔔 Sakin olunca haber vereceğiz</Text>}
       {campaign && <CampaignBox campaign={campaign} />}

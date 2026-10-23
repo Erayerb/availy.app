@@ -247,9 +247,68 @@ CREATE TABLE IF NOT EXISTS venue_profiles (
 ALTER TABLE venues ADD COLUMN IF NOT EXISTS added_by BIGINT REFERENCES users(id) ON DELETE SET NULL;
 ALTER TABLE venues ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
 ALTER TABLE points DROP CONSTRAINT IF EXISTS points_reason_check;
-ALTER TABLE points ADD CONSTRAINT points_reason_check CHECK (reason IN ('checkin', 'first_checkin', 'venue_added'));
+ALTER TABLE points ADD CONSTRAINT points_reason_check
+    CHECK (reason IN ('checkin', 'first_checkin', 'venue_added', 'invite'));
 
 -- v2: the business corrects its venue's address, neighbourhood / district and map point (where "Yol tarifi" goes);
 -- an OpenStreetMap re-import then keeps them
 ALTER TABLE venues ADD COLUMN IF NOT EXISTS address TEXT;
 ALTER TABLE venues ADD COLUMN IF NOT EXISTS edited_by_business BOOLEAN NOT NULL DEFAULT false;
+
+-- v2: loyalty on the server. A venue runs a stamp card or a paid membership (shown only, no payment);
+-- customers join it themselves and the business stamps them with their customer code (M-123456)
+CREATE TABLE IF NOT EXISTS loyalty_programs (
+    venue_id         BIGINT PRIMARY KEY REFERENCES venues(id) ON DELETE CASCADE,
+    kind             TEXT NOT NULL CHECK (kind IN ('stamps', 'membership')),
+    stamps_required  INTEGER NOT NULL DEFAULT 5 CHECK (stamps_required BETWEEN 2 AND 20),
+    reward           TEXT NOT NULL DEFAULT '',
+    price            INTEGER NOT NULL DEFAULT 0,
+    perk             TEXT NOT NULL DEFAULT '',
+    active           BOOLEAN NOT NULL DEFAULT true,
+    activated_at     TIMESTAMPTZ NOT NULL DEFAULT now()  -- when customers could last start seeing it (notification)
+);
+CREATE TABLE IF NOT EXISTS loyalty_members (
+    venue_id      BIGINT NOT NULL REFERENCES loyalty_programs(venue_id) ON DELETE CASCADE,
+    user_id       BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    joined_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    stamps        INTEGER NOT NULL DEFAULT 0,  -- on the current card
+    rewards       INTEGER NOT NULL DEFAULT 0,  -- full cards not used yet
+    total_stamps  INTEGER NOT NULL DEFAULT 0,  -- for availy points
+    PRIMARY KEY (venue_id, user_id)
+);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS customer_code TEXT UNIQUE;  -- "M-123456", shown as a QR at the counter
+
+-- v2: who invited whom (the invite link ?invite=eray): they become friends, the inviter gets points
+ALTER TABLE users ADD COLUMN IF NOT EXISTS invited_by BIGINT REFERENCES users(id) ON DELETE SET NULL;
+-- v2: "Benimle aynı mekanlara gidenlere önerilebileyim" (Gizlilik)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS suggest_by_venues BOOLEAN NOT NULL DEFAULT true;
+-- v2: "Rehberden bul" (optional): only a keyed hash of the user's own phone number is kept; the
+-- numbers from the phone's contacts are compared and never stored
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_hash TEXT;
+CREATE INDEX IF NOT EXISTS users_phone_hash ON users (phone_hash) WHERE phone_hash IS NOT NULL;
+
+-- v2: "İşletmeye haber ver": customers ask a venue without a business account to join; at some
+-- counts the venue's e-mail (when known, e.g. from OpenStreetMap) gets a note with the number only
+CREATE TABLE IF NOT EXISTS venue_requests (
+    venue_id    BIGINT NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+    user_id     BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (venue_id, user_id)
+);
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS contact_email TEXT;
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS requests_mailed INTEGER NOT NULL DEFAULT 0;  -- count at the last e-mail
+
+-- v2: "Check-in yapana kupon": the coupon goes only to people who check in at the venue
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS checkin_only BOOLEAN NOT NULL DEFAULT false;
+
+-- v2: "Hata bildir" and "İletişime geç" messages from the app (also e-mailed to SUPPORT_EMAIL when set)
+CREATE TABLE IF NOT EXISTS support_messages (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    kind        TEXT NOT NULL CHECK (kind IN ('bug', 'contact')),
+    topic       TEXT NOT NULL,
+    body        TEXT NOT NULL,
+    email       TEXT,  -- where to answer
+    app_info    TEXT,  -- platform and app version, for bug reports
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);

@@ -4,6 +4,8 @@ import { send } from './accountApi.ts';
 export const MAX_REVIEW = 280;
 // Same as the server: each check-in at a venue allows two reviews there
 export const MAX_REVIEWS_PER_CHECKIN = 2;
+// Same as the server: replies one person may write under one review
+export const MAX_REPLIES_PER_PERSON = 2;
 
 export type Reply = {
   id: number;

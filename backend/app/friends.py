@@ -4,6 +4,7 @@ Friends see each other's latest check-in (venue and time); private ones are neve
 There is no live location: only places someone checked in at.
 """
 from dataclasses import dataclass
+from datetime import timedelta
 
 import psycopg
 
@@ -138,3 +139,56 @@ def last_checkins(conn: psycopg.Connection, user_ids: list[int]) -> dict[int, di
         (user_ids,),
     ).fetchall()
     return {r.pop("user_id"): r for r in rows}
+
+
+INVITE_POINTS = 50
+MAX_INVITE_REWARDS_PER_MONTH = 5  # fake sign-ups for points stay worthless
+
+
+def accept_invite(conn: psycopg.Connection, newcomer: dict, inviter_username: str | None, now) -> bool:
+    """Signed up through someone's invite link: friends right away, and the inviter earns points."""
+    if not inviter_username or newcomer.get("role") != "personal":
+        return False
+    inviter = conn.execute(
+        "SELECT id FROM users WHERE lower(username) = %s AND role = 'personal' AND NOT is_guest AND NOT frozen",
+        (normalize_username(inviter_username),),
+    ).fetchone()
+    if inviter is None or inviter["id"] == newcomer["id"]:
+        return False
+    conn.execute("UPDATE users SET invited_by = %s WHERE id = %s AND invited_by IS NULL", (inviter["id"], newcomer["id"]))
+    conn.execute(
+        """
+        INSERT INTO friendships (requester_id, addressee_id, status, accepted_at) VALUES (%s, %s, 'accepted', %s)
+        ON CONFLICT DO NOTHING
+        """,
+        (inviter["id"], newcomer["id"], now),
+    )
+    rewarded = conn.execute(
+        "SELECT count(*)::int AS n FROM points WHERE user_id = %s AND reason = 'invite' AND created_at > %s",
+        (inviter["id"], now - timedelta(days=30)),
+    ).fetchone()["n"]
+    if rewarded < MAX_INVITE_REWARDS_PER_MONTH:
+        conn.execute(
+            "INSERT INTO points (user_id, amount, reason, created_at) VALUES (%s, %s, 'invite', %s)",
+            (inviter["id"], INVITE_POINTS, now),
+        )
+    return True
+
+
+HERE_WINDOW = timedelta(minutes=60)
+
+
+def friends_here(conn: psycopg.Connection, me: dict, venue_id: int, now) -> list[dict]:
+    """"Arkadaşların burada": friends whose latest public check-in at this venue is from the last hour."""
+    return conn.execute(
+        f"""
+        SELECT u.username, max(c.created_at) AS at
+        FROM checkins c JOIN users u ON u.id = c.user_id
+        WHERE c.venue_id = %(venue)s AND NOT c.is_private AND NOT c.is_demo AND c.created_at > %(since)s
+          AND u.share_checkins AND u.id NOT IN {BLOCKED}
+          AND u.id IN (SELECT addressee_id FROM friendships WHERE requester_id = %(me)s AND status = 'accepted'
+                       UNION SELECT requester_id FROM friendships WHERE addressee_id = %(me)s AND status = 'accepted')
+        GROUP BY u.username ORDER BY max(c.created_at) DESC
+        """,
+        {"venue": venue_id, "since": now - HERE_WINDOW, "me": me["id"]},
+    ).fetchall()

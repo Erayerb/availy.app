@@ -22,7 +22,11 @@ class Settings(BaseSettings):
     # E-mail (codes for "Şifremi unuttum" and verification) via Resend; without a key the
     # e-mail is only written to the server log (local development)
     resend_api_key: str = ""
+    # Secret mixed into phone-number hashes ("Rehberden bul"); set PHONE_PEPPER on the server
+    phone_pepper: str = "availy-dev-pepper"
     mail_from: str = "availy <onboarding@resend.dev>"
+    # Bug reports and contact messages are also e-mailed here (empty: only kept in the database)
+    support_email: str = ""
 
     # Dummy occupancy: values stay constant within one time bucket
     dummy_bucket_seconds: int = 300

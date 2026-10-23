@@ -24,8 +24,10 @@ import { IntroOverlay } from './src/components/IntroOverlay';
 import { friendsApi, inviteFromQuery } from './src/lib/friends';
 import { SubscriptionScreen } from './src/screens/SubscriptionScreen';
 import { AddVenueScreen } from './src/screens/AddVenueScreen';
+import { CustomersScreen } from './src/screens/CustomersScreen';
 import { BUSINESS_TABS, CUSTOMER_TABS, TabBar, type Screen } from './src/components/TabBar';
 import { CampaignsProvider } from './src/context/CampaignsContext';
+import { LoyaltyProvider } from './src/context/LoyaltyContext';
 import { EngagementProvider, useEngagement } from './src/context/EngagementContext';
 import { SettingsProvider } from './src/context/SettingsContext';
 import { useLocation } from './src/context/LocationContext';
@@ -36,6 +38,7 @@ import { useVisits } from './src/hooks/useVisits';
 import { accountKey, isBusiness, isRegistered, type Role } from './src/lib/auth';
 import { DEFAULT_PLAN } from './src/lib/plans';
 import { removeOldData } from './src/lib/cleanup';
+import { isLocalVenueId } from './src/lib/localVenues';
 import { loadLocalVenues } from './src/lib/localVenueStore';
 import { loadOverrides } from './src/lib/overrideStore';
 import { BusinessMonitor } from './src/components/BusinessMonitor';
@@ -48,7 +51,7 @@ import { venueFromQuery } from './src/lib/share';
 import type { SortMode } from './src/lib/sort';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { BusinessScreen } from './src/screens/BusinessScreen';
-import { CampaignsScreen } from './src/screens/CampaignsScreen';
+import { CampaignsScreen, type Tab as CampaignsTab } from './src/screens/CampaignsScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { VenueDetailScreen } from './src/screens/VenueDetailScreen';
@@ -121,6 +124,8 @@ function Main() {
   };
   // Sosyal opens on Akış; a friend-request notification opens it on Arkadaşlar
   const [socialTab, setSocialTab] = useState<SocialTab>('feed');
+  // Kampanyalar opened on one of its tabs (Müşteriler > "Sadakat programı oluştur")
+  const [campaignsTab, setCampaignsTab] = useState<CampaignsTab | null>(null);
   const role: Role = isBusiness(auth.user) ? 'business' : 'personal';
   const goBack = () => setNav((h) => back(h, landingFor(role)));
   const { premium, checkinSuggestions, appearance } = useSettings();
@@ -157,7 +162,8 @@ function Main() {
     removeOldData(); // data earlier versions kept on the phone
   }, []);
 
-  const needsVenue = isBusiness(auth.user) && !auth.user?.venueId;
+  // A venue kept only on this phone (before venues were on the server) has to be chosen / added again
+  const needsVenue = isBusiness(auth.user) && (!auth.user?.venueId || isLocalVenueId(auth.user.venueId));
   const gate: Gate = authForm ?? (!entered ? 'welcome' : needsVenue ? 'venueSetup' : null);
 
   const enterApp = (as: Role = 'personal') => {
@@ -293,8 +299,13 @@ function Main() {
           onRegister={async (username, email, password, role) => {
             // A guest who signs up has already been through the onboarding
             const wasGuest = auth.user?.isGuest === true;
-            const error = await auth.register(username, email, password, role);
+            // Came through an invite link: friends with the inviter right away
+            const error = await auth.register(username, email, password, role, invite);
             if (!error) {
+              if (invite) {
+                setInvite(null);
+                if (Platform.OS === 'web') window.history.replaceState(null, '', window.location.pathname);
+              }
               enterApp(role);
               if (!wasGuest) startOnboarding();
             }
@@ -354,6 +365,7 @@ function Main() {
       userKey={auth.user ? accountKey(auth.user) : 'guest'}
     >
       <CampaignsProvider token={auth.user?.token ?? null} business={isBusiness(auth.user)}>
+      <LoyaltyProvider token={auth.user?.token ?? null} business={isBusiness(auth.user)}>
       <FavoritesProvider
         accountKey={auth.user ? accountKey(auth.user) : null}
         signedIn={isRegistered(auth.user)} onLoginRequired={() => setAuthForm('login')}>
@@ -389,6 +401,7 @@ function Main() {
           )}
           {screen === 'map' && (
             <MapScreen
+              friendsToken={isRegistered(auth.user) && !isBusiness(auth.user) ? (auth.user?.token ?? null) : null}
               initialRegion={mapRegion}
               onRegionSaved={setMapRegion}
               tags={tags}
@@ -416,7 +429,30 @@ function Main() {
               onRegister={() => setAuthForm('register')}
             />
           )}
-          {screen === 'favorites' && <FavoritesScreen onOpenVenue={openDetails} visits={visits} />}
+          {screen === 'customers' && auth.user?.venueId && (
+            <CustomersScreen
+              venueId={auth.user.venueId}
+              user={auth.user}
+              onOpenUser={openProfile}
+              onRegister={() => setAuthForm('register')}
+              onOpenLoyalty={() => {
+                setCampaignsTab('myPrograms');
+                goTo('campaigns');
+              }}
+            />
+          )}
+          {screen === 'favorites' && (
+            <FavoritesScreen
+              onOpenVenue={openDetails}
+              visits={visits}
+              signedIn={isRegistered(auth.user)}
+              onLogin={() => setAuthForm('login')}
+              onRegister={() => {
+                setAuthRole('personal');
+                setAuthForm('register');
+              }}
+            />
+          )}
           {screen === 'detail' && detailId !== null && (
             <VenueDetailScreen
               venueId={detailId}
@@ -462,8 +498,11 @@ function Main() {
           )}
           {screen === 'campaigns' && (
             <CampaignsScreen
+              key={campaignsTab ?? 'default'}
+              initialTab={campaignsTab ?? undefined}
               signedIn={isRegistered(auth.user)}
               serverPoints={auth.user?.points ?? 0}
+              customerCode={auth.user?.customerCode ?? null}
               business={
                 isBusiness(auth.user) && auth.user?.venueId
                   ? {
@@ -528,7 +567,7 @@ function Main() {
             />
           )}
           {screen === 'about' && <AboutScreen role={role} onBack={goBack} />}
-          {screen === 'support' && <SupportScreen email={auth.user?.email ?? null} onBack={goBack} />}
+          {screen === 'support' && <SupportScreen email={auth.user?.email ?? null} token={auth.user?.token ?? null} onBack={goBack} />}
           {screen === 'verification' && <VerificationScreen onBack={goBack} />}
           {screen === 'friends' && (
             <SocialScreen
@@ -574,6 +613,7 @@ function Main() {
             current={screen}
             onSelect={(next) => {
               if (next === 'friends') setSocialTab('feed');
+              if (next === 'campaigns') setCampaignsTab(null);
               goTo(next);
               setSelectedId(null);
             }}
@@ -610,6 +650,7 @@ function Main() {
       </HeaderActionsContext.Provider>
       </NotificationsProvider>
       </FavoritesProvider>
+      </LoyaltyProvider>
       </CampaignsProvider>
     </EngagementProvider>
   );

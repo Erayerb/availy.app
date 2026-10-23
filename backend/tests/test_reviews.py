@@ -101,3 +101,15 @@ def test_feed_has_friends_checkins_reviews_and_replies(client, conn, visit):
     assert review["id"]
     # Not friends: nothing from Ayşe
     assert client.get("/v1/feed", headers=auth(other)).json() == []
+
+
+def test_two_replies_per_person_and_review(client, conn, visit):
+    kafe, ali, ayse = venue(conn), account(client, "t_ali"), account(client, "t_ayse")
+    visit("t_ali", kafe)
+    review = client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 4}, headers=auth(ali)).json()["items"][0]
+    url = f"/v1/reviews/{review['id']}/replies"
+    assert client.post(url, json={"body": "Bir"}, headers=auth(ayse)).status_code == 201
+    assert client.post(url, json={"body": "İki"}, headers=auth(ayse)).status_code == 201
+    third = client.post(url, json={"body": "Üç"}, headers=auth(ayse))
+    assert third.status_code == 409 and "en fazla 2" in third.json()["detail"]
+    assert client.post(url, json={"body": "Teşekkürler"}, headers=auth(ali)).status_code == 201  # others still can

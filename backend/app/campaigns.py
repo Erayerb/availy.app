@@ -16,7 +16,7 @@ ALPHABET = "ACDEFGHJKLMNPQRSTUVWXYZ234679"
 # Everything a list needs, with the coupon counts
 CAMPAIGN_SELECT = """
     SELECT c.id, c.venue_id, v.name AS venue_name, ST_Y(v.location::geometry) AS lat, ST_X(v.location::geometry) AS lon,
-           c.message, c.discount, c.radius_km::float AS radius_km, c.max_claims, c.duration_hours, c.starts_at, c.ends_at,
+           c.message, c.discount, c.radius_km::float AS radius_km, c.max_claims, c.duration_hours, c.starts_at, c.ends_at, c.checkin_only,
            (SELECT count(*) FROM coupons k WHERE k.campaign_id = c.id)::int AS claims,
            (SELECT count(*) FROM coupons k WHERE k.campaign_id = c.id AND k.redeemed_at IS NOT NULL)::int AS redemptions,
            (SELECT count(*) FROM campaign_views w WHERE w.campaign_id = c.id)::int AS views
@@ -45,6 +45,7 @@ def create_campaign(
     max_claims: int | None,
     duration_hours: int,
     now: datetime,
+    checkin_only: bool = False,
 ) -> dict:
     venue_id = _business_venue(user)
     text = " ".join(message.split())
@@ -62,10 +63,14 @@ def create_campaign(
         raise CampaignError("Kişi sınırı en az 1 olmalı.")
     row = conn.execute(
         """
-        INSERT INTO campaigns (venue_id, business_id, message, discount, radius_km, max_claims, duration_hours, starts_at, ends_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+        INSERT INTO campaigns (venue_id, business_id, message, discount, radius_km, max_claims, duration_hours, starts_at, ends_at,
+                               checkin_only)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
         """,
-        (venue_id, user["id"], text, discount, radius_km, max_claims, duration_hours, now, now + timedelta(hours=duration_hours)),
+        (
+            venue_id, user["id"], text, discount, radius_km, max_claims, duration_hours, now,
+            now + timedelta(hours=duration_hours), checkin_only,
+        ),
     ).fetchone()
     return campaign(conn, row["id"])
 
@@ -135,7 +140,8 @@ def claim_coupon(conn: psycopg.Connection, user: dict, campaign_id: int, now: da
         raise CampaignError("İşletme hesapları kupon alamaz.", 403)
     # Locks the campaign so two people cannot take the last coupon at once
     row = conn.execute(
-        "SELECT max_claims, starts_at, ends_at FROM campaigns WHERE id = %s FOR UPDATE", (campaign_id,)
+        "SELECT venue_id, max_claims, starts_at, ends_at, checkin_only FROM campaigns WHERE id = %s FOR UPDATE",
+        (campaign_id,),
     ).fetchone()
     if row is None:
         raise CampaignError("Kampanya bulunamadı.", 404)
@@ -144,6 +150,12 @@ def claim_coupon(conn: psycopg.Connection, user: dict, campaign_id: int, now: da
         return mine
     if not row["starts_at"] <= now < row["ends_at"]:
         raise CampaignError("Bu kampanya bitti.", 409)
+    # "Check-in yapana kupon": only people who checked in there since the campaign started
+    if row["checkin_only"] and not conn.execute(
+        "SELECT 1 FROM checkins WHERE venue_id = %s AND user_id = %s AND created_at >= %s",
+        (row["venue_id"], user["id"], row["starts_at"]),
+    ).fetchone():
+        raise CampaignError("Bu kupon mekanda check-in yapanlara veriliyor: önce check-in yap.", 403)
     taken = conn.execute("SELECT count(*)::int AS n FROM coupons WHERE campaign_id = %s", (campaign_id,)).fetchone()["n"]
     if row["max_claims"] is not None and taken >= row["max_claims"]:
         raise CampaignError("Bu kampanyanın kupon sınırı doldu.", 409)
@@ -191,3 +203,18 @@ def redeem_coupon(conn: psycopg.Connection, user: dict, raw_code: str, now: date
         raise CampaignError("Bu kuponun kampanyası bitti.", 409)
     conn.execute("UPDATE coupons SET redeemed_at = %s WHERE code = %s", (now, code))
     return {**coupon, "redeemed_at": now}
+
+
+def coupons_for_checkin(conn: psycopg.Connection, user: dict, venue_id: int, now: datetime) -> list[dict]:
+    """Right after a check-in: the coupons of the venue's running "check-in yapana kupon" campaigns."""
+    running = conn.execute(
+        "SELECT id FROM campaigns WHERE venue_id = %s AND checkin_only AND starts_at <= %s AND ends_at > %s",
+        (venue_id, now, now),
+    ).fetchall()
+    coupons = []
+    for campaign in running:
+        try:
+            coupons.append(claim_coupon(conn, user, campaign["id"], now))
+        except CampaignError:
+            pass  # e.g. the limit was reached
+    return coupons

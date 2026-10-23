@@ -24,6 +24,7 @@ from app.accounts import (
     user_for_token,
 )
 from app.db import get_conn
+from app.friends import accept_invite
 from app.email_codes import request_reset, request_verification, reset_password, verify_email
 
 router = APIRouter(prefix="/v1")
@@ -37,6 +38,7 @@ class RegisterIn(BaseModel):
     email: str
     password: str
     role: Role = "personal"
+    invited_by: str | None = None  # the user name in the invite link (?invite=eray)
 
 
 class LoginIn(BaseModel):
@@ -74,6 +76,7 @@ class PrivacyOut(BaseModel):
     share_checkins: bool  # friends see my check-ins
     show_in_leaderboard: bool  # shown in the "Herkes" ranking
     searchable: bool  # others find me by user-name search
+    suggest_by_venues: bool = True  # suggested to people who go to the same venues
 
 
 class MeOut(UserOut, PrivacyOut):
@@ -81,6 +84,7 @@ class MeOut(UserOut, PrivacyOut):
     checkins: int
     discoveries: int  # venues where this user made the first check-in
     badges: list[BadgeOut]  # the whole catalog; locked ones have earned = false
+    customer_code: str | None = None  # "M-123456" for loyalty stamps (not for businesses)
 
 
 class SessionOut(BaseModel):
@@ -120,6 +124,7 @@ def register(body: RegisterIn, conn: psycopg.Connection = Depends(get_conn)):
     except AccountError as e:
         raise _fail(e) from None
     _send_verification(conn, user)
+    accept_invite(conn, user, body.invited_by, datetime.now(timezone.utc))
     return {"token": create_session(conn, user["id"]), "user": user}
 
 
@@ -155,6 +160,7 @@ def upgrade(body: RegisterIn, user: dict = Depends(current_user), conn: psycopg.
     except AccountError as e:
         raise _fail(e) from None
     _send_verification(conn, upgraded)
+    accept_invite(conn, upgraded, body.invited_by, datetime.now(timezone.utc))
     return upgraded
 
 
@@ -170,7 +176,10 @@ def logout(authorization: str | None = Header(None), conn: psycopg.Connection = 
 def me(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
     from app.checkins import user_stats
 
-    return {**user, **user_stats(conn, user["id"])}
+    from app.loyalty import customer_code
+
+    code = customer_code(conn, user["id"]) if user.get("role") != "business" else None
+    return {**user, **user_stats(conn, user["id"]), "customer_code": code}
 
 
 class RenameIn(BaseModel):
@@ -235,6 +244,7 @@ class PrivacyIn(BaseModel):
     share_checkins: bool | None = None
     show_in_leaderboard: bool | None = None
     searchable: bool | None = None
+    suggest_by_venues: bool | None = None
 
 
 @router.patch("/me/privacy", response_model=PrivacyOut)
@@ -245,7 +255,7 @@ def privacy(body: PrivacyIn, user: dict = Depends(current_user), conn: psycopg.C
         return user
     columns = ", ".join(f"{name} = %({name})s" for name in changes)
     return conn.execute(
-        f"UPDATE users SET {columns} WHERE id = %(id)s RETURNING share_checkins, show_in_leaderboard, searchable",
+        f"UPDATE users SET {columns} WHERE id = %(id)s RETURNING share_checkins, show_in_leaderboard, searchable, suggest_by_venues",
         {**changes, "id": user["id"]},
     ).fetchone()
 

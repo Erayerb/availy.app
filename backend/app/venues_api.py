@@ -8,8 +8,11 @@ from pydantic import BaseModel
 from app.auth_api import current_user
 from app.checkins_api import get_clock
 from app.db import get_conn
+from app.reviews_api import optional_user
 from app.user_venues import VenueError, add_venue
 from app.venue_profiles import ProfileError, load_photo, save_address, save_links, save_photo
+from app.support import SupportError, send_support
+from app.venue_requests import RequestError, ask_business, request_status
 
 router = APIRouter(prefix="/v1")
 
@@ -110,3 +113,50 @@ def show_photo(venue_id: int, conn: psycopg.Connection = Depends(get_conn)):
         raise HTTPException(status_code=404, detail="Fotoğraf yok.")
     media_type, data = found
     return Response(content=data, media_type=media_type, headers={"Cache-Control": "public, max-age=31536000"})
+
+
+class RequestOut(BaseModel):
+    has_business: bool
+    count: int  # people who asked
+    mine: bool
+
+
+@router.get("/venues/{venue_id}/business-request", response_model=RequestOut)
+def business_request(venue_id: int, me: dict | None = Depends(optional_user), conn: psycopg.Connection = Depends(get_conn)):
+    return request_status(conn, me, venue_id)
+
+
+@router.post("/venues/{venue_id}/business-request", response_model=RequestOut)
+def ask(
+    venue_id: int,
+    user: dict = Depends(current_user),
+    conn: psycopg.Connection = Depends(get_conn),
+    now: datetime = Depends(get_clock),
+):
+    """"İşletmeye haber ver"."""
+    try:
+        return ask_business(conn, user, venue_id, now)
+    except RequestError as e:
+        raise HTTPException(status_code=e.status, detail=e.message) from None
+
+
+class SupportIn(BaseModel):
+    kind: str  # "bug" or "contact"
+    topic: str
+    body: str
+    email: str = ""
+    app_info: str = ""  # platform and app version
+
+
+@router.post("/support", status_code=201)
+def support(
+    body: SupportIn,
+    me: dict | None = Depends(optional_user),
+    conn: psycopg.Connection = Depends(get_conn),
+    now: datetime = Depends(get_clock),
+):
+    """"Hata bildir" / "İletişime geç" (also without an account)."""
+    try:
+        return send_support(conn, me, body.kind, body.topic, body.body, body.email, body.app_info, now)
+    except SupportError as e:
+        raise HTTPException(status_code=e.status, detail=e.message) from None

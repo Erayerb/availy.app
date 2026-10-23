@@ -18,3 +18,9 @@ services:
       # Without it the codes are only written to the server log.
       - key: RESEND_API_KEY
         sync: false
+      # Secret mixed into phone-number hashes ("Rehberden bul"); any long random text, set once
+      - key: PHONE_PEPPER
+        sync: false
+      # Bug reports and contact messages are also e-mailed here (optional)
+      - key: SUPPORT_EMAIL
+        sync: false

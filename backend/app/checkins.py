@@ -13,7 +13,7 @@ LEVELS = ("low", "medium", "high")
 # TEMPORARY: 1 km so the app can be tried away from the venues; set back to 150 before the release
 CHECKIN_RADIUS_M = 1000
 # Same person, same venue: once every 2 hours (stops one person inflating "4 kişi" and farming points)
-VENUE_COOLDOWN = timedelta(hours=2)
+VENUE_COOLDOWN = timedelta(minutes=90)
 # At most this many check-ins in any 60 minutes, across all venues
 HOURLY_LIMIT = 10
 HOURLY_WINDOW = timedelta(hours=1)
@@ -23,6 +23,10 @@ CHECKIN_COLUMNS = "id, venue_id, level, queue, seats, is_first, created_at"
 # availy points (for now): every check-in, plus a bonus for a venue's very first one
 CHECKIN_POINTS = 10
 FIRST_CHECKIN_POINTS = 50
+# Against point farming (cafes side by side): no points within 30 minutes of a check-in at another
+# venue, and at most 8 check-ins with points a day; the check-in still counts for the occupancy
+POINTS_GAP = timedelta(minutes=30)
+DAILY_POINT_CHECKINS = 8
 # Guests get half of every award (they are free to create); what they earned stays when they sign up
 GUEST_POINT_FACTOR = 0.5
 # "Burayı X keşfetti" is shown on the venue for this long
@@ -112,7 +116,7 @@ def create_checkin(
     ).fetchone()["at"]
     if last is not None and now - last < VENUE_COOLDOWN:
         raise CheckinError(
-            f"Bu mekana 2 saatte bir check-in yapabilirsin.\nTekrar: {_clock(last + VENUE_COOLDOWN)}", 429
+            f"Bu mekana 90 dakikada bir check-in yapabilirsin.\nTekrar: {_clock(last + VENUE_COOLDOWN)}", 429
         )
     recent = conn.execute(
         "SELECT count(*) AS n FROM checkins WHERE user_id = %s AND created_at > %s",
@@ -143,9 +147,13 @@ def create_checkin(
         """,
         {"v": venue_id, "u": user["id"]},
     ).fetchone()
+    from app.campaigns import coupons_for_checkin
+
     return {
         **checkin,
         "points_earned": award_points(conn, user, checkin, now),
+        "points_note": points_blocked(conn, user["id"], checkin["id"], now),
+        "coupons": coupons_for_checkin(conn, user, venue_id, now),
         # "Burayı keşfeden 12. kişisin" on the first visit; later the visit count
         "visitor_rank": visits["people"] if visits["mine"] == 1 else None,
         "my_visits": visits["mine"],
@@ -182,7 +190,35 @@ def update_trust(conn: psycopg.Connection, user: dict, venue_id: int, level: str
     return new
 
 
+def points_blocked(conn: psycopg.Connection, user_id: int, checkin_id: int, now: datetime) -> str | None:
+    """Why this check-in earns no points ("too_soon" / "daily_limit"), or None."""
+    elsewhere = conn.execute(
+        """
+        SELECT 1 FROM checkins c JOIN checkins this ON this.id = %(c)s
+        WHERE c.user_id = %(u)s AND c.id <> this.id AND c.venue_id <> this.venue_id
+          AND c.created_at > %(gap)s AND c.created_at <= this.created_at
+        LIMIT 1
+        """,
+        {"u": user_id, "c": checkin_id, "gap": now - POINTS_GAP},
+    ).fetchone()
+    if elsewhere:
+        return "too_soon"
+    row = conn.execute(
+        """
+        SELECT count(DISTINCT checkin_id)::int AS today
+        FROM points WHERE user_id = %(u)s AND reason IN ('checkin', 'first_checkin') AND checkin_id <> %(c)s
+          AND created_at > %(day)s
+        """,
+        {"u": user_id, "c": checkin_id, "day": now - timedelta(days=1)},
+    ).fetchone()
+    if row["today"] >= DAILY_POINT_CHECKINS:
+        return "daily_limit"
+    return None
+
+
 def award_points(conn: psycopg.Connection, user: dict, checkin: dict, now: datetime) -> int:
+    if points_blocked(conn, user["id"], checkin["id"], now):
+        return 0
     factor = GUEST_POINT_FACTOR if user.get("is_guest") else 1
     awards = [(int(CHECKIN_POINTS * factor), "checkin")]
     if checkin["is_first"]:

@@ -7,9 +7,9 @@ import { BadgeGrid } from '../components/BadgeGrid';
 import { BackButton } from '../components/BackButton';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
 import { useCampaigns } from '../context/CampaignsContext';
-import { useEngagement } from '../context/EngagementContext';
+import { useLoyalty } from '../context/LoyaltyContext';
 import { accountKey, MIN_PASSWORD_LENGTH, normalizeUsername, type User } from '../lib/auth';
-import { availyPoints, customerCode } from '../lib/loyalty';
+import { availyPoints } from '../lib/loyalty';
 import { colors, themed } from '../theme';
 
 type Props = {
@@ -49,7 +49,7 @@ export function ProfileScreen({
   // Business: its venue, edited from here
   const { venues, refresh: refreshVenue } = useVenuesByIds(business && user?.venueId ? [user.venueId] : []);
   const venue = venues[0];
-  const { cards, programs } = useEngagement();
+  const { programs } = useLoyalty();
   const { coupons } = useCampaigns();
 
   if (!user || user.isGuest) {
@@ -87,14 +87,7 @@ export function ProfileScreen({
     );
   }
 
-  const myCards = cards.filter((c) => c.userKey === accountKey(user));
-  const stamps = myCards.reduce(
-    (sum, c) =>
-      sum +
-      c.stamps +
-      c.rewardsAvailable * (programs.find((p) => p.venueId === c.venueId)?.stampsRequired ?? 0),
-    0,
-  );
+  const stamps = programs.reduce((sum, p) => sum + (p.member?.totalStamps ?? 0), 0);
   const used = business ? 0 : coupons.filter((c) => c.redeemedAt).length;
 
   return (
@@ -109,9 +102,9 @@ export function ProfileScreen({
         <Text style={styles.muted}>
           {user.email} · {user.role === 'business' ? 'İşletme hesabı' : 'Bireysel hesap'}
         </Text>
-        {!business && (
+        {!business && user.customerCode && (
           <Text style={styles.text}>
-            Müşteri kodun: <Text style={styles.code}>{customerCode(accountKey(user))}</Text>
+            Müşteri kodun: <Text style={styles.code}>{user.customerCode}</Text>
           </Text>
         )}
         {user.emailVerified && <Text style={styles.success}>✓ E-posta doğrulandı</Text>}

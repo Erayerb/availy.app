@@ -51,7 +51,7 @@ export function NotificationsProvider({ token, accountKey, children }: Props) {
           for (const n of list.filter((n) => !since || isAfter(n.at, since))) {
             // A venue's reward is always shown: it is meant for the counter
             const on =
-              n.kind === 'reward'
+              n.kind === 'reward' || n.kind === 'loyalty'
                 ? true
                 : n.kind === 'reply'
                   ? wanted.current.replyNotifications

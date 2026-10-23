@@ -33,6 +33,12 @@
         {
           "cameraPermission": "Sadakat damgası vermek için müşterinin QR kodunu okutmak üzere kamerayı kullanırız."
         }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Rehberindeki arkadaşlarını availy'de bulmak için telefon numaralarına bakarız; rehberin saklanmaz."
+        }
       ]
     ]
   }

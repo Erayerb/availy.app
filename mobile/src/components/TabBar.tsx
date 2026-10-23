@@ -6,6 +6,7 @@ import { TabIcon, type IconName } from './TabIcon';
 export type Screen =
   | 'home'
   | 'business'
+  | 'customers'
   | 'map'
   | 'favorites'
   | 'campaigns'
@@ -42,8 +43,14 @@ export const CUSTOMER_TABS: Tab[] = [
   { screen: 'favorites', label: 'Favoriler', icon: 'heart' },
   MORE,
 ];
-// Businesses: home, panel, map (middle), campaigns; the app still opens on the panel
-export const BUSINESS_TABS: Tab[] = [HOME, { screen: 'business', label: 'Panel', icon: 'chart' }, MAP, CAMPAIGNS, MORE];
+// Businesses: panel (where the app opens), customers, map (middle; competitors), campaigns
+export const BUSINESS_TABS: Tab[] = [
+  { screen: 'business', label: 'Panel', icon: 'chart' },
+  { screen: 'customers', label: 'Müşteriler', icon: 'people' },
+  MAP,
+  CAMPAIGNS,
+  MORE,
+];
 
 // Pages opened from the "Daha fazla" list keep that tab highlighted
 const MORE_PAGES: Screen[] = ['more', 'campaigns', 'appearance', 'permissions', 'privacy', 'legal', 'subscription', 'profile', 'settings', 'support', 'verification', 'about'];

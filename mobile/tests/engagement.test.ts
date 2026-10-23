@@ -5,18 +5,15 @@ import { amenitiesFor } from '../src/lib/amenities.ts';
 import { toCampaign, toCoupon } from '../src/lib/campaignApi.ts';
 import { couponValid, normalizeCode, parseCouponQr, remainingCoupons } from '../src/lib/coupons.ts';
 import {
-  addStamp,
   availyPoints,
-  customerCode,
   customerQrPayload,
   parseCustomerQr,
   describeProgram,
-  useReward,
   validateProgram,
   type LoyaltyProgram,
 } from '../src/lib/loyalty.ts';
 import { levelStyle } from '../src/lib/occupancy.ts';
-import { shareMessage, venueFromQuery, venueLink } from '../src/lib/share.ts';
+import { checkinShareMessage, shareMessage, venueFromQuery, venueLink } from '../src/lib/share.ts';
 import { byQuietest, sortVenues } from '../src/lib/sort.ts';
 import { canWatch, notificationText, toggleWatch, watchTriggered } from '../src/lib/watch.ts';
 
@@ -61,18 +58,6 @@ const stampProgram: LoyaltyProgram = {
   venueId: 7, venueName: 'Demo Kafe Moda', kind: 'stamps', stampsRequired: 5, reward: '1 kahve bedava', price: 0, perk: '',
 };
 
-test('stamp card: the fifth stamp becomes a free coffee', () => {
-  let cards = [] as ReturnType<typeof addStamp>['cards'];
-  for (let i = 0; i < 4; i++) cards = addStamp(cards, stampProgram, 'u').cards;
-  assert.equal(cards[0].stamps, 4);
-  const full = addStamp(cards, stampProgram, 'u');
-  assert.deepEqual([full.card.stamps, full.card.rewardsAvailable, full.cards.length], [0, 1, 1]);
-  const used = useReward(full.cards, 7, 'u');
-  assert.equal(used.error, null);
-  assert.equal(used.cards[0].rewardsAvailable, 0);
-  assert.equal(useReward(used.cards, 7, 'u').error, 'Kullanılacak ödül yok.');
-});
-
 test('loyalty programs: validation, description, codes and points', () => {
   assert.equal(validateProgram({ ...stampProgram, stampsRequired: 1 }), 'Damga sayısı 2 ile 20 arasında olmalı.');
   assert.equal(validateProgram(stampProgram), null);
@@ -81,8 +66,6 @@ test('loyalty programs: validation, description, codes and points', () => {
   assert.equal(validateProgram({ ...membership, price: 0 }), 'Aylık ücreti yaz.');
   assert.equal(describeProgram(stampProgram), '5 damga = 1 kahve bedava');
   assert.equal(describeProgram(membership), '₺149/ay · her kahvede %15 indirim');
-  assert.match(customerCode('eray@x.com'), /^M-\d{6}$/);
-  assert.equal(customerCode('eray@x.com'), customerCode('eray@x.com'));
   assert.equal(availyPoints(3, 2), 35);
 });
 
@@ -126,6 +109,8 @@ test('share message and link round trip', () => {
   const text = shareMessage(venue({}));
   assert.match(text, /^Demo Kafe Moda şu an orta \(~%40\)\. availy'de gör: https:\/\/erayerb\.github\.io\/availy\.app\/v2\/\?venue=/);
   assert.match(shareMessage(venue({ crowd: { state: 'unexplored' } })), /henüz güncel bildirim yok/);
+  assert.match(checkinShareMessage('Demo Kafe', 'Sakin', false), /^📍 Demo Kafe'deyim · şu an sakin\. .*\?venue=Demo%20Kafe$/);
+  assert.match(checkinShareMessage('Demo Kafe', 'Kalabalık', true), /ilk ben keşfettim ✨ · şu an kalabalık/);
   assert.equal(venueFromQuery(new URL(venueLink('Demo Kafe Moda')).search), 'Demo Kafe Moda');
   assert.match(shareMessage(venue({ open_now: false })), /kapalı, 08:00'de açılıyor/);
   assert.equal(venueFromQuery('?x=1'), null);
@@ -137,7 +122,7 @@ test('amenities follow type and purpose', () => {
 });
 
 test('loyalty QR round trip', () => {
-  const code = customerCode('eray@x.com');
+  const code = 'M-012345';
   assert.equal(parseCustomerQr(customerQrPayload(code)), code);
   assert.equal(parseCustomerQr(` ${code.toLowerCase()} `), code); // typed by hand
   assert.equal(parseCustomerQr('https://example.com'), null);

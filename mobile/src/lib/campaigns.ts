@@ -26,6 +26,7 @@ export type Campaign = {
   endsAt: string; // ISO; moved to "now" when the business ends it early
   // From the server: shown to how many people, coupons taken and used
   stats?: { views: number; claims: number; redemptions: number };
+  checkinOnly?: boolean; // "Check-in yapana kupon": the coupon comes with a check-in there
 };
 
 export type NewCampaign = Omit<Campaign, 'id' | 'startsAt' | 'endsAt' | 'durationHours' | 'stats'> & { durationHours: number };
@@ -63,6 +64,7 @@ export function repeatCampaign(c: Campaign): NewCampaign {
     discount: c.discount,
     radiusKm: c.radiusKm,
     maxClaims: c.maxClaims ?? null,
+    checkinOnly: c.checkinOnly ?? false,
     durationHours: Math.min(Math.max(planned, 1), 24),
   };
 }

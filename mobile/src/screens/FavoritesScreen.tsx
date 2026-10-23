@@ -17,9 +17,12 @@ type Props = {
   onOpenVenue: (venue: Venue) => void;
   // v2: venues the user checked in at
   visits: Visit[];
+  signedIn: boolean; // favorites are for registered users only
+  onLogin: () => void;
+  onRegister: () => void;
 };
 
-export function FavoritesScreen({ onOpenVenue, visits }: Props) {
+export function FavoritesScreen({ onOpenVenue, visits, signedIn, onLogin, onRegister }: Props) {
   const [tab, setTab] = useState<Tab>('saved');
   const { ids: savedIds } = useFavorites();
   // Most recently visited first
@@ -63,6 +66,24 @@ export function FavoritesScreen({ onOpenVenue, visits }: Props) {
     </View>
   );
 
+  if (!signedIn) {
+    return (
+      <View style={styles.signedOut}>
+        <View style={styles.topRow}>
+          <Text style={styles.title}>Favoriler</Text>
+          <HeaderButtons />
+        </View>
+        <Text style={styles.text}>Mekanları kaydetmek ve gittiğin yerleri görmek için giriş yap ya da kayıt ol.</Text>
+        <Pressable style={styles.primary} onPress={onRegister}>
+          <Text style={styles.primaryText}>Kayıt ol</Text>
+        </Pressable>
+        <Pressable style={styles.secondary} onPress={onLogin}>
+          <Text style={styles.secondaryText}>Giriş yap</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   const empty =
     tab === 'saved'
       ? 'Henüz kaydettiğin mekan yok.\nMekanlardaki ♡ ile kaydedebilirsin.'
@@ -83,6 +104,12 @@ export function FavoritesScreen({ onOpenVenue, visits }: Props) {
 
 const styles = themed(() => StyleSheet.create({
   header: { gap: 12, marginBottom: 6 },
+  signedOut: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 16, paddingTop: 60, gap: 14 },
+  text: { fontSize: 15, color: colors.text, lineHeight: 21 },
+  primary: { paddingVertical: 13, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center' },
+  primaryText: { color: colors.onPrimary, fontWeight: '700', fontSize: 15 },
+  secondary: { paddingVertical: 12, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center' },
+  secondaryText: { color: colors.primary, fontWeight: '700', fontSize: 15 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   tabs: { flexDirection: 'row', gap: 8 },

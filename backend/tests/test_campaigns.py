@@ -59,3 +59,42 @@ def test_end_hide_and_rules(client, conn, clock):
     clock.now = NOON + timedelta(minutes=1)
     client.post("/v1/campaigns/hide", json={"ids": [ended["id"]]}, headers=auth(token))
     assert client.get("/v1/me/campaigns", headers=auth(token)).json() == []
+
+
+def test_coupon_for_checking_in(client, conn, clock):
+    from tests.test_checkins import checkin
+
+    token, kafe = business_at(client, conn)
+    body = {**CAMPAIGN, "checkin_only": True, "max_claims": 1}
+    campaign = client.post("/v1/campaigns", json=body, headers=auth(token)).json()
+    assert campaign["checkin_only"] is True
+    ali, ayse = account(client, "t_ali"), account(client, "t_ayse")
+    early = client.post(f"/v1/campaigns/{campaign['id']}/coupon", headers=auth(ali))
+    assert early.status_code == 403 and "check-in" in early.json()["detail"]
+    done = checkin(client, ali, kafe).json()
+    assert len(done["coupons"]) == 1 and done["coupons"][0]["code"].startswith("AV-")
+    assert client.get("/v1/me/coupons", headers=auth(ali)).json()[0]["code"] == done["coupons"][0]["code"]
+    # The limit is reached: the next check-in gets no coupon, the check-in itself works
+    second = checkin(client, ayse, kafe)
+    assert second.status_code == 201 and second.json()["coupons"] == []
+
+
+def test_business_request(client, conn):
+    from app import mailer
+    from tests.test_checkins import venue_id
+
+    cowork = venue_id(conn, "Test Cowork B")
+    conn.execute("UPDATE venues SET contact_email = 'cowork@example.test' WHERE id = %s", (cowork,))
+    mailer.outbox.clear()
+    people = [account(client, f"t_istek{i}") for i in range(10)]
+    first = client.post(f"/v1/venues/{cowork}/business-request", headers=auth(people[0])).json()
+    assert first == {"has_business": False, "count": 1, "mine": True}
+    client.post(f"/v1/venues/{cowork}/business-request", headers=auth(people[0]))  # once per person
+    for token in people[1:]:
+        client.post(f"/v1/venues/{cowork}/business-request", headers=auth(token))
+    mails = [m for m in mailer.outbox if m["to"] == ["cowork@example.test"]]
+    assert [m["subject"].split()[0] for m in mails] == ["3", "5", "10"]
+    assert not any(f"t_istek{i}" in m["text"] for m in mails for i in range(10))  # never who asked
+    assert client.get(f"/v1/venues/{cowork}/business-request").json()["count"] == 10
+    _, kafe = business_at(client, conn)
+    assert client.post(f"/v1/venues/{kafe}/business-request", headers=auth(people[0])).status_code == 409

@@ -1,21 +1,12 @@
-import * as Crypto from 'expo-crypto';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { BackButton } from '../components/BackButton';
 import { Chip } from '../components/TagChips';
-import { KEYS, loadJson, saveJson } from '../lib/storage';
-import {
-  addSupportMessage,
-  MAX_TEXT,
-  SUPPORT_TOPICS,
-  validateSupport,
-  type SupportKind,
-  type SupportMessage,
-} from '../lib/support';
+import { MAX_TEXT, SUPPORT_TOPICS, supportApi, validateSupport, type SupportKind } from '../lib/support';
 import { colors, themed } from '../theme';
 
-type Props = { email: string | null; onBack: () => void };
+type Props = { email: string | null; token: string | null; onBack: () => void };
 
 const PLACEHOLDER: Record<SupportKind, string> = {
   bug: 'Ne oldu? Hangi ekrandaydın, ne bekliyordun?',
@@ -23,12 +14,13 @@ const PLACEHOLDER: Record<SupportKind, string> = {
 };
 
 /** "Hata bildir" with an "İletişime geç" tab inside. */
-export function SupportScreen({ email, onBack }: Props) {
+export function SupportScreen({ email, token, onBack }: Props) {
   const [kind, setKind] = useState<SupportKind>('bug');
   const [topic, setTopic] = useState(SUPPORT_TOPICS.bug[0]);
   const [text, setText] = useState('');
   const [mail, setMail] = useState(email ?? '');
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+  const [sending, setSending] = useState(false);
 
   const switchKind = (next: SupportKind) => {
     setKind(next);
@@ -39,16 +31,15 @@ export function SupportScreen({ email, onBack }: Props) {
   const send = async () => {
     const problem = validateSupport(kind, text, mail);
     if (problem) return setResult({ ok: false, text: problem });
-    const message: SupportMessage = {
-      id: Crypto.randomUUID(),
-      kind,
-      topic,
-      text: text.trim(),
-      email: mail.trim(),
-      createdAt: new Date().toISOString(),
-    };
-    const list = (await loadJson<SupportMessage[]>(KEYS.support)) ?? [];
-    await saveJson(KEYS.support, addSupportMessage(list, message));
+    setSending(true);
+    try {
+      // Platform and version help to reproduce a bug
+      await supportApi.send({ kind, topic, text: text.trim(), email: mail.trim() }, `${Platform.OS} ${Platform.Version}`, token ?? undefined);
+    } catch (e) {
+      setSending(false);
+      return setResult({ ok: false, text: e instanceof Error ? e.message : 'Gönderilemedi, tekrar dene.' });
+    }
+    setSending(false);
     setText('');
     setResult({
       ok: true,
@@ -100,10 +91,9 @@ export function SupportScreen({ email, onBack }: Props) {
         />
 
         {result && <Text style={result.ok ? styles.success : styles.error}>{result.text}</Text>}
-        <Pressable style={styles.primary} onPress={send}>
-          <Text style={styles.primaryText}>Gönder</Text>
+        <Pressable style={[styles.primary, sending && { opacity: 0.6 }]} onPress={send} disabled={sending}>
+          <Text style={styles.primaryText}>{sending ? 'Gönderiliyor…' : 'Gönder'}</Text>
         </Pressable>
-        <Text style={styles.note}>Prototip: mesajlar şimdilik yalnızca bu telefonda saklanır.</Text>
       </View>
     </ScrollView>
   );

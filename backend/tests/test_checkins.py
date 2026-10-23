@@ -106,16 +106,16 @@ def test_follow_up_question_must_match_the_level(client, conn, clock):
     assert response.status_code == 400
 
 
-def test_same_venue_once_every_two_hours(client, conn, clock):
+def test_same_venue_once_every_90_minutes(client, conn, clock):
     kafe = venue_id(conn, "Test Kafe A")
     token = guest_token(client)
     assert checkin(client, token, kafe).status_code == 201
-    clock.now = NOON + timedelta(hours=1, minutes=59)
+    clock.now = NOON + timedelta(minutes=89)
     again = checkin(client, token, kafe)
     assert again.status_code == 429
-    # 12:00 + 2 h = 14:00 Istanbul
-    assert again.json()["detail"].endswith("Tekrar: 14:00")
-    clock.now = NOON + timedelta(hours=2)
+    # 12:00 + 90 min = 13:30 Istanbul
+    assert again.json()["detail"].endswith("Tekrar: 13:30")
+    clock.now = NOON + timedelta(minutes=90)
     assert checkin(client, token, kafe).status_code == 201
     # Someone else is not affected
     assert checkin(client, guest_token(client), kafe).status_code == 201
@@ -173,7 +173,8 @@ def test_guests_get_half_points_and_keep_them_after_sign_up(client, conn, clock)
     stats = me(client, token)
     assert not stats["is_guest"] and stats["points"] == 30
     assert any(b["id"] == "explorer" and b["earned"] for b in stats["badges"])
-    # From now on full points
+    # From now on full points (half an hour later: points need 30 minutes between check-ins)
+    clock.now = NOON + timedelta(minutes=30)
     assert checkin(client, token, venue_id(conn, "Test Cowork B"), lat=40.9880, lon=29.0330).json()["points_earned"] == 60
 
 
@@ -290,3 +291,18 @@ def test_stale_venue_shows_how_full_it_was_yesterday(client, conn, clock):
     assert crowd.state == "stale" and crowd.yesterday_level == "high"
     # Two hours later nothing happened "yesterday at this time"
     assert load_crowds(conn, [kafe], tomorrow + timedelta(hours=2))[kafe].yesterday_level is None
+
+
+def test_no_point_farming_next_door(client, conn, clock):
+    """Cafes side by side: within 30 minutes of a check-in elsewhere there are no points (it still counts)."""
+    token = guest_token(client)
+    kafe, cowork = venue_id(conn, "Test Kafe A"), venue_id(conn, "Test Cowork B")
+    assert checkin(client, token, kafe).json()["points_earned"] > 0
+    clock.now = NOON + timedelta(minutes=10)
+    hop = checkin(client, token, cowork, lat=40.9880, lon=29.0330).json()
+    assert hop["points_earned"] == 0 and hop["points_note"] == "too_soon"
+    # The same venue again within 90 minutes: refused
+    clock.now = NOON + timedelta(minutes=35)
+    assert checkin(client, token, venue_id(conn, "Test Kafe A"), lat=40.9845, lon=29.0260).status_code == 429  # 90 min
+    clock.now = NOON + timedelta(minutes=95)
+    assert checkin(client, token, kafe).json()["points_earned"] > 0

@@ -12,8 +12,8 @@ export type Crowd = {
   ratio: number | null; // only with at least 5 people in the last 90 minutes
   reporters: number;
   last_report_at: string | null;
-  queue: boolean | null; // "Sıra var" (Kalabalık)
-  seats: boolean | null; // "Oturacak yer var" (Orta)
+  queue: boolean | null; // "Sıra var" (Kalabalık); not shown, it only moves the score
+  seats: boolean | null; // "Oturacak yer var" (Orta); not shown, it only moves the score
   yesterday_level?: Level | null; // no fresh check-ins: the level at this time yesterday
 };
 
@@ -86,10 +86,3 @@ export function crowdYesterday(crowd: Crowd): string | null {
   return `Dün bu saatlerde ${YESTERDAY[crowd.yesterday_level]}`;
 }
 
-/** "Sıra var" / "Oturacak yer yok" … from the follow-up answers, or null. */
-export function crowdExtra(crowd: Crowd): string | null {
-  if (crowd.state !== 'live') return null;
-  if (crowd.queue !== null) return crowd.queue ? 'Sıra var' : 'Sıra yok';
-  if (crowd.seats !== null) return crowd.seats ? 'Oturacak yer var' : 'Oturacak yer yok';
-  return null;
-}

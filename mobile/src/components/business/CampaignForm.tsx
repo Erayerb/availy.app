@@ -24,6 +24,8 @@ export function CampaignForm({ venue, plan }: { venue: Venue; plan: PlanId }) {
   const [duration, setDuration] = useState(2);
   const [radius, setRadius] = useState(2);
   const [maxClaims, setMaxClaims] = useState<number | null>(null);
+  // "Check-in yapana kupon": the coupon comes with a check-in at the venue
+  const [checkinOnly, setCheckinOnly] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
   const text = message ?? deadHourSuggestion(venue.category, discount ?? 20, duration);
@@ -46,6 +48,7 @@ export function CampaignForm({ venue, plan }: { venue: Venue; plan: PlanId }) {
       durationHours: duration,
       radiusKm: radius,
       maxClaims,
+      checkinOnly,
     });
     setSending(false);
     if (failure) return setError(failure);
@@ -90,6 +93,14 @@ export function CampaignForm({ venue, plan }: { venue: Venue; plan: PlanId }) {
           <Chip key={n} label={`${n} kişi`} active={maxClaims === n} onPress={() => setMaxClaims(n)} />
         ))}
       </View>
+      <Text style={panel.label}>Kupon kimlere?</Text>
+      <View style={panel.wrap}>
+        <Chip label="Herkes alabilir" active={!checkinOnly} onPress={() => setCheckinOnly(false)} />
+        <Chip label="📍 Yalnızca check-in yapanlar" active={checkinOnly} onPress={() => setCheckinOnly(true)} />
+      </View>
+      {checkinOnly && (
+        <Text style={panel.muted}>Müşteri mekanında check-in yapınca kupon kendiliğinden verilir; hem gelir hem doluluğu bildirir.</Text>
+      )}
       <Text style={panel.muted}>{campaignCostNote(plan)}</Text>
       {error && <Text style={panel.error}>{error}</Text>}
       {sent && <Text style={panel.success}>✓ {sent}</Text>}
