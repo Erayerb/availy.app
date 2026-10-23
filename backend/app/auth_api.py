@@ -1,4 +1,5 @@
 """v2 account endpoints: sign up, sign in, sign out and the signed-in user."""
+from datetime import datetime, timezone
 from typing import Literal
 
 import psycopg
@@ -23,6 +24,7 @@ from app.accounts import (
     user_for_token,
 )
 from app.db import get_conn
+from app.email_codes import request_reset, request_verification, reset_password, verify_email
 
 router = APIRouter(prefix="/v1")
 
@@ -55,6 +57,7 @@ class UserOut(BaseModel):
     is_guest: bool
     venue_id: int | None
     plan: str | None
+    email_verified: bool = False
 
 
 class BadgeOut(BaseModel):
@@ -116,7 +119,16 @@ def register(body: RegisterIn, conn: psycopg.Connection = Depends(get_conn)):
         user = create_user(conn, body.name, body.email, body.password, body.role, body.username)
     except AccountError as e:
         raise _fail(e) from None
+    _send_verification(conn, user)
     return {"token": create_session(conn, user["id"]), "user": user}
+
+
+def _send_verification(conn: psycopg.Connection, user: dict) -> None:
+    """Right after signing up: the code to verify the e-mail (the account works without it too)."""
+    try:
+        request_verification(conn, user, datetime.now(timezone.utc))
+    except AccountError:
+        pass
 
 
 @router.post("/auth/login", response_model=SessionOut)
@@ -139,9 +151,11 @@ def guest(conn: psycopg.Connection = Depends(get_conn)):
 def upgrade(body: RegisterIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
     """A guest signs up and keeps the same id; the current session stays valid."""
     try:
-        return upgrade_guest(conn, user, body.name, body.email, body.password, body.role, body.username)
+        upgraded = upgrade_guest(conn, user, body.name, body.email, body.password, body.role, body.username)
     except AccountError as e:
         raise _fail(e) from None
+    _send_verification(conn, upgraded)
+    return upgraded
 
 
 @router.post("/auth/logout", status_code=204)
@@ -234,3 +248,51 @@ def privacy(body: PrivacyIn, user: dict = Depends(current_user), conn: psycopg.C
         f"UPDATE users SET {columns} WHERE id = %(id)s RETURNING share_checkins, show_in_leaderboard, searchable",
         {**changes, "id": user["id"]},
     ).fetchone()
+
+
+class EmailIn(BaseModel):
+    email: str
+
+
+class ResetIn(BaseModel):
+    email: str
+    code: str
+    password: str
+
+
+class CodeIn(BaseModel):
+    code: str
+
+
+@router.post("/auth/forgot", status_code=204)
+def forgot(body: EmailIn, conn: psycopg.Connection = Depends(get_conn)):
+    """"Şifremi unuttum": e-mails a code if the address has an account (the answer is the same either way)."""
+    request_reset(conn, body.email, datetime.now(timezone.utc))
+    return Response(status_code=204)
+
+
+@router.post("/auth/reset", status_code=204)
+def reset(body: ResetIn, conn: psycopg.Connection = Depends(get_conn)):
+    try:
+        reset_password(conn, body.email, body.code, body.password, datetime.now(timezone.utc))
+    except AccountError as e:
+        raise _fail(e) from None
+    return Response(status_code=204)
+
+
+@router.post("/me/email/code", status_code=204)
+def verification_code(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    """Sends (again) the code that verifies the account's e-mail."""
+    try:
+        request_verification(conn, user, datetime.now(timezone.utc))
+    except AccountError as e:
+        raise _fail(e) from None
+    return Response(status_code=204)
+
+
+@router.post("/me/email/verify", response_model=UserOut)
+def verify(body: CodeIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    try:
+        return verify_email(conn, user, body.code, datetime.now(timezone.utc))
+    except AccountError as e:
+        raise _fail(e) from None

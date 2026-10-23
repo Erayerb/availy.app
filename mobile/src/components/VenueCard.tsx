@@ -42,7 +42,10 @@ export function VenueCard({ venue, onClose, onDetails, onShowAlternatives, onLay
   return (
     <View style={styles.card} onLayout={onLayout}>
       <View style={styles.header}>
-        <Text style={styles.title}>{venue.name}</Text>
+        <Text style={styles.title}>
+          {venue.name}
+          {venue.verified && <Text style={styles.verified}> ✓</Text>}
+        </Text>
         <View style={styles.actions}>
           <WatchButton venue={venue} />
           <Pressable onPress={async () => setNote(await shareVenue(venue))} hitSlop={10} accessibilityLabel="Paylaş">
@@ -97,6 +100,7 @@ export function VenueCard({ venue, onClose, onDetails, onShowAlternatives, onLay
 }
 
 const styles = themed(() => StyleSheet.create({
+  verified: { color: colors.success, fontWeight: '800' },
   card: {
     width: CARD_WIDTH,
     padding: 14,

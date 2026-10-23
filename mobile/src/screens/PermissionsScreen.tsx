@@ -8,7 +8,7 @@ import { Collapsible } from '../components/Collapsible';
 import { BackButton } from '../components/BackButton';
 import { colors, themed } from '../theme';
 
-type Status = 'granted' | 'denied' | 'undetermined' | 'unknown';
+type Status = 'granted' | 'denied' | 'undetermined' | 'unknown' | 'inApp';
 
 type Permission = {
   icon: string;
@@ -19,7 +19,9 @@ type Permission = {
   // What availy uses it for
   uses: string[];
   withoutIt: string;
-  onAsk: () => void;
+  onAsk?: () => void; // no button when the permission can't be asked here
+  // Web: where to turn it on once the browser has blocked it
+  blockedHint?: string;
 };
 
 const STATUS_TEXT: Record<Status, string> = {
@@ -27,13 +29,33 @@ const STATUS_TEXT: Record<Status, string> = {
   denied: 'İzin verilmedi',
   undetermined: 'Henüz sorulmadı',
   unknown: 'Bilinmiyor',
+  inApp: 'Uygulama içi', // web: only the 🔔 list
 };
 
 const asStatus = (s: string | undefined): Status =>
   s === 'granted' || s === 'denied' || s === 'undetermined' ? s : 'unknown';
 
-/** "Konum ve izinler": what each phone permission is for, what happens without it, and its state. */
-export function PermissionsScreen({ onBack }: { onBack: () => void }) {
+const isWeb = Platform.OS === 'web';
+
+// The browser's own prompt. expo-location answers "denied" without asking once the site is
+// blocked, but some browsers (Safari) do ask again, so always try.
+const askWebLocation = () =>
+  new Promise<{ status: string }>((resolve) => {
+    if (!navigator.geolocation) return resolve({ status: 'unknown' });
+    navigator.geolocation.getCurrentPosition(
+      () => resolve({ status: 'granted' }),
+      (e) => resolve({ status: e.code === e.PERMISSION_DENIED ? 'denied' : 'granted' }),
+    );
+  });
+
+const BROWSER_HINT =
+  "Tarayıcın bu izni engellemiş. Adres çubuğundaki ⓘ / kilit simgesinden izin ver; iPhone'da Ayarlar > Safari > Konum > Sor.";
+
+/**
+ * "Konum ve izinler": what each phone permission is for, what happens without it, and its state.
+ * Business accounts do not check in, so they only see the camera and notifications ("İzinler").
+ */
+export function PermissionsScreen({ business = false, onBack }: { business?: boolean; onBack: () => void }) {
   const [location, setLocation] = useState<Status>('unknown');
   const [notifications, setNotifications] = useState<Status>('unknown');
   const [camera, requestCamera] = useCameraPermissions();
@@ -59,12 +81,12 @@ export function PermissionsScreen({ onBack }: { onBack: () => void }) {
   const ask = async (request: () => Promise<{ status: string; canAskAgain?: boolean }>) => {
     const result = await request().catch(() => null);
     // iOS asks only once; after that only the phone's Settings can change it
-    if (result && result.status !== 'granted' && result.canAskAgain === false) Linking.openSettings();
+    if (!isWeb && result && result.status !== 'granted' && result.canAskAgain === false) Linking.openSettings();
     refresh();
   };
 
-  const permissions: Permission[] = [
-    {
+  const all: (Permission | false)[] = [
+    !business && {
       icon: '📍',
       title: 'Konum',
       to: 'Konuma',
@@ -76,35 +98,47 @@ export function PermissionsScreen({ onBack }: { onBack: () => void }) {
         'Check-in önerisi: açık bir mekanın yakınında birkaç dakika kalınca sormak (uygulama açıkken)',
       ],
       withoutIt: 'Mekanlara bakabilir, arayabilirsin ama check-in yapamazsın.',
-      onAsk: () => ask(Location.requestForegroundPermissionsAsync),
+      onAsk: () => ask(isWeb ? askWebLocation : Location.requestForegroundPermissionsAsync),
+      blockedHint: BROWSER_HINT,
     },
     {
       icon: '📷',
       title: 'Kamera',
       to: 'Kameraya',
-      summary: 'Yalnızca QR okutmak için',
+      summary: business ? 'Müşterinin kupon ve sadakat QR kodunu okutmak için' : 'Yalnızca QR okutmak için',
       status: asStatus(camera?.status),
-      uses: ['Arkadaşının QR kodunu okutmak', 'İşletmede damga / kupon QR kodunu okutmak'],
-      withoutIt: 'Arkadaşlarını kullanıcı adıyla ya da davet bağlantısıyla ekleyebilirsin.',
+      uses: business
+        ? ['Müşterinin kupon QR kodunu okutup kullanıldı saymak', 'Sadakat kartına damga eklemek için müşteri QR kodunu okutmak']
+        : ['Arkadaşının QR kodunu okutmak', 'İşletmede damga / kupon QR kodunu okutmak'],
+      withoutIt: business
+        ? 'Kupon ve müşteri kodlarını elle yazabilirsin.'
+        : 'Arkadaşlarını kullanıcı adıyla ya da davet bağlantısıyla ekleyebilirsin.',
       onAsk: () => ask(requestCamera),
+      blockedHint: "Tarayıcın bu izni engellemiş. Adres çubuğundaki ⓘ / kilit simgesinden kameraya izin ver; iPhone'da Ayarlar > Safari > Kamera > Sor.",
     },
     {
       icon: '🔔',
       title: 'Bildirimler',
       to: 'Bildirimlere',
-      summary: 'Check-in önerileri, arkadaşlık ve yanıtlar; reklam yok',
-      status: Platform.OS === 'web' ? 'unknown' : notifications,
-      uses: ['Check-in önerileri', 'Arkadaşlık istekleri ve yorumlarına gelen yanıtlar', '"Sakin olunca haber ver"'],
-      withoutIt: 'Bildirimler yine uygulamadaki 🔔 listesinde görünür.',
-      onAsk: () => ask(Notifications.requestPermissionsAsync),
+      summary: business ? 'Ölü saat uyarısı; reklam yok' : 'Check-in önerileri, arkadaşlık ve yanıtlar; reklam yok',
+      status: isWeb ? 'inApp' : notifications,
+      uses: business
+        ? ['Ölü saat: müşteriler mekanını Sakin bildirince haber vermek (Ayarlar)']
+        : ['Check-in önerileri', 'Arkadaşlık istekleri ve yorumlarına gelen yanıtlar', '"Sakin olunca haber ver"'],
+      withoutIt: business
+        ? "Ölü saati yine İşletme Paneli'nde görürsün."
+        : 'Bildirimler yine uygulamadaki 🔔 listesinde görünür.',
+      // The web version has no phone notifications; the 🔔 list is all there is
+      onAsk: isWeb ? undefined : () => ask(Notifications.requestPermissionsAsync),
     },
   ];
+  const permissions = all.filter((p): p is Permission => p !== false);
 
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
         <BackButton onPress={onBack} />
-        <Text style={styles.title}>Konum ve izinler</Text>
+        <Text style={styles.title}>{business ? 'İzinler' : 'Konum ve izinler'}</Text>
       </View>
       <Text style={styles.muted}>
         availy yalnızca aşağıdaki izinleri ister. Rehberine, telefon numarana, fotoğraflarına ve sosyal medya
@@ -127,22 +161,28 @@ export function PermissionsScreen({ onBack }: { onBack: () => void }) {
           <Text style={styles.without}>
             {p.to} izin vermezsen: {p.withoutIt}
           </Text>
-          {p.status !== 'granted' && Platform.OS !== 'web' && (
+          {p.status !== 'granted' && p.status !== 'inApp' && p.onAsk && (
             <Pressable style={styles.secondary} onPress={p.onAsk}>
-              <Text style={styles.secondaryText}>{p.status === 'denied' ? 'Ayarlarda aç' : 'İzin ver'}</Text>
+              <Text style={styles.secondaryText}>{p.status === 'denied' && !isWeb ? 'Ayarlarda aç' : 'İzin ver'}</Text>
             </Pressable>
+          )}
+          {isWeb && p.status === 'denied' && p.blockedHint && <Text style={styles.muted}>{p.blockedHint}</Text>}
+          {isWeb && !p.onAsk && (
+            <Text style={styles.muted}>Web sürümünde telefon bildirimi yok; bildirimlerin 🔔 listesinde görünür.</Text>
           )}
         </Collapsible>
       ))}
 
       <Collapsible title="🗂️ Verilerin" summary="Sunucuda neler tutuluyor, hesabını silince ne olur">
         <Text style={styles.text}>
-          Sunucuda tutulanlar: kullanıcı adın, e-postan, şifrenin özeti (şifrenin kendisi değil), check-in'lerin (mekan,
-          doluluk, saat), puanların, arkadaşlıkların ve yorumların.
+          {business
+            ? 'Sunucuda tutulanlar: kullanıcı adın, e-postan, şifrenin özeti (şifrenin kendisi değil), mekanın ve yorumlara verdiğin yanıtlar. İstatistikler adsızdır; yalnızca mekanını keşfeden kişinin adını görürsün (gizli check-in değilse).'
+            : "Sunucuda tutulanlar: kullanıcı adın, e-postan, şifrenin özeti (şifrenin kendisi değil), check-in'lerin (mekan, doluluk, saat), puanların, arkadaşlıkların ve yorumların."}
         </Text>
         <Text style={styles.muted}>
-          Hesabını Profil ayarları'ndan silebilirsin: hesabın ve yorumların silinir, check-in'lerin yalnızca adsız doluluk bilgisi
-          olarak kalır.
+          {business
+            ? "Hesabını İşletme Profili'nden silebilirsin: hesabın ve yanıtların silinir."
+            : "Hesabını Profil ayarları'ndan silebilirsin: hesabın ve yorumların silinir, check-in'lerin yalnızca adsız doluluk bilgisi olarak kalır."}
         </Text>
       </Collapsible>
     </ScrollView>

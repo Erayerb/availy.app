@@ -28,11 +28,15 @@ export function CampaignForm({ venue, plan }: { venue: Venue; plan: PlanId }) {
   const [sent, setSent] = useState<string | null>(null);
   const text = message ?? deadHourSuggestion(venue.category, discount ?? 20, duration);
 
-  const send = () => {
+  const [sending, setSending] = useState(false);
+
+  const send = async () => {
     const problem = validateCampaign(text);
     setError(problem);
-    if (problem) return;
-    create({
+    setSent(null);
+    if (problem || sending) return;
+    setSending(true);
+    const failure = await create({
       venueId: venue.id,
       venueName: venue.name,
       lat: venue.lat,
@@ -43,6 +47,8 @@ export function CampaignForm({ venue, plan }: { venue: Venue; plan: PlanId }) {
       radiusKm: radius,
       maxClaims,
     });
+    setSending(false);
+    if (failure) return setError(failure);
     setSent(`Kampanya ${radius} km içindeki kullanıcılara gönderildi.`);
     setMessage(null);
   };
@@ -87,8 +93,8 @@ export function CampaignForm({ venue, plan }: { venue: Venue; plan: PlanId }) {
       <Text style={panel.muted}>{campaignCostNote(plan)}</Text>
       {error && <Text style={panel.error}>{error}</Text>}
       {sent && <Text style={panel.success}>✓ {sent}</Text>}
-      <Pressable style={panel.primary} onPress={send}>
-        <Text style={panel.primaryText}>Kampanyayı gönder</Text>
+      <Pressable style={[panel.primary, sending && { opacity: 0.6 }]} onPress={send} disabled={sending}>
+        <Text style={panel.primaryText}>{sending ? 'Gönderiliyor…' : 'Kampanyayı gönder'}</Text>
       </Pressable>
     </View>
   );

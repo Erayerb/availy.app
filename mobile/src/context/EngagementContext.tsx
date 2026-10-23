@@ -1,16 +1,14 @@
 /**
- * Coupons, loyalty (stamp cards / memberships), "notify me" watches and venue
- * photos. Prototype: everything is stored on this phone.
+ * Loyalty (stamp cards / memberships), "notify me" watches and venue photos,
+ * stored on this phone (coupons are on the server: CampaignsContext).
  */
 import * as Notifications from 'expo-notifications';
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
 
 import { usePersistentState } from '../hooks/usePersistentState';
 import { fetchVenuesByIds } from '../lib/api';
 import { canAddWatch, FREE_WATCH_LIMIT } from '../lib/premium';
-import type { Campaign } from '../lib/campaigns';
-import { claimCoupon, couponCode, parseCoupons, redeemCoupon, type Coupon } from '../lib/coupons';
 import {
   addStamp,
   customerCode,
@@ -19,7 +17,6 @@ import {
   type Membership,
   type StampCard,
 } from '../lib/loyalty';
-import { addFeedback, type Feedback } from '../lib/feedback';
 import { KEYS, loadJson } from '../lib/storage';
 import { notificationText, parseWatches, toggleWatch, watchTriggered, type Watch } from '../lib/watch';
 import { useSettings } from './SettingsContext';
@@ -44,12 +41,6 @@ if (Platform.OS !== 'web') {
 
 type Engagement = {
   userKey: string;
-  // Coupons
-  coupons: Coupon[];
-  views: Record<string, number>;
-  claim: (campaign: Campaign) => string | null; // error message, e.g. limit reached
-  redeem: (code: string, venueId: number) => string | null;
-  recordView: (campaignId: string) => void;
   // Loyalty
   programs: LoyaltyProgram[];
   cards: StampCard[];
@@ -67,9 +58,6 @@ type Engagement = {
   // Photos
   photos: Record<string, string>;
   setPhoto: (venueId: number, uri: string) => void;
-  // Feedback
-  feedback: Feedback[];
-  leaveFeedback: (item: Omit<Feedback, 'id' | 'userKey' | 'createdAt'>) => void;
   // Shows the in-app banner and, on phones, a local notification
   notify: (title: string, body: string, phone: boolean) => void;
 };
@@ -85,14 +73,11 @@ async function userForCode(code: string): Promise<string | null> {
 
 export function EngagementProvider({ userKey, children }: { userKey: string; children: ReactNode }) {
   const { watchNotifications, premium } = useSettings();
-  const [coupons, setCoupons] = usePersistentState<Coupon[]>(KEYS.coupons, [], parseCoupons);
-  const [views, setViews] = usePersistentState<Record<string, number>>(KEYS.campaignViews, {}, asRecord);
   const [programs, setPrograms] = usePersistentState<LoyaltyProgram[]>(KEYS.loyaltyPrograms, [], asArray);
   const [cards, setCards] = usePersistentState<StampCard[]>(KEYS.stampCards, [], asArray);
   const [memberships, setMemberships] = usePersistentState<Membership[]>(KEYS.memberships, [], asArray);
   const [watches, setWatches] = usePersistentState<Watch[]>(KEYS.watches, [], parseWatches);
   const [photos, setPhotos] = usePersistentState<Record<string, string>>(KEYS.photos, {}, asRecord);
-  const [feedback, setFeedback] = usePersistentState<Feedback[]>(KEYS.feedback, [], asArray);
   const [alert, setAlert] = useState<string | null>(null);
 
   const notify = useCallback((title: string, body: string, phone: boolean) => {
@@ -102,42 +87,20 @@ export function EngagementProvider({ userKey, children }: { userKey: string; chi
     }
   }, []);
 
-  const leaveFeedback = useCallback(
-    (item: Omit<Feedback, 'id' | 'userKey' | 'createdAt'>) =>
-      setFeedback((list) =>
-        addFeedback(list, { ...item, id: `${userKey}:${item.venueId}`, userKey, createdAt: new Date().toISOString() }),
-      ),
-    [userKey, setFeedback],
-  );
-  // Count each campaign once per app session as "shown"
-  const seen = useRef(new Set<string>());
-
-  const claim = useCallback(
-    (campaign: Campaign) => {
-      const outcome = claimCoupon(coupons, campaign, userKey, new Date(), couponCode());
-      if (outcome.error === null) setCoupons(() => outcome.coupons);
-      return outcome.error;
-    },
-    [coupons, userKey, setCoupons],
-  );
-
-  const redeem = useCallback(
-    (code: string, venueId: number) => {
-      const outcome = redeemCoupon(coupons, code, venueId, new Date());
-      if (outcome.error === null) setCoupons(() => outcome.coupons);
-      return outcome.error;
-    },
-    [coupons, setCoupons],
-  );
-
-  const recordView = useCallback(
-    (campaignId: string) => {
-      if (seen.current.has(campaignId)) return;
-      seen.current.add(campaignId);
-      setViews((v) => ({ ...v, [campaignId]: (v[campaignId] ?? 0) + 1 }));
-    },
-    [setViews],
-  );
+  // Loyalty programs, cards and memberships of venues that are no longer shown (v1 demo venues) are removed once
+  useEffect(() => {
+    const ids = [...new Set([...programs, ...cards, ...memberships].map((x) => x.venueId))];
+    if (ids.length === 0) return;
+    fetchVenuesByIds(ids)
+      .then((found) => {
+        const shown = new Set(found.map((v) => v.id));
+        if (ids.every((id) => shown.has(id))) return;
+        setPrograms((list) => list.filter((p) => shown.has(p.venueId)));
+        setCards((list) => list.filter((c) => shown.has(c.venueId)));
+        setMemberships((list) => list.filter((m) => shown.has(m.venueId)));
+      })
+      .catch(() => {}); // try again next time
+  }, [programs.length, cards.length, memberships.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveProgram = useCallback(
     (program: LoyaltyProgram) => setPrograms((list) => [program, ...list.filter((p) => p.venueId !== program.venueId)]),
@@ -229,11 +192,6 @@ export function EngagementProvider({ userKey, children }: { userKey: string; chi
     <EngagementContext.Provider
       value={{
         userKey,
-        coupons,
-        views,
-        claim,
-        redeem,
-        recordView,
         programs,
         cards,
         memberships,
@@ -248,8 +206,6 @@ export function EngagementProvider({ userKey, children }: { userKey: string; chi
         dismissAlert: () => setAlert(null),
         photos,
         setPhoto,
-        feedback,
-        leaveFeedback,
         notify,
       }}
     >

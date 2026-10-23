@@ -1,15 +1,35 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BackButton } from '../components/BackButton';
+import { PlanSection } from '../components/business/PlanSection';
 import { useSettings } from '../context/SettingsContext';
+import type { PlanId } from '../lib/plans';
 import { FREE_FEATURES, PREMIUM_FEATURES, PREMIUM_PRICE } from '../lib/premium';
 import { colors, themed } from '../theme';
 
-type Props = { signedIn: boolean; onBack: () => void; onLogin: () => void };
+type Props = {
+  signedIn: boolean;
+  onBack: () => void;
+  onLogin: () => void;
+  // Business accounts choose their package here instead
+  business: { plan: PlanId; onPlanChange: (plan: PlanId) => void } | null;
+};
 
-/** B2C plans: free with ads or Premium (demo: switched on without payment). */
-export function SubscriptionScreen({ signedIn, onBack, onLogin }: Props) {
+/** B2C plans: free with ads or Premium (demo: switched on without payment); B2B: the business package. */
+export function SubscriptionScreen({ signedIn, onBack, onLogin, business }: Props) {
   const { premium, update } = useSettings();
+
+  if (business) {
+    return (
+      <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+        <View style={styles.topRow}>
+          <BackButton onPress={onBack} />
+          <Text style={styles.title}>Abonelik</Text>
+        </View>
+        <PlanSection plan={business.plan} onPlanChange={business.onPlanChange} />
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>

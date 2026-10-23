@@ -22,7 +22,10 @@ def test_only_old_reports_is_stale():
 
 def test_newer_reports_weigh_more():
     assert age_weight(NOW, NOW) == 1
-    assert abs(age_weight(NOW - timedelta(minutes=30), NOW) - 0.5) < 1e-9
+    assert abs(age_weight(NOW - timedelta(minutes=30), NOW) - 0.65) < 1e-9
+    assert abs(age_weight(NOW - timedelta(minutes=60), NOW) - 0.35) < 1e-9
+    assert abs(age_weight(NOW - timedelta(minutes=45), NOW) - 0.50) < 1e-9
+    assert abs(age_weight(NOW - timedelta(minutes=90), NOW) - 0.10) < 1e-9
     # Kalabalık 60 min ago vs Sakin just now: the fresh report wins
     reports = [report(1, "high", 60), report(2, "low", 0)]
     crowd = crowd_from_checkins(reports, NOW, NOW)

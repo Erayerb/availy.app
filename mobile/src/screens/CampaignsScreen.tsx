@@ -14,7 +14,8 @@ import { useEngagement } from '../context/EngagementContext';
 import { useLocation } from '../context/LocationContext';
 import { isActive, repeatCampaign, timeLeft, visibleCampaigns, type Campaign } from '../lib/campaigns';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
-import { campaignStats, couponQrPayload } from '../lib/coupons';
+import { couponQrPayload, couponValid } from '../lib/coupons';
+import { campaignTotals } from '../lib/history';
 import { distanceKm, formatDistance } from '../lib/geo';
 import type { PlanId } from '../lib/plans';
 import QRCode from 'react-native-qrcode-svg';
@@ -92,8 +93,7 @@ export function CampaignsScreen({ signedIn, serverPoints, business, onLogin, onO
 }
 
 function CampaignList({ onOpenVenue }: Pick<Props, 'onOpenVenue'>) {
-  const { campaigns, now } = useCampaigns();
-  const { recordView } = useEngagement();
+  const { campaigns, now, recordView } = useCampaigns();
   const location = useLocation();
   // Campaigns of v1 demo venues stay stored on the phone but are not shown in v2
   const { venues: shownVenues } = useVenuesByIds([...new Set(campaigns.map((c) => c.venueId))]);
@@ -141,9 +141,7 @@ function CampaignList({ onOpenVenue }: Pick<Props, 'onOpenVenue'>) {
 }
 
 function MyCoupons() {
-  const { coupons, userKey } = useEngagement();
-  const { campaigns, now } = useCampaigns();
-  const mine = coupons.filter((c) => c.userKey === userKey);
+  const { coupons: mine, now } = useCampaigns();
 
   return (
     <View style={styles.list}>
@@ -151,12 +149,7 @@ function MyCoupons() {
         <Text style={styles.empty}>Henüz kuponun yok. Kampanyalardan "Kuponu al"a dokun.</Text>
       )}
       {mine.map((coupon) => {
-        const campaign = campaigns.find((c) => c.id === coupon.campaignId);
-        const status = coupon.redeemedAt
-          ? 'Kullanıldı'
-          : campaign && isActive(campaign, now)
-            ? 'Geçerli · kasada göster'
-            : 'Süresi doldu';
+        const status = coupon.redeemedAt ? 'Kullanıldı' : couponValid(coupon, now) ? 'Geçerli · kasada göster' : 'Süresi doldu';
         return (
           <View key={coupon.code} style={[styles.card, status !== 'Geçerli · kasada göster' && styles.faded]}>
             <Text style={styles.venue}>{coupon.venueName}</Text>
@@ -183,7 +176,8 @@ function MyCoupons() {
 }
 
 function Loyalty({ signedIn, serverPoints, onLogin }: { signedIn: boolean; serverPoints: number; onLogin: () => void }) {
-  const { programs, cards, memberships, coupons, userKey, toggleMembership } = useEngagement();
+  const { programs, cards, memberships, userKey, toggleMembership } = useEngagement();
+  const { coupons } = useCampaigns();
   // Programs saved on this phone for v1 demo venues stay stored, but those venues are hidden in v2
   const { venues: shownVenues } = useVenuesByIds(programs.map((p) => p.venueId));
   const shownIds = new Set(shownVenues.map((v) => v.id));
@@ -209,7 +203,7 @@ function Loyalty({ signedIn, serverPoints, onLogin }: { signedIn: boolean; serve
       c.rewardsAvailable * (programs.find((p) => p.venueId === c.venueId)?.stampsRequired ?? 0),
     0,
   );
-  const couponsUsed = coupons.filter((c) => c.userKey === userKey && c.redeemedAt).length;
+  const couponsUsed = coupons.filter((c) => c.redeemedAt).length;
 
   return (
     <View style={styles.list}>
@@ -278,14 +272,20 @@ function Loyalty({ signedIn, serverPoints, onLogin }: { signedIn: boolean; serve
 /** Business: new campaign, scheduled campaigns and results of its own campaigns. */
 function MyCampaigns({ business }: { business: BusinessInfo }) {
   const { campaigns, now, end, remove, create } = useCampaigns();
-  const { views, coupons } = useEngagement();
   const { venues } = useVenuesByIds([business.venueId]);
   const venue = venues[0];
   const mine = campaigns.filter((c) => c.venueId === business.venueId);
   const ended = mine.filter((c) => !isActive(c, now));
+  const totals = campaignTotals(campaigns, business.venueId, 7, now);
 
   return (
     <View style={styles.list}>
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Son 7 gün kampanya sonuçları</Text>
+        <Text style={styles.text}>
+          📣 {totals.campaigns} kampanya · 👁 {totals.views} gösterim · 🎟 {totals.claims} kupon · ✅ {totals.redemptions} kullanım
+        </Text>
+      </View>
       {venue && (
         <>
           <CampaignForm venue={venue} plan={business.plan} />
@@ -307,7 +307,7 @@ function MyCampaigns({ business }: { business: BusinessInfo }) {
       {mine.length === 0 && <Text style={styles.muted}>Henüz kampanyan yok.</Text>}
       {mine.map((c) => {
         const live = isActive(c, now);
-        const stats = campaignStats(c.id, views, coupons);
+        const stats = c.stats ?? { views: 0, claims: 0, redemptions: 0 };
         return (
           <View key={c.id} style={styles.card}>
             <Text style={[styles.text, !live && styles.faded]}>{c.message}</Text>
@@ -393,11 +393,11 @@ function MyPrograms({ business }: { business: BusinessInfo }) {
 
 /** Business: check a customer's coupon and see the coupons taken for its campaigns. */
 function VenueCoupons({ venueId }: { venueId: number }) {
-  const { coupons } = useEngagement();
+  const { coupons } = useCampaigns();
   const mine = coupons.filter((c) => c.venueId === venueId);
   return (
     <View style={styles.list}>
-      <CouponVerifier venueId={venueId} />
+      <CouponVerifier />
       <Text style={styles.sectionTitle}>Alınan kuponlar</Text>
       {mine.length === 0 && <Text style={styles.muted}>Henüz kupon alınmadı.</Text>}
       {mine.map((c) => (

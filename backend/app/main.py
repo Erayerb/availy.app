@@ -10,16 +10,19 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.auth_api import router as auth_router
+from app.campaigns_api import router as campaigns_router
 from app.checkins_api import router as checkins_router
 from app.friends_api import router as friends_router
 from app.reviews_api import router as reviews_router
 from app.social_api import router as social_router
 from app.safety_api import router as safety_router
 from app.business_api import router as business_router
+from app.venues_api import router as venues_router
 from app.checkins import load_crowds, load_discoveries, load_trends
 from app.config import settings
 from app.db import apply_schema, get_conn, pool
 from app.hours import local_hour, venue_hours
+from app.venue_profiles import load_profiles
 from app.occupancy import (
     Level,
     OccupancyProvider,
@@ -57,7 +60,7 @@ app = FastAPI(title="Availy API", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
-    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
 )
 app.include_router(auth_router)
@@ -67,6 +70,8 @@ app.include_router(reviews_router)
 app.include_router(social_router)
 app.include_router(safety_router)
 app.include_router(business_router)
+app.include_router(campaigns_router)
+app.include_router(venues_router)
 
 
 class OccupancyOut(BaseModel):
@@ -120,6 +125,13 @@ class Venue(BaseModel):
     open_now: bool
     hours: str  # e.g. "08:00–23:00" or "24 saat açık"
     opens_at: str  # next opening time, shown when closed
+    address: str | None = None  # written by the venue's business
+    pending: bool = False  # added by a user, waiting for approval ("⏳ Onay bekliyor")
+    # The business's profile: cover photo (GET /v1/venues/{id}/photo), links, "✓ Doğrulanmış işletme"
+    photo_at: datetime | None = None
+    instagram: str | None = None
+    phone: str | None = None
+    verified: bool = False
 
 
 @app.get("/health")
@@ -290,12 +302,14 @@ def with_occupancy(conn: psycopg.Connection, provider: OccupancyProvider, venues
     crowds = load_crowds(conn, [v["id"] for v in venues], now)
     discoveries = load_discoveries(conn, [v["id"] for v in venues], now)
     trends = load_trends(conn, [v["id"] for v in venues], now)
+    profiles = load_profiles(conn, [v["id"] for v in venues])
     result = []
     for v in venues:
         opening = venue_hours(v)
         result.append(
             {
                 **v,
+                **profiles.get(v["id"], {}),
                 "occupancy": provider.get(v["id"], now, v["popularity"], v["always_busy"]),
                 "district_occupancy": district_occupancy[v["district"]],
                 "crowd": crowds[v["id"]],

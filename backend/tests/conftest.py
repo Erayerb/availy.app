@@ -29,7 +29,7 @@ class FixedOccupancyProvider:
         self.ratios_by_id = ratios_by_id
 
     def get(self, venue_id, at, popularity=1.0, always_busy=False):
-        ratio = self.ratios_by_id[venue_id]
+        ratio = self.ratios_by_id.get(venue_id, 0.5)  # venues a test added
         return Occupancy(level=classify(ratio), ratio=ratio, updated_at=FIXED_TIME)
 
 
@@ -62,3 +62,20 @@ def client(conn):
     app.dependency_overrides[get_occupancy_provider] = lambda: FixedOccupancyProvider(conn.ratios_by_id)
     yield TestClient(app)
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def visit(conn):
+    """visit("t_ali", venue_id): an old private check-in, so the user may review the venue."""
+
+    def make(username: str, venue_id: int, times: int = 1) -> None:
+        for _ in range(times):
+            conn.execute(
+                """
+                INSERT INTO checkins (venue_id, user_id, level, is_private, created_at)
+                SELECT %s, id, 'low', true, now() - interval '30 days' FROM users WHERE username = %s
+                """,
+                (venue_id, username),
+            )
+
+    return make

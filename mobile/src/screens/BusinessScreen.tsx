@@ -1,21 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { HeaderButtons } from '../components/HeaderButtons';
 import { CrowdDot } from '../components/CrowdDot';
 import { ReviewsSection } from '../components/ReviewsSection';
 import { useCampaigns } from '../context/CampaignsContext';
-import { useEngagement } from '../context/EngagementContext';
 import { useSettings } from '../context/SettingsContext';
 import { useReviews } from '../hooks/useReviews';
 import { fetchVenues, fetchVenuesByIds, type Venue } from '../lib/api';
 import type { User } from '../lib/auth';
-import { busiestHour, businessApi, quietestWeekday, WEEKDAY_NAMES, type VenueStats } from '../lib/business';
+import { busiestHour, businessApi, MAX_REWARD, quietestWeekday, WEEKDAY_NAMES, type VenueStats } from '../lib/business';
 import { deadHourSuggestion, timeLeft } from '../lib/campaigns';
 import { crowdRatioText, crowdSummary, crowdYesterday, liveLevel } from '../lib/crowd';
 import { categoryLabel } from '../lib/filters';
 import { formatDistance } from '../lib/geo';
-import { campaignTotals } from '../lib/history';
 import { shortLocation } from '../lib/location';
 import { bboxAround } from '../lib/nearby';
 import { formatHour, nearbyCompetitors } from '../lib/stats';
@@ -38,9 +36,8 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
   const [nearby, setNearby] = useState<Venue[]>([]);
   const [stats, setStats] = useState<VenueStats | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [sent, setSent] = useState<string | null>(null);
-  const { now, create, activeFor, campaigns } = useCampaigns();
-  const { views, coupons } = useEngagement();
+  const [sent, setSent] = useState<{ ok: boolean; text: string } | null>(null);
+  const { now, create, activeFor } = useCampaigns();
   const { crowdLook } = useSettings();
   const { reviews, setReviews, reload: reloadReviews } = useReviews(venueId, user.token);
 
@@ -76,15 +73,14 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
   // Dead hour: open, and customers' fresh check-ins say Sakin
   const dead = liveLevel(venue) === 'low';
   const competitors = nearbyCompetitors(venue, nearby, 2, 5);
-  const totals = campaignTotals(campaigns, views, coupons, venue.id, 7);
   const busiest = stats ? busiestHour(stats.today) : null;
   const quietDay = stats && stats.weekday.some((n) => n > 0) ? quietestWeekday(stats.weekday) : null;
   const maxToday = stats ? Math.max(1, ...stats.today.map((h) => h.checkins)) : 1;
   const maxWeekday = stats ? Math.max(1, ...stats.weekday) : 1;
   const hourNow = (now.getUTCHours() + 3) % 24; // Istanbul
 
-  const sendReady = () => {
-    create({
+  const sendReady = async () => {
+    const failure = await create({
       venueId: venue.id,
       venueName: venue.name,
       lat: venue.lat,
@@ -94,7 +90,7 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
       durationHours: 2,
       radiusKm: 2,
     });
-    setSent('Kampanya 2 km içindeki kullanıcılara gönderildi.');
+    setSent(failure ? { ok: false, text: failure } : { ok: true, text: '✓ Kampanya 2 km içindeki kullanıcılara gönderildi.' });
   };
 
   return (
@@ -104,17 +100,23 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
         <HeaderButtons />
       </View>
 
-      <Pressable style={styles.card} onPress={() => onShowOnMap(venue)}>
-        <Text style={styles.venueName}>{venue.name}</Text>
-        <Text style={styles.muted}>
-          {categoryLabel(venue.category)} · {shortLocation(venue.neighborhood, venue.district)} · Haritada gör ›
-        </Text>
-        {stats?.discovered_by && (
-          <Text style={styles.discovery}>
-            ✨ Mekanını {stats.discovered_by.username ? `@${stats.discovered_by.username}` : 'gizli bir kullanıcı'} keşfetti
+      <View style={styles.card}>
+        <Pressable onPress={() => onShowOnMap(venue)}>
+          <Text style={styles.venueName}>{venue.name}</Text>
+          <Text style={styles.muted}>
+            {categoryLabel(venue.category)} · {shortLocation(venue.neighborhood, venue.district)} · Haritada gör ›
           </Text>
+        </Pressable>
+        {stats?.discovered_by && user.token && (
+          <Discoverer
+            discoverer={stats.discovered_by}
+            token={user.token}
+            venueId={venue.id}
+            onOpenUser={onOpenUser}
+            onSent={load}
+          />
         )}
-      </Pressable>
+      </View>
 
       {/* Now: what customers see */}
       <View style={styles.card}>
@@ -139,7 +141,7 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
           </View>
         )}
         {active && <Text style={styles.activeNote}>🏷️ Aktif kampanyan var · {timeLeft(active, now)}</Text>}
-        {sent && <Text style={styles.success}>✓ {sent}</Text>}
+        {sent && <Text style={sent.ok ? styles.success : styles.error}>{sent.text}</Text>}
       </View>
 
       {/* Today */}
@@ -185,7 +187,6 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
         <View style={styles.stats}>
           <Stat value={stats?.week_checkins ?? 0} label="check-in" />
           <Stat value={stats?.week_people ?? 0} label="kişi" />
-          <Stat value={stats?.week_new ?? 0} label="ilk kez" />
           <Stat value={stats?.week_returning ?? 0} label="tekrar gelen" />
         </View>
         <Text style={styles.muted}>Toplam {stats?.total_checkins ?? 0} check-in. Kişiler adsız sayılır; kim olduklarını göremezsin.</Text>
@@ -234,13 +235,6 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
         ))}
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Son 7 gün kampanya sonuçları</Text>
-        <Text style={styles.text}>
-          📣 {totals.campaigns} kampanya · 👁 {totals.views} gösterim · 🎟 {totals.claims} kupon · ✅ {totals.redemptions} kullanım
-        </Text>
-      </View>
-
       {/* Customers' reviews; the business answers as "İşletme" */}
       <ReviewsSection
         venueId={venue.id}
@@ -252,6 +246,86 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
         onOpenUser={onOpenUser}
       />
     </ScrollView>
+  );
+}
+
+const REWARD_SUGGESTION = 'Mekanımızı keşfettiğin için teşekkürler! Bir sonraki siparişin bizden.';
+
+/** "✨ Mekanını @x keşfetti" and "Ödül ver": a thank-you sent once, as a notification. */
+function Discoverer({
+  discoverer,
+  token,
+  venueId,
+  onOpenUser,
+  onSent,
+}: {
+  discoverer: NonNullable<VenueStats['discovered_by']>;
+  token: string;
+  venueId: number;
+  onOpenUser: (username: string) => void;
+  onSent: () => void;
+}) {
+  const [writing, setWriting] = useState(false);
+  const [message, setMessage] = useState(REWARD_SUGGESTION);
+  const [error, setError] = useState<string | null>(null);
+  const name = discoverer.username;
+
+  const send = async () => {
+    try {
+      await businessApi.rewardDiscoverer(token, venueId, message);
+      setWriting(false);
+      setError(null);
+      onSent();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Gönderilemedi.');
+    }
+  };
+
+  return (
+    <View style={styles.discoverer}>
+      <View style={styles.levelRow}>
+        <Text style={[styles.discovery, styles.flex]}>
+          ✨ Mekanını{' '}
+          {name ? (
+            <Text style={styles.discoveryName} onPress={() => onOpenUser(name)}>
+              @{name}
+            </Text>
+          ) : (
+            'gizli bir kullanıcı'
+          )}{' '}
+          keşfetti
+        </Text>
+        {discoverer.can_reward && !discoverer.reward && !writing && (
+          <Pressable style={styles.rewardButton} onPress={() => setWriting(true)}>
+            <Text style={styles.rewardButtonText}>🎁 Ödül ver</Text>
+          </Pressable>
+        )}
+      </View>
+      {discoverer.reward && <Text style={styles.muted}>🎁 Ödül gönderildi: “{discoverer.reward}”</Text>}
+      {writing && (
+        <>
+          <Text style={styles.muted}>Keşfedene bildirim olarak gider; kasada gösterir. Bir kez gönderilebilir.</Text>
+          <TextInput
+            style={styles.input}
+            value={message}
+            onChangeText={setMessage}
+            maxLength={MAX_REWARD}
+            multiline
+            placeholder="Ör. Bir sonraki kahven bizden"
+            placeholderTextColor={colors.placeholder}
+          />
+          <View style={styles.levelRow}>
+            <Pressable style={[styles.primary, styles.flex]} onPress={send}>
+              <Text style={styles.primaryText}>Gönder</Text>
+            </Pressable>
+            <Pressable onPress={() => setWriting(false)} hitSlop={8}>
+              <Text style={styles.muted}>Vazgeç</Text>
+            </Pressable>
+          </View>
+          {error && <Text style={styles.error}>{error}</Text>}
+        </>
+      )}
+    </View>
   );
 }
 
@@ -280,6 +354,20 @@ const styles = themed(() => StyleSheet.create({
   },
   venueName: { fontSize: 18, fontWeight: '700', color: colors.text },
   discovery: { fontSize: 13, fontWeight: '600', color: colors.discovery },
+  discoveryName: { fontWeight: '800', textDecorationLine: 'underline' },
+  discoverer: { gap: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border },
+  rewardButton: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 14, borderWidth: 1.5, borderColor: colors.primary },
+  rewardButtonText: { color: colors.primary, fontWeight: '700', fontSize: 13 },
+  input: {
+    minHeight: 60,
+    padding: 10,
+    borderRadius: 12,
+    backgroundColor: colors.cream,
+    color: colors.text,
+    fontSize: 14,
+    textAlignVertical: 'top',
+  },
+  error: { fontSize: 13, color: colors.danger },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
   text: { fontSize: 14, color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },

@@ -19,10 +19,12 @@ const CUSTOMER_ITEMS: Item[] = [
 ];
 
 const BUSINESS_ITEMS: Item[] = [
-  { screen: 'profile', label: 'İşletme Profili', hint: 'Fotoğraf, paket ve hesap' },
-  { screen: 'settings', label: 'İşletme Ayarları', hint: 'Mekan bilgileri, ölü saat bildirimi, otomatik kampanya' },
-  { screen: 'appearance', label: 'Görünüm', hint: 'Cihaz ayarı, açık ya da koyu' },
+  { screen: 'profile', label: 'İşletme Profili', hint: 'Kapak fotoğrafı, adres, Instagram, telefon' },
   { screen: 'verification', label: 'İşletme doğrulama', hint: 'Mekan sahipliğini kanıtla', badge: 'Yakında' },
+  { screen: 'subscription', label: 'Abonelik', hint: 'Kampanya başı ödeme ya da aylık paket' },
+  { screen: 'settings', label: 'Ayarlar', hint: 'Hesap, mekan bilgileri, ölü saat bildirimi, otomatik kampanya' },
+  { screen: 'appearance', label: 'Görünüm', hint: 'Cihaz ayarı, açık ya da koyu' },
+  { screen: 'permissions', label: 'İzinler', hint: 'Kamera ve bildirim izinleri ne için kullanılıyor' },
 ];
 
 const COMMON_ITEMS: Item[] = [

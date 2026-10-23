@@ -16,7 +16,7 @@ type Props = {
   onOpenSettings: () => void;
 };
 
-const ICONS: Record<AppNotification['kind'], string> = { friend_request: '👋', friend_accepted: '🤝', reply: '💬' };
+const ICONS: Record<AppNotification['kind'], string> = { friend_request: '👋', friend_accepted: '🤝', reply: '💬', reward: '🎁' };
 
 /** v2 🔔 list: friend requests, accepted requests and replies to my reviews (last 30 days). */
 export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue, onOpenFriends, onOpenSettings }: Props) {
@@ -49,7 +49,7 @@ export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue,
           {items.map((n, i) => (
             <Pressable
               key={`${n.kind}-${n.at}-${n.username}`}
-              onPress={() => (n.kind === 'reply' && n.venue_id ? onOpenVenue({ id: n.venue_id }) : onOpenFriends())}
+              onPress={() => ((n.kind === 'reply' || n.kind === 'reward') && n.venue_id ? onOpenVenue({ id: n.venue_id }) : onOpenFriends())}
               style={({ pressed }) => [styles.row, i > 0 && styles.divider, pressed && styles.pressed]}
             >
               <Text style={styles.icon}>{ICONS[n.kind]}</Text>

@@ -21,6 +21,7 @@ export type ServerUser = {
   is_guest: boolean;
   venue_id: number | null;
   plan: string | null;
+  email_verified?: boolean;
   // Only from GET /v1/me
   points?: number;
   checkins?: number;
@@ -54,6 +55,7 @@ export function toUser(server: ServerUser, token: string, local: LocalBusiness =
     venueId: server.venue_id ?? local.venueId ?? null,
     plan: (server.plan as User['plan']) ?? local.plan,
     venueVerified: local.venueVerified,
+    emailVerified: server.email_verified ?? false,
     points: server.points,
     checkins: server.checkins,
     discoveries: server.discoveries,
@@ -67,7 +69,10 @@ export async function send<T>(method: string, path: string, body?: unknown, toke
   try {
     response = await fetch(`${API_URL}${path}`, {
       method,
-      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
@@ -96,6 +101,12 @@ export const accountApi = {
   remove: (token: string) => send<void>('DELETE', '/v1/me', undefined, token),
   changeEmail: (token: string, email: string, password: string) =>
     send<ServerUser>('POST', '/v1/me/email', { email, password }, token),
+  // "Şifremi unuttum": a 6-digit code by e-mail, then the new password with it
+  forgot: (email: string) => send<void>('POST', '/v1/auth/forgot', { email }),
+  reset: (email: string, code: string, password: string) => send<void>('POST', '/v1/auth/reset', { email, code, password }),
+  // E-mail verification (the code is also sent right after signing up)
+  sendVerification: (token: string) => send<void>('POST', '/v1/me/email/code', undefined, token),
+  verifyEmail: (token: string, code: string) => send<ServerUser>('POST', '/v1/me/email/verify', { code }, token),
   // Business: its venue on the server (panel statistics, "İşletme" replies)
   setVenue: (token: string, venueId: number) => send<{ venue_id: number }>('PUT', '/v1/me/venue', { venue_id: venueId }, token),
   // Hide the account until the next sign-in (signs out everywhere)

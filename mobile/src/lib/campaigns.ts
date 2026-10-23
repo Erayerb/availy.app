@@ -1,6 +1,6 @@
 /**
- * Business campaigns ("next 2 hours, all coffees 20% off"). Prototype: kept on
- * this phone only; users see active ones within the chosen radius.
+ * Business campaigns ("next 2 hours, all coffees 20% off"), kept on the server (lib/campaignApi.ts);
+ * users see active ones within the chosen radius.
  */
 import { distanceKm, type LatLon } from './geo.ts';
 
@@ -24,9 +24,11 @@ export type Campaign = {
   durationHours?: number; // planned length, reused by "Tekrar gönder" (missing in older data)
   startsAt: string; // ISO
   endsAt: string; // ISO; moved to "now" when the business ends it early
+  // From the server: shown to how many people, coupons taken and used
+  stats?: { views: number; claims: number; redemptions: number };
 };
 
-export type NewCampaign = Omit<Campaign, 'id' | 'startsAt' | 'endsAt' | 'durationHours'> & { durationHours: number };
+export type NewCampaign = Omit<Campaign, 'id' | 'startsAt' | 'endsAt' | 'durationHours' | 'stats'> & { durationHours: number };
 
 export function createCampaign(input: NewCampaign, now: Date, id: string): Campaign {
   const { durationHours } = input;

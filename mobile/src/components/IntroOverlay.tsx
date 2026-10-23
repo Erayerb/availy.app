@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useSettings } from '../context/SettingsContext';
 import type { Role } from '../lib/auth';
@@ -7,6 +7,8 @@ import { BUSINESS_SLIDES, CUSTOMER_SLIDES } from '../lib/intro';
 import { LEVELS } from '../lib/occupancy';
 import { colors, themed } from '../theme';
 import { LevelDot } from './LevelDot';
+
+const SWIPE = 50;
 
 /** Skippable how-to slides, shown right after an account is created (same text as the Hakkında page). */
 export function IntroOverlay({ role, onDone }: { role: Role; onDone: () => void }) {
@@ -16,13 +18,28 @@ export function IntroOverlay({ role, onDone }: { role: Role; onDone: () => void 
   const slide = slides[index];
   const last = index === slides.length - 1;
 
+  // Swipe left: next slide, swipe right: back (the buttons still work)
+  const count = useRef(slides.length);
+  count.current = slides.length;
+  const swipe = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 12 && Math.abs(g.dx) > Math.abs(g.dy),
+        onPanResponderRelease: (_, g) => {
+          if (g.dx < -SWIPE) setIndex((i) => Math.min(i + 1, count.current - 1));
+          else if (g.dx > SWIPE) setIndex((i) => Math.max(i - 1, 0));
+        },
+      }),
+    [],
+  );
+
   return (
     <View style={styles.overlay}>
       <Pressable onPress={onDone} hitSlop={12} style={styles.skip}>
         <Text style={styles.skipText}>Atla</Text>
       </Pressable>
 
-      <View style={styles.body}>
+      <View style={styles.body} {...swipe.panHandlers}>
         <Text style={styles.icon}>{slide.icon}</Text>
         <Text style={styles.title}>{slide.title}</Text>
         {slide.lines.map((line) => (

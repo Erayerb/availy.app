@@ -8,6 +8,7 @@ import { useSettings } from '../context/SettingsContext';
 import { LEVELS } from '../lib/occupancy';
 import { colors, themed } from '../theme';
 import { ThemedSwitch } from '../components/ThemedSwitch';
+import { AccountSettings } from './ProfileScreen';
 
 type Props = {
   onBack: () => void;
@@ -15,9 +16,11 @@ type Props = {
   venueId: number | null; // business: its venue, edited here
   onOpenPermissions: () => void;
   onOpenPrivacy: () => void;
+  // Business: user name, e-mail, password, freeze and delete are here (customers: Profil ayarları)
+  account: Parameters<typeof AccountSettings>[0] | null;
 };
 
-export function SettingsScreen({ onBack, isBusiness, venueId, onOpenPermissions, onOpenPrivacy }: Props) {
+export function SettingsScreen({ onBack, isBusiness, venueId, onOpenPermissions, onOpenPrivacy, account }: Props) {
   const { venues } = useVenuesByIds(venueId ? [venueId] : []);
   const venue = venues[0];
   const settings = useSettings();
@@ -26,8 +29,16 @@ export function SettingsScreen({ onBack, isBusiness, venueId, onOpenPermissions,
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
         <BackButton onPress={onBack} />
-        <Text style={styles.title}>{isBusiness ? 'İşletme Ayarları' : 'Ayarlar'}</Text>
+        <Text style={styles.title}>Ayarlar</Text>
       </View>
+
+      {isBusiness && account && (
+        <>
+          <Text style={styles.sectionLabel}>Hesap</Text>
+          <AccountSettings {...account} />
+          <Text style={styles.sectionLabel}>Mekan ve bildirimler</Text>
+        </>
+      )}
 
       {isBusiness && venue && <VenueEditSection key={venue.id} venue={venue} onSaved={() => {}} />}
 
@@ -145,6 +156,7 @@ function Row({ title, subtitle, value, onChange, disabled }: RowProps) {
 }
 
 const styles = themed(() => StyleSheet.create({
+  sectionLabel: { fontSize: 13, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', marginTop: 4 },
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 48, gap: 14 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },

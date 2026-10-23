@@ -32,9 +32,10 @@ export function checkinMessage(
   result: Pick<CheckinResult, 'is_first' | 'points_earned' | 'visitor_rank' | 'my_visits'>,
 ): string {
   const points = `+${result.points_earned} puan`;
-  if (result.is_first) return `✨ İlk check-in senin! Burayı sen keşfettin · ${points} · Kâşif rozeti`;
-  if (result.visitor_rank !== null) return `✓ Check-in yapıldı · ${points}. Burayı keşfeden ${result.visitor_rank}. kişisin!`;
-  return `✓ Check-in yapıldı · ${points}. Buraya ${result.my_visits}. check-in'in.`;
+  // Shown under "✓ Check-in yapıldı", so it does not say it again
+  if (result.is_first) return `✨ Burayı sen keşfettin! ${points} · Kâşif rozeti`;
+  if (result.visitor_rank !== null) return `${points} · Burayı keşfeden ${result.visitor_rank}. kişisin!`;
+  return `${points} · Buraya ${result.my_visits}. check-in'in`;
 }
 
 /** Which follow-up question a level gets (Kalabalık: "Sıra var mı?", Orta: "Oturacak yer var mı?"). */

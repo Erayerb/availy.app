@@ -12,6 +12,11 @@ test('Nominatim address: district from town, neighbourhood without "Mahallesi"',
     parseNominatimAddress({ suburb: 'Cihannüma Mahallesi', town: 'Beşiktaş' }),
     { district: 'Beşiktaş', neighborhood: 'Cihannüma' },
   );
+  assert.deepEqual(parseNominatimAddress({ road: 'Moda Caddesi', house_number: '12', suburb: 'Caferağa Mahallesi', town: 'Kadıköy' }), {
+    district: 'Kadıköy',
+    neighborhood: 'Caferağa',
+    line: 'Moda Caddesi 12',
+  });
   assert.equal(parseNominatimAddress({ province: 'İstanbul' }), null);
   assert.equal(parseNominatimAddress(undefined), null);
 });

@@ -50,10 +50,16 @@ class ReviewOut(BaseModel):
     replies: list[ReplyOut]
 
 
+class AllowanceOut(BaseModel):
+    checkins: int  # my check-ins at the venue
+    left: int  # reviews I may still write there (2 per check-in)
+
+
 class ReviewsOut(BaseModel):
     average: float | None
     count: int
     items: list[ReviewOut]
+    allowance: AllowanceOut | None = None
 
 
 class ReviewIn(BaseModel):

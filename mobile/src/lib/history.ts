@@ -39,22 +39,13 @@ export function computeHistory(
 
 /** Campaign results of one venue over the last `days` days. */
 export function campaignTotals(
-  campaigns: { id: string; venueId: number; startsAt: string }[],
-  views: Record<string, number>,
-  coupons: { campaignId: string; redeemedAt: string | null }[],
+  campaigns: { venueId: number; startsAt: string; stats?: { views: number; claims: number; redemptions: number } }[],
   venueId: number,
   days: number,
   now = new Date(),
 ) {
   const since = now.getTime() - days * DAY_MS;
-  const ids = new Set(
-    campaigns.filter((c) => c.venueId === venueId && new Date(c.startsAt).getTime() >= since).map((c) => c.id),
-  );
-  const claimed = coupons.filter((c) => ids.has(c.campaignId));
-  return {
-    campaigns: ids.size,
-    views: [...ids].reduce((sum, id) => sum + (views[id] ?? 0), 0),
-    claims: claimed.length,
-    redemptions: claimed.filter((c) => c.redeemedAt).length,
-  };
+  const recent = campaigns.filter((c) => c.venueId === venueId && new Date(c.startsAt).getTime() >= since);
+  const sum = (key: 'views' | 'claims' | 'redemptions') => recent.reduce((n, c) => n + (c.stats?.[key] ?? 0), 0);
+  return { campaigns: recent.length, views: sum('views'), claims: sum('claims'), redemptions: sum('redemptions') };
 }

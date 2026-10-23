@@ -9,7 +9,8 @@ from typing import Literal
 from app.occupancy import classify
 
 WINDOW = timedelta(minutes=90)  # only check-ins this recent count
-HALF_LIFE_MINUTES = 30  # a report half as old weighs twice as much
+# How much a report weighs by its age (minutes, weight); in between, on a straight line
+AGE_WEIGHTS = [(0, 1.0), (30, 0.65), (60, 0.35), (90, 0.10)]
 MIN_REPORTERS_FOR_RATIO = 5  # below this only the level is shown, no "~%60"
 LEVEL_SCORE = {"low": 0.2, "medium": 0.55, "high": 0.9}
 # The follow-up answer moves a report within (and sometimes across) its level:
@@ -50,7 +51,10 @@ class Crowd:
 
 def age_weight(created_at: datetime, now: datetime) -> float:
     minutes = max((now - created_at).total_seconds() / 60, 0)
-    return 0.5 ** (minutes / HALF_LIFE_MINUTES)
+    for (m0, w0), (m1, w1) in zip(AGE_WEIGHTS, AGE_WEIGHTS[1:]):
+        if minutes <= m1:
+            return w0 + (w1 - w0) * (minutes - m0) / (m1 - m0)
+    return AGE_WEIGHTS[-1][1]
 
 
 def latest_per_person(reports: list[Report]) -> list[Report]:

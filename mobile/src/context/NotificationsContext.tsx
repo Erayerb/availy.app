@@ -49,7 +49,13 @@ export function NotificationsProvider({ token, accountKey, children }: Props) {
         const since = announced.current;
         if (since !== null && Platform.OS !== 'web') {
           for (const n of list.filter((n) => !since || isAfter(n.at, since))) {
-            const on = n.kind === 'reply' ? wanted.current.replyNotifications : wanted.current.friendNotifications;
+            // A venue's reward is always shown: it is meant for the counter
+            const on =
+              n.kind === 'reward'
+                ? true
+                : n.kind === 'reply'
+                  ? wanted.current.replyNotifications
+                  : wanted.current.friendNotifications;
             if (on) Notifications.scheduleNotificationAsync({ content: { title: 'availy', body: notificationText(n) }, trigger: null }).catch(() => {});
           }
         }

@@ -6,6 +6,10 @@ Never deletes anything; safe to run repeatedly.
 Run: docker compose run --rm backend python -m app.seed_test_account [kullaniciadi]
 
 Sign in with: availy_deneme / deneme123 (test account, not a real person)
+
+Also creates the business test account @availy_isletme for the venue @availy_deneme
+reviewed, so its panel shows a check-in and a review to answer.
+Sign in with: availy_isletme / deneme123 (choose "İşletme")
 """
 import sys
 from datetime import datetime, timedelta, timezone
@@ -20,6 +24,8 @@ from app.db import apply_schema
 from app.friends import FriendError, add_friend
 from app.reviews import ReviewError, save_review
 
+BUSINESS_USERNAME = "availy_isletme"
+BUSINESS_EMAIL = "availy_isletme@example.test"
 USERNAME = "availy_deneme"
 EMAIL = "availy_deneme@example.test"
 PASSWORD = "deneme123"
@@ -61,6 +67,18 @@ def add_activity(conn: psycopg.Connection, user: dict, now: datetime) -> int:
     return len(venues)
 
 
+def business_user(conn: psycopg.Connection, customer: dict) -> dict:
+    """The business test account, at the venue the customer test account reviewed."""
+    row = conn.execute("SELECT * FROM users WHERE lower(username) = %s", (BUSINESS_USERNAME,)).fetchone()
+    business = row or create_user(conn, "", BUSINESS_EMAIL, PASSWORD, "business", BUSINESS_USERNAME)
+    venue = conn.execute(
+        "SELECT venue_id FROM reviews WHERE user_id = %s ORDER BY created_at LIMIT 1", (customer["id"],)
+    ).fetchone()
+    if venue and business.get("venue_id") is None:
+        conn.execute("UPDATE users SET venue_id = %s WHERE id = %s", (venue["venue_id"], business["id"]))
+    return business
+
+
 def main(friend: str) -> None:
     with psycopg.connect(settings.database_url, row_factory=dict_row) as conn:
         apply_schema(conn)
@@ -70,8 +88,9 @@ def main(friend: str) -> None:
             relation = add_friend(conn, user, friend)["relation"]
         except FriendError as e:
             relation = e.message
+        business_user(conn, user)
         conn.commit()
-    print(f"@{USERNAME}: {added} check-in eklendi; @{friend} ile: {relation}")
+    print(f"@{USERNAME}: {added} check-in eklendi; @{friend} ile: {relation}; @{BUSINESS_USERNAME} hazır")
 
 
 if __name__ == "__main__":

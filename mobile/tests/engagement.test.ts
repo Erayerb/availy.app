@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { amenitiesFor } from '../src/lib/amenities.ts';
-import { createCampaign } from '../src/lib/campaigns.ts';
-import { campaignStats, claimCoupon, couponCode, normalizeCode, redeemCoupon, remainingCoupons } from '../src/lib/coupons.ts';
+import { toCampaign, toCoupon } from '../src/lib/campaignApi.ts';
+import { couponValid, normalizeCode, parseCouponQr, remainingCoupons } from '../src/lib/coupons.ts';
 import {
   addStamp,
   availyPoints,
@@ -21,11 +21,6 @@ import { byQuietest, sortVenues } from '../src/lib/sort.ts';
 import { canWatch, notificationText, toggleWatch, watchTriggered } from '../src/lib/watch.ts';
 
 const NOW = new Date('2026-10-13T10:00:00Z');
-const campaign = createCampaign(
-  { venueId: 7, venueName: 'Demo Kafe Moda', lat: 40.98, lon: 29.02, message: 'Kahveler %20', discount: 20, radiusKm: 2, durationHours: 2 },
-  NOW,
-  'camp-1',
-);
 
 const venue = (over: Record<string, unknown>) =>
   ({
@@ -35,25 +30,31 @@ const venue = (over: Record<string, unknown>) =>
     ...over,
   }) as never;
 
-test('coupon codes are readable and one per customer per campaign', () => {
-  const code = couponCode(() => 0);
-  assert.equal(code, 'AV-AAAA');
-  assert.match(couponCode(), /^AV-[A-HJ-NP-Z2-9]{4}$/);
-  const first = claimCoupon([], campaign, 'eray@x.com', NOW, 'AV-1111');
-  const again = claimCoupon(first.coupons, campaign, 'eray@x.com', NOW, 'AV-2222');
-  assert.equal(again.coupon?.code, 'AV-1111');
-  assert.equal(again.coupons.length, 1);
+test('coupon codes typed or scanned', () => {
   assert.equal(normalizeCode(' av-11 11 '), 'AV-1111');
+  assert.equal(parseCouponQr('availy:coupon:av-7k3p'), 'AV-7K3P');
+  assert.equal(parseCouponQr('merhaba'), null);
 });
 
-test('business redeems a coupon once, only at its own venue', () => {
-  const { coupons } = claimCoupon([], campaign, 'eray@x.com', NOW, 'AV-1111');
-  assert.equal(redeemCoupon(coupons, 'av-1111', 99, NOW).error, 'Bu kod başka bir mekana ait.');
-  assert.equal(redeemCoupon(coupons, 'AV-9999', 7, NOW).error, 'Bu kod bulunamadı.');
-  const ok = redeemCoupon(coupons, 'av-1111', 7, NOW);
-  assert.equal(ok.error, null);
-  assert.equal(redeemCoupon(ok.coupons, 'AV-1111', 7, NOW).error, 'Bu kod zaten kullanılmış.');
-  assert.deepEqual(campaignStats('camp-1', { 'camp-1': 12 }, ok.coupons), { views: 12, claims: 1, redemptions: 1 });
+test('server campaigns and coupons in the app\'s shapes', () => {
+  const server = {
+    id: 12, venue_id: 7, venue_name: 'Demo Kafe Moda', lat: 40.98, lon: 29.02, message: 'Kahveler %20', discount: 20,
+    radius_km: 2, max_claims: 10, duration_hours: 2, starts_at: '2026-10-13T10:00:00Z', ends_at: '2026-10-13T12:00:00Z',
+    claims: 4, redemptions: 1, views: 30,
+  };
+  const c = toCampaign(server);
+  assert.equal(c.id, '12');
+  assert.deepEqual(c.stats, { views: 30, claims: 4, redemptions: 1 });
+  assert.equal(remainingCoupons(c), 6);
+  assert.equal(remainingCoupons({ ...c, maxClaims: null }), null);
+  const coupon = toCoupon({
+    code: 'AV-AAAA', campaign_id: 12, venue_id: 7, venue_name: 'Demo Kafe Moda', message: 'Kahveler %20', discount: 20,
+    claimed_at: '2026-10-13T10:05:00Z', redeemed_at: null, ends_at: '2026-10-13T12:00:00Z',
+  });
+  assert.equal(coupon.campaignId, '12');
+  assert.equal(couponValid(coupon, NOW), true);
+  assert.equal(couponValid(coupon, new Date('2026-10-13T12:00:00Z')), false);
+  assert.equal(couponValid({ ...coupon, redeemedAt: '2026-10-13T10:30:00Z' }, NOW), false);
 });
 
 const stampProgram: LoyaltyProgram = {
@@ -133,18 +134,6 @@ test('share message and link round trip', () => {
 test('amenities follow type and purpose', () => {
   assert.deepEqual(amenitiesFor({ category: 'coworking', tags: [] }).map((a) => a.label), ['Wi-Fi', 'Priz', 'Sessiz alan', 'Toplantı odası']);
   assert.ok(amenitiesFor({ category: 'bar', tags: ['quiet'] }).some((a) => a.label === 'Sessiz alan'));
-});
-
-test('campaign coupon limit', () => {
-  const limited = { ...campaign, id: 'lim', maxClaims: 2 };
-  let coupons = claimCoupon([], limited, 'a', NOW, 'AV-AAAA').coupons;
-  assert.equal(remainingCoupons(limited, coupons), 1);
-  coupons = claimCoupon(coupons, limited, 'b', NOW, 'AV-BBBB').coupons;
-  assert.equal(remainingCoupons(limited, coupons), 0);
-  const third = claimCoupon(coupons, limited, 'c', NOW, 'AV-CCCC');
-  assert.equal(third.error, 'Bu kampanyanın kupon sınırı doldu.');
-  assert.equal(claimCoupon(coupons, limited, 'a', NOW, 'AV-ZZZZ').coupon?.code, 'AV-AAAA'); // own coupon still shown
-  assert.equal(remainingCoupons(campaign, coupons), null); // no limit
 });
 
 test('loyalty QR round trip', () => {

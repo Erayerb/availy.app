@@ -21,6 +21,8 @@ type Props = {
   onOpenProfile: () => void;
   onOpenNotifications: () => void;
   onOpenUser: (username: string) => void; // a friend's profile
+  onOpenMap: () => void;
+  onOpenCheckin: () => void;
   initialTab?: SocialTab;
 };
 
@@ -36,6 +38,8 @@ export function SocialScreen({
   onOpenProfile,
   onOpenNotifications,
   onOpenUser,
+  onOpenMap,
+  onOpenCheckin,
   initialTab = 'feed',
 }: Props) {
   const token = user?.token;
@@ -135,13 +139,46 @@ export function SocialScreen({
       {tab === 'feed' && (
         <>
           {feed.length === 0 && (
-            <View style={styles.card}>
+            <>
               <Text style={styles.muted}>
                 {lists.friends.length === 0
-                  ? "Arkadaşlar sekmesinden arkadaş ekleyince check-in'leri ve yorumları burada görünür."
-                  : "Arkadaşlarının son 7 günde check-in'i ya da yorumu yok."}
+                  ? "Arkadaş ekleyince check-in'leri ve yorumları burada görünür. Başlamak için:"
+                  : "Arkadaşlarının son 7 günde check-in'i ya da yorumu yok. Bu arada:"}
               </Text>
-            </View>
+              {[
+                {
+                  icon: '👋',
+                  title: 'Arkadaş ekle',
+                  text: 'Kullanıcı adıyla ara, QR kodunu okut ya da davet bağlantısı gönder.',
+                  onPress: () => setTab('friends'),
+                },
+                {
+                  icon: '🧭',
+                  title: 'Mekan keşfet',
+                  text: 'Haritada yakınındaki mekanlara bak; bir mekana ilk check-in yapan ✨ keşfeder.',
+                  onPress: onOpenMap,
+                },
+                {
+                  icon: '📍',
+                  title: "Check-in yap",
+                  text: 'Bulunduğun mekanın doluluğunu bildir, puan kazan.',
+                  onPress: onOpenCheckin,
+                },
+              ].map((c) => (
+                <Pressable
+                  key={c.title}
+                  onPress={c.onPress}
+                  style={({ pressed }) => [styles.card, styles.startRow, pressed && styles.pressed]}
+                >
+                  <Text style={styles.startIcon}>{c.icon}</Text>
+                  <View style={styles.flex}>
+                    <Text style={styles.bold}>{c.title}</Text>
+                    <Text style={styles.muted}>{c.text}</Text>
+                  </View>
+                  <Text style={styles.chevron}>›</Text>
+                </Pressable>
+              ))}
+            </>
           )}
           {/* One block per person; their items in a row stay together */}
           {groupByPerson(feed).map((group) => (
@@ -357,6 +394,9 @@ const styles = themed(() => StyleSheet.create({
   qr: { alignItems: 'center', paddingVertical: 6 },
   row: { flexDirection: 'row', gap: 8 },
   flex: { flex: 1 },
+  startRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  startIcon: { fontSize: 26 },
+  pressed: { opacity: 0.7 },
   input: { padding: 12, borderRadius: 12, backgroundColor: colors.cream, fontSize: 15, color: colors.text },
   person: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
   avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },

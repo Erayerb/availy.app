@@ -69,12 +69,13 @@ def test_privacy_settings_and_search(client):
     assert client.post("/v1/friends", json={"username": "t_ayse"}, headers=auth(ali)).status_code == 200
 
 
-def test_notifications(client, conn):
+def test_notifications(client, conn, visit):
     ali, ayse = account(client, "t_ali"), account(client, "t_ayse")
     client.post("/v1/friends", json={"username": "t_ayse"}, headers=auth(ali))
     assert [n["kind"] for n in client.get("/v1/notifications", headers=auth(ayse)).json()] == ["friend_request"]
     client.post("/v1/friends", json={"username": "t_ali"}, headers=auth(ayse))
     kafe = conn.execute("SELECT id FROM venues WHERE name = 'Test Kafe A'").fetchone()["id"]
+    visit("t_ali", kafe)
     review = client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 5}, headers=auth(ali)).json()["items"][0]
     client.post(f"/v1/reviews/{review['id']}/replies", json={"body": "Katılıyorum"}, headers=auth(ayse))
     client.post(f"/v1/reviews/{review['id']}/replies", json={"body": "Kendime not"}, headers=auth(ali))

@@ -1,5 +1,6 @@
+import { ForgotPasswordScreen } from './ForgotPasswordScreen';
 import { LegalScreen } from './LegalScreen';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -15,6 +16,7 @@ import { BackButton } from '../components/BackButton';
 import { Logo } from '../components/Logo';
 import { Chip } from '../components/TagChips';
 import { normalizeUsername, validateLogin, validateRegister, type Role } from '../lib/auth';
+import { KEYS, loadJson } from '../lib/storage';
 import { colors, themed } from '../theme';
 
 type Mode = 'login' | 'register';
@@ -26,7 +28,7 @@ type Props = {
   onSwitchMode: (mode: Mode) => void;
   // Resolve to an error message, or null on success
   // `login` is the e-mail or the user name
-  onLogin: (login: string, password: string, role: Role) => Promise<string | null>;
+  onLogin: (login: string, password: string, role: Role, remember: boolean) => Promise<string | null>;
   onRegister: (username: string, email: string, password: string, role: Role) => Promise<string | null>;
 };
 
@@ -38,9 +40,18 @@ export function AuthScreen({ mode, initialRole = 'personal', onBack, onSwitchMod
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [role, setRole] = useState<Role>(initialRole);
+  // "Beni hatırla": stay signed in after the app is closed, and fill in the user name next time
+  const [remember, setRemember] = useState(true);
+  useEffect(() => {
+    if (mode !== 'login') return;
+    loadJson<string>(KEYS.lastLogin).then((last) => last && setEmail((typed) => typed || last));
+  }, [mode]);
   const isRegister = mode === 'register';
   // Gizlilik politikası / kullanım koşulları opened from the sign-up form
   const [legal, setLegal] = useState<'privacy' | 'terms' | null>(null);
+  const [forgot, setForgot] = useState(false);
+  // "Şifren değişti" after "Şifremi unuttum"
+  const [notice, setNotice] = useState<string | null>(null);
 
   const submit = async () => {
     const problem = isRegister ? validateRegister(email, password, username) : validateLogin(email, password);
@@ -49,7 +60,7 @@ export function AuthScreen({ mode, initialRole = 'personal', onBack, onSwitchMod
     setBusy(true);
     const failure = isRegister
       ? await onRegister(normalizeUsername(username), email, password, role)
-      : await onLogin(email, password, role);
+      : await onLogin(email, password, role, remember);
     // On success the app switches screens; only update state if we are still here
     if (failure) {
       setError(failure);
@@ -58,6 +69,21 @@ export function AuthScreen({ mode, initialRole = 'personal', onBack, onSwitchMod
   };
 
   if (legal) return <LegalScreen initial={legal} onBack={() => setLegal(null)} />;
+  if (forgot) {
+    return (
+      <ForgotPasswordScreen
+        initialEmail={email}
+        onBack={() => setForgot(false)}
+        onDone={(address) => {
+          setForgot(false);
+          setEmail(address);
+          setPassword('');
+          setError(null);
+          setNotice('✓ Şifren değişti. Yeni şifrenle giriş yap.');
+        }}
+      />
+    );
+  }
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -120,6 +146,25 @@ export function AuthScreen({ mode, initialRole = 'personal', onBack, onSwitchMod
           onSubmitEditing={submit}
         />
 
+        {!isRegister && (
+          <View style={styles.loginRow}>
+            <Pressable
+              onPress={() => setRemember(!remember)}
+              style={styles.rememberRow}
+              hitSlop={6}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: remember }}
+            >
+              <View style={[styles.box, remember && styles.boxOn]}>{remember && <Text style={styles.tick}>✓</Text>}</View>
+              <Text style={styles.rememberText}>Beni hatırla</Text>
+            </Pressable>
+            <Pressable onPress={() => setForgot(true)} hitSlop={8}>
+              <Text style={styles.forgot}>Şifremi unuttum</Text>
+            </Pressable>
+          </View>
+        )}
+        {notice && !isRegister && <Text style={styles.notice}>{notice}</Text>}
+
         {error && <Text style={styles.error}>{error}</Text>}
 
         <Pressable
@@ -178,6 +223,22 @@ const styles = themed(() => StyleSheet.create({
     color: colors.text,
   },
   error: { color: colors.danger, fontSize: 14 },
+  loginRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  rememberRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  forgot: { fontSize: 15, color: colors.primary, fontWeight: '600' },
+  notice: { color: colors.success, fontSize: 14, fontWeight: '600' },
+  box: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  boxOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  tick: { color: colors.onPrimary, fontSize: 14, fontWeight: '800' },
+  rememberText: { fontSize: 15, color: colors.text },
   roles: { gap: 8 },
   rolesLabel: { fontSize: 14, fontWeight: '600', color: colors.text },
   roleRow: { flexDirection: 'row', gap: 8 },

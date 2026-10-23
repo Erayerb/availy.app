@@ -10,7 +10,7 @@ import psycopg
 from app.safety import BLOCKED, FROZEN, MUTED, hidden_reply, hidden_review
 
 MAX_BODY = 280
-MAX_REVIEWS_PER_VENUE = 2
+MAX_REVIEWS_PER_CHECKIN = 2  # each check-in at a venue allows 2 reviews there
 FEED_DAYS = 7
 FEED_LIMIT = 50
 
@@ -42,11 +42,13 @@ def save_review(conn: psycopg.Connection, user: dict, venue_id: int, rating: int
     if conn.execute("SELECT 1 FROM venues WHERE id = %s", (venue_id,)).fetchone() is None:
         raise ReviewError("Mekan bulunamadı.", 404)
     text = _clean(body)
-    written = conn.execute(
-        "SELECT count(*) AS n FROM reviews WHERE venue_id = %s AND user_id = %s", (venue_id, user["id"])
-    ).fetchone()["n"]
-    if written >= MAX_REVIEWS_PER_VENUE:
-        raise ReviewError(f"Bir mekana en fazla {MAX_REVIEWS_PER_VENUE} yorum yazabilirsin. Yenisi için birini sil.", 409)
+    allowed = review_allowance(conn, user["id"], venue_id)
+    if allowed["checkins"] == 0:
+        raise ReviewError("Yorum yazmak için önce bu mekana check-in yap.", 403)
+    if allowed["left"] <= 0:
+        raise ReviewError(
+            f"Her check-in için en fazla {MAX_REVIEWS_PER_CHECKIN} yorum yazabilirsin. Yeni yorum için tekrar check-in yap.", 409
+        )
     return conn.execute(
         """
         INSERT INTO reviews (venue_id, user_id, rating, body, allow_replies, created_at)
@@ -54,6 +56,18 @@ def save_review(conn: psycopg.Connection, user: dict, venue_id: int, rating: int
         """,
         (venue_id, user["id"], rating, text, allow_replies, now),
     ).fetchone()
+
+
+def review_allowance(conn: psycopg.Connection, user_id: int, venue_id: int) -> dict:
+    """How many check-ins the user has at the venue and how many reviews they may still write there."""
+    row = conn.execute(
+        """
+        SELECT (SELECT count(*) FROM checkins WHERE venue_id = %(v)s AND user_id = %(u)s AND NOT is_demo)::int AS checkins,
+               (SELECT count(*) FROM reviews WHERE venue_id = %(v)s AND user_id = %(u)s)::int AS written
+        """,
+        {"v": venue_id, "u": user_id},
+    ).fetchone()
+    return {"checkins": row["checkins"], "left": row["checkins"] * MAX_REVIEWS_PER_CHECKIN - row["written"]}
 
 
 def delete_review(conn: psycopg.Connection, user: dict, review_id: int) -> None:
@@ -120,6 +134,8 @@ def venue_reviews(conn: psycopg.Connection, venue_id: int, me: dict | None) -> d
         "average": average,
         "count": len(reviews),
         "items": [{**r, "replies": by_review.get(r["id"], [])} for r in reviews],
+        # For the form: none for visitors without an account
+        "allowance": review_allowance(conn, me["id"], venue_id) if me else None,
     }
 
 

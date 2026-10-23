@@ -7,6 +7,7 @@ import psycopg
 
 from app.config import settings
 from app.hours import local_hour, venue_hours
+from app.user_venues import maybe_approve
 
 LEVELS = ("low", "medium", "high")
 # TEMPORARY: 1 km so the app can be tried away from the venues; set back to 150 before the release
@@ -133,6 +134,7 @@ def create_checkin(
     except psycopg.errors.UniqueViolation:
         checkin = conn.execute(insert, (venue_id, user["id"], level, queue, seats, False, now)).fetchone()
     update_trust(conn, user, venue_id, level, now)
+    maybe_approve(conn, venue_id, now)
     visits = conn.execute(
         """
         SELECT

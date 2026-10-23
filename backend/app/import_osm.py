@@ -128,8 +128,12 @@ def upsert(conn: psycopg.Connection, venue: dict) -> bool:
                 ST_SetSRID(ST_MakePoint(%(lon)s, %(lat)s), 4326)::geography, %(capacity)s,
                 %(neighborhood)s, %(district)s, %(tags)s, %(open_hour)s, %(close_hour)s)
         ON CONFLICT (osm_id) WHERE osm_id IS NOT NULL DO UPDATE SET
-            name = EXCLUDED.name, category = EXCLUDED.category, location = EXCLUDED.location,
-            neighborhood = EXCLUDED.neighborhood, district = EXCLUDED.district, tags = EXCLUDED.tags,
+            name = EXCLUDED.name, category = EXCLUDED.category,
+            -- What the venue's business corrected stays
+            location = CASE WHEN venues.edited_by_business THEN venues.location ELSE EXCLUDED.location END,
+            neighborhood = CASE WHEN venues.edited_by_business THEN venues.neighborhood ELSE EXCLUDED.neighborhood END,
+            district = CASE WHEN venues.edited_by_business THEN venues.district ELSE EXCLUDED.district END,
+            tags = EXCLUDED.tags,
             open_hour = EXCLUDED.open_hour, close_hour = EXCLUDED.close_hour
         RETURNING (xmax = 0) AS inserted
         """,

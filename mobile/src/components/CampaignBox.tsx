@@ -2,18 +2,17 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useCampaigns } from '../context/CampaignsContext';
-import { useEngagement } from '../context/EngagementContext';
 import { timeLeft, type Campaign } from '../lib/campaigns';
 import { remainingCoupons } from '../lib/coupons';
 import { colors, themed } from '../theme';
 
 /** Campaign line with "Kuponu al"; after claiming, the code to show at the counter. */
 export function CampaignBox({ campaign }: { campaign: Campaign }) {
-  const { now } = useCampaigns();
-  const { coupons, userKey, claim } = useEngagement();
-  const coupon = coupons.find((c) => c.campaignId === campaign.id && c.userKey === userKey);
-  const remaining = remainingCoupons(campaign, coupons);
+  const { now, coupons, claim } = useCampaigns();
+  const coupon = coupons.find((c) => c.campaignId === campaign.id);
+  const remaining = remainingCoupons(campaign);
   const [error, setError] = useState<string | null>(null);
+  const [taking, setTaking] = useState(false);
 
   return (
     <View style={styles.box}>
@@ -33,8 +32,13 @@ export function CampaignBox({ campaign }: { campaign: Campaign }) {
         <Text style={styles.full}>Kuponlar tükendi</Text>
       ) : (
         <Pressable
-          style={({ pressed }) => [styles.button, pressed && styles.pressed]}
-          onPress={() => setError(claim(campaign))}
+          style={({ pressed }) => [styles.button, (pressed || taking) && styles.pressed]}
+          disabled={taking}
+          onPress={async () => {
+            setTaking(true);
+            setError(await claim(campaign));
+            setTaking(false);
+          }}
         >
           <Text style={styles.buttonText}>Kuponu al</Text>
         </Pressable>

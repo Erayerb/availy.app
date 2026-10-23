@@ -20,7 +20,7 @@ export function VenueTile({ venue, size, distance, onPress }: Props) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [{ width: size }, pressed && styles.pressed]}>
       <View>
-        <VenuePhoto venueId={venue.id} category={venue.category} size={size} height={size} />
+        <VenuePhoto venueId={venue.id} category={venue.category} photoAt={venue.photo_at} size={size} height={size} />
         {!venue.open_now && <View style={[styles.closedShade, { borderRadius: 16 }]} />}
         <View style={styles.badge}>
           <CrowdDot venue={venue} size={14} />

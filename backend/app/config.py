@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     occupancy_low_max: float = 0.40
     occupancy_medium_max: float = 0.75
 
+    # E-mail (codes for "Şifremi unuttum" and verification) via Resend; without a key the
+    # e-mail is only written to the server log (local development)
+    resend_api_key: str = ""
+    mail_from: str = "availy <onboarding@resend.dev>"
+
     # Dummy occupancy: values stay constant within one time bucket
     dummy_bucket_seconds: int = 300
     dummy_timezone: str = "Europe/Istanbul"

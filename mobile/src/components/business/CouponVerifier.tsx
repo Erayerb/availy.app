@@ -1,24 +1,24 @@
 import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
-import { useEngagement } from '../../context/EngagementContext';
+import { useCampaigns } from '../../context/CampaignsContext';
 import { parseCouponQr } from '../../lib/coupons';
 import { colors } from '../../theme';
 import { QrScanner } from '../QrScanner';
 import { panel } from './panelStyles';
 
 /** The cashier scans the customer's coupon QR (or types the code) to mark it used. */
-export function CouponVerifier({ venueId }: { venueId: number }) {
-  const { redeem } = useEngagement();
+export function CouponVerifier() {
+  const { redeem } = useCampaigns();
   const [code, setCode] = useState('');
   const [scanning, setScanning] = useState(false);
   const [manual, setManual] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const check = (raw: string) => {
+  const check = async (raw: string) => {
     const parsed = parseCouponQr(raw);
     if (!parsed) return setResult({ ok: false, text: 'Bu bir availy kupon kodu değil.' });
-    const error = redeem(parsed, venueId);
+    const error = await redeem(parsed);
     setResult(error ? { ok: false, text: error } : { ok: true, text: `${parsed} geçerli, indirim uygulanabilir. ✓` });
     if (!error) setCode('');
   };

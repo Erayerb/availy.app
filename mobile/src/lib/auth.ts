@@ -31,6 +31,7 @@ export type User = {
   venueId?: number | null;
   plan?: PlanId;
   venueVerified?: boolean; // business proved it owns the venue
+  emailVerified?: boolean; // the code sent to the e-mail was entered (v2)
 };
 
 export const isBusiness = (user: User | null) => user?.role === 'business';

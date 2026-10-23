@@ -30,9 +30,11 @@ def test_business_cannot_check_in_or_review_and_is_not_social(client, conn, cloc
     assert "t_isletme" not in [r["username"] for r in everyone]
 
 
-def test_business_replies_on_its_own_venue_with_the_mark(client, conn):
+def test_business_replies_on_its_own_venue_with_the_mark(client, conn, visit):
     token, kafe = business_at(client, conn)
     ali = account(client, "t_ali")
+    visit("t_ali", kafe)
+    visit("t_ali", venue_id(conn, "Test Cowork B"))
     review = client.post(
         f"/v1/venues/{kafe}/reviews", json={"rating": 2, "body": "Soğuktu", "allow_replies": False}, headers=auth(ali)
     ).json()["items"][0]
@@ -62,3 +64,32 @@ def test_panel_stats_from_check_ins(client, conn, clock):
     # Only the venue's own business sees them
     assert client.get(f"/v1/venues/{kafe}/stats", headers=auth(regular)).status_code == 403
     assert client.put("/v1/me/venue", json={"venue_id": kafe}, headers=auth(regular)).status_code == 403
+
+
+def test_reward_for_the_discoverer_once(client, conn, clock):
+    token, kafe = business_at(client, conn)
+    other_token, _ = business_at(client, conn, "t_rakip", "Test Cowork B")
+    kasif = account(client, "t_kasif")
+    url = f"/v1/venues/{kafe}/discoverer-reward"
+    assert client.post(url, json={"message": "Kahve bizden"}, headers=auth(token)).status_code == 404  # nobody yet
+    checkin(client, kasif, kafe)
+    assert client.post(url, json={"message": "  "}, headers=auth(token)).status_code == 400
+    assert client.post(url, json={"message": "Kahve bizden"}, headers=auth(other_token)).status_code == 403
+    assert client.post(url, json={"message": "Kahve bizden"}, headers=auth(kasif)).status_code == 403
+    assert client.post(url, json={"message": " Bir sonraki  kahven bizden "}, headers=auth(token)).status_code == 201
+    assert client.post(url, json={"message": "Bir tane daha"}, headers=auth(token)).status_code == 409
+    discoverer = client.get(f"/v1/venues/{kafe}/stats", headers=auth(token)).json()["discovered_by"]
+    assert discoverer["reward"] == "Bir sonraki kahven bizden" and discoverer["can_reward"] is True
+    note = client.get("/v1/notifications", headers=auth(kasif)).json()[0]
+    assert note["kind"] == "reward" and note["venue_name"] == "Test Kafe A" and note["body"] == "Bir sonraki kahven bizden"
+
+
+
+def test_a_venue_has_one_business(client, conn):
+    first, kafe = business_at(client, conn)
+    second = account(client, "t_ikinci", "business")
+    taken = client.put("/v1/me/venue", json={"venue_id": kafe}, headers=auth(second))
+    assert taken.status_code == 409 and "başka bir işletme" in taken.json()["detail"]
+    assert client.put("/v1/me/venue", json={"venue_id": kafe}, headers=auth(first)).status_code == 200  # its own again
+    taken_ids = client.get("/v1/venues/taken").json()
+    assert kafe in taken_ids

@@ -2,8 +2,8 @@
 import { send } from './accountApi.ts';
 
 export const MAX_REVIEW = 280;
-// Same as the server: two reviews per person and venue
-export const MAX_REVIEWS_PER_VENUE = 2;
+// Same as the server: each check-in at a venue allows two reviews there
+export const MAX_REVIEWS_PER_CHECKIN = 2;
 
 export type Reply = {
   id: number;
@@ -23,7 +23,9 @@ export type Review = {
   mine: boolean;
   replies: Reply[];
 };
-export type Reviews = { average: number | null; count: number; items: Review[] };
+// Mine at this venue; null without an account
+export type Allowance = { checkins: number; left: number };
+export type Reviews = { average: number | null; count: number; items: Review[]; allowance?: Allowance | null };
 export const NO_REVIEWS: Reviews = { average: null, count: 0, items: [] };
 
 export type FeedItem = {

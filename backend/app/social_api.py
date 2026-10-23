@@ -32,7 +32,7 @@ class LeaderboardOut(BaseModel):
 
 
 class NotificationOut(BaseModel):
-    kind: Literal["friend_request", "friend_accepted", "reply"]
+    kind: Literal["friend_request", "friend_accepted", "reply", "reward"]
     at: datetime
     username: str | None
     venue_id: int | None

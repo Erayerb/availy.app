@@ -102,16 +102,21 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
     }
   };
 
-  // Checked in here less than 2 hours ago: say when the next one is possible instead of the form
+  // Checked in here less than 2 hours ago: the button stays, closed, with the time it opens above it
   if (coolingDown) {
     return (
       <View style={styles.card}>
-        <Text style={styles.title}>✓ Buraya check-in yaptın</Text>
-        {result?.ok && <Text style={styles.success}>{result.text}</Text>}
-        <View style={styles.cooldown}>
-          <Text style={styles.text}>Bu mekana tekrar check-in yapabilirsin: {clock(nextAt)}</Text>
-          <Text style={styles.muted}>Son check-in'in {clock(last)}. Aynı mekana 2 saatte bir check-in yapılabilir.</Text>
+        <Text style={styles.title}>✓ Check-in yapıldı</Text>
+        {result?.ok ? (
+          <Text style={styles.success}>{result.text}</Text>
+        ) : (
+          <Text style={styles.muted}>Son check-in'in {clock(last)}.</Text>
+        )}
+        <Text style={styles.text}>Tekrar check-in: {clock(nextAt)}</Text>
+        <View style={[styles.primary, styles.disabled]}>
+          <Text style={styles.primaryText}>📍 Check-in yap</Text>
         </View>
+        <Text style={styles.muted}>Aynı mekana 2 saatte bir check-in yapılabilir.</Text>
       </View>
     );
   }
@@ -195,7 +200,6 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
 }
 
 const styles = themed(() => StyleSheet.create({
-  cooldown: { gap: 4, padding: 12, borderRadius: 12, backgroundColor: colors.cream },
   card: { padding: 16, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 10 },
   title: { fontSize: 16, fontWeight: '700', color: colors.text },
   text: { fontSize: 14, color: colors.text },

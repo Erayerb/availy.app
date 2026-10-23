@@ -14,3 +14,7 @@ services:
     envVars:
       - key: DATABASE_URL
         sync: false
+      # Resend API key for "Şifremi unuttum" / e-mail verification codes (set in the dashboard).
+      # Without it the codes are only written to the server log.
+      - key: RESEND_API_KEY
+        sync: false

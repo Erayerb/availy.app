@@ -25,6 +25,7 @@ import { describeProgram, isProgramActive } from '../lib/loyalty';
 import type { User } from '../lib/auth';
 import { crowdExtra, crowdRatioText, crowdSummary, crowdYesterday } from '../lib/crowd';
 import { shareVenue } from '../lib/shareVenue';
+import { instagramUrl, phoneUrl } from '../lib/venueApi';
 import { canWatch } from '../lib/watch';
 import { colors, themed } from '../theme';
 
@@ -37,6 +38,7 @@ type Props = {
   onBack: () => void;
   onShowOnMap: (venue: Venue) => void;
   onOpenUser: (username: string) => void; // a reviewer's profile
+  onEditProfile: () => void; // the venue's own business: Daha fazla > İşletme Profili
   lastCheckinAt?: string | null; // the user's last check-in here
 };
 
@@ -49,6 +51,7 @@ export function VenueDetailScreen({
   onBack,
   onShowOnMap,
   onOpenUser,
+  onEditProfile,
   lastCheckinAt = null,
 }: Props) {
   const { venues, loading, error, refreshing, refresh } = useVenuesByIds([venueId]);
@@ -76,6 +79,8 @@ export function VenueDetailScreen({
   const campaign = venue.open_now ? activeFor(venue.id) : null;
   const program = programs.find((p) => p.venueId === venue.id && isProgramActive(p));
   const watching = watches.some((w) => w.venueId === venue.id);
+  // The venue's own business sees its page as customers do, with "Düzenle"
+  const owner = user?.role === 'business' && user.venueId === venue.id;
 
   return (
     <ScrollView
@@ -90,7 +95,12 @@ export function VenueDetailScreen({
       <View style={styles.top}>
         <BackButton onPress={onBack} />
         <View style={styles.actions}>
-          <WatchButton venue={venue} size={22} />
+          {owner && (
+            <Pressable style={styles.edit} onPress={onEditProfile} hitSlop={6}>
+              <Text style={styles.editText}>✏️ Düzenle</Text>
+            </Pressable>
+          )}
+          {!owner && <WatchButton venue={venue} size={22} />}
           <Pressable
             onPress={async () => setNote(await shareVenue(venue))}
             hitSlop={10}
@@ -98,14 +108,23 @@ export function VenueDetailScreen({
           >
             <Text style={styles.icon}>⤴</Text>
           </Pressable>
-          <FavoriteButton venueId={venue.id} size={22} />
+          {!owner && <FavoriteButton venueId={venue.id} size={22} />}
         </View>
       </View>
 
-      <VenuePhoto venueId={venue.id} category={venue.category} size="100%" height={200} />
+      {owner && <Text style={styles.ownerNote}>👁 Müşteriler mekanını böyle görüyor</Text>}
+
+      <VenuePhoto venueId={venue.id} category={venue.category} photoAt={venue.photo_at} size="100%" height={200} />
 
       <View>
-        <Text style={styles.name}>{venue.name}</Text>
+        <Text style={styles.name}>
+          {venue.name}
+          {venue.verified && <Text style={styles.verified}> ✓</Text>}
+        </Text>
+        {venue.verified && <Text style={styles.verifiedText}>Doğrulanmış işletme</Text>}
+        {venue.pending && (
+          <Text style={styles.pending}>⏳ Onay bekliyor · bir kullanıcı ekledi; 3 farklı kişi check-in yapınca onaylanır</Text>
+        )}
         {venue.discovery && (
           <Text style={styles.discovery}>
             ✨ Burayı {discoverer(venue.discovery)} keşfetti ·{' '}
@@ -124,6 +143,20 @@ export function VenueDetailScreen({
       </View>
       {note && <Text style={styles.note}>{note}</Text>}
       {venue.address ? <Text style={styles.text}>📍 {venue.address}</Text> : null}
+      {(venue.instagram || venue.phone) && (
+        <View style={styles.links}>
+          {venue.instagram && (
+            <Pressable style={styles.linkButton} onPress={() => Linking.openURL(instagramUrl(venue.instagram!))}>
+              <Text style={styles.linkText}>📷 @{venue.instagram}</Text>
+            </Pressable>
+          )}
+          {venue.phone && (
+            <Pressable style={styles.linkButton} onPress={() => Linking.openURL(phoneUrl(venue.phone!))}>
+              <Text style={styles.linkText}>📞 Ara</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
 
       <View style={styles.card}>
         <View style={styles.row}>
@@ -153,6 +186,7 @@ export function VenueDetailScreen({
         onRegister={onRegister}
         onDone={() => {
           refresh();
+          reloadReviews(); // a check-in allows two more reviews
           onCheckedIn();
         }}
         lastCheckinAt={lastCheckinAt}
@@ -214,6 +248,23 @@ export function VenueDetailScreen({
 
 const styles = themed(() => StyleSheet.create({
   discovery: { fontSize: 13, color: colors.discovery, fontWeight: '600', marginTop: 2 },
+  ownerNote: { fontSize: 13, color: colors.textMuted, fontWeight: '600' },
+  edit: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 14, backgroundColor: colors.primary },
+  editText: { color: colors.onPrimary, fontWeight: '700', fontSize: 14 },
+  verified: { color: colors.success, fontWeight: '800' },
+  verifiedText: { fontSize: 13, color: colors.success, fontWeight: '600' },
+  pending: { fontSize: 13, color: colors.gold, fontWeight: '600', marginTop: 2 },
+  links: { flexDirection: 'row', gap: 10 },
+  linkButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+  },
+  linkText: { fontSize: 14, fontWeight: '700', color: colors.text },
   // Space for the status bar sits outside the scroll view, so the pull-to-refresh spinner stays visible
   page: { flex: 1, marginTop: 50, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 48, gap: 14 },

@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { isRegistered, type User } from '../lib/auth';
 import { sentence, timeAgo } from '../lib/crowd';
 import { stars } from '../lib/feedback';
-import { author, MAX_REVIEW, MAX_REVIEWS_PER_VENUE, reviewsApi, type Review, type Reviews } from '../lib/reviews';
+import { author, MAX_REVIEW, MAX_REVIEWS_PER_CHECKIN, reviewsApi, type Review, type Reviews } from '../lib/reviews';
 import { REPORT_REASONS, safetyApi, type ReportReason } from '../lib/safety';
 import { colors, themed } from '../theme';
 import { ThemedSwitch } from './ThemedSwitch';
@@ -29,7 +29,7 @@ export function ReviewsSection({ venueId, user, reviews, onChange, reload, onReg
   // Businesses do not write reviews; on their own venue they answer them ("İşletme")
   const business = user?.role === 'business';
   const ownerBusiness = business && user?.venueId === venueId;
-  const mineCount = reviews.items.filter((r) => r.mine).length;
+  const allowance = reviews.allowance;
   const [rating, setRating] = useState(0);
   const [body, setBody] = useState('');
   const [allowReplies, setAllowReplies] = useState(true);
@@ -63,13 +63,15 @@ export function ReviewsSection({ venueId, user, reviews, onChange, reload, onReg
             ? 'Müşterilerinin yorumlarına "Yanıtla" ile işletme olarak cevap verebilirsin.'
             : 'İşletme hesapları yorum yazamaz.'}
         </Text>
-      ) : registered && mineCount >= MAX_REVIEWS_PER_VENUE ? (
+      ) : registered && allowance && allowance.checkins === 0 ? (
+        <Text style={styles.muted}>Yorum yazmak için önce buraya check-in yap. Her check-in {MAX_REVIEWS_PER_CHECKIN} yorum hakkı verir.</Text>
+      ) : registered && allowance && allowance.left <= 0 ? (
         <Text style={styles.muted}>
-          Bu mekana {MAX_REVIEWS_PER_VENUE} yorum yazdın. Yeni yorum için birini sil.
+          Bu check-in'lerin için yorum hakkını kullandın. Tekrar check-in yapınca {MAX_REVIEWS_PER_CHECKIN} yorum daha yazabilirsin.
         </Text>
       ) : registered ? (
         <View style={styles.form}>
-          {mineCount > 0 && <Text style={styles.muted}>Bir mekana en fazla {MAX_REVIEWS_PER_VENUE} yorum yazabilirsin.</Text>}
+          {allowance && <Text style={styles.muted}>{allowance.left} yorum hakkın var (her check-in {MAX_REVIEWS_PER_CHECKIN} yorum).</Text>}
           <View style={styles.starsRow}>
             {[1, 2, 3, 4, 5].map((n) => (
               <Pressable key={n} onPress={() => setRating(n)} hitSlop={6} accessibilityLabel={`${n} yıldız`}>
@@ -171,7 +173,13 @@ function ReviewItem({
             <Text style={styles.bold} onPress={() => reply.username && token && onOpenUser(reply.username)}>
               {author(reply.username)}
             </Text>
-            {reply.is_business && <Text style={styles.businessTag}> İşletme </Text>} {reply.body}
+            {reply.is_business && (
+              <>
+                {' '}
+                <Text style={styles.businessTag}> İşletme </Text>
+              </>
+            )}{' '}
+            {reply.body}
           </Text>
           <View style={styles.row}>
             <Text style={styles.muted}>{sentence(timeAgo(reply.created_at, now))}</Text>

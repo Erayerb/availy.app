@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.auth_api import current_user
-from app.business import BusinessError, set_business_venue, venue_stats
+from app.business import BusinessError, reward_discoverer, set_business_venue, venue_stats
 from app.checkins_api import get_clock
 from app.db import get_conn
 
@@ -24,8 +24,14 @@ class HourOut(BaseModel):
 
 
 class Discoverer(BaseModel):
-    username: str | None
+    username: str | None  # None when the check-in was private
     at: datetime
+    can_reward: bool  # the account still exists
+    reward: str | None  # what the business already sent
+
+
+class RewardIn(BaseModel):
+    message: str
 
 
 class StatsOut(BaseModel):
@@ -42,6 +48,14 @@ class StatsOut(BaseModel):
 
 def _fail(e: BusinessError) -> HTTPException:
     return HTTPException(status_code=e.status, detail=e.message)
+
+
+@router.get("/venues/taken", response_model=list[int])
+def taken(conn: psycopg.Connection = Depends(get_conn)):
+    """Venues that already have a business account (the venue setup list marks them)."""
+    return [r["venue_id"] for r in conn.execute(
+        "SELECT DISTINCT venue_id FROM users WHERE role = 'business' AND venue_id IS NOT NULL"
+    ).fetchall()]
 
 
 @router.put("/me/venue")
@@ -62,5 +76,20 @@ def stats(
 ):
     try:
         return venue_stats(conn, user, venue_id, now)
+    except BusinessError as e:
+        raise _fail(e) from None
+
+
+@router.post("/venues/{venue_id}/discoverer-reward", status_code=201)
+def reward(
+    venue_id: int,
+    body: RewardIn,
+    user: dict = Depends(current_user),
+    conn: psycopg.Connection = Depends(get_conn),
+    now: datetime = Depends(get_clock),
+):
+    """"Ödül ver": once per venue, it reaches the discoverer as a notification."""
+    try:
+        return reward_discoverer(conn, user, venue_id, body.message, now)
     except BusinessError as e:
         raise _fail(e) from None

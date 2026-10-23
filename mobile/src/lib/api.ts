@@ -41,6 +41,12 @@ export type Venue = {
   open_now: boolean;
   hours: string; // "08:00–23:00" or "24 saat açık"
   opens_at: string; // next opening time, shown when closed
+  pending?: boolean; // v2: added by a user, waiting for approval ("⏳ Onay bekliyor")
+  // v2: the business's profile, from the server (cover photo: venueApi.photoUrl)
+  photo_at?: string | null;
+  instagram?: string | null;
+  phone?: string | null;
+  verified?: boolean; // "✓ Doğrulanmış işletme"
   // Set by the business on this phone (see overrides.ts)
   description?: string;
   amenity_keys?: string[];

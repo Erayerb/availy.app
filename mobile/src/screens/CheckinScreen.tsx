@@ -16,10 +16,10 @@ import { colors, themed } from '../theme';
 const NEARBY_DELTA = 0.015;
 const MAX_NEARBY = 30;
 
-type Props = { onBack: () => void; onOpenVenue: (venue: Venue) => void };
+type Props = { onBack: () => void; onOpenVenue: (venue: Venue) => void; onAddVenue: () => void };
 
 /** v2 map "+": nearest venues and a search; tapping one opens its page, where the check-in is. */
-export function CheckinScreen({ onBack, onOpenVenue }: Props) {
+export function CheckinScreen({ onBack, onOpenVenue, onAddVenue }: Props) {
   const { point, locate } = useLocation();
   const { crowdLook } = useSettings();
   const [query, setQuery] = useState('');
@@ -72,7 +72,11 @@ export function CheckinScreen({ onBack, onOpenVenue }: Props) {
     <View style={styles.header}>
       <View style={styles.topRow}>
         <BackButton onPress={onBack} />
-        <Text style={styles.title}>Check-in yap</Text>
+        <Text style={[styles.title, styles.flex]}>Check-in yap</Text>
+        {/* The venue is not in the list */}
+        <Pressable onPress={onAddVenue} style={styles.add} hitSlop={6} accessibilityLabel="Mekan ekle">
+          <Text style={styles.addText}>➕ Mekan ekle</Text>
+        </Pressable>
       </View>
       <TextInput
         value={query}
@@ -139,6 +143,8 @@ export function CheckinScreen({ onBack, onOpenVenue }: Props) {
 }
 
 const styles = themed(() => StyleSheet.create({
+  add: { paddingVertical: 7, paddingHorizontal: 12, borderRadius: 14, borderWidth: 1.5, borderColor: colors.primary },
+  addText: { color: colors.primary, fontSize: 14, fontWeight: '700' },
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 40, gap: 8 },
   header: { gap: 12, marginBottom: 4 },

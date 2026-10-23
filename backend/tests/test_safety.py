@@ -38,8 +38,9 @@ def test_profile_shows_venues_to_me_and_friends_only(client, conn):
     assert client.get("/v1/users/yokboyle", headers=auth(ali)).status_code == 404
 
 
-def test_block_ends_friendship_and_hides_both_ways(client, conn):
+def test_block_ends_friendship_and_hides_both_ways(client, conn, visit):
     ali, ayse = account(client, "t_ali"), account(client, "t_ayse")
+    visit("t_ayse", kafe(conn))
     befriend(client, ali, ayse, "t_ali", "t_ayse")
     review = client.post(f"/v1/venues/{kafe(conn)}/reviews", json={"rating": 5, "body": "Süper"}, headers=auth(ayse)).json()
     assert client.post("/v1/users/t_ayse/block", headers=auth(ali)).status_code == 204
@@ -55,8 +56,9 @@ def test_block_ends_friendship_and_hides_both_ways(client, conn):
     assert client.get(f"/v1/venues/{kafe(conn)}/reviews", headers=auth(ali)).json()["count"] == 1
 
 
-def test_mute_keeps_the_friend_out_of_the_feed(client, conn):
+def test_mute_keeps_the_friend_out_of_the_feed(client, conn, visit):
     ali, ayse = account(client, "t_ali"), account(client, "t_ayse")
+    visit("t_ayse", kafe(conn))
     befriend(client, ali, ayse, "t_ali", "t_ayse")
     client.post(f"/v1/venues/{kafe(conn)}/reviews", json={"rating": 4}, headers=auth(ayse))
     assert len(client.get("/v1/feed", headers=auth(ali)).json()) == 1
@@ -68,8 +70,9 @@ def test_mute_keeps_the_friend_out_of_the_feed(client, conn):
     assert len(client.get("/v1/feed", headers=auth(ali)).json()) == 1
 
 
-def test_reported_review_is_hidden_for_the_reporter_then_for_everyone(client, conn):
+def test_reported_review_is_hidden_for_the_reporter_then_for_everyone(client, conn, visit):
     author = account(client, "t_yazar")
+    visit("t_yazar", kafe(conn))
     review = client.post(f"/v1/venues/{kafe(conn)}/reviews", json={"rating": 1, "body": "reklam"}, headers=auth(author)).json()
     review_id = review["items"][0]["id"]
     assert client.post(f"/v1/reviews/{review_id}/report", json={"reason": "spam"}, headers=auth(author)).status_code == 400
@@ -84,8 +87,9 @@ def test_reported_review_is_hidden_for_the_reporter_then_for_everyone(client, co
     assert client.post(f"/v1/reviews/{review_id}/report", json={"reason": "spam"}, headers=auth(guest)).status_code == 403
 
 
-def test_reported_reply(client, conn):
+def test_reported_reply(client, conn, visit):
     ali, ayse = account(client, "t_ali"), account(client, "t_ayse")
+    visit("t_ali", kafe(conn))
     review = client.post(f"/v1/venues/{kafe(conn)}/reviews", json={"rating": 5}, headers=auth(ali)).json()["items"][0]
     reply = client.post(f"/v1/reviews/{review['id']}/replies", json={"body": "kötü söz"}, headers=auth(ayse)).json()
     assert client.post(f"/v1/replies/{reply['id']}/report", json={"reason": "insult"}, headers=auth(ali)).status_code == 204
@@ -93,8 +97,9 @@ def test_reported_reply(client, conn):
     assert items[0]["replies"] == []
 
 
-def test_frozen_account_is_hidden_until_the_next_sign_in(client, conn):
+def test_frozen_account_is_hidden_until_the_next_sign_in(client, conn, visit):
     ali, ayse = account(client, "t_ali"), account(client, "t_ayse")
+    visit("t_ayse", kafe(conn))
     befriend(client, ali, ayse, "t_ali", "t_ayse")
     client.post(f"/v1/venues/{kafe(conn)}/reviews", json={"rating": 5, "body": "Güzel"}, headers=auth(ayse))
     assert client.post("/v1/me/freeze", headers=auth(ayse)).status_code == 204

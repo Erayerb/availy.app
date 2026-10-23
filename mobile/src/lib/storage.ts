@@ -5,11 +5,8 @@ export const KEYS = {
   businessProfiles: 'availy.businessProfiles', // account id -> venue / plan kept on this phone (v2: server later)
   knownCustomers: 'availy.knownCustomers', // accounts used on this phone (business finds a customer by code)
   favorites: 'availy.favorites',
-  campaigns: 'availy.campaigns', // business campaigns created on this phone
   localVenues: 'availy.localVenues', // venues added by business accounts on this phone
   settings: 'availy.settings',
-  coupons: 'availy.coupons',
-  campaignViews: 'availy.campaignViews',
   loyaltyPrograms: 'availy.loyaltyPrograms',
   stampCards: 'availy.stampCards',
   memberships: 'availy.memberships',
@@ -18,10 +15,10 @@ export const KEYS = {
   venueOverrides: 'availy.venueOverrides', // details edited by the business
   schedules: 'availy.schedules', // scheduled / recurring campaigns
   firedSchedules: 'availy.firedSchedules',
-  feedback: 'availy.feedback',
   monitor: 'availy.monitor', // dead-hour alert / auto campaign timestamps
   support: 'availy.support', // bug reports and contact messages
   notificationsSeen: 'availy.notificationsSeen', // account -> when the 🔔 list was last opened (v2)
+  lastLogin: 'availy.lastLogin', // "Beni hatırla": the user name / e-mail typed last
 } as const;
 
 export async function loadJson<T>(key: string): Promise<T | null> {

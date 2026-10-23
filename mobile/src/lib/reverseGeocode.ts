@@ -5,7 +5,8 @@
  */
 import { distanceKm, type LatLon } from './geo.ts';
 
-export type Address = { district: string; neighborhood: string };
+// line: street and number ("Moda Caddesi 12"), empty when the point has none
+export type Address = { district: string; neighborhood: string; line?: string };
 
 type NominatimAddress = Record<string, string | undefined>;
 
@@ -16,7 +17,8 @@ export function parseNominatimAddress(address: NominatimAddress | undefined): Ad
   const district = clean(address.town ?? address.city_district ?? address.district ?? address.county);
   if (!district) return null;
   const neighborhood = clean(address.quarter ?? address.neighbourhood ?? address.suburb);
-  return { district, neighborhood };
+  const line = [address.road ?? address.pedestrian, address.house_number].filter(Boolean).join(' ');
+  return line ? { district, neighborhood, line } : { district, neighborhood };
 }
 
 export function nearestVenueAddress(
@@ -32,7 +34,7 @@ export async function reverseGeocode(point: LatLon, signal?: AbortSignal): Promi
     format: 'jsonv2',
     lat: String(point.lat),
     lon: String(point.lon),
-    zoom: '16',
+    zoom: '18', // street and house number
     'accept-language': 'tr',
   });
   try {

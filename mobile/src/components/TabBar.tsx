@@ -18,6 +18,7 @@ export type Screen =
   | 'verification'
   | 'about'
   | 'checkin'
+  | 'addVenue'
   | 'permissions'
   | 'notifications'
   | 'privacy'
@@ -58,7 +59,7 @@ export function TabBar({ tabs, current, onSelect }: Props) {
     ? current
     : MORE_PAGES.includes(current)
       ? 'more'
-      : current === 'checkin'
+      : current === 'checkin' || current === 'addVenue'
         ? 'map'
         : null;
 

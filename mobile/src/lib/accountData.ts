@@ -1,13 +1,13 @@
 /**
  * Data kept on this phone is keyed by the account (accountKey = e-mail). When the e-mail
- * changes, move it to the new key so favorites, coupons, stamp cards and the like stay.
+ * changes, move it to the new key so favorites, stamp cards and the like stay.
  */
 import { KEYS, loadJson, saveJson } from './storage.ts';
 
 type Keyed = { userKey: string };
 
 /** Lists whose items carry the owner's key. */
-const OWNED_LISTS = [KEYS.coupons, KEYS.stampCards, KEYS.memberships, KEYS.feedback] as const;
+const OWNED_LISTS = [KEYS.stampCards, KEYS.memberships] as const;
 
 export function rekey<T extends Keyed>(items: T[], from: string, to: string): T[] {
   return items.map((item) => (item.userKey === from ? { ...item, userKey: to } : item));

@@ -30,19 +30,12 @@ test('history: daily averages over opening hours and weekday means', () => {
 
 test('campaign totals for the last N days', () => {
   const campaigns = [
-    { id: 'a', venueId: 1, startsAt: '2026-10-12T10:00:00Z' },
-    { id: 'b', venueId: 1, startsAt: '2026-09-01T10:00:00Z' }, // too old for a week
-    { id: 'c', venueId: 2, startsAt: '2026-10-12T10:00:00Z' }, // other venue
+    { venueId: 1, startsAt: '2026-10-12T10:00:00Z', stats: { views: 30, claims: 2, redemptions: 1 } },
+    { venueId: 1, startsAt: '2026-09-01T10:00:00Z', stats: { views: 5, claims: 1, redemptions: 0 } }, // too old for a week
+    { venueId: 2, startsAt: '2026-10-12T10:00:00Z', stats: { views: 9, claims: 9, redemptions: 9 } }, // other venue
   ];
-  const coupons = [
-    { campaignId: 'a', redeemedAt: null },
-    { campaignId: 'a', redeemedAt: '2026-10-12T11:00:00Z' },
-    { campaignId: 'b', redeemedAt: null },
-  ];
-  assert.deepEqual(campaignTotals(campaigns, { a: 30, b: 5 }, coupons, 1, 7, TUESDAY_1330), {
-    campaigns: 1, views: 30, claims: 2, redemptions: 1,
-  });
-  assert.equal(campaignTotals(campaigns, {}, coupons, 1, 60, TUESDAY_1330).claims, 3);
+  assert.deepEqual(campaignTotals(campaigns, 1, 7, TUESDAY_1330), { campaigns: 1, views: 30, claims: 2, redemptions: 1 });
+  assert.equal(campaignTotals(campaigns, 1, 60, TUESDAY_1330).claims, 3);
 });
 
 test('venue edits: validation and applying hours, capacity, features', () => {
@@ -133,4 +126,6 @@ test('panel: busiest hour today and quietest weekday from check-ins', async () =
   assert.equal(busiestHour(hours.map((h) => ({ ...h, checkins: 0 }))), null);
   assert.equal(quietestWeekday([3, 1, 4, 4, 5, 9, 7]), 1);
   assert.equal(quietestWeekday([0, 0, 0, 0, 0, 0, 0]), null);
+  // Several days without check-ins: no single quietest day
+  assert.equal(quietestWeekday([0, 0, 1, 0, 0, 0, 0]), null);
 });

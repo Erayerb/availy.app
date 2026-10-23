@@ -4,6 +4,12 @@ import psycopg
 
 from app.config import settings
 
+# Hidden sources (v1 demo venues), and venues added by users that nobody approved within 30 days
+VISIBLE = """source <> ALL(%(hidden)s::text[])
+          AND NOT (source = 'user' AND approved_at IS NULL AND created_at < now() - interval '30 days')"""
+# Shown as "⏳ Onay bekliyor"
+PENDING = "(source = 'user' AND approved_at IS NULL) AS pending"
+
 # Purpose tags used by the mobile filter chips
 TAGS = frozenset({"socializing", "coworking", "entertainment", "quiet", "food", "nightlife", "nature"})
 
@@ -63,15 +69,15 @@ def find_venues_in_bbox(
 ) -> list[dict]:
     """Venues inside bbox; with tags, only venues having at least one of them."""
     return conn.execute(
-        """
+        f"""
         SELECT id, name, category, capacity, neighborhood, district, tags, popularity, always_busy,
-               open_hour, close_hour,
+               open_hour, close_hour, address, {PENDING},
                ST_Y(location::geometry) AS lat,
                ST_X(location::geometry) AS lon
         FROM venues
         WHERE location && ST_MakeEnvelope(%(min_lon)s, %(min_lat)s, %(max_lon)s, %(max_lat)s, 4326)::geography
           AND (cardinality(%(tags)s::text[]) = 0 OR tags && %(tags)s::text[])
-          AND source <> ALL(%(hidden)s::text[])
+          AND {VISIBLE}
         ORDER BY id
         LIMIT %(limit)s
         """,
@@ -90,8 +96,8 @@ def find_venues_in_bbox(
 def find_venues_by_district(conn: psycopg.Connection, districts: list[str]) -> dict[str, list[dict]]:
     """All venues (id, popularity, always_busy) per district, ignoring bbox and filters."""
     rows = conn.execute(
-        "SELECT id, popularity, always_busy, district FROM venues WHERE district = ANY(%s) AND source <> ALL(%s) ORDER BY id",
-        (districts, settings.hidden_venue_sources),
+        f"SELECT id, popularity, always_busy, district FROM venues WHERE district = ANY(%(districts)s) AND {VISIBLE} ORDER BY id",
+        {"districts": districts, "hidden": settings.hidden_venue_sources},
     ).fetchall()
     result: dict[str, list[dict]] = {}
     for row in rows:
@@ -131,7 +137,7 @@ def search_venues(
     optionally filtered by district, tags and ids."""
     sql = """
         SELECT id, name, category, capacity, neighborhood, district, tags, popularity, always_busy,
-               open_hour, close_hour,
+               open_hour, close_hour, address, {pending},
                ST_Y(location::geometry) AS lat,
                ST_X(location::geometry) AS lon
         FROM venues
@@ -142,13 +148,15 @@ def search_venues(
           AND (%(district)s::text IS NULL OR district = %(district)s)
           AND (cardinality(%(tags)s::text[]) = 0 OR tags && %(tags)s::text[])
           AND (%(ids)s::bigint[] IS NULL OR id = ANY(%(ids)s::bigint[]))
-          AND source <> ALL(%(hidden)s::text[])
+          AND {visible}
         ORDER BY name COLLATE "tr-TR-x-icu"
         LIMIT %(limit)s
     """.format(
         name=_folded_sql("name"),
         neighborhood=_folded_sql("neighborhood"),
         district=_folded_sql("district"),
+        pending=PENDING,
+        visible=VISIBLE,
     )
     return conn.execute(
         sql,
@@ -165,13 +173,13 @@ def search_venues(
 
 def list_districts(conn: psycopg.Connection) -> list[str]:
     rows = conn.execute(
-        """
+        f"""
         SELECT district FROM venues
-        WHERE district <> '' AND source <> ALL(%s)
+        WHERE district <> '' AND {VISIBLE}
         GROUP BY district
         ORDER BY district COLLATE "tr-TR-x-icu"
         """,
-        (settings.hidden_venue_sources,),
+        {"hidden": settings.hidden_venue_sources},
     ).fetchall()
     return [row["district"] for row in rows]
 

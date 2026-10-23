@@ -11,32 +11,43 @@ def venue(conn, name="Test Kafe A"):
     return conn.execute("SELECT id FROM venues WHERE name = %s", (name,)).fetchone()["id"]
 
 
-def test_two_reviews_per_person_and_venue(client, conn):
+def test_two_reviews_per_checkin(client, conn, visit):
     kafe, ali = venue(conn), account(client, "t_ali")
+    # No check-in here yet: no review
+    no_visit = client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 5}, headers=auth(ali))
+    assert no_visit.status_code == 403 and "check-in" in no_visit.json()["detail"]
+    assert client.get(f"/v1/venues/{kafe}/reviews", headers=auth(ali)).json()["allowance"] == {"checkins": 0, "left": 0}
+    visit("t_ali", kafe)
     first = client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 4, "body": " Kahvesi güzel "}, headers=auth(ali))
     assert first.status_code == 201
     assert first.json()["items"][0]["body"] == "Kahvesi güzel" and first.json()["items"][0]["mine"] is True
     client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 2, "body": "Bugün kalabalıktı"}, headers=auth(ali))
     third = client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 5}, headers=auth(ali))
     assert third.status_code == 409 and "en fazla 2" in third.json()["detail"]
+    # Another check-in: two more
+    visit("t_ali", kafe)
+    assert client.get(f"/v1/venues/{kafe}/reviews", headers=auth(ali)).json()["allowance"] == {"checkins": 2, "left": 2}
+    assert client.get(f"/v1/venues/{kafe}/reviews").json()["allowance"] is None
     public = client.get(f"/v1/venues/{kafe}/reviews").json()
     assert public["count"] == 2 and public["average"] == 3.0
     assert [r["body"] for r in public["items"]] == ["Bugün kalabalıktı", "Kahvesi güzel"]
     assert public["items"][0]["username"] == "t_ali" and public["items"][0]["mine"] is False
 
 
-def test_review_rules(client, conn):
+def test_review_rules(client, conn, visit):
     kafe = venue(conn)
     guest = client.post("/v1/auth/guest").json()["token"]
     assert client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 5}, headers=auth(guest)).status_code == 403
     ali = account(client, "t_ali")
+    visit("t_ali", kafe)
     assert client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 6}, headers=auth(ali)).status_code == 400
     assert client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 5, "body": "x" * 281}, headers=auth(ali)).status_code == 400
     assert client.post("/v1/venues/999999/reviews", json={"rating": 5}, headers=auth(ali)).status_code == 404
 
 
-def test_replies_and_their_permission(client, conn):
+def test_replies_and_their_permission(client, conn, visit):
     kafe, ali, ayse = venue(conn), account(client, "t_ali"), account(client, "t_ayse")
+    visit("t_ali", kafe)
     review = client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 5, "body": "Harika"}, headers=auth(ali)).json()["items"][0]
     reply = client.post(f"/v1/reviews/{review['id']}/replies", json={"body": "Katılıyorum"}, headers=auth(ayse))
     assert reply.status_code == 201
@@ -53,8 +64,9 @@ def test_replies_and_their_permission(client, conn):
     assert client.post(f"/v1/reviews/{closed['id']}/replies", json={"body": "Ek: tatlılar iyi"}, headers=auth(ali)).status_code == 201
 
 
-def test_only_own_reviews_and_replies_can_be_deleted(client, conn):
+def test_only_own_reviews_and_replies_can_be_deleted(client, conn, visit):
     kafe, ali, ayse = venue(conn), account(client, "t_ali"), account(client, "t_ayse")
+    visit("t_ali", kafe)
     review = client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 5}, headers=auth(ali)).json()["items"][0]
     reply = client.post(f"/v1/reviews/{review['id']}/replies", json={"body": "Evet"}, headers=auth(ayse)).json()
     client.delete(f"/v1/replies/{reply['id']}", headers=auth(ali))  # not Ali's reply: nothing happens
@@ -65,7 +77,7 @@ def test_only_own_reviews_and_replies_can_be_deleted(client, conn):
     assert client.get(f"/v1/venues/{kafe}/reviews").json()["count"] == 0
 
 
-def test_feed_has_friends_checkins_reviews_and_replies(client, conn):
+def test_feed_has_friends_checkins_reviews_and_replies(client, conn, visit):
     kafe, ali, ayse, other = venue(conn), account(client, "t_ali"), account(client, "t_ayse"), account(client, "t_yabanci")
     client.post("/v1/friends", json={"username": "t_ayse"}, headers=auth(ali))
     client.post("/v1/friends", json={"username": "t_ali"}, headers=auth(ayse))
@@ -74,6 +86,7 @@ def test_feed_has_friends_checkins_reviews_and_replies(client, conn):
         "INSERT INTO checkins (venue_id, user_id, level, is_first, created_at) VALUES (%s, %s, 'low', true, now() - interval '3 hours')",
         (kafe, ayse_id),
     )
+    visit("t_yabanci", kafe)
     review = client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 4, "body": "Sakin"}, headers=auth(ayse)).json()["items"][0]
     stranger = client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 1}, headers=auth(other)).json()["items"]
     client.post(f"/v1/reviews/{[r for r in stranger if r['username'] == 't_yabanci'][0]['id']}/replies", json={"body": "Neden?"}, headers=auth(ayse))

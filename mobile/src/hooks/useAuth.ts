@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { accountApi, ApiError, toUser, type LocalBusiness } from '../lib/accountApi';
 import { accountKey, normalizeUsername, validateUsername, type Role, type User } from '../lib/auth';
@@ -18,15 +18,20 @@ async function syncVenue(token: string, venueId: number) {
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
+  // "Beni hatırla" off: the session lives only in memory and ends when the app is closed
+  const remember = useRef(true);
+  const sessionUser = useRef<User | null>(null);
 
   const signIn = useCallback(async (next: User) => {
     // Same account with a new e-mail (changed here or on another phone): keep its data on this phone
-    const previous = await loadJson<User>(KEYS.user);
+    const previous = sessionUser.current ?? (await loadJson<User>(KEYS.user));
     if (previous && previous.id === next.id && accountKey(previous) !== accountKey(next)) {
       await moveAccountData(accountKey(previous), accountKey(next));
     }
     setUser(next);
-    await saveJson(KEYS.user, next);
+    sessionUser.current = next;
+    if (remember.current) await saveJson(KEYS.user, next);
+    else await remove(KEYS.user);
     // Remember who used this phone, so a business here can find a customer by code (loyalty stamps)
     const known = (await loadJson<string[]>(KEYS.knownCustomers)) ?? [];
     const key = accountKey(next);
@@ -35,6 +40,8 @@ export function useAuth() {
 
   const signOutLocally = useCallback(async () => {
     setUser(null);
+    sessionUser.current = null;
+    remember.current = true;
     await remove(KEYS.user);
   }, []);
 
@@ -63,7 +70,7 @@ export function useAuth() {
 
   /** Reload profile and points from the server (e.g. after a check-in). */
   const refreshMe = useCallback(async () => {
-    const stored = await loadJson<User>(KEYS.user);
+    const stored = sessionUser.current ?? (await loadJson<User>(KEYS.user));
     if (!stored?.token) return;
     try {
       const fresh = await accountApi.me(stored.token);
@@ -98,10 +105,14 @@ export function useAuth() {
   );
 
   const login = useCallback(
-    async (login: string, password: string, role: Role): Promise<string | null> => {
+    async (login: string, password: string, role: Role, rememberMe = true): Promise<string | null> => {
       try {
-        const session = await accountApi.login(login, password, role);
-        await signIn(toUser(session.user, session.token, await localBusiness(session.user.id)));
+        const started = await accountApi.login(login, password, role);
+        remember.current = rememberMe;
+        // Also fills in the user name next time
+        if (rememberMe) await saveJson(KEYS.lastLogin, login.trim());
+        else await remove(KEYS.lastLogin);
+        await signIn(toUser(started.user, started.token, await localBusiness(started.user.id)));
         return null;
       } catch (e) {
         return asMessage(e);
@@ -175,7 +186,33 @@ export function useAuth() {
       if (!user?.token) return 'Önce giriş yap.';
       try {
         const fresh = await accountApi.changeEmail(user.token, email, password);
-        await signIn({ ...user, email: fresh.email });
+        // A new address has to be verified again
+        await signIn({ ...user, email: fresh.email, emailVerified: fresh.email_verified ?? false });
+        return null;
+      } catch (e) {
+        return asMessage(e);
+      }
+    },
+    [user, signIn],
+  );
+
+  /** E-mail verification: send the code (again), then enter it. */
+  const sendVerification = useCallback(async (): Promise<string | null> => {
+    if (!user?.token) return 'Önce giriş yap.';
+    try {
+      await accountApi.sendVerification(user.token);
+      return null;
+    } catch (e) {
+      return asMessage(e);
+    }
+  }, [user]);
+
+  const verifyEmail = useCallback(
+    async (code: string): Promise<string | null> => {
+      if (!user?.token) return 'Önce giriş yap.';
+      try {
+        await accountApi.verifyEmail(user.token, code);
+        await signIn({ ...user, emailVerified: true });
         return null;
       } catch (e) {
         return asMessage(e);
@@ -212,6 +249,8 @@ export function useAuth() {
     changeUsername,
     changePassword,
     changeEmail,
+    sendVerification,
+    verifyEmail,
     deleteAccount,
     freezeAccount,
     logout,

@@ -53,7 +53,8 @@ def leaderboard(conn: psycopg.Connection, me: dict, period: str, scope: str, now
 
 
 def notifications(conn: psycopg.Connection, me: dict, now: datetime) -> list[dict]:
-    """Newest first: friend requests to me, my requests that were accepted, replies to my reviews."""
+    """Newest first: friend requests to me, my requests that were accepted, replies to my reviews,
+    and rewards from venues I discovered (always kept: shown at the counter)."""
     return conn.execute(
         f"""
         SELECT * FROM (
@@ -71,6 +72,10 @@ def notifications(conn: psycopg.Connection, me: dict, now: datetime) -> list[dic
             JOIN venues v ON v.id = r.venue_id
             WHERE r.user_id = %(me)s AND p.user_id <> %(me)s AND p.created_at > %(since)s
               AND p.user_id NOT IN {BLOCKED} AND NOT {hidden_reply("p")}
+            UNION ALL
+            SELECT 'reward', w.created_at, NULL, v.id, v.name, w.message
+            FROM discoverer_rewards w JOIN venues v ON v.id = w.venue_id
+            WHERE w.user_id = %(me)s
         ) items
         ORDER BY at DESC LIMIT 50
         """,

@@ -23,6 +23,7 @@ import { FirstCheckinSheet } from './src/components/FirstCheckinSheet';
 import { IntroOverlay } from './src/components/IntroOverlay';
 import { friendsApi, inviteFromQuery } from './src/lib/friends';
 import { SubscriptionScreen } from './src/screens/SubscriptionScreen';
+import { AddVenueScreen } from './src/screens/AddVenueScreen';
 import { BUSINESS_TABS, CUSTOMER_TABS, TabBar, type Screen } from './src/components/TabBar';
 import { CampaignsProvider } from './src/context/CampaignsContext';
 import { EngagementProvider, useEngagement } from './src/context/EngagementContext';
@@ -34,6 +35,7 @@ import { useAuth } from './src/hooks/useAuth';
 import { useVisits } from './src/hooks/useVisits';
 import { accountKey, isBusiness, isRegistered, type Role } from './src/lib/auth';
 import { DEFAULT_PLAN } from './src/lib/plans';
+import { removeOldData } from './src/lib/cleanup';
 import { loadLocalVenues } from './src/lib/localVenueStore';
 import { loadOverrides } from './src/lib/overrideStore';
 import { BusinessMonitor } from './src/components/BusinessMonitor';
@@ -83,9 +85,7 @@ export default function App() {
   return (
     <SettingsProvider>
       <LocationProvider>
-        <CampaignsProvider>
-          <Main />
-        </CampaignsProvider>
+        <Main />
       </LocationProvider>
     </SettingsProvider>
   );
@@ -113,7 +113,12 @@ function Main() {
     goTo('user');
   };
   // Guests have no public profile: they get the sign-up page instead
-  const openMyProfile = () => (isRegistered(auth.user) && auth.user?.username ? openProfile(auth.user.username) : goTo('profile'));
+  const openMyProfile = () => {
+    // A business's profile is its venue page, as customers see it
+    if (isBusiness(auth.user) && auth.user?.venueId) return openDetails({ id: auth.user.venueId });
+    if (isRegistered(auth.user) && auth.user?.username) return openProfile(auth.user.username);
+    goTo('profile');
+  };
   // Sosyal opens on Akış; a friend-request notification opens it on Arkadaşlar
   const [socialTab, setSocialTab] = useState<SocialTab>('feed');
   const role: Role = isBusiness(auth.user) ? 'business' : 'personal';
@@ -149,6 +154,7 @@ function Main() {
 
   useEffect(() => {
     Promise.all([loadLocalVenues(), loadOverrides()]).finally(() => setLocalVenuesReady(true));
+    removeOldData(); // data earlier versions kept on the phone
   }, []);
 
   const needsVenue = isBusiness(auth.user) && !auth.user?.venueId;
@@ -279,8 +285,8 @@ function Main() {
           initialRole={authRole}
           onBack={() => setAuthForm(null)}
           onSwitchMode={setAuthForm}
-          onLogin={async (login, password, role) => {
-            const error = await auth.login(login, password, role);
+          onLogin={async (login, password, role, remember) => {
+            const error = await auth.login(login, password, role, remember);
             if (!error) enterApp(role);
             return error;
           }}
@@ -304,6 +310,7 @@ function Main() {
     return (
       <>
         <VenueSetupScreen
+          token={auth.user?.token ?? null}
           onDone={async (venueId) => {
             // A newly chosen venue has to be verified again
             await auth.updateProfile({ venueId, venueVerified: false });
@@ -319,12 +326,34 @@ function Main() {
     );
   }
 
+  // Profil ayarları (customers) and Ayarlar (businesses)
+  const accountActions = {
+    onChangeUsername: auth.changeUsername,
+    onChangePassword: auth.changePassword,
+    onChangeEmail: async (email: string, password: string) => {
+      const error = await auth.changeEmail(email, password);
+      // The screen reloads for the new e-mail's data, so confirm with a dialog that stays
+      if (!error) notifyDone(`E-posta adresin ${email.trim().toLowerCase()} olarak değişti.`);
+      return error;
+    },
+    onDeleteAccount: async () => {
+      setEntered(false);
+      await auth.deleteAccount();
+    },
+    onFreezeAccount: async () => {
+      setEntered(false);
+      await auth.freezeAccount();
+    },
+    onLogout: logout,
+  };
+
   return (
     <EngagementProvider
       // A new key (e.g. a changed e-mail) loads that account's data again
       key={auth.user ? accountKey(auth.user) : 'guest'}
       userKey={auth.user ? accountKey(auth.user) : 'guest'}
     >
+      <CampaignsProvider token={auth.user?.token ?? null} business={isBusiness(auth.user)}>
       <FavoritesProvider
         accountKey={auth.user ? accountKey(auth.user) : null}
         signedIn={isRegistered(auth.user)} onLoginRequired={() => setAuthForm('login')}>
@@ -401,6 +430,7 @@ function Main() {
               onBack={goBack}
               onShowOnMap={openVenueOnMap}
               onOpenUser={openProfile}
+              onEditProfile={() => goTo('profile')}
               lastCheckinAt={visits.find((v) => v.venue_id === detailId)?.last_at ?? null}
             />
           )}
@@ -408,30 +438,16 @@ function Main() {
             <ProfileScreen
               user={auth.user}
               onBack={goBack}
-              onPlanChange={(plan) => auth.updateProfile({ plan })}
               onLogin={() => setAuthForm('login')}
               onRegister={() => {
                 setAuthRole('personal');
                 setAuthForm('register');
               }}
-              onChangeUsername={auth.changeUsername}
-              onChangePassword={auth.changePassword}
-              onChangeEmail={async (email, password) => {
-                const error = await auth.changeEmail(email, password);
-                // The screen reloads for the new e-mail's data, so confirm with a dialog that stays
-                if (!error) notifyDone(`E-posta adresin ${email.trim().toLowerCase()} olarak değişti.`);
-                return error;
-              }}
-              onDeleteAccount={async () => {
-                setEntered(false);
-                await auth.deleteAccount();
-              }}
-              onFreezeAccount={async () => {
-                setEntered(false);
-                await auth.freezeAccount();
-              }}
-              onLogout={logout}
+              {...accountActions}
+              onSendVerification={auth.sendVerification}
+              onVerifyEmail={auth.verifyEmail}
               onOpenMyProfile={openMyProfile}
+              onOpenVerification={() => goTo('verification')}
             />
           )}
           {screen === 'settings' && (
@@ -441,6 +457,7 @@ function Main() {
               venueId={isBusiness(auth.user) ? (auth.user?.venueId ?? null) : null}
               onOpenPermissions={() => goTo('permissions')}
               onOpenPrivacy={() => goTo('privacy')}
+              account={auth.user && isBusiness(auth.user) ? { user: auth.user, ...accountActions } : null}
             />
           )}
           {screen === 'campaigns' && (
@@ -461,7 +478,7 @@ function Main() {
               onBack={isBusiness(auth.user) ? undefined : goBack}
             />
           )}
-          {screen === 'permissions' && <PermissionsScreen onBack={goBack} />}
+          {screen === 'permissions' && <PermissionsScreen business={isBusiness(auth.user)} onBack={goBack} />}
           {screen === 'appearance' && <AppearanceScreen onBack={goBack} />}
           {screen === 'privacy' && (
             <PrivacyScreen
@@ -498,7 +515,18 @@ function Main() {
               onOpenSettings={() => goTo('settings')}
             />
           )}
-          {screen === 'checkin' && <CheckinScreen onBack={goBack} onOpenVenue={openDetails} />}
+          {screen === 'checkin' && <CheckinScreen onBack={goBack} onOpenVenue={openDetails} onAddVenue={() => goTo('addVenue')} />}
+          {screen === 'addVenue' && (
+            <AddVenueScreen
+              user={auth.user}
+              onBack={goBack}
+              onRegister={() => {
+                setAuthRole('personal');
+                setAuthForm('register');
+              }}
+              onAdded={openDetails}
+            />
+          )}
           {screen === 'about' && <AboutScreen role={role} onBack={goBack} />}
           {screen === 'support' && <SupportScreen email={auth.user?.email ?? null} onBack={goBack} />}
           {screen === 'verification' && <VerificationScreen onBack={goBack} />}
@@ -511,6 +539,8 @@ function Main() {
               onOpenProfile={openMyProfile}
               onOpenNotifications={() => goTo('notifications')}
               onOpenUser={openProfile}
+              onOpenMap={() => goTo('map')}
+              onOpenCheckin={() => goTo('checkin')}
               onRegister={() => {
                 setAuthRole('personal');
                 setAuthForm('register');
@@ -518,7 +548,16 @@ function Main() {
             />
           )}
           {screen === 'subscription' && (
-            <SubscriptionScreen signedIn={isRegistered(auth.user)} onBack={goBack} onLogin={() => setAuthForm('login')} />
+            <SubscriptionScreen
+              signedIn={isRegistered(auth.user)}
+              onBack={goBack}
+              onLogin={() => setAuthForm('login')}
+              business={
+                isBusiness(auth.user)
+                  ? { plan: auth.user?.plan ?? DEFAULT_PLAN, onPlanChange: (plan) => auth.updateProfile({ plan }) }
+                  : null
+              }
+            />
           )}
           {screen === 'more' && (
             <MoreScreen
@@ -571,6 +610,7 @@ function Main() {
       </HeaderActionsContext.Provider>
       </NotificationsProvider>
       </FavoritesProvider>
+      </CampaignsProvider>
     </EngagementProvider>
   );
 }

@@ -105,7 +105,7 @@ def hash_token(token: str) -> str:
 
 USER_COLUMNS = (
     "id, email, username, name, role, venue_id, plan, trust, is_guest, created_at, "
-    "share_checkins, show_in_leaderboard, searchable, frozen"
+    "share_checkins, show_in_leaderboard, searchable, frozen, email_verified"
 )
 USERNAME_TAKEN = "Bu kullanıcı adı alınmış, başka bir tane dene."
 
@@ -271,7 +271,9 @@ def change_email(conn: psycopg.Connection, user: dict, password: str, email: str
     try:
         with conn.transaction():
             return conn.execute(
-                f"UPDATE users SET email = %s WHERE id = %s RETURNING {USER_COLUMNS}", (new, user["id"])
+                # The new address has to be verified again
+                f"UPDATE users SET email = %s, email_verified = false WHERE id = %s RETURNING {USER_COLUMNS}",
+                (new, user["id"]),
             ).fetchone()
     except psycopg.errors.UniqueViolation:
         raise AccountError("Bu e-posta başka bir hesapta kayıtlı.", 409) from None

@@ -177,3 +177,79 @@ CREATE UNIQUE INDEX IF NOT EXISTS reports_once ON reports (reporter_id, COALESCE
 
 -- v2: "Hesabı dondur": the account stays, but its profile and activity are hidden until the next sign-in
 ALTER TABLE users ADD COLUMN IF NOT EXISTS frozen BOOLEAN NOT NULL DEFAULT false;
+
+-- v2: a business thanks the customer who discovered its venue (once per venue); the customer
+-- gets it as a notification and shows it at the counter
+CREATE TABLE IF NOT EXISTS discoverer_rewards (
+    venue_id    BIGINT PRIMARY KEY REFERENCES venues(id) ON DELETE CASCADE,
+    user_id     BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    message     TEXT NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- v2: business campaigns and their coupons, on the server so every customer sees them
+CREATE TABLE IF NOT EXISTS campaigns (
+    id              BIGSERIAL PRIMARY KEY,
+    venue_id        BIGINT NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+    business_id     BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    message         TEXT NOT NULL,
+    discount        INTEGER CHECK (discount IS NULL OR discount BETWEEN 1 AND 90),
+    radius_km       NUMERIC NOT NULL CHECK (radius_km > 0 AND radius_km <= 10),
+    max_claims      INTEGER CHECK (max_claims IS NULL OR max_claims > 0),
+    duration_hours  INTEGER NOT NULL CHECK (duration_hours BETWEEN 1 AND 24),
+    starts_at       TIMESTAMPTZ NOT NULL,
+    ends_at         TIMESTAMPTZ NOT NULL,
+    hidden          BOOLEAN NOT NULL DEFAULT false  -- "Sil": gone from the business's list, coupons stay
+);
+CREATE INDEX IF NOT EXISTS campaigns_ends ON campaigns (ends_at);
+CREATE INDEX IF NOT EXISTS campaigns_venue ON campaigns (venue_id);
+CREATE TABLE IF NOT EXISTS coupons (
+    code         TEXT PRIMARY KEY,  -- "AV-7K3P", shown at the counter
+    campaign_id  BIGINT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+    user_id      BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    claimed_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    redeemed_at  TIMESTAMPTZ,
+    UNIQUE (campaign_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS coupons_user ON coupons (user_id);
+-- "gösterim": each person counts once per campaign
+CREATE TABLE IF NOT EXISTS campaign_views (
+    campaign_id  BIGINT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+    user_id      BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    PRIMARY KEY (campaign_id, user_id)
+);
+
+-- v2: "Şifremi unuttum" and e-mail verification: a 6-digit code sent by e-mail (only its hash is kept)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT false;
+CREATE TABLE IF NOT EXISTS email_codes (
+    user_id     BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    purpose     TEXT NOT NULL CHECK (purpose IN ('reset', 'verify')),
+    code_hash   TEXT NOT NULL,
+    attempts    INTEGER NOT NULL DEFAULT 0,
+    created_at  TIMESTAMPTZ NOT NULL,
+    expires_at  TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (user_id, purpose)
+);
+
+-- v2: the business's public profile, shown on its venue page (cover photo, Instagram, phone, ✓ badge)
+CREATE TABLE IF NOT EXISTS venue_profiles (
+    venue_id    BIGINT PRIMARY KEY REFERENCES venues(id) ON DELETE CASCADE,
+    photo       TEXT,  -- data URI of the cover photo (small JPEG)
+    photo_at    TIMESTAMPTZ,
+    instagram   TEXT,  -- user name without "@"
+    phone       TEXT,
+    verified    BOOLEAN NOT NULL DEFAULT false,  -- "✓ Doğrulanmış işletme": set after an ownership check
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- v2: "Mekan ekle": venues added by users (source 'user') wait for approval; three different people on
+-- different days checking in there approve them; unapproved ones disappear after 30 days
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS added_by BIGINT REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
+ALTER TABLE points DROP CONSTRAINT IF EXISTS points_reason_check;
+ALTER TABLE points ADD CONSTRAINT points_reason_check CHECK (reason IN ('checkin', 'first_checkin', 'venue_added'));
+
+-- v2: the business corrects its venue's address, neighbourhood / district and map point (where "Yol tarifi" goes);
+-- an OpenStreetMap re-import then keeps them
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS address TEXT;
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS edited_by_business BOOLEAN NOT NULL DEFAULT false;
