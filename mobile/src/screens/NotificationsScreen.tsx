@@ -13,13 +13,14 @@ type Props = {
   onRegister: () => void;
   onOpenVenue: (venue: { id: number }) => void;
   onOpenFriends: () => void; // Sosyal > Arkadaşlar, to accept a request
+  onOpenFeed: () => void; // Sosyal > Akış: likes and comments under my check-in
   onOpenSettings: () => void;
 };
 
-const ICONS: Record<AppNotification['kind'], string> = { friend_request: '👋', friend_accepted: '🤝', reply: '💬', reward: '🎁', loyalty: '⭐' };
+const ICONS: Record<AppNotification['kind'], string> = { friend_request: '👋', friend_accepted: '🤝', reply: '💬', reward: '🎁', loyalty: '⭐', checkin_like: '♥', checkin_comment: '💬' };
 
 /** v2 🔔 list: friend requests, accepted requests and replies to my reviews (last 30 days). */
-export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue, onOpenFriends, onOpenSettings }: Props) {
+export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue, onOpenFriends, onOpenFeed, onOpenSettings }: Props) {
   const { items, markSeen, reload } = useNotifications();
 
   // Opening the list reads everything in it
@@ -49,7 +50,13 @@ export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue,
           {items.map((n, i) => (
             <Pressable
               key={`${n.kind}-${n.at}-${n.username}`}
-              onPress={() => ((n.kind === 'reply' || n.kind === 'reward' || n.kind === 'loyalty') && n.venue_id ? onOpenVenue({ id: n.venue_id }) : onOpenFriends())}
+              onPress={() =>
+                n.kind === 'checkin_like' || n.kind === 'checkin_comment'
+                  ? onOpenFeed()
+                  : (n.kind === 'reply' || n.kind === 'reward' || n.kind === 'loyalty') && n.venue_id
+                    ? onOpenVenue({ id: n.venue_id })
+                    : onOpenFriends()
+              }
               style={({ pressed }) => [styles.row, i > 0 && styles.divider, pressed && styles.pressed]}
             >
               <Text style={styles.icon}>{ICONS[n.kind]}</Text>

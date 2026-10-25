@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useLocation } from '../context/LocationContext';
 import { useSettings } from '../context/SettingsContext';
@@ -7,6 +7,7 @@ import type { Venue } from '../lib/api';
 import type { User } from '../lib/auth';
 import { useCampaigns } from '../context/CampaignsContext';
 import { checkinBody, checkinMessage, followUpQuestion, sendCheckin, type CheckinResult } from '../lib/checkinApi';
+import { checkinSocialApi } from '../lib/reviews';
 import { checkinShareMessage } from '../lib/share';
 import { shareText } from '../lib/shareVenue';
 import { LEVELS, type Level } from '../lib/occupancy';
@@ -49,11 +50,15 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
   const [justCheckedIn, setJustCheckedIn] = useState<number | null>(null);
   // What was just reported, for the celebration and "Arkadaşlarına paylaş"
   const [shared, setShared] = useState<{
+    id: number;
     label: string;
     first: boolean;
     note: string | null;
     coupons: NonNullable<CheckinResult['coupons']>;
   } | null>(null);
+  // "Fikrini yazmak ister misin?": a few words with the check-in, seen by friends and shared with it
+  const [words, setWords] = useState('');
+  const [savedWords, setSavedWords] = useState<string | null>(null);
   const { reload: reloadCoupons } = useCampaigns();
   const question = followUpQuestion(level);
   const last = Math.max(justCheckedIn ?? 0, lastCheckinAt ? new Date(lastCheckinAt).getTime() : 0);
@@ -70,11 +75,15 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
     );
   }
 
+  // Closed: no check-in (the server refuses it too)
   if (!venue.open_now) {
     return (
       <View style={styles.card}>
-        <Text style={styles.title}>Check-in</Text>
-        <Text style={styles.muted}>Mekan şu an kapalı; {venue.opens_at}'de açılınca check-in yapabilirsin.</Text>
+        <Text style={styles.title}>🔒 Şu an kapalı</Text>
+        <View style={[styles.primary, styles.disabled]}>
+          <Text style={styles.primaryText}>Kapalı · {venue.opens_at}'de açılır</Text>
+        </View>
+        <Text style={styles.muted}>Kapalı mekana check-in yapılamaz; açılınca doluluğu bildirebilirsin.</Text>
       </View>
     );
   }
@@ -102,7 +111,9 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
     try {
       const done = await sendCheckin(user.token, venue.id, checkinBody(level, answer, position.coords, isPrivate));
       setResult({ ok: true, text: checkinMessage(done) });
-      setShared({ label: look(level).label, first: done.is_first, note: null, coupons: done.coupons ?? [] });
+      setShared({ id: done.id, label: look(level).label, first: done.is_first, note: null, coupons: done.coupons ?? [] });
+      setWords('');
+      setSavedWords(null);
       if (done.coupons?.length) reloadCoupons(); // shows up in Kuponlarım
       setJustCheckedIn(Date.now());
       setLevel(null);
@@ -131,10 +142,38 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
                 <Text style={styles.muted}>{c.message} · Kasada göster (Kampanyalar → Kuponlarım)</Text>
               </View>
             ))}
+            {savedWords === null ? (
+              <View style={styles.words}>
+                <Text style={styles.text}>💬 Fikrini yazmak ister misin?</Text>
+                <TextInput
+                  value={words}
+                  onChangeText={setWords}
+                  placeholder="Burası nasıl? Arkadaşların check-in'inin altında görür"
+                  placeholderTextColor={colors.placeholder}
+                  maxLength={280}
+                  multiline
+                  style={styles.input}
+                />
+                {words.trim().length > 0 && (
+                  <Pressable
+                    style={styles.saveWords}
+                    onPress={async () => {
+                      if (!user?.token) return;
+                      const saved = await checkinSocialApi.note(user.token, shared.id, words).catch(() => null);
+                      setSavedWords(saved?.note ?? null);
+                    }}
+                  >
+                    <Text style={styles.saveWordsText}>Paylaş</Text>
+                  </Pressable>
+                )}
+              </View>
+            ) : (
+              <Text style={styles.quote}>“{savedWords}”</Text>
+            )}
             <Pressable
               style={styles.share}
               onPress={async () => {
-                const note = await shareText(checkinShareMessage(venue.name, shared.label, shared.first));
+                const note = await shareText(checkinShareMessage(venue.name, shared.label, shared.first, savedWords ?? words));
                 setShared({ ...shared, note });
               }}
             >
@@ -256,6 +295,19 @@ const styles = themed(() => StyleSheet.create({
   link: { color: colors.primary, fontWeight: '700' },
   privateRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   party: { alignItems: 'center', gap: 6, paddingVertical: 6 },
+  words: { alignSelf: 'stretch', gap: 6 },
+  input: {
+    minHeight: 54,
+    padding: 10,
+    borderRadius: 12,
+    backgroundColor: colors.cream,
+    color: colors.text,
+    fontSize: 14,
+    textAlignVertical: 'top',
+  },
+  saveWords: { alignSelf: 'flex-end', paddingVertical: 7, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary },
+  saveWordsText: { color: colors.primary, fontWeight: '700' },
+  quote: { fontSize: 14, fontStyle: 'italic', color: colors.text, textAlign: 'center' },
   coupon: { alignSelf: 'stretch', padding: 10, borderRadius: 12, backgroundColor: colors.cream, gap: 2, alignItems: 'center' },
   couponTitle: { fontSize: 15, fontWeight: '800', color: colors.primary },
   partyIcon: { fontSize: 44 },

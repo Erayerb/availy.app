@@ -1,6 +1,6 @@
 # availy (v2)
 
-İstanbul'daki kafe, restoran, bar, kütüphane, ortak çalışma alanı ve parkların şu an ne kadar dolu
+İstanbul'daki kafe, restoran, bar, kütüphane ve ortak çalışma alanlarının şu an ne kadar dolu
 olduğunu gösteren mobil uygulama. Doluluğu mekanda olan kullanıcılar check-in yaparak bildirir
 (Swarm / Foursquare benzeri): "Şu an burası nasıl? Sakin / Orta / Kalabalık". Kullanıcı "şu an
 nerede yer var?" sorusuna cevap bulur, check-in yaparak puan ve rozet kazanır, ilk check-in'i
@@ -12,7 +12,7 @@ v2 `v2-checkin` dalında geliştirilir ve `main`'e hiç alınmaz. v1 (sahte dolu
 dalında ve `v1` etiketinde olduğu gibi durur (bkz. en alttaki "v1" bölümü).
 
 ## Teknoloji
-- Mobil: React Native 0.86 + Expo SDK 57 (TypeScript); telefonda Expo Go ile çalışır, aynı kod web'e de derlenir
+- Mobil: React Native 0.88 + Expo SDK 58 (TypeScript); telefonda Expo Go ile çalışır, aynı kod web'e de derlenir
   - Harita: telefonda react-native-maps (Apple Haritalar), web'de Leaflet + OpenStreetMap (VenueMap.web.tsx)
   - Tema: açık / koyu (mobile/src/theme.ts: `colors` ve `themed(...)` o anki temayı okur)
   - Telefonda saklanan küçük veriler: AsyncStorage (web'de localStorage)
@@ -72,7 +72,7 @@ Kod: backend/app/crowd.py (`crowd_from_checkins`, `report_score`, `age_weight`),
 9. Hile koruması: mekana yakın olmak (GPS; konum yalnızca o an kontrol edilir, saklanmaz), aynı mekana 90 dakikada bir check-in, kayan 60 dakikada en fazla 10 check-in, giriş ya da misafir hesabı zorunlu, güven puanı.
 
 ## Durum (v2)
-Testler: backend 215, mobil 122 (son ölçüm).
+Testler: backend 217, mobil 124 (son ölçüm).
 
 ### Bitti
 **Hesaplar**
@@ -85,6 +85,8 @@ Testler: backend 215, mobil 122 (son ölçüm).
 
 **Check-in ve doluluk**
 - Mekan sayfasında "Şu an burası nasıl?" Sakin / Orta / Kalabalık → (Kalabalık'ta "Sıra var mı?", Orta'da "Oturacak yer var mı?") → Check-in. Gizli check-in (doluluğa sayılır, ad gösterilmez; Gizlilik'te varsayılan yapılabilir)
+- Kapalı mekanda check-in yok: kutuda "🔒 Şu an kapalı" ve kapalı "Kapalı · 08:00'de açılır" düğmesi (sunucu da reddeder)
+- Check-in sonrası "💬 Fikrini yazmak ister misin?": birkaç kelime check-in'e not olarak kaydedilir (checkins.note; PATCH /v1/checkins/{id}/note), arkadaşlar Akış'ta görür, "Arkadaşlarına paylaş" metnine de eklenir
 - Check-in sonrası kısa kutlama (🎉 "Check-in yapıldı!" / ✨ "Burayı sen keşfettin!" + "+10 puan · Buraya 3. check-in'in") ve "📣 Arkadaşlarına paylaş" (mekan, doluluk ve web bağlantısı); buton kapalı kalır, üstünde "Tekrar check-in: 17:47"
 - Haritada sağ altta "+" → Check-in yap: en yakın mekanlar ve arama; sağ üstte "➕ Mekan ekle"
 - Check-in önerisi: açık bir mekanın 250 m yakınında 3 dk kalınca (uygulama açıkken) şerit + telefon bildirimi; son 90 dakikada orada check-in yaptıysan sormaz
@@ -99,32 +101,36 @@ Testler: backend 215, mobil 122 (son ölçüm).
 **Sosyal**
 - Arkadaşlar: kullanıcı adıyla arama, istek / kabul / reddet / çıkar (onaylı), QR'ım, QR okut, davet bağlantısı (?invite=ad). Davet bağlantısıyla kayıt olan davet edenle otomatik arkadaş olur, davet eden 50 puan alır (ayda en fazla 5 davet ödülü; users.invited_by). Canlı konum yok
 - "📱 Rehberden bul" (isteğe bağlı, yalnızca telefonda; app/contacts.py): rehber izni yeter; kendi numaranı da yazarsan (isteğe bağlı; telefonlar uygulamaya kendi numarasını vermez) seni de bulurlar (yalnızca gizli anahtarlı özeti saklanır: users.phone_hash, PHONE_PEPPER; "Numaramı kaldır"); rehberdeki numaralar sunucuda eşleştirilir ve saklanmaz; yalnızca aranabilir bireysel hesaplar bulunur. Tüm rehber listelenir: availy'de olanlarda Ekle / Kabul et, olmayanlarda "Davet et" (SMS: "Arkadaşın seni availy'ye davet ediyor. Sen de ilk check-in'i yap." + bağlantı); uzun rehberde arama
-- Akış (GET /v1/feed): arkadaşların son 7 gündeki check-in'leri (keşif + puan), yorumları ve yanıtları, kişi başına ayrı bloklarda; Akış'tan yanıt. Akış boşken (arkadaşı yoksa en üstte "📨 Arkadaşlarını davet et") "Arkadaş ekle / Mekan keşfet / Check-in yap" kartları, "Önerilen kişiler" (ortak arkadaşı olanlar, aynı mekanlara gidenler (ikisi de izin verdiyse: Gizlilik > "Arkadaş olarak önerilmeye izin ver", users.suggest_by_venues, gizli check-in sayılmaz), sonra bu hafta en çok puan alanlar; Ekle) ve "✨ Yakında yeni keşfedilen mekanlar" (son 14 günün ilk check-in'leri, yakından uzağa) (GET /v1/suggestions)
+- Akış (GET /v1/feed): arkadaşların ve kendi son 7 gündeki check-in'leri (keşif + puan + not), yorumları ve yanıtları, kişi başına ayrı bloklarda; Akış'tan yanıt. Check-in'lere ♡ beğeni ve yorum (checkin_likes, checkin_comments; kişi başı 5 yorum; yorumu yazan ya da check-in sahibi silebilir; yalnızca arkadaşlar) Akış boşken (arkadaşı yoksa en üstte "📨 Arkadaşlarını davet et") "Arkadaş ekle / Mekan keşfet / Check-in yap" kartları, "Önerilen kişiler" (ortak arkadaşı olanlar, aynı mekanlara gidenler (ikisi de izin verdiyse: Gizlilik > "Arkadaş olarak önerilmeye izin ver", users.suggest_by_venues, gizli check-in sayılmaz), sonra bu hafta en çok puan alanlar; Ekle) ve "✨ Yakında yeni keşfedilen mekanlar" (son 14 günün ilk check-in'leri, yakından uzağa) (GET /v1/suggestions)
 - "👥 @ayse ve @can burada · 20 dk önce check-in": mekan sayfasında ve haritadaki kartta, son 60 dakikada orada (gizli olmayan) check-in yapan arkadaşlar (GET /v1/venues/{id}/friends-here; check-in'lerini paylaşmayanlar görünmez). Arkadaşın profilinde en üstte son check-in'i ("📍 X'de check-in yaptı · 20 dk önce"). Haritada arkadaş işareti yok (istenmedi)
 - Kullanıcı profili: puan, check-in, keşif, rozetler, mekanlar (yalnızca kendin ve paylaşan arkadaşların); Arkadaş ekle / Sessize al / Arkadaşlıktan çıkar / Engelle
-- 🔔 Bildirimler (GET /v1/notifications, uygulama açıkken dakikada bir): arkadaşlık isteği, kabul, yorumuna yanıt, keşif ödülü; yenileri telefona bildirim olarak da gelir
+- 🔔 Bildirimler (GET /v1/notifications, uygulama açıkken dakikada bir): arkadaşlık isteği, kabul, yorumuna yanıt, check-in'ine beğeni ve yorum (dokununca Akış), keşif ödülü, sadakat programı. Ayarlar'da "Bildirimler" (check-in önerileri, sakin olunca haber ver) ve "Sosyal bildirimler" (arkadaşlık istekleri, arkadaşlık onayları, check-in yorumları, check-in beğenileri, yorumlarıma yanıtlar) ayrı; yenileri telefona bildirim olarak da gelir
 
 **Yorumlar**
 - 1–5 yıldız + en fazla 280 karakter; her check-in o mekana 2 yorum hakkı verir; bir yoruma kişi başı en fazla 2 yanıt (check-in yoksa yorum yok); "Başkaları yanıt verebilsin" anahtarı; kendi yorumunu / yanıtını silme
 - Şikâyet (Hakaret / Spam / Yanlış bilgi / Diğer): şikâyet edene hemen, 3 şikâyette herkese gizlenir
 
 **Destek**
+- Daha fazla > "Destek" (Yakında): tanıtım sitesi yapılınca mobile/src/lib/share.ts `SUPPORT_SITE_URL` ile sitedeki destek sayfası açılır; o zamana kadar "Hata bildir ve iletişim" açılır
 - "Hata bildir" / "İletişime geç" sunucuya gider (support_messages; POST /v1/support, giriş olmadan da; kişi başı günde 10); SUPPORT_EMAIL ayarlıysa oraya e-posta da gider (Render'da girilmeli)
 
 **Gizlilik ve güvenlik**
 - Gizlilik: arkadaşlar check-in'lerimi görsün, herkese açık sıralamada görüneyim, kullanıcı adımla aranabileyim, arkadaş olarak önerilmeye izin ver; Engellenenler
+- Konum erişimi (Konum ve izinler > Konum açılınca, ayrı sayfa yok): şimdiki izin (Kapalı / Uygulamayı kullanırken / Daima) + Düzenle, ve o izinle hangi özelliklerin çalıştığı (✓ / !): check-in, harita, check-in önerisi, kapalıyken check-in önerisi (yakında, "Daima" ister)
 - Konum ve izinler sayfası (konum / kamera / bildirim: ne için, izin vermezsen ne olur, durum ve "İzin ver"; izin verilmişse "Ayarlara git"; web'de tarayıcı ayarlarının yeri). İşletmede yalnızca kamera ve bildirim ("İzinler")
 - Gizlilik politikası ve kullanım koşulları taslağı (mobile/src/lib/legal.ts), kayıt ekranında onay satırı
 
 **Harita ve ana sayfa**
-- Ana sayfa: Konum (pilot semtler Ataşehir, Kadıköy, Şişli; diğerleri soluk), Ne arıyorsun (Sosyalleşme, Ortak çalışma, Eğlence, Sessizlik, Yemek, Gece hayatı, Doğa), arama (Türkçe karakterden bağımsız), Önerilen / En yakın / En sakin, Kapalıları gizle
-- Harita: renkli noktalar (soluk = tek kişi, gri ? = bilgi yok, mor ✨ = keşfedilmedi), yakınlaşınca mekan adları, mavi konum noktası, "Konumuma git", yana kayan filtre şeridi, Tümü / Ziyaret ettiklerim, 🔥 Trendler
+- Ana sayfa: Konum (pilot semtler Ataşehir, Kadıköy, Şişli; diğerleri soluk), Ne arıyorsun (Sosyalleşme, Ortak çalışma, Eğlence, Sessizlik, Yemek, Gece hayatı, Ücretsiz Wi-Fi), arama (Türkçe karakterden bağımsız), Önerilen / En yakın / En sakin, Kapalıları gizle
+- Harita: üstte "🔍 Mekan ara" (seçilen mekanda harita yeniden açılır, kartı açık); renkli noktalar (soluk = tek kişi, gri ? = bilgi yok, mor ✨ = keşfedilmedi), yakınlaşınca mekan adları, mavi konum noktası, "Konumuma git", yana kayan filtre şeridi, Tümü / Ziyaret ettiklerim, 🔥 Trendler
+- Ücretsiz Wi-Fi: OSM'de Wi-Fi'ı olup ücreti olmayan (ya da müşteriye ücretsiz) mekanlar ve ortak çalışma alanları `wifi` amacı alır (pilot: 267 mekanın 22'si); filtrede ve mekan özelliklerinde "📶 Ücretsiz Wi-Fi" (artık tahmin edilmiyor). Parklar ve "Doğa" kaldırıldı: OSM'den çekilmiyor, eski park kayıtları gizli (check-in'leriyle duruyor). Neon'da Wi-Fi bilgisi için copy_venues yeniden çalıştırılmalı (mevcut mekanların amaçlarını günceller)
+- "📈 Cumartesi günleri genelde 18:00–20:00 kalabalık · En sakin: 10:00–11:00": son 8 haftanın check-in puanları gün ve saat başına ortalanır (en az 3 check-in olan saatler); bugünün gününde yeterli veri yoksa tüm günler birlikte (GET /v1/venues/{id}/typical, app/typical.py)
 - Mekan sayfası (✓ haritadaki kartta da): kapak fotoğrafı, ✓ Doğrulanmış işletme rozeti, ⏳ Onay bekliyor, keşfeden, yıldız ortalaması, doluluk, saatler, Instagram / Ara düğmeleri, check-in, Haritada gör / Yol tarifi, kampanya, özellikler, yorumlar; "Sakin olunca haber ver" (🔕)
 - Favoriler: yalnızca kayıtlı kullanıcılar (misafire "Kayıt ol / Giriş yap"); Kaydedilenler / Ziyaret edilenler (telefonda, hesap başına)
 - Görünüm: Cihaz ayarı / Açık / Koyu (koyu harita: telefonda Apple koyu mod, web'de koyulaştırılmış OSM)
 
 **Mekanlar**
-- "🏪 İşletmeye haber ver": işletmesi olmayan mekanın sayfasında; kişi başı bir kez, "N kişi istedi"; 3 / 5 / 10 / 25 / 50 / 100 kişide mekanın e-postası biliniyorsa yalnızca sayıyı yazan bir e-posta gider, kimin istediği yazmaz (venue_requests, venues.contact_email)
+- "🏪 İşletmesi henüz availy'ye katılmadı · İşletmeye haber ver": işletmesi olmayan mekanın sayfasında (mekan availy'de görünür, yalnızca işletmesi yok); kişi başı bir kez, "N kişi istedi"; 3 / 5 / 10 / 25 / 50 / 100 kişide mekanın e-postası biliniyorsa yalnızca sayıyı yazan bir e-posta gider, kimin istediği yazmaz (venue_requests, venues.contact_email)
 - "Mekan ekle" (giriş yapmış bireysel kullanıcı; Check-in yap ekranında sağ üstte; mobile/src/components/NewVenueForm.tsx): ad, tür, Konum seç (📍 şu anki konum ya da 🗺️ haritadan; harita çevredeki mekanları ve mavi noktanı gösterir), seçilen noktadan semt / mahalle / açık adres kendiliğinden dolar (Nominatim, değiştirilebilir), "Adresi doğrula" özeti → "Doğru, gönder". Kullanıcı seçtiği noktaya check-in mesafesinden yakın olmalı. Semt arama kutusuyla seçilir (yazınca altta liste). Yakında (60 m) aynı adlı mekan varsa eklenmez; 25 m içinde başka mekan varsa "haritada üst üste görünürler" uyarısı ve "Aynı mekan değil, yine de ekle"; kişi başı en fazla 3 onay bekleyen mekan. "⏳ Onay bekliyor" görünür, check-in alır; ekleyen dışında 3 farklı kişi en az 3 farklı günde check-in yapınca onaylanır, ekleyen 50 puan alır; 30 günde onaylanmazsa listelerden kalkar (veri silinmez)
 
 **İşletme**
@@ -156,6 +162,7 @@ Testler: backend 215, mobil 122 (son ölçüm).
 
 ### Yapılacaklar (v2)
 **Yayından önce** (özet: 150 m, push bildirimleri, migration, Sentry, hukukçu kontrolü)
+- Render ayarları (availy-api → Environment): `PHONE_PEPPER` = uzun, rastgele bir metin (girilmezse "Rehberden bul" güvensiz varsayılan metinle çalışır; ayrıntı: Tanıdıkları bulmak) ve isteğe bağlı `SUPPORT_EMAIL` = hata bildirimleri ve iletişim mesajlarının e-postayla da geleceği adres (Resend alan adı doğrulanana kadar yalnızca Resend hesabının adresine gider)
 - Check-in mesafesini 1 km'den 150 m'ye geri al
 - Push bildirimleri (bkz. Bildirimler)
 - Deneme ve gerçek ortam ayrı: ikinci Render servisi + ikinci Neon veritabanı (gerçek ortam `main`'den, kod aynı)

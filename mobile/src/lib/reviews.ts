@@ -43,6 +43,24 @@ export type FeedItem = {
   review_author: string | null;
   review_id: number | null; // review / reply: answer it from the feed
   allow_replies: boolean;
+  // Check-in: its id, likes and friends' comments (body is the check-in's note)
+  checkin_id?: number | null;
+  likes?: number;
+  liked?: boolean;
+  comments?: CheckinComment[];
+};
+
+export type CheckinComment = { id: number; username: string | null; body: string; at: string; mine: boolean };
+
+/** Check-ins: a few words with mine ("Fikrini yaz"), friends' likes and comments. */
+export const checkinSocialApi = {
+  note: (token: string, checkinId: number, note: string) =>
+    send<{ id: number; note: string | null }>('PATCH', `/v1/checkins/${checkinId}/note`, { note }, token),
+  like: (token: string, checkinId: number, liked: boolean) =>
+    send<void>('PUT', `/v1/checkins/${checkinId}/like`, { liked }, token),
+  comment: (token: string, checkinId: number, body: string) =>
+    send<{ id: number }>('POST', `/v1/checkins/${checkinId}/comments`, { body }, token),
+  removeComment: (token: string, commentId: number) => send<void>('DELETE', `/v1/checkin-comments/${commentId}`, undefined, token),
 };
 
 export const reviewsApi = {

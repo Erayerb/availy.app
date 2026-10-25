@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from app.accounts import user_for_token
 from app.auth_api import bearer_token, current_user
 from app.checkins_api import get_clock
+from app.checkin_social import SocialError, comment, delete_comment, like, set_note, social_for
 from app.db import get_conn
 from app.reviews import (
     MAX_BODY,
@@ -72,6 +73,14 @@ class ReplyIn(BaseModel):
     body: str = Field(..., max_length=MAX_BODY + 50)
 
 
+class CheckinCommentOut(BaseModel):
+    id: int
+    username: str | None
+    body: str
+    at: datetime
+    mine: bool
+
+
 class FeedItem(BaseModel):
     kind: Literal["checkin", "review", "reply"]
     at: datetime
@@ -81,10 +90,15 @@ class FeedItem(BaseModel):
     is_first: bool  # check-in: the venue's first ("keşfetti")
     points: int  # check-in: points earned
     rating: int | None  # review
-    body: str | None  # review / reply text
+    body: str | None  # review / reply text, or the check-in's note ("Fikrini yaz")
     review_author: str | None  # reply: whose review it answers
     review_id: int | None  # review / reply: to answer from the feed
     allow_replies: bool
+    # Check-in: id, likes and friends' comments
+    checkin_id: int | None = None
+    likes: int = 0
+    liked: bool = False
+    comments: list[CheckinCommentOut] = []
 
 
 def _fail(error: ReviewError) -> HTTPException:
@@ -140,4 +154,66 @@ def remove_reply(reply_id: int, user: dict = Depends(current_user), conn: psycop
 @router.get("/feed", response_model=list[FeedItem])
 def feed(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn), now: datetime = Depends(get_clock)):
     """Friends' check-ins, reviews and replies of the last 7 days (the Sosyal > Akış list)."""
-    return friend_feed(conn, user, now)
+    items = friend_feed(conn, user, now)
+    social = social_for(conn, user, [i["checkin_id"] for i in items if i["checkin_id"]])
+    return [{**i, **social.get(i["checkin_id"], {})} for i in items]
+
+
+class NoteIn(BaseModel):
+    note: str
+
+
+class LikeIn(BaseModel):
+    liked: bool
+
+
+class CommentIn(BaseModel):
+    body: str
+
+
+def _social_fail(e: SocialError) -> HTTPException:
+    return HTTPException(status_code=e.status, detail=e.message)
+
+
+@router.patch("/checkins/{checkin_id}/note")
+def checkin_note(checkin_id: int, body: NoteIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    """"Fikrini yaz": a few words with my check-in, seen by friends with it."""
+    try:
+        return set_note(conn, user, checkin_id, body.note)
+    except SocialError as e:
+        raise _social_fail(e) from None
+
+
+@router.put("/checkins/{checkin_id}/like", status_code=204)
+def checkin_like(
+    checkin_id: int,
+    body: LikeIn,
+    user: dict = Depends(current_user),
+    conn: psycopg.Connection = Depends(get_conn),
+    now: datetime = Depends(get_clock),
+):
+    try:
+        like(conn, user, checkin_id, body.liked, now)
+    except SocialError as e:
+        raise _social_fail(e) from None
+    return Response(status_code=204)
+
+
+@router.post("/checkins/{checkin_id}/comments", status_code=201)
+def checkin_comment(
+    checkin_id: int,
+    body: CommentIn,
+    user: dict = Depends(current_user),
+    conn: psycopg.Connection = Depends(get_conn),
+    now: datetime = Depends(get_clock),
+):
+    try:
+        return comment(conn, user, checkin_id, body.body, now)
+    except SocialError as e:
+        raise _social_fail(e) from None
+
+
+@router.delete("/checkin-comments/{comment_id}", status_code=204)
+def checkin_comment_delete(comment_id: int, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    delete_comment(conn, user, comment_id)
+    return Response(status_code=204)

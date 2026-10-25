@@ -146,7 +146,7 @@ def venue_reviews(conn: psycopg.Connection, venue_id: int, me: dict | None) -> d
 
 
 def friend_feed(conn: psycopg.Connection, me: dict, now: datetime) -> list[dict]:
-    """Friends' activity of the last 7 days, newest first: public check-ins, reviews and replies."""
+    """Friends' activity of the last 7 days, newest first: public check-ins (mine too), reviews and replies."""
     params = {"me": me["id"], "since": now - timedelta(days=FEED_DAYS), "limit": FEED_LIMIT}
     # Friends, without the ones I muted
     friends = f"""
@@ -159,19 +159,20 @@ def friend_feed(conn: psycopg.Connection, me: dict, now: datetime) -> list[dict]
         SELECT * FROM (
             SELECT 'checkin' AS kind, c.created_at AS at, u.username, v.id AS venue_id, v.name AS venue_name,
                    c.is_first, (SELECT COALESCE(sum(p.amount), 0) FROM points p WHERE p.checkin_id = c.id)::int AS points,
-                   NULL::smallint AS rating, NULL AS body, NULL AS review_author,
-                   NULL::bigint AS review_id, false AS allow_replies
+                   NULL::smallint AS rating, c.note AS body, NULL AS review_author,
+                   NULL::bigint AS review_id, false AS allow_replies, c.id AS checkin_id
             FROM checkins c JOIN users u ON u.id = c.user_id JOIN venues v ON v.id = c.venue_id
-            WHERE c.user_id IN ({friends}) AND NOT c.is_private AND NOT c.is_demo AND u.share_checkins
-              AND c.created_at > %(since)s
+            -- My own check-ins too, so I see friends' likes and comments under them
+            WHERE (c.user_id IN ({friends}) AND u.share_checkins OR c.user_id = %(me)s)
+              AND NOT c.is_private AND NOT c.is_demo AND c.created_at > %(since)s
             UNION ALL
             SELECT 'review', r.created_at, u.username, v.id, v.name, false, 0, r.rating, r.body, NULL,
-                   r.id, r.allow_replies
+                   r.id, r.allow_replies, NULL::bigint
             FROM reviews r JOIN users u ON u.id = r.user_id JOIN venues v ON v.id = r.venue_id
             WHERE r.user_id IN ({friends}) AND r.created_at > %(since)s AND NOT {hidden_review("r")}
             UNION ALL
             SELECT 'reply', p.created_at, u.username, v.id, v.name, false, 0, NULL, p.body, a.username,
-                   r.id, r.allow_replies
+                   r.id, r.allow_replies, NULL::bigint
             FROM review_replies p JOIN users u ON u.id = p.user_id JOIN reviews r ON r.id = p.review_id
             JOIN users a ON a.id = r.user_id JOIN venues v ON v.id = r.venue_id
             WHERE p.user_id IN ({friends}) AND p.created_at > %(since)s AND NOT {hidden_reply("p")}

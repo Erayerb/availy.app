@@ -77,6 +77,17 @@ def notifications(conn: psycopg.Connection, me: dict, now: datetime) -> list[dic
             FROM discoverer_rewards w JOIN venues v ON v.id = w.venue_id
             WHERE w.user_id = %(me)s
             UNION ALL
+            -- Likes and comments on my check-ins
+            SELECT 'checkin_like', l.created_at, u.username, v.id, v.name, NULL
+            FROM checkin_likes l JOIN checkins c ON c.id = l.checkin_id JOIN users u ON u.id = l.user_id
+            JOIN venues v ON v.id = c.venue_id
+            WHERE c.user_id = %(me)s AND l.user_id <> %(me)s AND l.created_at > %(since)s AND l.user_id NOT IN {BLOCKED}
+            UNION ALL
+            SELECT 'checkin_comment', k.created_at, u.username, v.id, v.name, k.body
+            FROM checkin_comments k JOIN checkins c ON c.id = k.checkin_id JOIN users u ON u.id = k.user_id
+            JOIN venues v ON v.id = c.venue_id
+            WHERE c.user_id = %(me)s AND k.user_id <> %(me)s AND k.created_at > %(since)s AND k.user_id NOT IN {BLOCKED}
+            UNION ALL
             -- A venue I checked in at (or discovered) started a loyalty program I have not joined
             SELECT 'loyalty', p.activated_at, NULL, v.id, v.name,
                    CASE WHEN p.kind = 'stamps' THEN p.stamps_required || ' damga = ' || p.reward

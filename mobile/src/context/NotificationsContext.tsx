@@ -23,13 +23,23 @@ type Props = { token: string | null; accountKey: string | null; children: ReactN
 
 /** v2 🔔: friend requests, accepted requests and replies to my reviews; new ones also as a phone notification. */
 export function NotificationsProvider({ token, accountKey, children }: Props) {
-  const { friendNotifications, replyNotifications } = useSettings();
+  const settings = useSettings();
   const [items, setItems] = useState<AppNotification[]>([]);
   const [lastSeen, setLastSeen] = useState<string | null>(null);
   // Newest item already announced, so each one is announced once
   const announced = useRef<string | null>(null);
-  const wanted = useRef({ friendNotifications, replyNotifications });
-  wanted.current = { friendNotifications, replyNotifications };
+  // Which kinds also come as phone notifications (Ayarlar > Sosyal bildirimler)
+  const wanted = useRef<Record<AppNotification['kind'], boolean>>({} as Record<AppNotification['kind'], boolean>);
+  wanted.current = {
+    friend_request: settings.friendNotifications,
+    friend_accepted: settings.friendAcceptedNotifications,
+    reply: settings.replyNotifications,
+    checkin_comment: settings.checkinCommentNotifications,
+    checkin_like: settings.checkinLikeNotifications,
+    // A venue's reward and a new loyalty program are always shown
+    reward: true,
+    loyalty: true,
+  };
 
   useEffect(() => {
     setItems([]);
@@ -49,14 +59,7 @@ export function NotificationsProvider({ token, accountKey, children }: Props) {
         const since = announced.current;
         if (since !== null && Platform.OS !== 'web') {
           for (const n of list.filter((n) => !since || isAfter(n.at, since))) {
-            // A venue's reward is always shown: it is meant for the counter
-            const on =
-              n.kind === 'reward' || n.kind === 'loyalty'
-                ? true
-                : n.kind === 'reply'
-                  ? wanted.current.replyNotifications
-                  : wanted.current.friendNotifications;
-            if (on) Notifications.scheduleNotificationAsync({ content: { title: 'availy', body: notificationText(n) }, trigger: null }).catch(() => {});
+            if (wanted.current[n.kind] ?? true) Notifications.scheduleNotificationAsync({ content: { title: 'availy', body: notificationText(n) }, trigger: null }).catch(() => {});
           }
         }
         if (newest && (!announced.current || isAfter(newest, announced.current))) announced.current = newest;

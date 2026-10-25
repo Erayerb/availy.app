@@ -28,10 +28,10 @@ export function BusinessRequest({ venueId, token, onLogin }: Props) {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>🏪 Bu mekan henüz availy'de değil</Text>
+      <Text style={styles.title}>🏪 İşletmesi henüz availy'ye katılmadı</Text>
       <Text style={styles.muted}>
-        İşletme katılınca kampanyalarını ve sadakat programını burada görürsün. Yeterince kişi isteyince işletmeye haber
-        veririz; kimin istediğini söylemeyiz.
+        Doluluğunu yine görür, check-in yapabilirsin. İşletme katılınca kampanyalarını ve sadakat programını da burada
+        görürsün. Yeterince kişi isteyince işletmeye haber veririz; kimin istediğini söylemeyiz.
       </Text>
       {status.mine ? (
         <Text style={styles.done}>✓ Haber verdin · {status.count} kişi istedi</Text>

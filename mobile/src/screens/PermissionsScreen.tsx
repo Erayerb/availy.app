@@ -7,6 +7,7 @@ import { AppState, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, V
 
 import { Collapsible } from '../components/Collapsible';
 import { BackButton } from '../components/BackButton';
+import { LocationAccess } from '../components/LocationAccess';
 import { colors, themed } from '../theme';
 
 type Status = 'granted' | 'denied' | 'undetermined' | 'unknown' | 'inApp';
@@ -56,7 +57,13 @@ const BROWSER_HINT =
  * "Konum ve izinler": what each phone permission is for, what happens without it, and its state.
  * Business accounts do not check in, so they only see the camera and notifications ("İzinler").
  */
-export function PermissionsScreen({ business = false, onBack }: { business?: boolean; onBack: () => void }) {
+export function PermissionsScreen({
+  business = false,
+  onBack,
+}: {
+  business?: boolean;
+  onBack: () => void;
+}) {
   const [location, setLocation] = useState<Status>('unknown');
   const [notifications, setNotifications] = useState<Status>('unknown');
   const [contacts, setContacts] = useState<Status>('unknown');
@@ -174,22 +181,29 @@ export function PermissionsScreen({ business = false, onBack }: { business?: boo
           summary={p.summary}
           badge={<Text style={[styles.status, p.status === 'granted' ? styles.on : styles.off]}>{STATUS_TEXT[p.status]}</Text>}
         >
-          <Text style={styles.label}>Ne için kullanıyoruz</Text>
-          {p.uses.map((u) => (
-            <Text key={u} style={styles.text}>
-              ✓ {u}
-            </Text>
-          ))}
+          {/* Konum: its state, "Düzenle" and the features it covers */}
+          {p.title === 'Konum' ? (
+            <LocationAccess onChange={refresh} />
+          ) : (
+            <>
+              <Text style={styles.label}>Ne için kullanıyoruz</Text>
+              {p.uses.map((u) => (
+                <Text key={u} style={styles.text}>
+                  ✓ {u}
+                </Text>
+              ))}
+            </>
+          )}
           <Text style={styles.without}>
             {p.to} izin vermezsen: {p.withoutIt}
           </Text>
-          {p.status !== 'granted' && p.status !== 'inApp' && p.onAsk && (
+          {p.title !== 'Konum' && p.status !== 'granted' && p.status !== 'inApp' && p.onAsk && (
             <Pressable style={styles.secondary} onPress={p.onAsk}>
               <Text style={styles.secondaryText}>{p.status === 'denied' && !isWeb ? 'Ayarlarda aç' : 'İzin ver'}</Text>
             </Pressable>
           )}
           {/* Already allowed (or not asked here): the phone's / browser's settings change it */}
-          {(p.status === 'granted' || p.status === 'inApp') && (
+          {p.title !== 'Konum' && (p.status === 'granted' || p.status === 'inApp') && (
             <Pressable style={styles.secondary} onPress={() => (isWeb ? setWebHint(p.title) : Linking.openSettings())}>
               <Text style={styles.secondaryText}>Ayarlara git</Text>
             </Pressable>

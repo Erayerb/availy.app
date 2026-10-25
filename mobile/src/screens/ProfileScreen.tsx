@@ -107,6 +107,14 @@ export function ProfileScreen({
             Müşteri kodun: <Text style={styles.code}>{user.customerCode}</Text>
           </Text>
         )}
+        {/* Points, badges and visited venues are on the profile behind the top-right icon */}
+        {!business && (
+          <Pressable style={styles.secondary} onPress={onOpenMyProfile}>
+            <Text style={styles.secondaryText}>
+              Profilimi gör · {(user.points ?? 0) + availyPoints(stamps, used)} puan, rozetler, mekanlar
+            </Text>
+          </Pressable>
+        )}
         {user.emailVerified && <Text style={styles.success}>✓ E-posta doğrulandı</Text>}
       </View>
 
@@ -138,14 +146,7 @@ export function ProfileScreen({
         <View style={styles.section}>
           {venue && user.token && <ProfileEditor venue={venue} token={user.token} onSaved={refreshVenue} />}
         </View>
-      ) : (
-        // Points, badges and visited venues are on the profile behind the top-right icon
-        <Pressable style={styles.secondary} onPress={onOpenMyProfile}>
-          <Text style={styles.secondaryText}>
-            Profilimi gör · {(user.points ?? 0) + availyPoints(stamps, used)} puan, rozetler, mekanlar
-          </Text>
-        </Pressable>
-      )}
+      ) : null}
 
       {/* A business has these under Daha fazla > Ayarlar */}
       {!business && (

@@ -1,12 +1,14 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { Screen } from '../components/TabBar';
 import { HeaderButtons } from '../components/HeaderButtons';
 import { Wordmark } from '../components/Wordmark';
 import { isBusiness, type User } from '../lib/auth';
+import { SUPPORT_SITE_URL } from '../lib/share';
 import { colors, themed } from '../theme';
 
-type Item = { screen: Screen; label: string; hint?: string; badge?: string };
+// `url`: opens a web page instead of a screen (the screen is the fallback until the page exists)
+type Item = { screen: Screen; label: string; hint?: string; badge?: string; url?: string | null };
 
 const CUSTOMER_ITEMS: Item[] = [
   { screen: 'profile', label: 'Profil ayarları', hint: 'Kullanıcı adı, şifre, çıkış ve hesabı silme' },
@@ -28,6 +30,14 @@ const BUSINESS_ITEMS: Item[] = [
 ];
 
 const COMMON_ITEMS: Item[] = [
+  {
+    screen: 'support',
+    label: 'Destek',
+    hint: 'Sık sorulan sorular ve yardım',
+    url: SUPPORT_SITE_URL,
+    // Until the introduction website is up, "Hata bildir ve iletişim" answers
+    badge: SUPPORT_SITE_URL ? undefined : 'Yakında',
+  },
   { screen: 'support', label: 'Hata bildir ve iletişim', hint: 'Sorun bildir ya da bize yaz' },
   { screen: 'about', label: 'Hakkında', hint: 'Nasıl kullanılır: renkler, bildirimler, kampanyalar' },
   { screen: 'legal', label: 'Kullanım koşulları', hint: 'Kullanım koşulları ve gizlilik politikası (KVKK)' },
@@ -59,8 +69,8 @@ export function MoreScreen({ user, onSelect, onLogin, onLogout }: Props) {
       <View style={styles.card}>
         {items.map((item, i) => (
           <Pressable
-            key={item.screen}
-            onPress={() => onSelect(item.screen)}
+            key={item.label}
+            onPress={() => (item.url ? Linking.openURL(item.url).catch(() => onSelect(item.screen)) : onSelect(item.screen))}
             style={({ pressed }) => [styles.row, i > 0 && styles.divider, pressed && styles.pressed]}
           >
             <View style={styles.rowText}>

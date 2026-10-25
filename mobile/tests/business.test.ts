@@ -48,7 +48,7 @@ test('venue edits: validation and applying hours, capacity, features', () => {
   assert.equal(edited.hours, '14:00–02:00');
   assert.equal(edited.open_now, false); // 13:30 is before 14:00
   assert.equal(edited.description, 'Bahçeli');
-  assert.deepEqual(amenitiesFor(edited).map((a) => a.label), ['Wi-Fi']);
+  assert.deepEqual(amenitiesFor(edited).map((a) => a.label), ['Ücretsiz Wi-Fi']);
   assert.equal(applyOverride(venue as never, undefined), venue);
 });
 

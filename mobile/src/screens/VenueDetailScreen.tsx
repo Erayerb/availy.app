@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Linking, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BackButton } from '../components/BackButton';
@@ -29,6 +29,7 @@ import type { User } from '../lib/auth';
 import { crowdRatioText, crowdSummary, crowdYesterday } from '../lib/crowd';
 import { shareVenue } from '../lib/shareVenue';
 import { instagramUrl, phoneUrl } from '../lib/venueApi';
+import { fetchTypical, typicalLines } from '../lib/typical';
 import { canWatch } from '../lib/watch';
 import { colors, themed } from '../theme';
 
@@ -64,6 +65,13 @@ export function VenueDetailScreen({
   const { watches } = useEngagement();
   const { programs, join, leave } = useLoyalty();
   const [loyaltyNote, setLoyaltyNote] = useState<string | null>(null);
+  // "Genelde 18:00'de kalabalık", from past weeks' check-ins
+  const [usually, setUsually] = useState<string[]>([]);
+  useEffect(() => {
+    fetchTypical(venueId)
+      .then((t) => setUsually(typicalLines(t)))
+      .catch(() => setUsually([]));
+  }, [venueId]);
   // "👥 @ayse burada" is for registered customers
   const herePerson = user?.token && !user.isGuest && user.role !== 'business' ? user.token : null;
   // v2: reviews and replies live on the server
@@ -177,6 +185,11 @@ export function VenueDetailScreen({
         {venue.open_now && crowdYesterday(venue.crowd) && <Text style={styles.text}>🕘 {crowdYesterday(venue.crowd)}</Text>}
         <FriendsHere venueId={venue.id} token={herePerson} onOpenUser={onOpenUser} reloadKey={venue} />
         <Text style={styles.text}>🕒 {venue.hours}</Text>
+        {usually.map((line) => (
+          <Text key={line} style={styles.text}>
+            📈 {line}
+          </Text>
+        ))}
         {watching ? (
           <Text style={styles.watch}>🔔 Sakin olunca haber vereceğiz</Text>
         ) : (

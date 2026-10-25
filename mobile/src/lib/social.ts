@@ -7,7 +7,7 @@ export type RankRow = { rank: number; username: string | null; points: number; m
 export type Leaderboard = { rows: RankRow[]; me: { rank: number; points: number } | null };
 
 export type AppNotification = {
-  kind: 'friend_request' | 'friend_accepted' | 'reply' | 'reward' | 'loyalty';
+  kind: 'friend_request' | 'friend_accepted' | 'reply' | 'reward' | 'loyalty' | 'checkin_like' | 'checkin_comment';
   at: string;
   username: string | null;
   venue_id: number | null;
@@ -59,6 +59,8 @@ export function notificationText(n: AppNotification): string {
   const who = n.username ? `@${n.username}` : 'Biri';
   if (n.kind === 'friend_request') return `${who} seni arkadaş olarak eklemek istiyor.`;
   if (n.kind === 'friend_accepted') return `${who} arkadaşlık isteğini kabul etti.`;
+  if (n.kind === 'checkin_like') return `${who} ${n.venue_name} check-in'ini beğendi.`;
+  if (n.kind === 'checkin_comment') return `${who} ${n.venue_name} check-in'ine yorum yaptı: "${n.body}"`;
   if (n.kind === 'loyalty') return `⭐ Check-in yaptığın ${n.venue_name} sadakat programı başlattı: ${n.body}. Katılmak için dokun.`;
   if (n.kind === 'reward') return `🎁 ${n.venue_name} keşfettiğin için sana ödül verdi: "${n.body}" Kasada bu bildirimi göster.`;
   return `${who} yorumunu yanıtladı (${n.venue_name}): "${n.body}"`;

@@ -89,18 +89,6 @@ export function SettingsScreen({ onBack, isBusiness, venueId, onOpenPermissions,
               onChange={(v) => update({ checkinSuggestions: v })}
             />
             <Row
-              title="Arkadaşlık"
-              subtitle="Biri seni eklemek istediğinde ya da isteğini kabul ettiğinde."
-              value={settings.friendNotifications}
-              onChange={(v) => update({ friendNotifications: v })}
-            />
-            <Row
-              title="Yorumlarıma yanıtlar"
-              subtitle="Biri mekan yorumunu yanıtladığında."
-              value={settings.replyNotifications}
-              onChange={(v) => update({ replyNotifications: v })}
-            />
-            <Row
               title="Sakin olunca haber ver"
               subtitle={
                 Platform.OS === 'web'
@@ -114,6 +102,34 @@ export function SettingsScreen({ onBack, isBusiness, venueId, onOpenPermissions,
             <Text style={styles.muted}>
               Şimdilik bildirimler uygulama açıkken gelir; kapalıyken gelmesi yayın sürümüyle eklenecek.
             </Text>
+          </View>
+
+          <Text style={styles.heading}>Sosyal bildirimler</Text>
+          <View style={styles.card}>
+            <Row
+              title="Arkadaşlık istekleri ve onayları"
+              subtitle="Biri seni arkadaş olarak eklemek istediğinde ya da gönderdiğin istek kabul edildiğinde."
+              value={settings.friendNotifications}
+              onChange={(v) => update({ friendNotifications: v, friendAcceptedNotifications: v })}
+            />
+            <Row
+              title="Check-in yorumları"
+              subtitle="Arkadaşın check-in'ine yorum yaptığında."
+              value={settings.checkinCommentNotifications}
+              onChange={(v) => update({ checkinCommentNotifications: v })}
+            />
+            <Row
+              title="Check-in beğenileri"
+              subtitle="Arkadaşın check-in'ini beğendiğinde."
+              value={settings.checkinLikeNotifications}
+              onChange={(v) => update({ checkinLikeNotifications: v })}
+            />
+            <Row
+              title="Yorumlarıma yanıtlar"
+              subtitle="Biri mekan yorumunu yanıtladığında."
+              value={settings.replyNotifications}
+              onChange={(v) => update({ replyNotifications: v })}
+            />
           </View>
 
         </>

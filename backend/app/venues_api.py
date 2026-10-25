@@ -12,6 +12,7 @@ from app.reviews_api import optional_user
 from app.user_venues import VenueError, add_venue
 from app.venue_profiles import ProfileError, load_photo, save_address, save_links, save_photo
 from app.support import SupportError, send_support
+from app.typical import typical_hours
 from app.venue_requests import RequestError, ask_business, request_status
 
 router = APIRouter(prefix="/v1")
@@ -160,3 +161,16 @@ def support(
         return send_support(conn, me, body.kind, body.topic, body.body, body.email, body.app_info, now)
     except SupportError as e:
         raise HTTPException(status_code=e.status, detail=e.message) from None
+
+
+class TypicalOut(BaseModel):
+    scope: str | None  # "today": this weekday, "all": all days together, None: not enough check-ins yet
+    weekday: int  # today, Monday = 0
+    busy_hours: list[int]  # usually Kalabalık at these hours
+    quiet_hours: list[int]  # usually Sakin
+
+
+@router.get("/venues/{venue_id}/typical", response_model=TypicalOut)
+def typical(venue_id: int, conn: psycopg.Connection = Depends(get_conn), now: datetime = Depends(get_clock)):
+    """"Genelde 18:00'de kalabalık": usual busy / quiet hours from the last 8 weeks."""
+    return typical_hours(conn, venue_id, now)

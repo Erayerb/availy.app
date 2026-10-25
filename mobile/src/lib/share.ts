@@ -2,6 +2,9 @@ import type { Venue } from './api';
 import { crowdRatioText, liveLevel } from './crowd.ts';
 import { levelStyle } from './occupancy.ts';
 
+// "Destek" in Daha fazla: the support page of the introduction website, once it exists (null: not yet)
+export const SUPPORT_SITE_URL: string | null = null;
+
 // v2 web demo (v1 stays at /availy.app/)
 export const WEB_APP_URL = 'https://erayerb.github.io/availy.app/v2/';
 
@@ -20,9 +23,10 @@ export function shareMessage(venue: Venue): string {
 }
 
 /** "Arkadaşlarına paylaş" after a check-in: where I am and how full it is. */
-export function checkinShareMessage(venueName: string, levelLabel: string, discovered: boolean): string {
+export function checkinShareMessage(venueName: string, levelLabel: string, discovered: boolean, note = ''): string {
   const what = discovered ? `${venueName}'i ilk ben keşfettim ✨` : `${venueName}'deyim`;
-  return `📍 ${what} · şu an ${levelLabel.toLocaleLowerCase('tr-TR')}. availy'de gel gör: ${venueLink(venueName)}`;
+  const words = note.trim() ? ` “${note.trim()}”` : '';
+  return `📍 ${what} · şu an ${levelLabel.toLocaleLowerCase('tr-TR')}.${words} availy'de gel gör: ${venueLink(venueName)}`;
 }
 
 /** Venue name from a shared link (?venue=...), if any. */

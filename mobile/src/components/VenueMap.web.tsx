@@ -101,7 +101,9 @@ export function VenueMap({
   }, [scheme]);
 
   useEffect(() => {
-    if (focus && mapRef.current) mapRef.current.panTo([focus.lat, focus.lon]);
+    if (!focus || !mapRef.current) return;
+    if (focus.zoom) mapRef.current.setView([focus.lat, focus.lon], focus.zoom);
+    else mapRef.current.panTo([focus.lat, focus.lon]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focus?.key]);
 

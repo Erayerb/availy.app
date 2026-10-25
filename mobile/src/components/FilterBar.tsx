@@ -10,7 +10,7 @@ const TAG_ICONS: Record<Tag, string> = {
   quiet: '🤫',
   food: '🍽️',
   nightlife: '🌙',
-  nature: '🌳',
+  wifi: '📶',
 };
 
 type Props = {

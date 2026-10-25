@@ -39,7 +39,9 @@
         {
           "contactsPermission": "Rehberindeki arkadaşlarını availy'de bulmak için telefon numaralarına bakarız; rehberin saklanmaz."
         }
-      ]
+      ],
+      "expo-font",
+      "expo-status-bar"
     ]
   }
 }

@@ -9,7 +9,6 @@ export const VENUE_CATEGORIES = [
   { id: 'bar', label: 'Bar' },
   { id: 'coworking', label: 'Ortak çalışma' },
   { id: 'library', label: 'Kütüphane' },
-  { id: 'park', label: 'Park' },
 ] as const;
 
 export type NewVenue = {

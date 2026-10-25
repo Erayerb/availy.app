@@ -14,8 +14,12 @@ export type Settings = {
   premium: boolean; // B2C Premium (demo, no payment): no ads, unlimited watches
   // v2 notifications
   checkinSuggestions: boolean; // "Mado'dasın gibi, check-in yap?" after a few minutes near a venue
-  friendNotifications: boolean; // friend requests and accepted requests
+  // Sosyal bildirimler (phone notifications; the 🔔 list always has everything)
+  friendNotifications: boolean; // friend requests
+  friendAcceptedNotifications: boolean; // my requests accepted
   replyNotifications: boolean; // replies to my reviews
+  checkinCommentNotifications: boolean; // comments on my check-ins
+  checkinLikeNotifications: boolean; // likes on my check-ins
   // v2 privacy kept on the phone (the rest is on the server)
   privateByDefault: boolean; // the check-in screen starts with "Gizli check-in" on
   // Görünüm: follow the phone, or always light / dark
@@ -32,7 +36,10 @@ const DEFAULTS: Settings = {
   premium: false,
   checkinSuggestions: true,
   friendNotifications: true,
+  friendAcceptedNotifications: true,
   replyNotifications: true,
+  checkinCommentNotifications: true,
+  checkinLikeNotifications: true,
   privateByDefault: false,
   appearance: 'system',
 };

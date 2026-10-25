@@ -155,6 +155,7 @@ function Main() {
   );
   // Remembered so the map reopens where the user left it
   const [mapRegion, setMapRegion] = useState<Region>(DEFAULT_REGION);
+  const [mapKey, setMapKey] = useState(0);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -220,7 +221,9 @@ function Main() {
       longitudeDelta: VENUE_ZOOM,
     });
     setSelectedId(venue.id);
-    goTo('map');
+    // Already on the map (its search): open it again around the venue, without a second history step
+    setMapKey((k) => k + 1);
+    if (screen !== 'map') goTo('map');
   };
 
   const openDetails = (venue: { id: number }) => {
@@ -401,6 +404,8 @@ function Main() {
           )}
           {screen === 'map' && (
             <MapScreen
+              key={mapKey}
+              onShowVenue={openVenueOnMap}
               friendsToken={isRegistered(auth.user) && !isBusiness(auth.user) ? (auth.user?.token ?? null) : null}
               initialRegion={mapRegion}
               onRegionSaved={setMapRegion}
@@ -517,7 +522,9 @@ function Main() {
               onBack={isBusiness(auth.user) ? undefined : goBack}
             />
           )}
-          {screen === 'permissions' && <PermissionsScreen business={isBusiness(auth.user)} onBack={goBack} />}
+          {screen === 'permissions' && (
+            <PermissionsScreen business={isBusiness(auth.user)} onBack={goBack} />
+          )}
           {screen === 'appearance' && <AppearanceScreen onBack={goBack} />}
           {screen === 'privacy' && (
             <PrivacyScreen
@@ -547,6 +554,10 @@ function Main() {
                 setAuthForm('register');
               }}
               onOpenVenue={openDetails}
+              onOpenFeed={() => {
+                setSocialTab('feed');
+                goTo('friends');
+              }}
               onOpenFriends={() => {
                 setSocialTab('friends');
                 goTo('friends');

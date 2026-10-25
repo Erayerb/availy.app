@@ -12,8 +12,8 @@ export type VenueMapProps = {
   onRegionChangeComplete: (region: Region) => void;
   // Screen position of the selected dot, so the venue card can sit above it
   onSelectedPointChange: (point: Point | null) => void;
-  // Move the map to this spot; a new `key` triggers the move again
-  focus?: { lat: number; lon: number; key: number } | null;
+  // Move the map to this spot (and zoom in to `zoom`, e.g. a searched venue); a new `key` triggers the move again
+  focus?: { lat: number; lon: number; key: number; zoom?: number } | null;
   // Google Maps-style blue dot with a light halo (drawn by us on every platform)
   userPoint?: { lat: number; lon: number } | null;
 };

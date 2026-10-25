@@ -18,7 +18,6 @@ CATEGORIES = {
     "bar": ["entertainment", "nightlife", "socializing"],
     "library": ["coworking", "quiet"],
     "coworking": ["coworking", "quiet"],
-    "park": ["nature", "quiet"],
 }
 DEFAULT_CAPACITY = 50
 SAME_PLACE_M = 60  # a venue with the same name this close is probably the same one

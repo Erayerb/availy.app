@@ -111,7 +111,7 @@ export function CheckinScreen({ onBack, onOpenVenue, onAddVenue }: Props) {
       data={venues}
       keyExtractor={(v) => String(v.id)}
       ListHeaderComponent={header}
-      ListEmptyComponent={empty ? <Text style={error ? styles.error : styles.muted}>{empty}</Text> : null}
+      ListEmptyComponent={empty ? <Text style={error ? styles.error : styles.muted}>{empty}</Text> : undefined}
       keyboardShouldPersistTaps="handled"
       renderItem={({ item }) => {
         const km = point ? distanceKm(point, item) : null;

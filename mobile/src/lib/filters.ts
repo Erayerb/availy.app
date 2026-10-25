@@ -1,4 +1,4 @@
-export type Tag = 'socializing' | 'coworking' | 'entertainment' | 'quiet' | 'food' | 'nightlife' | 'nature';
+export type Tag = 'socializing' | 'coworking' | 'entertainment' | 'quiet' | 'food' | 'nightlife' | 'wifi';
 
 export const TAG_OPTIONS: { tag: Tag; label: string }[] = [
   { tag: 'socializing', label: 'Sosyalleşme' },
@@ -7,7 +7,7 @@ export const TAG_OPTIONS: { tag: Tag; label: string }[] = [
   { tag: 'quiet', label: 'Sessizlik' },
   { tag: 'food', label: 'Yemek' },
   { tag: 'nightlife', label: 'Gece hayatı' },
-  { tag: 'nature', label: 'Doğa' },
+  { tag: 'wifi', label: 'Ücretsiz Wi-Fi' }, // from OpenStreetMap (internet_access without a fee)
 ];
 
 /** Add the tag if missing, remove it if present; result is sorted for stable query keys. */

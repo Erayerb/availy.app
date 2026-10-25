@@ -9,9 +9,9 @@ import { formatDistance } from '../lib/geo';
 import { socialApi, type Suggestions } from '../lib/social';
 import { QrScanner } from '../components/QrScanner';
 import type { User } from '../lib/auth';
-import { sentence, timeAgo } from '../lib/crowd';
+import { dayAndTime, sentence, timeAgo } from '../lib/crowd';
 import { friendQrPayload, friendsApi, inviteMessage, parseFriendCode, type FriendLists, type Person, type Relation } from '../lib/friends';
-import { author, groupByPerson, MAX_REVIEW, reviewsApi, type FeedItem } from '../lib/reviews';
+import { author, checkinSocialApi, groupByPerson, MAX_REVIEW, reviewsApi, type FeedItem } from '../lib/reviews';
 import { confirmAction } from '../lib/confirm';
 import { Leaderboard } from '../components/Leaderboard';
 import { stars } from '../lib/feedback';
@@ -55,6 +55,8 @@ export function SocialScreen({
   const [tab, setTab] = useState<SocialTab>(initialTab);
 
   const [feed, setFeed] = useState<FeedItem[]>([]);
+  // People whose items are folded in Akış (only their name shows)
+  const [folded, setFolded] = useState<Set<string>>(new Set());
   // Shown while Akış is empty: "Önerilen kişiler" and "Yakında yeni keşfedilen mekanlar"
   const [suggestions, setSuggestions] = useState<Suggestions | null>(null);
   const { point } = useLocation();
@@ -258,18 +260,31 @@ export function SocialScreen({
           {/* One block per person; their items in a row stay together */}
           {groupByPerson(feed).map((group) => (
             <View key={`${group.username}-${group.items[0].at}`} style={styles.card}>
+              {/* Tapping the name folds this person's items; the avatar opens the profile */}
               <Pressable
-                onPress={() => group.username && onOpenUser(group.username)}
+                onPress={() => {
+                  const key = group.username ?? '';
+                  setFolded((current) => {
+                    const next = new Set(current);
+                    if (next.has(key)) next.delete(key);
+                    else next.add(key);
+                    return next;
+                  });
+                }}
                 style={styles.groupHead}
-                accessibilityLabel={`${author(group.username)} profili`}
+                accessibilityLabel={`${author(group.username)}: ${folded.has(group.username ?? '') ? 'aç' : 'kapat'}`}
               >
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{(group.username ?? '?').slice(0, 1).toLocaleUpperCase('tr-TR')}</Text>
-                </View>
+                <Pressable onPress={() => group.username && onOpenUser(group.username)} hitSlop={6} accessibilityLabel={`${author(group.username)} profili`}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>{(group.username ?? '?').slice(0, 1).toLocaleUpperCase('tr-TR')}</Text>
+                  </View>
+                </Pressable>
                 <Text style={[styles.bold, styles.flex]}>{author(group.username)}</Text>
-                <Text style={styles.chevron}>›</Text>
+                {/* Newest item first: its date */}
+                <Text style={styles.muted}>{dayAndTime(group.items[0].at, new Date())}</Text>
+                <Text style={styles.fold}>{folded.has(group.username ?? '') ? '▸' : '▾'}</Text>
               </Pressable>
-              {group.items.map((item) => (
+              {!folded.has(group.username ?? '') && group.items.map((item) => (
                 <View key={`${item.kind}-${item.at}`} style={styles.feedItem}>
                   <Pressable onPress={() => onOpenVenue({ id: item.venue_id })} style={styles.feedRow}>
                     <View style={styles.flex}>
@@ -289,6 +304,10 @@ export function SocialScreen({
                     </View>
                     <Text style={styles.chevron}>›</Text>
                   </Pressable>
+                  {/* A friend's check-in: like it and comment */}
+                  {item.kind === 'checkin' && item.checkin_id ? (
+                    <CheckinActions token={token} item={item} onOpenUser={onOpenUser} onChanged={reload} />
+                  ) : null}
                   {/* Answer a friend's review (or join the conversation under it) right here */}
                   {item.review_id !== null && item.allow_replies && (
                     <FeedReply
@@ -314,6 +333,40 @@ export function SocialScreen({
         <>
           {note && <Text style={note.ok ? styles.success : styles.error}>{note.text}</Text>}
 
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Arkadaşların · {lists.friends.length}</Text>
+            {lists.friends.length === 0 && <Text style={styles.muted}>Henüz arkadaşın yok. QR'ını göster ya da kullanıcı adıyla ara.</Text>}
+            {/* Four rows show; more scroll inside the card */}
+            <ScrollView
+              style={lists.friends.length > 4 && styles.friendList}
+              contentContainerStyle={styles.friendRows}
+              nestedScrollEnabled
+              scrollEnabled={lists.friends.length > 4}
+            >
+              {lists.friends.map((p) => (
+                <PersonRow key={p.id} person={p} onOpen={onOpenUser}>
+                  <Action
+                    label="Çıkar"
+                    quiet
+                    onPress={() =>
+                      confirmAction(
+                        'Arkadaşlıktan çıkarılsın mı?',
+                        `@${p.username} artık check-in'lerini göremez; tekrar arkadaş olmak için yeniden istek göndermen gerekir.`,
+                        'Çıkar',
+                        () => remove(p),
+                      )
+                    }
+                  />
+                </PersonRow>
+              ))}
+            </ScrollView>
+            {lists.outgoing.length > 0 && <Text style={styles.label}>Gönderdiğin istekler</Text>}
+            {lists.outgoing.map((p) => (
+              <PersonRow key={p.id} person={p} onOpen={onOpenUser}>
+                <Action label="İptal" quiet onPress={() => remove(p)} />
+              </PersonRow>
+            ))}
+          </View>
           {lists.incoming.length > 0 && (
             <View style={styles.card}>
               <Text style={styles.sectionTitle}>Gelen istekler</Text>
@@ -373,32 +426,6 @@ export function SocialScreen({
             <Text style={styles.muted}>Bağlantıyı WhatsApp'tan ya da Instagram hikayesinden paylaşabilirsin.</Text>
           </View>
 
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Arkadaşların · {lists.friends.length}</Text>
-            {lists.friends.length === 0 && <Text style={styles.muted}>Henüz arkadaşın yok. QR'ını göster ya da kullanıcı adıyla ara.</Text>}
-            {lists.friends.map((p) => (
-              <PersonRow key={p.id} person={p} onOpen={onOpenUser}>
-                <Action
-                  label="Çıkar"
-                  quiet
-                  onPress={() =>
-                    confirmAction(
-                      'Arkadaşlıktan çıkarılsın mı?',
-                      `@${p.username} artık check-in'lerini göremez; tekrar arkadaş olmak için yeniden istek göndermen gerekir.`,
-                      'Çıkar',
-                      () => remove(p),
-                    )
-                  }
-                />
-              </PersonRow>
-            ))}
-            {lists.outgoing.length > 0 && <Text style={styles.label}>Gönderdiğin istekler</Text>}
-            {lists.outgoing.map((p) => (
-              <PersonRow key={p.id} person={p} onOpen={onOpenUser}>
-                <Action label="İptal" quiet onPress={() => remove(p)} />
-              </PersonRow>
-            ))}
-          </View>
         </>
       )}
 
@@ -458,6 +485,7 @@ const styles = themed(() => StyleSheet.create({
   tabText: { fontSize: 14, fontWeight: '600', color: colors.text },
   tabTextActive: { color: colors.onPrimary },
   chevron: { fontSize: 22, color: colors.textMuted },
+  fold: { fontSize: 16, color: colors.textMuted, paddingHorizontal: 4 },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 40, gap: 14 },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
@@ -472,6 +500,10 @@ const styles = themed(() => StyleSheet.create({
   row: { flexDirection: 'row', gap: 8 },
   flex: { flex: 1 },
   startRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  checkinActions: { gap: 6 },
+  commentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: colors.border },
+  likedText: { color: colors.primary },
+  deleteText: { fontSize: 12, color: colors.danger, fontWeight: '600' },
   suggestRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   smallButton: { paddingVertical: 7, paddingHorizontal: 14, borderRadius: 12, backgroundColor: colors.primary },
   smallButtonText: { color: colors.onPrimary, fontWeight: '700', fontSize: 13 },
@@ -479,6 +511,9 @@ const styles = themed(() => StyleSheet.create({
   pressed: { opacity: 0.7 },
   input: { padding: 12, borderRadius: 12, backgroundColor: colors.cream, fontSize: 15, color: colors.text },
   person: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  // Four person rows (38 + 8) with the gaps between them
+  friendList: { maxHeight: 4 * 46 + 3 * 10 },
+  friendRows: { gap: 10 },
   avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontSize: 16, fontWeight: '800', color: colors.primary },
   action: { paddingVertical: 7, paddingHorizontal: 12, borderRadius: 12, backgroundColor: colors.primary },
@@ -512,6 +547,104 @@ function FeedText({ item, me }: { item: FeedItem; me: string | null | undefined 
 }
 
 /** "Yanıtla" under a review in the feed: a reply without leaving the feed. */
+/** Under a friend's check-in: ♡ like, comments and "Yorum yap". */
+function CheckinActions({
+  token,
+  item,
+  onOpenUser,
+  onChanged,
+}: {
+  token: string;
+  item: FeedItem;
+  onOpenUser: (username: string) => void;
+  onChanged: () => void;
+}) {
+  const [liked, setLiked] = useState(!!item.liked);
+  const [likes, setLikes] = useState(item.likes ?? 0);
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const id = item.checkin_id!;
+
+  const toggleLike = async () => {
+    const next = !liked;
+    setLiked(next);
+    setLikes((n) => n + (next ? 1 : -1));
+    await checkinSocialApi.like(token, id, next).catch(() => {
+      setLiked(!next);
+      setLikes((n) => n + (next ? -1 : 1));
+    });
+  };
+
+  const send = async () => {
+    if (!text.trim()) return;
+    try {
+      await checkinSocialApi.comment(token, id, text);
+      setText('');
+      setOpen(false);
+      setError(null);
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Gönderilemedi.');
+    }
+  };
+
+  return (
+    <View style={styles.checkinActions}>
+      {(item.comments ?? []).map((c) => (
+        <View key={c.id} style={styles.commentRow}>
+          <Text style={[styles.text, styles.flex]}>
+            <Text style={styles.bold} onPress={() => c.username && onOpenUser(c.username)}>
+              {author(c.username)}
+            </Text>{' '}
+            {c.body}
+          </Text>
+          {c.mine && (
+            <Pressable onPress={() => checkinSocialApi.removeComment(token, c.id).then(onChanged)} hitSlop={6}>
+              <Text style={styles.deleteText}>Sil</Text>
+            </Pressable>
+          )}
+        </View>
+      ))}
+      <View style={styles.replyBar}>
+        <Pressable onPress={toggleLike} hitSlop={6} accessibilityLabel={liked ? 'Beğeniyi geri al' : 'Beğen'}>
+          <Text style={[styles.replyLink, liked && styles.likedText]}>
+            {liked ? '♥' : '♡'} {likes > 0 ? likes : 'Beğen'}
+          </Text>
+        </Pressable>
+        {!open && (
+          <Pressable onPress={() => setOpen(true)} hitSlop={6}>
+            <Text style={styles.replyLink}>💬 Yorum yap</Text>
+          </Pressable>
+        )}
+      </View>
+      {open && (
+        <View style={styles.replyForm}>
+          <TextInput
+            value={text}
+            onChangeText={setText}
+            placeholder={`${author(item.username)} kişisinin check-in'ine yorum yaz`}
+            placeholderTextColor={colors.placeholder}
+            maxLength={MAX_REVIEW}
+            multiline
+            autoFocus
+            style={styles.input}
+          />
+          {error && <Text style={styles.error}>{error}</Text>}
+          <View style={styles.row}>
+            <Pressable style={[styles.secondary, styles.flex]} onPress={() => setOpen(false)}>
+              <Text style={styles.secondaryText}>Vazgeç</Text>
+            </Pressable>
+            <Pressable style={[styles.primary, styles.flex]} onPress={send}>
+              <Text style={styles.primaryText}>Gönder</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+}
+
 function FeedReply({ token, reviewId, to, onSent }: { token: string; reviewId: number; to: string | null; onSent: () => void }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');

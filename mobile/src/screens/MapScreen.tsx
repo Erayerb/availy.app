@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 
 import { AlternativesPopup } from '../components/AlternativesPopup';
 import { FilterBar } from '../components/FilterBar';
+import { MapSearch } from '../components/MapSearch';
 import { BackButton } from '../components/BackButton';
 import { CARD_WIDTH, VenueCard } from '../components/VenueCard';
 import { VenueMap } from '../components/VenueMap';
@@ -29,6 +30,7 @@ const QUERY_PADDING = 2;
 // "Konumuma git" and "+" are the same size
 const MAP_BUTTON = 52;
 type Props = {
+  onShowVenue: (venue: Venue) => void; // a searched venue: the map opens again around it, its card open
   friendsToken: string | null; // the map card shows friends who are there (registered customers)
   initialRegion: Region;
   onRegionSaved: (region: Region) => void;
@@ -49,6 +51,7 @@ type Props = {
 };
 
 export function MapScreen({
+  onShowVenue,
   friendsToken,
   initialRegion,
   onRegionSaved,
@@ -65,6 +68,8 @@ export function MapScreen({
   onOpenCheckin,
 }: Props) {
   const [onlyVisited, setOnlyVisited] = useState(false);
+  // 🔍 at the top: search a venue and move the map to it
+  const [searching, setSearching] = useState(false);
   const [onlyTrending, setOnlyTrending] = useState(false);
   const anyFilter = tags.length > 0 || hideClosed || onlyTrending || onlyVisited;
   const clearFilters = () => {
@@ -260,6 +265,9 @@ export function MapScreen({
       >
         <View style={styles.topBar} pointerEvents="box-none">
           <BackButton onPress={onBack} />
+          <Pressable style={styles.search} onPress={() => setSearching(true)} accessibilityLabel="Mekan ara">
+            <Text style={styles.searchText}>🔍 Mekan ara</Text>
+          </Pressable>
           {anyFilter && (
             <Pressable style={styles.clear} onPress={clearFilters} accessibilityLabel="Filtreleri temizle">
               <Text style={styles.clearText}>✕ Temizle</Text>
@@ -276,6 +284,16 @@ export function MapScreen({
           onOnlyTrendingChange={setOnlyTrending}
         />
       </View>
+
+      {searching && (
+        <MapSearch
+          onClose={() => setSearching(false)}
+          onChoose={(venue) => {
+            setSearching(false);
+            onShowVenue(venue);
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -290,7 +308,20 @@ const styles = themed(() => StyleSheet.create({
     right: 0,
     gap: 6,
   },
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12 },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, gap: 10 },
+  search: {
+    flex: 1,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  searchText: { fontSize: 15, color: colors.textMuted },
   clear: {
     paddingHorizontal: 12,
     height: 32,

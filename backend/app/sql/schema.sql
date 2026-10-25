@@ -312,3 +312,20 @@ CREATE TABLE IF NOT EXISTS support_messages (
     app_info    TEXT,  -- platform and app version, for bug reports
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- v2: after a check-in the user may add a few words ("Fikrini yaz"); friends like and comment on check-ins
+ALTER TABLE checkins ADD COLUMN IF NOT EXISTS note TEXT;
+CREATE TABLE IF NOT EXISTS checkin_likes (
+    checkin_id  BIGINT NOT NULL REFERENCES checkins(id) ON DELETE CASCADE,
+    user_id     BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (checkin_id, user_id)
+);
+CREATE TABLE IF NOT EXISTS checkin_comments (
+    id          BIGSERIAL PRIMARY KEY,
+    checkin_id  BIGINT NOT NULL REFERENCES checkins(id) ON DELETE CASCADE,
+    user_id     BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    body        TEXT NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS checkin_comments_checkin ON checkin_comments (checkin_id);

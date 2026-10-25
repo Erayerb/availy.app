@@ -111,13 +111,16 @@ test('share message and link round trip', () => {
   assert.match(shareMessage(venue({ crowd: { state: 'unexplored' } })), /henüz güncel bildirim yok/);
   assert.match(checkinShareMessage('Demo Kafe', 'Sakin', false), /^📍 Demo Kafe'deyim · şu an sakin\. .*\?venue=Demo%20Kafe$/);
   assert.match(checkinShareMessage('Demo Kafe', 'Kalabalık', true), /ilk ben keşfettim ✨ · şu an kalabalık/);
+  assert.match(checkinShareMessage('Demo Kafe', 'Sakin', false, ' Kahve harika '), /şu an sakin\. “Kahve harika” availy'de/);
   assert.equal(venueFromQuery(new URL(venueLink('Demo Kafe Moda')).search), 'Demo Kafe Moda');
   assert.match(shareMessage(venue({ open_now: false })), /kapalı, 08:00'de açılıyor/);
   assert.equal(venueFromQuery('?x=1'), null);
 });
 
 test('amenities follow type and purpose', () => {
-  assert.deepEqual(amenitiesFor({ category: 'coworking', tags: [] }).map((a) => a.label), ['Wi-Fi', 'Priz', 'Sessiz alan', 'Toplantı odası']);
+  assert.deepEqual(amenitiesFor({ category: 'coworking', tags: ['wifi'] }).map((a) => a.label), ['Ücretsiz Wi-Fi', 'Priz', 'Sessiz alan', 'Toplantı odası']);
+  // No Wi-Fi in the data: not guessed
+  assert.ok(!amenitiesFor({ category: 'cafe', tags: [] }).some((a) => a.label === 'Ücretsiz Wi-Fi'));
   assert.ok(amenitiesFor({ category: 'bar', tags: ['quiet'] }).some((a) => a.label === 'Sessiz alan'));
 });
 

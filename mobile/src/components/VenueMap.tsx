@@ -99,7 +99,15 @@ export function VenueMap({
 
   useEffect(() => {
     if (!focus || !mapRef.current) return;
-    mapRef.current.animateCamera({ center: { latitude: focus.lat, longitude: focus.lon } }, { duration: 400 });
+    if (focus.zoom) {
+      const delta = 360 / 2 ** focus.zoom;
+      mapRef.current.animateToRegion(
+        { latitude: focus.lat, longitude: focus.lon, latitudeDelta: delta, longitudeDelta: delta },
+        400,
+      );
+    } else {
+      mapRef.current.animateCamera({ center: { latitude: focus.lat, longitude: focus.lon } }, { duration: 400 });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focus?.key]);
   const selected = venues.find((v) => v.id === selectedId);

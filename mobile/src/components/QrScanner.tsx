@@ -24,7 +24,7 @@ export function QrScanner({ visible, title, onScanned, onClose }: Props) {
   };
 
   return (
-    <Modal visible={visible} animationType="slide" onShow={() => (handled.current = false)} onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" onShow={() => { handled.current = false; }} onRequestClose={onClose}>
       <View style={styles.page}>
         {permission?.granted ? (
           <CameraView

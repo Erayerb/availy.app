@@ -15,7 +15,6 @@ import {
   isPilotDistrict,
   matchesDistricts,
   matchesSides,
-  PILOT_NOTE,
   SIDE_OPTIONS,
   toggleSide,
   type Side,
@@ -120,11 +119,6 @@ export function HomeScreen({
           disabled={!hasFilters}
         />
       </View>
-      <View style={styles.sideRow}>
-        {SIDE_OPTIONS.map(({ side, label }) => (
-          <Chip key={side} label={label} active={sides.includes(side)} onPress={() => changeSides(side)} />
-        ))}
-      </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
         <Chip
           label="Tüm semtler"
@@ -134,6 +128,9 @@ export function HomeScreen({
             onSidesChange([]);
           }}
         />
+        {SIDE_OPTIONS.map(({ side, label }) => (
+          <Chip key={side} label={label} active={sides.includes(side)} onPress={() => changeSides(side)} />
+        ))}
         {/* Pilot districts first; the rest are visible but cannot be picked yet */}
         {[...visibleDistricts.filter(isPilotDistrict), ...visibleDistricts.filter((d) => !isPilotDistrict(d))].map((d) => (
           <Chip
@@ -145,11 +142,21 @@ export function HomeScreen({
           />
         ))}
       </ScrollView>
-      <Text style={styles.hint}>{PILOT_NOTE}</Text>
 
       <Text style={styles.sectionTitle}>Ne arıyorsun?</Text>
       <TagChips selected={tags} onToggle={(tag) => onTagsChange(toggleTag(tags, tag))} />
 
+      <View style={styles.sortRow}>
+        <Text style={styles.sectionTitle}>
+          {searching ? 'Arama sonuçları' : sortMode === 'nearest' ? 'Sana en yakın' : sortMode === 'quietest' ? 'Şu an en sakin' : 'Öneriler'}
+        </Text>
+        <View style={styles.sortChips}>
+          {SORT_OPTIONS.map(({ mode, label }) => (
+            <Chip key={mode} label={label} active={sortMode === mode} onPress={() => onSortChange(mode)} />
+          ))}
+          <Chip label="Kapalıları gizle" active={hideClosed} onPress={() => onHideClosedChange(!hideClosed)} />
+        </View>
+      </View>
       <View style={styles.search}>
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
@@ -168,17 +175,6 @@ export function HomeScreen({
         )}
       </View>
 
-      <View style={styles.sortRow}>
-        <Text style={styles.sectionTitle}>
-          {searching ? 'Arama sonuçları' : sortMode === 'nearest' ? 'Sana en yakın' : sortMode === 'quietest' ? 'Şu an en sakin' : 'Öneriler'}
-        </Text>
-        <View style={styles.sortChips}>
-          {SORT_OPTIONS.map(({ mode, label }) => (
-            <Chip key={mode} label={label} active={sortMode === mode} onPress={() => onSortChange(mode)} />
-          ))}
-          <Chip label="Kapalıları gizle" active={hideClosed} onPress={() => onHideClosedChange(!hideClosed)} />
-        </View>
-      </View>
       {needsLocation && <Text style={styles.hint}>En yakını göstermek için konum izni gerekli.</Text>}
       {updatedAt && (
         <Text style={styles.hint}>
@@ -209,7 +205,6 @@ const styles = themed(() => StyleSheet.create({
   sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.text, marginTop: 8 },
   sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   row: { gap: 8 },
-  sideRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   sortRow: { gap: 8 },
   sortChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   hint: { fontSize: 13, color: colors.textMuted },
@@ -217,7 +212,7 @@ const styles = themed(() => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 14,
+    marginTop: 4,
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 14,

@@ -30,14 +30,15 @@ def main() -> None:
                 INSERT INTO venues ({COLUMNS})
                 VALUES (%(osm_id)s, %(source)s, %(name)s, %(category)s, %(location)s, %(capacity)s,
                         %(neighborhood)s, %(district)s, %(tags)s, %(open_hour)s, %(close_hour)s)
-                ON CONFLICT (osm_id) WHERE osm_id IS NOT NULL DO NOTHING
-                RETURNING id
+                -- Already there: only the purpose tags are refreshed (e.g. "wifi" was added later)
+                ON CONFLICT (osm_id) WHERE osm_id IS NOT NULL DO UPDATE SET tags = EXCLUDED.tags
+                RETURNING (xmax = 0) AS inserted
                 """,
                 v,
             ).fetchone()
-            added += row is not None
+            added += row["inserted"]
         target.commit()
-    print(f"{len(venues)} mekan okundu, {added} tanesi hedefe eklendi.")
+    print(f"{len(venues)} mekan okundu, {added} tanesi hedefe eklendi, diğerlerinin amaçları güncellendi.")
 
 
 if __name__ == "__main__":

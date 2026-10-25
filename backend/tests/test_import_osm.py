@@ -13,7 +13,7 @@ def test_cafe_with_hours_and_wifi():
         NISANTASI,
     )
     assert venue["osm_id"] == "node/42" and venue["category"] == "cafe"
-    assert venue["tags"] == ["coworking", "socializing"]
+    assert venue["tags"] == ["coworking", "socializing", "wifi"]
     assert (venue["open_hour"], venue["close_hour"]) == (8, 24)
     assert (venue["neighborhood"], venue["district"]) == ("Nişantaşı", "Şişli")
 
@@ -30,17 +30,18 @@ def test_unnamed_or_other_places_are_skipped():
     assert venue_from_element(element(amenity="fast_food", name="Döner"), NISANTASI) is None
 
 
-def test_parks_and_beaches_are_nature():
-    park = venue_from_element(element(leisure="park", name="Maçka Parkı"), NISANTASI)
-    beach = venue_from_element(element(natural="beach", name="Caddebostan Plajı"), NISANTASI)
-    assert park["category"] == beach["category"] == "park"
-    assert "nature" in park["tags"] and "nature" in beach["tags"]
+def test_parks_are_not_venues_and_paid_wifi_is_not_free():
+    assert venue_from_element(element(leisure="park", name="Maçka Parkı"), NISANTASI) is None
+    paid = venue_from_element(element(amenity="cafe", name="K", internet_access="wlan", **{"internet_access:fee": "yes"}), NISANTASI)
+    assert "wifi" not in paid["tags"]
+    assert "wifi" not in venue_from_element(element(amenity="cafe", name="K"), NISANTASI)["tags"]
+    assert venue_from_element(element(amenity="nightclub", name="Kulüp"), NISANTASI)["tags"] == ["entertainment", "nightlife"]
     assert venue_from_element(element(amenity="nightclub", name="Kulüp"), NISANTASI)["tags"] == ["entertainment", "nightlife"]
 
 
 def test_coworking_and_address_suburb():
     venue = venue_from_element(element(office="coworking", name="Ofis", **{"addr:suburb": "Teşvikiye"}), NISANTASI)
-    assert venue["category"] == "coworking" and venue["neighborhood"] == "Teşvikiye"
+    assert venue["category"] == "coworking" and venue["neighborhood"] == "Teşvikiye" and "wifi" in venue["tags"]
 
 
 def test_reimport_updates_instead_of_duplicating(conn):

@@ -65,12 +65,28 @@ export function timeAgo(iso: string, now: Date): string {
   return `${Math.floor(hours / 24)} gün önce`;
 }
 
+/** A day and time: "Bugün 13:10", "Dün 09:05", "23 Eki 18:40" (the year only when it is not this year). */
+export function dayAndTime(iso: string, now: Date): string {
+  const at = new Date(iso);
+  const time = at.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((day(now) - day(at)) / 86_400_000);
+  if (days === 0) return `Bugün ${time}`;
+  if (days === 1) return `Dün ${time}`;
+  const date = at.toLocaleDateString('tr-TR', {
+    day: 'numeric',
+    month: 'short',
+    ...(at.getFullYear() !== now.getFullYear() ? { year: 'numeric' } : {}),
+  });
+  return `${date} ${time}`;
+}
+
 /** Second line under the level: who reported and when. */
 export function crowdSummary(crowd: Crowd, now: Date): string {
   if (crowd.state === 'unexplored') return "Henüz kimse check-in yapmadı. İlk check-in'i sen yap!";
   if (!crowd.last_report_at) return 'Bilgi yok';
   const ago = timeAgo(crowd.last_report_at, now);
-  if (crowd.state === 'stale') return `Son bildirim ${ago} · güncel bilgi yok`;
+  if (crowd.state === 'stale') return `Son bildirim ${ago}`;
   return `Son bildirim ${ago} · ${crowd.reporters} kişi`;
 }
 
