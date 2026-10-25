@@ -3,7 +3,7 @@ export type Side = 'europe' | 'anatolia';
 
 export const SIDE_OPTIONS: { side: Side; label: string }[] = [
   { side: 'europe', label: 'İstanbul (Avr.)' },
-  { side: 'anatolia', label: 'İstanbul (Anadolu)' },
+  { side: 'anatolia', label: 'İstanbul (And.)' },
 ];
 
 const EUROPE = [

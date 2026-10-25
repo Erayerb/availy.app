@@ -86,7 +86,17 @@ Testler: backend 217, mobil 124 (son ölçüm).
 **Check-in ve doluluk**
 - Mekan sayfasında "Şu an burası nasıl?" Sakin / Orta / Kalabalık → (Kalabalık'ta "Sıra var mı?", Orta'da "Oturacak yer var mı?") → Check-in. Gizli check-in (doluluğa sayılır, ad gösterilmez; Gizlilik'te varsayılan yapılabilir)
 - Kapalı mekanda check-in yok: kutuda "🔒 Şu an kapalı" ve kapalı "Kapalı · 08:00'de açılır" düğmesi (sunucu da reddeder)
-- Check-in sonrası "💬 Fikrini yazmak ister misin?": birkaç kelime check-in'e not olarak kaydedilir (checkins.note; PATCH /v1/checkins/{id}/note), arkadaşlar Akış'ta görür, "Arkadaşlarına paylaş" metnine de eklenir
+- Check-in sonrası "💬 Burası nasıl?": yıldız + birkaç kelime = mekan yorumu (reviews.checkin_id ile check-in'e bağlı); mekan sayfasında yorum, Akış'ta check-in'in altında görünür (ayrı yorum satırı çıkmaz), "Arkadaşlarına paylaş" metnine de eklenir; Düzenle (PATCH /v1/reviews/{id}) / Sil. Eski check-in notları (checkins.note) yalnızca gösterilir
+- 🔔 Bildirimler silinene kadar kalır (kabul edilen istek "artık arkadaşsınız", katılınan sadakat "Katıldın" olarak): her satırda 🗑 (notification_dismissals), üstte "Temizle" (users.notifications_cleared_at)
+- "Sakin olunca haber ver": yalnızca zil açıldıktan sonraki check-in'ler Sakin derse haber verir; 6 saat sonra kendiliğinden kapanır
+- 🔥 Haftalık seri: üst üste kaç hafta (Pazartesi–Pazar, İstanbul saati) en az bir check-in; bu hafta henüz yoksa seri hafta bitene kadar sürer. Check-in kutlamasında (2+ hafta) ve profilde (backend/app/streaks.py)
+- 👑 Müdavim: mekan sayfasında, ben ve arkadaşlarım arasında son 30 günde en çok (en az 2) gizli olmayan check-in yapan (GET /v1/venues/{id}/regular)
+- Haritada gruplama: yakın noktalar sayılı tek daire (renk: açık / güncel noktaların çoğunluğu; hiç gri olmaz, yalnız kapalı / eski bilgili gruplar mor), dokununca en fazla 2 seviye yakınlaşır; 16. yakınlaştırmadan sonra grup yok (mobile/src/lib/clusters.ts, ek kütüphane yok)
+- "✨ Şu an normalden daha sakin (bu saatte genelde Kalabalık)" / "normalden daha kalabalık": canlı doluluk ile bu saatin önceki günlerdeki olağan seviyesi (typical usual_now) karşılaştırılır; mekan sayfasında
+- 👥 Gruplar (Sosyal > Sıralama > Gruplar): "＋ Grup oluştur" (ad + davet: arkadaşlar, çevrendekiler / öneriler, kullanıcı adıyla arama), davet 🔔'ye düşer, "Katıl" / "Reddet"; her grubun kendi haftalık / tüm zamanlar sıralaması; üyeler davet edebilir, son üye çıkınca grup silinir (backend/app/groups.py; en fazla 50 üye, kişi başı 20 grup)
+- Konum ve izinler > Konum: özelliklerin yanında tik kutuları; "Haritada konumum" (mavi nokta) ve "Check-in önerisi" kapatılabilir, check-in her zaman konum ister
+- Daha fazla > Destek: site açılana kadar "Yakında", basılmaz
+- Daha fazla: Profil ayarları (çıkış yok; Çıkış Yap Daha fazla'nın altında), Bildirim ayarları, Görünüm (tema + renk körlüğü), Gizlilik ayarları; her satırda içinde ne olduğu yazar. Ana sayfada reklam yeri yok
 - Check-in sonrası kısa kutlama (🎉 "Check-in yapıldı!" / ✨ "Burayı sen keşfettin!" + "+10 puan · Buraya 3. check-in'in") ve "📣 Arkadaşlarına paylaş" (mekan, doluluk ve web bağlantısı); buton kapalı kalır, üstünde "Tekrar check-in: 17:47"
 - Haritada sağ altta "+" → Check-in yap: en yakın mekanlar ve arama; sağ üstte "➕ Mekan ekle"
 - Check-in önerisi: açık bir mekanın 250 m yakınında 3 dk kalınca (uygulama açıkken) şerit + telefon bildirimi; son 90 dakikada orada check-in yaptıysan sormaz
@@ -172,6 +182,17 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Mağaza sürümü: Expo EAS Build ile App Store / Google Play
 - E-posta: Resend hesabı açıldı, anahtar Render'da (`resend` ortam grubu, RESEND_API_KEY). Alan adı olmadan Resend yalnızca hesap sahibinin adresine gönderir; herkese gidebilmesi için alan adı al (ör. availy.app), Resend → Domains'te doğrula (DNS: SPF, DKIM) ve Render'da MAIL_FROM = "availy <no-reply@alanadı>" yap
 - Gizlilik politikası ve kullanım koşulları: hukukçu kontrolü, şirket bilgileri, web'de yayın; KVKK: sunucular Frankfurt'ta, yurt dışına aktarım şartları hukukçuya sorulmalı
+
+**Premium'a teşvik** (ana sayfadaki "REKLAM" yeri kaldırıldı)
+- Premium'un ne kazandırdığını yerinde göster: ikinci mekanı takip etmeye çalışınca ("Sakin olunca haber ver" sınırı), geçmiş doluluk / tipik saatler ayrıntısında, haftalık özet kartında
+- Ana sayfada küçük, kapatılabilir bir kart (ör. haftada bir): "Premium ile sınırsız takip ve reklamsız kullanım"
+- Deneme süresi (7 gün ücretsiz) ve seri ödülü: ör. 4 haftalık seriye 1 hafta Premium
+- Gerçek reklamlar gelince: yakındaki mekanların kampanyaları, Premium'da gizli
+
+**Görünüm**
+- Düğmelere basma efekti (basınca hafif kararma / küçülme); şimdi çoğu düğmede geri bildirim yok, basılmamış gibi hissettiriyor
+- Emoji ikonları (📍 🔔 ♡ ☕ …) gerçek bir ikon setiyle değiştir (`@expo/vector-icons`): her telefonda aynı görünür
+- Not: Expo Go geliştirme modunda çalışır (sıkıştırılmamış kod, ek kontroller); yavaş sayfa geçişleri gerçek (release) sürümde büyük ölçüde düzelir
 
 **Bildirimler** (olay olunca, uygulama kapalıyken de)
 - Telefon bildirimi (push): uygulama bildirim adresini sunucuya kaydeder, sunucu olay olunca Expo push ile gönderir: arkadaşlık, yanıt, keşif ödülü, "Sakin olunca haber ver", yakında kampanya; işletmeye ölü saat

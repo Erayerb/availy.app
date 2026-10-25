@@ -5,9 +5,11 @@ import MapView, { Marker, type MapPressEvent } from 'react-native-maps';
 import type { Venue } from '../lib/api';
 import type { Region } from '../lib/bbox';
 import { useSettings } from '../context/SettingsContext';
+import { clusterColor, clusterVenues, clusterZoomTarget } from '../lib/clusters';
+import { UNEXPLORED_STYLE } from '../lib/occupancy';
 import { LABEL_LINE_HEIGHT, LABEL_MAX_WIDTH as LABEL_WIDTH, labelPriority, visibleLabels } from '../lib/labels';
 import { colors, getScheme, themed } from '../theme';
-import { DOT_SIZE, LABEL_MIN_ZOOM, SELECTED_DOT_SIZE, zoomForDelta, type VenueMapProps } from './VenueMap.types';
+import { clusterSize, DOT_SIZE, LABEL_MIN_ZOOM, SELECTED_DOT_SIZE, zoomForDelta, type VenueMapProps } from './VenueMap.types';
 
 // Invisible tap area around each dot: a little larger than the dot, but small
 // enough that neighbouring dots' areas don't cover each other
@@ -70,6 +72,30 @@ const VenueMarker = memo(function VenueMarker({
   );
 });
 
+/** Close dots as one circle with a count; a tap zooms in until they split. */
+const ClusterMarker = memo(function ClusterMarker({
+  lat,
+  lon,
+  venues,
+  onZoomIn,
+}: {
+  lat: number;
+  lon: number;
+  venues: Venue[];
+  onZoomIn: (venues: Venue[]) => void;
+}) {
+  const { crowdLook } = useSettings();
+  const size = clusterSize(venues.length);
+  const color = clusterColor(venues, (v) => crowdLook(v).color, UNEXPLORED_STYLE.color);
+  return (
+    <Marker coordinate={{ latitude: lat, longitude: lon }} anchor={{ x: 0.5, y: 0.5 }} onPress={() => onZoomIn(venues)} tracksViewChanges={false}>
+      <View style={[styles.cluster, { width: size, height: size, borderRadius: size / 2, backgroundColor: color }]} collapsable={false}>
+        <Text style={styles.clusterText}>{venues.length}</Text>
+      </View>
+    </Marker>
+  );
+});
+
 /** Native map (Apple Maps on iOS, Google Maps on Android). */
 export function VenueMap({
   initialRegion,
@@ -110,6 +136,31 @@ export function VenueMap({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focus?.key]);
+  const items = useMemo(
+    // Zoom in 256 px tiles for this map's width, so the radius is in screen points
+    () => clusterVenues(venues, Math.log2(((360 / labelRegion.longitudeDelta) * (size.width || 256)) / 256), selectedId),
+    [venues, labelRegion, selectedId, size.width],
+  );
+  // Zoom towards the cluster: all of it in view, but at most 2 levels closer at a time
+  const zoomInto = useCallback(
+    (members: Venue[]) => {
+      const lats = members.map((v) => v.lat);
+      const lons = members.map((v) => v.lon);
+      const span = Math.max(Math.max(...lons) - Math.min(...lons), Math.max(...lats) - Math.min(...lats), 1e-6) * 1.6;
+      const target = clusterZoomTarget(zoomForDelta(labelRegion.longitudeDelta), zoomForDelta(span));
+      const delta = 360 / 2 ** target;
+      mapRef.current?.animateToRegion(
+        {
+          latitude: (Math.max(...lats) + Math.min(...lats)) / 2,
+          longitude: (Math.max(...lons) + Math.min(...lons)) / 2,
+          latitudeDelta: delta,
+          longitudeDelta: delta,
+        },
+        400,
+      );
+    },
+    [labelRegion],
+  );
   const selected = venues.find((v) => v.id === selectedId);
   const { colorBlind } = useSettings();
   const scheme = getScheme();
@@ -165,7 +216,19 @@ export function VenueMap({
           </View>
         </Marker>
       )}
-      {venues.map((venue) => {
+      {items.map((item) => {
+        if (item.kind === 'cluster') {
+          return (
+            <ClusterMarker
+              key={`${item.key}-${colorBlind}-${scheme}`}
+              lat={item.lat}
+              lon={item.lon}
+              venues={item.venues}
+              onZoomIn={zoomInto}
+            />
+          );
+        }
+        const venue = item.venue;
         const isSelected = venue.id === selectedId;
         return (
           <VenueMarker
@@ -217,6 +280,18 @@ const styles = themed(() => StyleSheet.create({
     textShadowOffset: { width: 0, height: 0 },
   },
   glyph: { color: colors.white, fontWeight: '800', textAlign: 'center' },
+  cluster: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: colors.white,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.35,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 4,
+  },
+  clusterText: { color: colors.white, fontWeight: '800', fontSize: 14 },
   // "You are here", like Google Maps
   userHalo: {
     width: 40,

@@ -9,7 +9,7 @@ import { formatDistance } from '../lib/geo';
 import { socialApi, type Suggestions } from '../lib/social';
 import { QrScanner } from '../components/QrScanner';
 import type { User } from '../lib/auth';
-import { dayAndTime, sentence, timeAgo } from '../lib/crowd';
+import { sentence, shortDate, timeAgo } from '../lib/crowd';
 import { friendQrPayload, friendsApi, inviteMessage, parseFriendCode, type FriendLists, type Person, type Relation } from '../lib/friends';
 import { author, checkinSocialApi, groupByPerson, MAX_REVIEW, reviewsApi, type FeedItem } from '../lib/reviews';
 import { confirmAction } from '../lib/confirm';
@@ -127,7 +127,7 @@ export function SocialScreen({
   };
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <ScrollView style={styles.page} contentContainerStyle={[styles.content, styles.fill]} keyboardShouldPersistTaps="handled">
       <View style={styles.topRow}>
         <Text style={styles.title}>Sosyal</Text>
         <HeaderButtons onOpenProfile={onOpenProfile} onOpenNotifications={onOpenNotifications} />
@@ -281,7 +281,7 @@ export function SocialScreen({
                 </Pressable>
                 <Text style={[styles.bold, styles.flex]}>{author(group.username)}</Text>
                 {/* Newest item first: its date */}
-                <Text style={styles.muted}>{dayAndTime(group.items[0].at, new Date())}</Text>
+                <Text style={styles.muted}>{shortDate(group.items[0].at, new Date())}</Text>
                 <Text style={styles.fold}>{folded.has(group.username ?? '') ? '▸' : '▾'}</Text>
               </Pressable>
               {!folded.has(group.username ?? '') && group.items.map((item) => (
@@ -291,14 +291,14 @@ export function SocialScreen({
                       <FeedText item={item} me={user?.username} />
                       {item.body ? (
                         <Text style={styles.quote} numberOfLines={3}>
-                          {item.kind === 'review' && item.rating ? `${stars(item.rating)} ` : ''}
+                          {item.rating ? `${stars(item.rating)} ` : ''}
                           {item.body}
                         </Text>
-                      ) : item.kind === 'review' && item.rating ? (
+                      ) : item.rating ? (
                         <Text style={styles.quote}>{stars(item.rating)}</Text>
                       ) : null}
                       <Text style={styles.muted}>
-                        {sentence(timeAgo(item.at, new Date()))}
+                        {shortDate(item.at, new Date())}
                         {item.points > 0 && <Text style={styles.points}> · +{item.points} puan</Text>}
                       </Text>
                     </View>
@@ -309,7 +309,7 @@ export function SocialScreen({
                     <CheckinActions token={token} item={item} onOpenUser={onOpenUser} onChanged={reload} />
                   ) : null}
                   {/* Answer a friend's review (or join the conversation under it) right here */}
-                  {item.review_id !== null && item.allow_replies && (
+                  {item.kind !== 'checkin' && item.review_id !== null && item.allow_replies && (
                     <FeedReply
                       token={token}
                       reviewId={item.review_id}
@@ -321,13 +321,15 @@ export function SocialScreen({
               ))}
             </View>
           ))}
-          <Text style={styles.muted}>
+          {/* Pushes the note to the bottom of the screen when the feed is short */}
+          <View style={styles.grow} />
+          <Text style={[styles.muted, styles.centered]}>
             Yalnızca check-in yapılan mekan görünür; canlı konum paylaşılmaz. Gizli check-in'ler görünmez.
           </Text>
         </>
       )}
 
-      {tab === 'ranking' && <Leaderboard token={token} onOpenUser={onOpenUser} />}
+      {tab === 'ranking' && <Leaderboard token={token} me={user?.username ?? null} onOpenUser={onOpenUser} />}
 
       {tab === 'friends' && (
         <>
@@ -496,6 +498,8 @@ const styles = themed(() => StyleSheet.create({
   muted: { fontSize: 13, color: colors.textMuted },
   username: { fontSize: 18, fontWeight: '800', color: colors.text },
   centered: { textAlign: 'center' },
+  fill: { flexGrow: 1 },
+  grow: { flex: 1 },
   qr: { alignItems: 'center', paddingVertical: 6 },
   row: { flexDirection: 'row', gap: 8 },
   flex: { flex: 1 },

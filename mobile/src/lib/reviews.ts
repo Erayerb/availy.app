@@ -43,7 +43,7 @@ export type FeedItem = {
   review_author: string | null;
   review_id: number | null; // review / reply: answer it from the feed
   allow_replies: boolean;
-  // Check-in: its id, likes and friends' comments (body is the check-in's note)
+  // Check-in: its id, likes and friends' comments (rating / body: the review written with it)
   checkin_id?: number | null;
   likes?: number;
   liked?: boolean;
@@ -52,10 +52,8 @@ export type FeedItem = {
 
 export type CheckinComment = { id: number; username: string | null; body: string; at: string; mine: boolean };
 
-/** Check-ins: a few words with mine ("Fikrini yaz"), friends' likes and comments. */
+/** Check-ins: friends' likes and comments. */
 export const checkinSocialApi = {
-  note: (token: string, checkinId: number, note: string) =>
-    send<{ id: number; note: string | null }>('PATCH', `/v1/checkins/${checkinId}/note`, { note }, token),
   like: (token: string, checkinId: number, liked: boolean) =>
     send<void>('PUT', `/v1/checkins/${checkinId}/like`, { liked }, token),
   comment: (token: string, checkinId: number, body: string) =>
@@ -65,8 +63,16 @@ export const checkinSocialApi = {
 
 export const reviewsApi = {
   list: (venueId: number, token?: string) => send<Reviews>('GET', `/v1/venues/${venueId}/reviews`, undefined, token),
-  write: (token: string, venueId: number, rating: number, body: string, allowReplies: boolean) =>
-    send<Reviews>('POST', `/v1/venues/${venueId}/reviews`, { rating, body, allow_replies: allowReplies }, token),
+  // checkinId: written right after that check-in ("Burası nasıl?"), shown with it in Akış
+  write: (token: string, venueId: number, rating: number, body: string, allowReplies: boolean, checkinId?: number) =>
+    send<Reviews>(
+      'POST',
+      `/v1/venues/${venueId}/reviews`,
+      { rating, body, allow_replies: allowReplies, checkin_id: checkinId ?? null },
+      token,
+    ),
+  edit: (token: string, reviewId: number, rating: number, body: string) =>
+    send<Reviews>('PATCH', `/v1/reviews/${reviewId}`, { rating, body }, token),
   remove: (token: string, reviewId: number) => send<void>('DELETE', `/v1/reviews/${reviewId}`, undefined, token),
   reply: (token: string, reviewId: number, body: string) =>
     send<{ id: number }>('POST', `/v1/reviews/${reviewId}/replies`, { body }, token),
@@ -87,3 +93,7 @@ export function groupByPerson(items: FeedItem[]): { username: string | null; ite
   }
   return groups;
 }
+
+/** My newest review in a venue's list (the one just written). */
+export const newestMine = (reviews: Reviews): Review | null =>
+  reviews.items.filter((r) => r.mine).sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null;

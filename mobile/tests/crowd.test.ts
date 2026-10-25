@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { crowdRatioText, crowdScore, crowdSummary, dayAndTime, liveLevel, timeAgo, UNEXPLORED } from '../src/lib/crowd.ts';
+import { crowdRatioText, crowdScore, crowdSummary, liveLevel, shortDate, timeAgo, UNEXPLORED } from '../src/lib/crowd.ts';
 
 const NOW = new Date('2026-10-20T12:00:00Z');
 const ago = (minutes: number) => new Date(NOW.getTime() - minutes * 60_000).toISOString();
@@ -78,10 +78,10 @@ test('no fresh check-ins: how full it was at this time yesterday', async () => {
   assert.equal(crowdYesterday({ ...live, yesterday_level: 'low' }), null);
 });
 
-test('dayAndTime: today, yesterday, then the date', () => {
+test('shortDate: the time only today', () => {
   const now = new Date(2026, 9, 25, 15, 0);
-  assert.equal(dayAndTime(new Date(2026, 9, 25, 13, 10).toISOString(), now), 'Bugün 13:10');
-  assert.equal(dayAndTime(new Date(2026, 9, 24, 9, 5).toISOString(), now), 'Dün 09:05');
-  assert.match(dayAndTime(new Date(2026, 9, 23, 18, 40).toISOString(), now), /^23 Eki 18:40$/);
-  assert.match(dayAndTime(new Date(2025, 11, 30, 8, 0).toISOString(), now), /2025/);
+  assert.equal(shortDate(new Date(2026, 9, 25, 13, 10).toISOString(), now), 'Bugün 13:10');
+  assert.equal(shortDate(new Date(2026, 9, 24, 9, 5).toISOString(), now), 'Dün');
+  assert.equal(shortDate(new Date(2026, 9, 23, 18, 40).toISOString(), now), '23 Eki');
+  assert.match(shortDate(new Date(2025, 11, 30, 8, 0).toISOString(), now), /2025/);
 });

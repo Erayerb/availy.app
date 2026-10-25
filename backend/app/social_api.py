@@ -3,13 +3,14 @@ from datetime import datetime
 from typing import Literal
 
 import psycopg
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
 
 from app.auth_api import current_user
 from app.checkins_api import get_clock
 from app.db import get_conn
-from app.social import leaderboard, notifications
+from app.groups import is_member
+from app.social import clear_notifications, dismiss_notification, leaderboard, notifications
 from app.suggestions import discovered_venues, suggested_people
 
 router = APIRouter(prefix="/v1")
@@ -33,28 +34,53 @@ class LeaderboardOut(BaseModel):
 
 
 class NotificationOut(BaseModel):
-    kind: Literal["friend_request", "friend_accepted", "reply", "reward", "loyalty", "checkin_like", "checkin_comment"]
+    kind: Literal[
+        "friend_request", "friend_accepted", "reply", "reward", "loyalty", "checkin_like", "checkin_comment", "group_invite"
+    ]
     at: datetime
     username: str | None
     venue_id: int | None
     venue_name: str | None
     body: str | None
+    done: bool = False  # a request accepted, a loyalty program joined
+    key: str  # for deleting it
+
+
+class DismissIn(BaseModel):
+    key: str
 
 
 @router.get("/leaderboard", response_model=LeaderboardOut)
 def ranking(
     period: Literal["week", "all"] = "week",
-    scope: Literal["friends", "everyone"] = "friends",
+    scope: Literal["friends", "everyone", "group"] = "friends",
+    group: int | None = None,  # scope "group": which one (I must be a member)
     user: dict = Depends(current_user),
     conn: psycopg.Connection = Depends(get_conn),
     now: datetime = Depends(get_clock),
 ):
-    return leaderboard(conn, user, period, scope, now)
+    if scope == "group" and (group is None or not is_member(conn, group, user["id"])):
+        raise HTTPException(status_code=404, detail="Grup bulunamadı.")
+    return leaderboard(conn, user, period, scope, now, group)
 
 
 @router.get("/notifications", response_model=list[NotificationOut])
 def my_notifications(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn), now: datetime = Depends(get_clock)):
     return notifications(conn, user, now)
+
+
+@router.post("/notifications/dismiss", status_code=204)
+def dismiss(body: DismissIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    """🗑 on one 🔔 item."""
+    dismiss_notification(conn, user, body.key)
+    return Response(status_code=204)
+
+
+@router.delete("/notifications", status_code=204)
+def clear(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn), now: datetime = Depends(get_clock)):
+    """"Temizle": deletes the whole 🔔 list."""
+    clear_notifications(conn, user, now)
+    return Response(status_code=204)
 
 
 class SuggestedPerson(BaseModel):

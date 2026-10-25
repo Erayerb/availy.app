@@ -4,7 +4,7 @@ import { Linking, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, T
 import { BackButton } from '../components/BackButton';
 import { BusinessRequest } from '../components/BusinessRequest';
 import { CampaignBox } from '../components/CampaignBox';
-import { FriendsHere } from '../components/FriendsHere';
+import { FriendsHere, FriendsRegular } from '../components/FriendsHere';
 import { FavoriteButton } from '../components/FavoriteButton';
 import { CheckinPanel } from '../components/CheckinPanel';
 import { CrowdDot } from '../components/CrowdDot';
@@ -26,10 +26,10 @@ import { useReviews } from '../hooks/useReviews';
 import { ReviewsSection } from '../components/ReviewsSection';
 import { describeProgram, isProgramActive } from '../lib/loyalty';
 import type { User } from '../lib/auth';
-import { crowdRatioText, crowdSummary, crowdYesterday } from '../lib/crowd';
+import { crowdRatioText, crowdSummary, crowdYesterday, liveLevel } from '../lib/crowd';
 import { shareVenue } from '../lib/shareVenue';
 import { instagramUrl, phoneUrl } from '../lib/venueApi';
-import { fetchTypical, typicalLines } from '../lib/typical';
+import { comparedToUsual, fetchTypical, typicalLines, type Typical } from '../lib/typical';
 import { canWatch } from '../lib/watch';
 import { colors, themed } from '../theme';
 
@@ -66,12 +66,14 @@ export function VenueDetailScreen({
   const { programs, join, leave } = useLoyalty();
   const [loyaltyNote, setLoyaltyNote] = useState<string | null>(null);
   // "Genelde 18:00'de kalabalık", from past weeks' check-ins
-  const [usually, setUsually] = useState<string[]>([]);
+  // and "Şu an normalden daha sakin" against this hour's usual level
+  const [typical, setTypical] = useState<Typical | null>(null);
   useEffect(() => {
     fetchTypical(venueId)
-      .then((t) => setUsually(typicalLines(t)))
-      .catch(() => setUsually([]));
+      .then(setTypical)
+      .catch(() => setTypical(null));
   }, [venueId]);
+  const usually = typical ? typicalLines(typical) : [];
   // "👥 @ayse burada" is for registered customers
   const herePerson = user?.token && !user.isGuest && user.role !== 'business' ? user.token : null;
   // v2: reviews and replies live on the server
@@ -184,14 +186,18 @@ export function VenueDetailScreen({
         {venue.open_now && <Text style={styles.text}>{crowdSummary(venue.crowd, new Date())}</Text>}
         {venue.open_now && crowdYesterday(venue.crowd) && <Text style={styles.text}>🕘 {crowdYesterday(venue.crowd)}</Text>}
         <FriendsHere venueId={venue.id} token={herePerson} onOpenUser={onOpenUser} reloadKey={venue} />
+        <FriendsRegular venueId={venue.id} token={herePerson} onOpenUser={onOpenUser} reloadKey={venue} />
         <Text style={styles.text}>🕒 {venue.hours}</Text>
+        {comparedToUsual(liveLevel(venue), typical?.usual_now) && (
+          <Text style={styles.unusual}>{comparedToUsual(liveLevel(venue), typical?.usual_now)}</Text>
+        )}
         {usually.map((line) => (
           <Text key={line} style={styles.text}>
             📈 {line}
           </Text>
         ))}
         {watching ? (
-          <Text style={styles.watch}>🔔 Sakin olunca haber vereceğiz</Text>
+          <Text style={styles.watch}>🔔 Sakin olunca haber vereceğiz (6 saat açık kalır)</Text>
         ) : (
           canWatch(venue) && (
             <Text style={styles.muted}>Kalabalık mı? 🔕 simgesine bas, sakinleşince haber verelim.</Text>
@@ -210,6 +216,7 @@ export function VenueDetailScreen({
           onCheckedIn();
         }}
         lastCheckinAt={lastCheckinAt}
+        onReviewsChange={(list) => (list ? setReviews(list) : reloadReviews())}
       />
 
       <View style={styles.buttons}>
@@ -334,6 +341,7 @@ const styles = themed(() => StyleSheet.create({
   ratio: { marginLeft: 'auto', fontSize: 16, color: colors.textMuted },
   text: { fontSize: 14, color: colors.text },
   watch: { fontSize: 13, color: colors.primary },
+  unusual: { fontSize: 14, fontWeight: '700', color: colors.text },
   section: { gap: 8 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

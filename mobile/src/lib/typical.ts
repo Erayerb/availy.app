@@ -1,12 +1,27 @@
 /** v2 "Genelde 18:00'de kalabalık": usual busy / quiet hours from past weeks (GET /v1/venues/{id}/typical). */
 import { send } from './accountApi.ts';
+import type { Level } from './occupancy.ts';
 
 export type Typical = {
   scope: 'today' | 'all' | null; // this weekday, all days together, or not enough check-ins yet
   weekday: number; // Monday = 0
   busy_hours: number[];
   quiet_hours: number[];
+  usual_now?: Level | null; // the usual level at this hour (earlier days)
 };
+
+const LEVEL_NAMES: Record<Level, string> = { low: 'Sakin', medium: 'Orta', high: 'Kalabalık' };
+const RANK: Record<Level, number> = { low: 0, medium: 1, high: 2 };
+
+/**
+ * "Şu an normalden daha sakin (bu saatte genelde Kalabalık)": the live level against the usual one
+ * at this hour. Null when they match, or without a live level or enough past check-ins.
+ */
+export function comparedToUsual(live: Level | null, usual: Level | null | undefined): string | null {
+  if (!live || !usual || live === usual) return null;
+  const quieter = RANK[live] < RANK[usual];
+  return `${quieter ? '✨ Şu an normalden daha sakin' : '⚠️ Şu an normalden daha kalabalık'} (bu saatte genelde ${LEVEL_NAMES[usual]})`;
+}
 
 const DAYS = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 

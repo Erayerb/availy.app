@@ -4,7 +4,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BackButton } from '../components/BackButton';
 import { useNotifications } from '../context/NotificationsContext';
 import { sentence, timeAgo } from '../lib/crowd';
-import { notificationText, type AppNotification } from '../lib/social';
+import { confirmAction } from '../lib/confirm';
+import { NOTIFICATION_ICONS, notificationText } from '../lib/social';
 import { colors, themed } from '../theme';
 
 type Props = {
@@ -14,14 +15,13 @@ type Props = {
   onOpenVenue: (venue: { id: number }) => void;
   onOpenFriends: () => void; // Sosyal > Arkadaşlar, to accept a request
   onOpenFeed: () => void; // Sosyal > Akış: likes and comments under my check-in
+  onOpenRanking: () => void; // Sosyal > Sıralama: a group invitation
   onOpenSettings: () => void;
 };
 
-const ICONS: Record<AppNotification['kind'], string> = { friend_request: '👋', friend_accepted: '🤝', reply: '💬', reward: '🎁', loyalty: '⭐', checkin_like: '♥', checkin_comment: '💬' };
-
-/** v2 🔔 list: friend requests, accepted requests and replies to my reviews (last 30 days). */
-export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue, onOpenFriends, onOpenFeed, onOpenSettings }: Props) {
-  const { items, markSeen, reload } = useNotifications();
+/** v2 🔔 list: friend requests, accepted requests and replies to my reviews (last 30 days); kept until deleted. */
+export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue, onOpenFriends, onOpenFeed, onOpenRanking, onOpenSettings }: Props) {
+  const { items, markSeen, reload, dismiss, clear } = useNotifications();
 
   // Opening the list reads everything in it
   useEffect(() => {
@@ -33,7 +33,16 @@ export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue,
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
         <BackButton onPress={onBack} />
-        <Text style={styles.title}>Bildirimler</Text>
+        <Text style={[styles.title, styles.flex]}>Bildirimler</Text>
+        {signedIn && items.length > 0 && (
+          <Pressable
+            style={styles.clear}
+            hitSlop={8}
+            onPress={() => confirmAction('Tüm bildirimler silinsin mi?', 'Listedeki bildirimlerin hepsi silinir.', 'Temizle', clear)}
+          >
+            <Text style={styles.clearText}>Temizle</Text>
+          </Pressable>
+        )}
       </View>
 
       {!signedIn ? (
@@ -49,22 +58,26 @@ export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue,
         <View style={styles.card}>
           {items.map((n, i) => (
             <Pressable
-              key={`${n.kind}-${n.at}-${n.username}`}
+              key={n.key}
               onPress={() =>
                 n.kind === 'checkin_like' || n.kind === 'checkin_comment'
                   ? onOpenFeed()
+                  : n.kind === 'group_invite'
+                    ? onOpenRanking()
                   : (n.kind === 'reply' || n.kind === 'reward' || n.kind === 'loyalty') && n.venue_id
                     ? onOpenVenue({ id: n.venue_id })
                     : onOpenFriends()
               }
               style={({ pressed }) => [styles.row, i > 0 && styles.divider, pressed && styles.pressed]}
             >
-              <Text style={styles.icon}>{ICONS[n.kind]}</Text>
+              <Text style={styles.icon}>{NOTIFICATION_ICONS[n.kind]}</Text>
               <View style={styles.flex}>
                 <Text style={styles.text}>{notificationText(n)}</Text>
                 <Text style={styles.muted}>{sentence(timeAgo(n.at, new Date()))}</Text>
               </View>
-              <Text style={styles.chevron}>›</Text>
+              <Pressable onPress={() => dismiss(n.key)} hitSlop={10} style={styles.delete} accessibilityLabel="Bildirimi sil">
+                <Text style={styles.deleteText}>🗑</Text>
+              </Pressable>
             </Pressable>
           ))}
         </View>
@@ -96,7 +109,10 @@ const styles = themed(() => StyleSheet.create({
   flex: { flex: 1, gap: 2 },
   text: { fontSize: 14, color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },
-  chevron: { fontSize: 22, color: colors.textMuted },
+  delete: { padding: 6 },
+  deleteText: { fontSize: 18, color: colors.textMuted },
+  clear: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 14, backgroundColor: colors.cream },
+  clearText: { color: colors.danger, fontWeight: '700', fontSize: 14 },
   link: { color: colors.primary, fontWeight: '600', textAlign: 'center' },
   primary: { paddingVertical: 13, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center' },
   primaryText: { color: colors.onPrimary, fontWeight: '700' },

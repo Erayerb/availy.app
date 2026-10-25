@@ -6,6 +6,7 @@ my feed. A reported review or reply is hidden at once for the reporter, and for
 everyone after REPORTS_TO_HIDE reports (until someone reviews it).
 """
 from dataclasses import dataclass
+from datetime import datetime
 
 import psycopg
 
@@ -113,7 +114,7 @@ def report(conn: psycopg.Connection, me: dict, reason: str, review_id: int | Non
     )
 
 
-def profile(conn: psycopg.Connection, me: dict, username: str) -> dict:
+def profile(conn: psycopg.Connection, me: dict, username: str, now: datetime) -> dict:
     """A person's profile: stats, earned badges, and (for me and my friends) the venues they checked in at."""
     other = conn.execute(
         "SELECT id, username, share_checkins, frozen FROM users WHERE lower(username) = %s AND NOT is_guest",
@@ -124,6 +125,7 @@ def profile(conn: psycopg.Connection, me: dict, username: str) -> dict:
         raise SafetyError("Bu kullanıcı adıyla kimse yok.", 404)
     is_me = other["id"] == me["id"]
     from app.friends import relation
+    from app.streaks import weekly_streak
 
     rel = "self" if is_me else relation(conn, me["id"], other["id"])
     stats = user_stats(conn, other["id"])
@@ -156,4 +158,5 @@ def profile(conn: psycopg.Connection, me: dict, username: str) -> dict:
         "discoveries": stats["discoveries"],
         "badges": stats["badges"],
         "venues": venues,
+        "weekly_streak": weekly_streak(conn, other["id"], now),
     }

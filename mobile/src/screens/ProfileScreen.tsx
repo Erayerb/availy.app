@@ -24,7 +24,6 @@ type Props = {
   onVerifyEmail: (code: string) => Promise<string | null>;
   onDeleteAccount: () => Promise<void>;
   onFreezeAccount: () => Promise<void>;
-  onLogout: () => void;
   onOpenMyProfile: () => void;
   onOpenVerification: () => void; // business: Daha fazla > İşletme doğrulama
 };
@@ -41,7 +40,6 @@ export function ProfileScreen({
   onVerifyEmail,
   onDeleteAccount,
   onFreezeAccount,
-  onLogout,
   onOpenMyProfile,
   onOpenVerification,
 }: Props) {
@@ -155,7 +153,6 @@ export function ProfileScreen({
           onChangeUsername={onChangeUsername}
           onChangePassword={onChangePassword}
           onChangeEmail={onChangeEmail}
-          onLogout={onLogout}
           onFreezeAccount={onFreezeAccount}
           onDeleteAccount={onDeleteAccount}
         />
@@ -166,16 +163,15 @@ export function ProfileScreen({
 
 type AccountProps = Pick<
   Props,
-  'onChangeUsername' | 'onChangePassword' | 'onChangeEmail' | 'onLogout' | 'onFreezeAccount' | 'onDeleteAccount'
+  'onChangeUsername' | 'onChangePassword' | 'onChangeEmail' | 'onFreezeAccount' | 'onDeleteAccount'
 > & { user: User };
 
-/** User name, e-mail, password, sign out, freeze and delete: Profil ayarları (customers) or Ayarlar (businesses). */
+/** User name, e-mail, password, freeze and delete: Profil ayarları (customers) or Ayarlar (businesses); Çıkış Yap is in Daha fazla. */
 export function AccountSettings({
   user,
   onChangeUsername,
   onChangePassword,
   onChangeEmail,
-  onLogout,
   onFreezeAccount,
   onDeleteAccount,
 }: AccountProps) {
@@ -261,10 +257,6 @@ export function AccountSettings({
         </Pressable>
         {message && <Text style={message.ok ? styles.success : styles.error}>{message.text}</Text>}
       </Collapsible>
-
-      <Pressable style={styles.secondary} onPress={onLogout}>
-        <Text style={styles.secondaryText}>Çıkış yap</Text>
-      </Pressable>
 
       <Collapsible title="Hesabı geçici olarak dondur" summary="Silmeden profilini ve aktiviteni gizler">
         <Text style={styles.muted}>

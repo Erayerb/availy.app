@@ -329,3 +329,31 @@ CREATE TABLE IF NOT EXISTS checkin_comments (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS checkin_comments_checkin ON checkin_comments (checkin_id);
+
+-- v2: the 🔔 list keeps items until the user deletes them (one by one, or "Temizle" for all)
+CREATE TABLE IF NOT EXISTS notification_dismissals (
+    user_id  BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    key      TEXT NOT NULL,
+    PRIMARY KEY (user_id, key)
+);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS notifications_cleared_at TIMESTAMPTZ;
+
+-- v2: the words after a check-in are a review now ("Burası nasıl?"); it shows with the check-in in Akış
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS checkin_id BIGINT REFERENCES checkins(id) ON DELETE SET NULL;
+
+-- v2: groups ("Grup oluştur"): a name and members, with their own ranking; people join when invited
+CREATE TABLE IF NOT EXISTS groups (
+    id          BIGSERIAL PRIMARY KEY,
+    name        TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 40),
+    owner_id    BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS group_members (
+    group_id    BIGINT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    user_id     BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status      TEXT NOT NULL CHECK (status IN ('invited', 'member')),
+    invited_by  BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (group_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS group_members_user ON group_members (user_id);

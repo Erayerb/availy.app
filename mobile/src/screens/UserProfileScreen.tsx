@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BackButton } from '../components/BackButton';
 import { BadgeGrid } from '../components/BadgeGrid';
-import { timeAgo } from '../lib/crowd';
+import { shortDate, timeAgo } from '../lib/crowd';
 import { categoryLabel } from '../lib/filters';
 import { friendsApi } from '../lib/friends';
 import { safetyApi, splitVenues, type Profile, type ProfileVenue } from '../lib/safety';
@@ -145,6 +145,8 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
           <Stat value={profile.points} label="puan" />
           <Stat value={profile.checkins} label="check-in" />
           <Stat value={profile.discoveries} label="keşif" />
+          {/* Weeks in a row with a check-in */}
+          <Stat value={profile.weekly_streak ?? 0} label="🔥 haftalık seri" />
         </View>
 
         {me ? (
@@ -190,7 +192,7 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
       {!me && profile.venues && profile.venues.length > 0 && (
         <Pressable style={styles.latest} onPress={() => onOpenVenue({ id: profile.venues![0].venue_id })}>
           <Text style={styles.latestText}>
-            📍 {profile.venues[0].venue_name}'de check-in yaptı · {timeAgo(profile.venues[0].last_at, new Date())}
+            📍 {profile.venues[0].venue_name}'de check-in yaptı · {timeAgo(profile.venues[0].last_at, new Date())} · {shortDate(profile.venues[0].last_at, new Date())}
           </Text>
           <Text style={styles.chevronSmall}>›</Text>
         </Pressable>

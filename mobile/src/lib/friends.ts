@@ -53,9 +53,12 @@ export const friendsApi = {
   setPhone: (token: string, phone: string) => send<void>('PUT', '/v1/me/phone', { phone }, token),
   removePhone: (token: string) => send<void>('DELETE', '/v1/me/phone', undefined, token),
   // availy users among the contacts, each with the number it matched (as sent)
+  matchContacts: (token: string, phones: string[]) =>
+    send<(Person & { relation: Relation; phone: string })[]>('POST', '/v1/friends/contacts', { phones }, token),
   // "👥 @ayse burada": friends who checked in at the venue in the last 90 minutes
   here: (token: string, venueId: number) =>
     send<{ username: string; at: string }[]>('GET', `/v1/venues/${venueId}/friends-here`, undefined, token),
-  matchContacts: (token: string, phones: string[]) =>
-    send<(Person & { relation: Relation; phone: string })[]>('POST', '/v1/friends/contacts', { phones }, token),
+  // "👑 müdavim": me or a friend with the most check-ins here in the last 30 days (2+)
+  regular: (token: string, venueId: number) =>
+    send<{ username: string; visits: number; me: boolean } | null>('GET', `/v1/venues/${venueId}/regular`, undefined, token),
 };

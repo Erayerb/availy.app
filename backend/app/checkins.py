@@ -148,6 +148,7 @@ def create_checkin(
         {"v": venue_id, "u": user["id"]},
     ).fetchone()
     from app.campaigns import coupons_for_checkin
+    from app.streaks import weekly_streak
 
     return {
         **checkin,
@@ -157,6 +158,7 @@ def create_checkin(
         # "Burayı keşfeden 12. kişisin" on the first visit; later the visit count
         "visitor_rank": visits["people"] if visits["mine"] == 1 else None,
         "my_visits": visits["mine"],
+        "weekly_streak": weekly_streak(conn, user["id"], now),  # "🔥 3. hafta üst üste"
     }
 
 

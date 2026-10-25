@@ -49,7 +49,6 @@ export function CustomersScreen({ venueId, user, onOpenUser, onRegister, onOpenL
         ) : (
           <Text style={styles.muted}>Henüz check-in yok.</Text>
         )}
-        <Text style={styles.muted}>Müşteriler adsız sayılır; kim olduklarını göremezsin.</Text>
       </View>
 
       <View style={styles.card}>

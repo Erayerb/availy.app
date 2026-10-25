@@ -18,6 +18,7 @@ from app.social_api import router as social_router
 from app.safety_api import router as safety_router
 from app.business_api import router as business_router
 from app.venues_api import router as venues_router
+from app.groups_api import router as groups_router
 from app.loyalty_api import router as loyalty_router
 from app.checkins import load_crowds, load_discoveries, load_trends
 from app.config import settings
@@ -74,6 +75,7 @@ app.include_router(business_router)
 app.include_router(campaigns_router)
 app.include_router(venues_router)
 app.include_router(loyalty_router)
+app.include_router(groups_router)
 
 
 class OccupancyOut(BaseModel):

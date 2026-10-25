@@ -1,4 +1,4 @@
-"""v2: a few words with a check-in ("Fikrini yaz"), and friends' likes and comments on it.
+"""v2: friends' likes and comments on a check-in.
 
 Only the owner and their friends see a check-in (public ones, when the owner shares check-ins);
 the same people may like it and comment on it.
@@ -24,16 +24,6 @@ def _clean(text: str) -> str:
     if len(body) > MAX_TEXT:
         raise SocialError(f"En fazla {MAX_TEXT} karakter yazabilirsin.")
     return body
-
-
-def set_note(conn: psycopg.Connection, user: dict, checkin_id: int, note: str) -> dict:
-    row = conn.execute(
-        "UPDATE checkins SET note = %s WHERE id = %s AND user_id = %s RETURNING id, note",
-        (_clean(note) or None, checkin_id, user["id"]),
-    ).fetchone()
-    if row is None:
-        raise SocialError("Check-in bulunamadı.", 404)
-    return row
 
 
 def _visible_checkin(conn: psycopg.Connection, me: dict, checkin_id: int) -> dict:

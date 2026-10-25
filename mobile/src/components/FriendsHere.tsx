@@ -12,6 +12,34 @@ type Props = {
   reloadKey?: unknown; // a new value loads again (e.g. after a refresh)
 };
 
+/** "👑 @ayse arkadaşların arasında buranın müdavimi · 30 günde 5 check-in" (me or a friend). */
+export function FriendsRegular({ venueId, token, onOpenUser, reloadKey }: Props) {
+  const [regular, setRegular] = useState<{ username: string; visits: number; me: boolean } | null>(null);
+
+  useEffect(() => {
+    if (!token) return setRegular(null);
+    friendsApi.regular(token, venueId).then(setRegular).catch(() => {});
+  }, [token, venueId, reloadKey]);
+
+  if (!regular) return null;
+  return (
+    <Text style={styles.line}>
+      👑{' '}
+      {regular.me ? (
+        'Arkadaşların arasında buranın müdavimi sensin'
+      ) : (
+        <>
+          <Text style={styles.name} onPress={onOpenUser ? () => onOpenUser(regular.username) : undefined}>
+            @{regular.username}
+          </Text>{' '}
+          arkadaşların arasında buranın müdavimi
+        </>
+      )}
+      <Text style={styles.muted}> · 30 günde {regular.visits} check-in</Text>
+    </Text>
+  );
+}
+
 /** "👥 @ayse ve @can burada · 20 dk önce check-in": friends who checked in here in the last hour. */
 export function FriendsHere({ venueId, token, onOpenUser, reloadKey }: Props) {
   const [friends, setFriends] = useState<{ username: string; at: string }[]>([]);
@@ -41,4 +69,5 @@ export function FriendsHere({ venueId, token, onOpenUser, reloadKey }: Props) {
 const styles = themed(() => StyleSheet.create({
   line: { fontSize: 14, color: colors.text, fontWeight: '600' },
   name: { color: colors.primary, fontWeight: '700' },
+  muted: { color: colors.textMuted, fontWeight: '400' },
 }));

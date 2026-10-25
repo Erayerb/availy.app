@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { AdBanner } from '../components/AdBanner';
 import { ClearButton } from '../components/ClearButton';
 import { Chip, TagChips } from '../components/TagChips';
 import { VenueGrid } from '../components/VenueGrid';
@@ -44,8 +43,6 @@ type Props = {
   hideClosed: boolean;
   onHideClosedChange: (hide: boolean) => void;
   onOpenVenue: (venue: Venue) => void;
-  // Free plan: show the ad slot (null for Premium users)
-  onPremium: (() => void) | null;
   // 🔔 and profile icons at the top right
   onOpenProfile: () => void;
   onOpenNotifications: () => void;
@@ -65,7 +62,6 @@ export function HomeScreen({
   hideClosed,
   onHideClosedChange,
   onOpenVenue,
-  onPremium,
   onOpenProfile,
   onOpenNotifications,
 }: Props) {
@@ -121,7 +117,7 @@ export function HomeScreen({
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
         <Chip
-          label="Tüm semtler"
+          label="Tümü"
           active={districts.length === 0 && sides.length === 0}
           onPress={() => {
             onDistrictsChange([]);
@@ -146,17 +142,6 @@ export function HomeScreen({
       <Text style={styles.sectionTitle}>Ne arıyorsun?</Text>
       <TagChips selected={tags} onToggle={(tag) => onTagsChange(toggleTag(tags, tag))} />
 
-      <View style={styles.sortRow}>
-        <Text style={styles.sectionTitle}>
-          {searching ? 'Arama sonuçları' : sortMode === 'nearest' ? 'Sana en yakın' : sortMode === 'quietest' ? 'Şu an en sakin' : 'Öneriler'}
-        </Text>
-        <View style={styles.sortChips}>
-          {SORT_OPTIONS.map(({ mode, label }) => (
-            <Chip key={mode} label={label} active={sortMode === mode} onPress={() => onSortChange(mode)} />
-          ))}
-          <Chip label="Kapalıları gizle" active={hideClosed} onPress={() => onHideClosedChange(!hideClosed)} />
-        </View>
-      </View>
       <View style={styles.search}>
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
@@ -182,7 +167,13 @@ export function HomeScreen({
           {Platform.OS === 'web' ? '' : ' · yenilemek için aşağı çek'}
         </Text>
       )}
-      {onPremium && <AdBanner onPremium={onPremium} />}
+      {/* Sorting, right above the venues */}
+      <View style={styles.sortChips}>
+        {SORT_OPTIONS.map(({ mode, label }) => (
+          <Chip key={mode} label={label} active={sortMode === mode} onPress={() => onSortChange(mode)} />
+        ))}
+        <Chip label="Kapalıları gizle" active={hideClosed} onPress={() => onHideClosedChange(!hideClosed)} />
+      </View>
     </View>
   );
 
@@ -205,8 +196,7 @@ const styles = themed(() => StyleSheet.create({
   sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.text, marginTop: 8 },
   sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   row: { gap: 8 },
-  sortRow: { gap: 8 },
-  sortChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  sortChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
   hint: { fontSize: 13, color: colors.textMuted },
   search: {
     flexDirection: 'row',

@@ -186,7 +186,7 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
           <Stat value={stats?.week_people ?? 0} label="kişi" />
           <Stat value={stats?.week_returning ?? 0} label="tekrar gelen" />
         </View>
-        <Text style={styles.muted}>Toplam {stats?.total_checkins ?? 0} check-in. Kişiler adsız sayılır; kim olduklarını göremezsin.</Text>
+        <Text style={styles.muted}>Toplam {stats?.total_checkins ?? 0} check-in.</Text>
       </View>
 
       {/* Weekdays */}
@@ -238,7 +238,7 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
 
 const REWARD_SUGGESTION = 'Mekanımızı keşfettiğin için teşekkürler! Bir sonraki siparişin bizden.';
 
-/** "✨ Mekanını @x keşfetti" and "Ödül ver": a thank-you sent once, as a notification. */
+/** "✨ Mekanını @x keşfetti" ("anonim bir kullanıcı" after a gizli check-in) and "Ödül ver": a thank-you sent once, as a notification. */
 function Discoverer({
   discoverer,
   token,
@@ -278,7 +278,7 @@ function Discoverer({
               @{name}
             </Text>
           ) : (
-            'gizli bir kullanıcı'
+            'anonim bir kullanıcı'
           )}{' '}
           keşfetti
         </Text>

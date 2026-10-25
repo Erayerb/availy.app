@@ -25,6 +25,7 @@ export type CheckinResult = {
   my_visits: number;
   // Coupons of the venue's "Check-in yapana kupon" campaigns, given with this check-in
   coupons?: { code: string; message: string; discount: number | null }[];
+  weekly_streak?: number; // weeks in a row with a check-in, this one included
 };
 
 export type Visit = { venue_id: number; visits: number; last_at: string };

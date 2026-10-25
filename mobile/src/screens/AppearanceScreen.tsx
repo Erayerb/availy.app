@@ -1,7 +1,10 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BackButton } from '../components/BackButton';
+import { LevelDot } from '../components/LevelDot';
+import { ThemedSwitch } from '../components/ThemedSwitch';
 import { useSettings, type Appearance } from '../context/SettingsContext';
+import { LEVELS } from '../lib/occupancy';
 import { colors, darkColors, lightColors, themed, type Palette } from '../theme';
 
 const OPTIONS: { id: Appearance; label: string; hint: string }[] = [
@@ -10,9 +13,9 @@ const OPTIONS: { id: Appearance; label: string; hint: string }[] = [
   { id: 'dark', label: 'Koyu', hint: 'Her zaman koyu kahve zemin; gece gözü yormaz.' },
 ];
 
-/** Daha fazla > Görünüm: follow the phone, or always light / dark. */
+/** Daha fazla > Görünüm: follow the phone, or always light / dark; and the color-blind friendly colors. */
 export function AppearanceScreen({ onBack }: { onBack: () => void }) {
-  const { appearance, update } = useSettings();
+  const { appearance, colorBlind, update, look } = useSettings();
 
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
@@ -48,6 +51,29 @@ export function AppearanceScreen({ onBack }: { onBack: () => void }) {
           </Pressable>
         ))}
       </View>
+
+      <Text style={styles.heading}>Renkler</Text>
+      <View style={[styles.card, styles.colorCard]}>
+        <View style={styles.colorRow}>
+          <View style={styles.flex}>
+            <Text style={styles.label}>Renk körlüğü dostu mod</Text>
+            <Text style={styles.muted}>Doluluk renkleri renk körlüğünde de ayırt edilebilir tonlara geçer ve noktalara simge eklenir.</Text>
+          </View>
+          <ThemedSwitch value={colorBlind} onValueChange={(v) => update({ colorBlind: v })} />
+        </View>
+        <View style={styles.preview}>
+          {LEVELS.map((level) => (
+            <View key={level} style={styles.previewItem}>
+              <LevelDot level={level} size={18} />
+              <Text style={styles.text}>{look(level).label}</Text>
+            </View>
+          ))}
+          <View style={styles.previewItem}>
+            <LevelDot level="low" open={false} size={18} />
+            <Text style={styles.text}>Kapalı</Text>
+          </View>
+        </View>
+      </View>
     </ScrollView>
   );
 }
@@ -73,6 +99,12 @@ const styles = themed(() => StyleSheet.create({
   flex: { flex: 1, gap: 2 },
   label: { fontSize: 16, fontWeight: '700', color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },
+  text: { fontSize: 14, color: colors.text },
+  heading: { fontSize: 18, fontWeight: '700', color: colors.text, marginTop: 4 },
+  colorCard: { padding: 16, gap: 14 },
+  colorRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  preview: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+  previewItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   swatches: { flexDirection: 'row' },
   swatch: { width: 44, height: 56, borderRadius: 10, borderWidth: 1, padding: 6, gap: 5, justifyContent: 'flex-end' },
   swatchHalf: { width: 22, borderRadius: 6 },

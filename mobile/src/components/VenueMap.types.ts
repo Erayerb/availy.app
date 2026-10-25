@@ -25,3 +25,6 @@ export const LABEL_MIN_ZOOM = 16;
 /** Map zoom level for a visible width in degrees of longitude. */
 export const zoomForDelta = (longitudeDelta: number) => Math.log2(360 / longitudeDelta);
 export const DOT_SIZE = 22;
+
+/** A cluster's circle grows a little with its count ("8", "24", "130"). */
+export const clusterSize = (count: number) => Math.min(30 + String(count).length * 7, 52);

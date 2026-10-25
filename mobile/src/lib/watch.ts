@@ -4,13 +4,26 @@ import { liveLevel } from './crowd.ts';
 
 export type Watch = { venueId: number; venueName: string; createdAt: string };
 
+// The bell turns itself off after this long, notified or not
+export const WATCH_HOURS = 6;
+
 /** Offer the bell where it makes sense: reported Orta or Kalabalık right now. */
 export const canWatch = (venue: Venue) => {
   const level = liveLevel(venue);
   return level === 'medium' || level === 'high';
 };
 
-export const watchTriggered = (venue: Venue) => liveLevel(venue) === 'low';
+/**
+ * Sakin now, by check-ins made after the bell was turned on: a venue that was already quiet
+ * by older check-ins does not notify right away.
+ */
+export const watchTriggered = (venue: Venue, watch: Watch) =>
+  liveLevel(venue) === 'low' &&
+  !!venue.crowd?.last_report_at &&
+  new Date(venue.crowd.last_report_at).getTime() > new Date(watch.createdAt).getTime();
+
+export const watchExpired = (watch: Watch, now: Date) =>
+  now.getTime() - new Date(watch.createdAt).getTime() >= WATCH_HOURS * 3_600_000;
 
 export function toggleWatch(watches: Watch[], venue: { id: number; name: string }, now: Date): Watch[] {
   return watches.some((w) => w.venueId === venue.id)

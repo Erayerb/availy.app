@@ -168,6 +168,7 @@ class TypicalOut(BaseModel):
     weekday: int  # today, Monday = 0
     busy_hours: list[int]  # usually Kalabalık at these hours
     quiet_hours: list[int]  # usually Sakin
+    usual_now: str | None = None  # the usual level at this hour (earlier days), for "normalden daha sakin"
 
 
 @router.get("/venues/{venue_id}/typical", response_model=TypicalOut)

@@ -11,6 +11,7 @@ import {
   deadHourSuggestion,
   validateCampaign,
 } from '../../lib/campaigns';
+import { confirmAction } from '../../lib/confirm';
 import { campaignCostNote, type PlanId } from '../../lib/plans';
 import { colors } from '../../theme';
 import { Chip } from '../TagChips';
@@ -32,11 +33,23 @@ export function CampaignForm({ venue, plan }: { venue: Venue; plan: PlanId }) {
 
   const [sending, setSending] = useState(false);
 
-  const send = async () => {
+  // Asked first: a campaign reaches people's phones and (later) costs money
+  const ask = () => {
     const problem = validateCampaign(text);
     setError(problem);
     setSent(null);
     if (problem || sending) return;
+    const who = `${radius} km içindeki ${checkinOnly ? "check-in yapan kullanıcılara" : 'kullanıcılara'}`;
+    const limit = maxClaims ? `, en fazla ${maxClaims} kişi` : '';
+    confirmAction(
+      'Kampanya gönderilsin mi?',
+      `"${text}"\n${who} ${duration} saat boyunca gösterilir${limit}. ${campaignCostNote(plan)}`,
+      'Gönder',
+      send,
+    );
+  };
+
+  const send = async () => {
     setSending(true);
     const failure = await create({
       venueId: venue.id,
@@ -104,7 +117,7 @@ export function CampaignForm({ venue, plan }: { venue: Venue; plan: PlanId }) {
       <Text style={panel.muted}>{campaignCostNote(plan)}</Text>
       {error && <Text style={panel.error}>{error}</Text>}
       {sent && <Text style={panel.success}>✓ {sent}</Text>}
-      <Pressable style={[panel.primary, sending && { opacity: 0.6 }]} onPress={send} disabled={sending}>
+      <Pressable style={[panel.primary, sending && { opacity: 0.6 }]} onPress={ask} disabled={sending}>
         <Text style={panel.primaryText}>{sending ? 'Gönderiliyor…' : 'Kampanyayı gönder'}</Text>
       </Pressable>
     </View>

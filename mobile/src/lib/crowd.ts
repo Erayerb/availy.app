@@ -65,20 +65,18 @@ export function timeAgo(iso: string, now: Date): string {
   return `${Math.floor(hours / 24)} gün önce`;
 }
 
-/** A day and time: "Bugün 13:10", "Dün 09:05", "23 Eki 18:40" (the year only when it is not this year). */
-export function dayAndTime(iso: string, now: Date): string {
+/** "Bugün 13:10" today; other days only the date: "Dün", "23 Eki" (the year only when it is not this year). */
+export function shortDate(iso: string, now: Date): string {
   const at = new Date(iso);
-  const time = at.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
   const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   const days = Math.round((day(now) - day(at)) / 86_400_000);
-  if (days === 0) return `Bugün ${time}`;
-  if (days === 1) return `Dün ${time}`;
-  const date = at.toLocaleDateString('tr-TR', {
+  if (days === 0) return `Bugün ${at.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`;
+  if (days === 1) return 'Dün';
+  return at.toLocaleDateString('tr-TR', {
     day: 'numeric',
     month: 'short',
     ...(at.getFullYear() !== now.getFullYear() ? { year: 'numeric' } : {}),
   });
-  return `${date} ${time}`;
 }
 
 /** Second line under the level: who reported and when. */

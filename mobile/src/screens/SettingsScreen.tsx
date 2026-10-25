@@ -1,11 +1,9 @@
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { LevelDot } from '../components/LevelDot';
 import { BackButton } from '../components/BackButton';
 import { VenueEditSection } from '../components/business/VenueEditSection';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
 import { useSettings } from '../context/SettingsContext';
-import { LEVELS } from '../lib/occupancy';
 import { colors, themed } from '../theme';
 import { ThemedSwitch } from '../components/ThemedSwitch';
 import { AccountSettings } from './ProfileScreen';
@@ -14,22 +12,21 @@ type Props = {
   onBack: () => void;
   isBusiness: boolean;
   venueId: number | null; // business: its venue, edited here
-  onOpenPermissions: () => void;
-  onOpenPrivacy: () => void;
   // Business: user name, e-mail, password, freeze and delete are here (customers: Profil ayarları)
   account: Parameters<typeof AccountSettings>[0] | null;
 };
 
-export function SettingsScreen({ onBack, isBusiness, venueId, onOpenPermissions, onOpenPrivacy, account }: Props) {
+/** Customers: Bildirim ayarları. Businesses: Ayarlar (account, venue, dead-hour alerts). */
+export function SettingsScreen({ onBack, isBusiness, venueId, account }: Props) {
   const { venues } = useVenuesByIds(venueId ? [venueId] : []);
   const venue = venues[0];
   const settings = useSettings();
-  const { colorBlind, watchNotifications, deadHourAlerts, autoCampaign, update, look } = settings;
+  const { watchNotifications, deadHourAlerts, autoCampaign, update } = settings;
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
         <BackButton onPress={onBack} />
-        <Text style={styles.title}>Ayarlar</Text>
+        <Text style={styles.title}>{isBusiness ? 'Ayarlar' : 'Bildirim ayarları'}</Text>
       </View>
 
       {isBusiness && account && (
@@ -41,27 +38,6 @@ export function SettingsScreen({ onBack, isBusiness, venueId, onOpenPermissions,
       )}
 
       {isBusiness && venue && <VenueEditSection key={venue.id} venue={venue} onSaved={() => {}} />}
-
-      <View style={styles.card}>
-        <Row
-          title="Renk körlüğü dostu mod"
-          subtitle="Doluluk renkleri renk körlüğünde de ayırt edilebilir tonlara geçer ve noktalara simge eklenir."
-          value={colorBlind}
-          onChange={(v) => update({ colorBlind: v })}
-        />
-        <View style={styles.preview}>
-          {LEVELS.map((level) => (
-            <View key={level} style={styles.previewItem}>
-              <LevelDot level={level} size={18} />
-              <Text style={styles.text}>{look(level).label}</Text>
-            </View>
-          ))}
-          <View style={styles.previewItem}>
-            <LevelDot level="low" open={false} size={18} />
-            <Text style={styles.text}>Kapalı</Text>
-          </View>
-        </View>
-      </View>
 
       {isBusiness ? (
         <View style={styles.card}>
@@ -80,7 +56,8 @@ export function SettingsScreen({ onBack, isBusiness, venueId, onOpenPermissions,
         </View>
       ) : (
         <>
-          <Text style={styles.heading}>Bildirimler</Text>
+          <Text style={styles.muted}>Hangi durumlarda telefonuna bildirim gelsin? Kapattıkların yine de 🔔 listesinde görünür.</Text>
+          <Text style={styles.heading}>Mekanlar</Text>
           <View style={styles.card}>
             <Row
               title="Check-in önerileri"
@@ -104,11 +81,11 @@ export function SettingsScreen({ onBack, isBusiness, venueId, onOpenPermissions,
             </Text>
           </View>
 
-          <Text style={styles.heading}>Sosyal bildirimler</Text>
+          <Text style={styles.heading}>Sosyal</Text>
           <View style={styles.card}>
             <Row
-              title="Arkadaşlık istekleri ve onayları"
-              subtitle="Biri seni arkadaş olarak eklemek istediğinde ya da gönderdiğin istek kabul edildiğinde."
+              title="Arkadaşlık ve grup davetleri"
+              subtitle="Biri seni arkadaş olarak eklemek ya da bir gruba almak istediğinde, gönderdiğin istek kabul edildiğinde."
               value={settings.friendNotifications}
               onChange={(v) => update({ friendNotifications: v, friendAcceptedNotifications: v })}
             />
@@ -134,17 +111,6 @@ export function SettingsScreen({ onBack, isBusiness, venueId, onOpenPermissions,
 
         </>
       )}
-
-      {!isBusiness && (
-        <Pressable style={styles.card} onPress={onOpenPrivacy}>
-          <Text style={styles.sectionTitle}>Gizlilik ›</Text>
-          <Text style={styles.muted}>Check-in'lerini kimin göreceği, sıralama, aranabilirlik ve engellediklerin.</Text>
-        </Pressable>
-      )}
-      <Pressable style={styles.card} onPress={onOpenPermissions}>
-        <Text style={styles.sectionTitle}>Konum ve izinler ›</Text>
-        <Text style={styles.muted}>Konum, kamera ve bildirim izinleri: neye izin veriyor, neye vermiyor.</Text>
-      </Pressable>
 
       <Text style={styles.version}>availy · prototip sürüm</Text>
     </ScrollView>
@@ -189,10 +155,7 @@ const styles = themed(() => StyleSheet.create({
   rowText: { flex: 1, gap: 4 },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
   disabled: { color: colors.textMuted },
-  text: { fontSize: 14, color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },
-  preview: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, paddingTop: 4 },
-  previewItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   version: { textAlign: 'center', fontSize: 12, color: colors.placeholder },
   heading: { fontSize: 18, fontWeight: '700', color: colors.text, marginTop: 4 },
   error: { fontSize: 13, color: colors.danger },

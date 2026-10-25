@@ -10,7 +10,7 @@ import { usePersistentState } from '../hooks/usePersistentState';
 import { fetchVenuesByIds } from '../lib/api';
 import { canAddWatch, FREE_WATCH_LIMIT } from '../lib/premium';
 import { KEYS } from '../lib/storage';
-import { notificationText, parseWatches, toggleWatch, watchTriggered, type Watch } from '../lib/watch';
+import { notificationText, parseWatches, toggleWatch, watchExpired, watchTriggered, type Watch } from '../lib/watch';
 import { useSettings } from './SettingsContext';
 
 const WATCH_CHECK_MS = 60_000;
@@ -72,13 +72,16 @@ export function EngagementProvider({ userKey, children }: { userKey: string; chi
     [setWatches, watchNotifications, watches, premium],
   );
 
-  // While the app is open, check watched venues and notify once they drop below 70%
+  // While the app is open, check watched venues and notify once new check-ins say Sakin
   useEffect(() => {
     if (watches.length === 0) return;
     const check = async () => {
+      // After 6 hours the bell turns itself off
+      const expired = watches.filter((w) => watchExpired(w, new Date()));
+      if (expired.length > 0) return setWatches((list) => list.filter((w) => !watchExpired(w, new Date())));
       try {
         const venues = await fetchVenuesByIds(watches.map((w) => w.venueId));
-        const emptied = venues.filter(watchTriggered);
+        const emptied = venues.filter((v) => watches.some((w) => w.venueId === v.id && watchTriggered(v, w)));
         if (emptied.length === 0) return;
         setWatches((list) => list.filter((w) => !emptied.some((v) => v.id === w.venueId)));
         for (const venue of emptied) {

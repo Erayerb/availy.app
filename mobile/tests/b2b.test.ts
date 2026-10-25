@@ -99,18 +99,18 @@ test('day summary ignores the night and finds quietest and busiest hours', () =>
   assert.equal(formatHour(9), '09:00');
 });
 
-test('competitors: similar venues within 2 km, nearest first', () => {
+test('competitors: the same kind of venue within 2 km, nearest first', () => {
   const venue = (id: number, category: string, tags: string[], lat: number, lon: number) =>
     ({ id, name: `V${id}`, category, tags, lat, lon }) as never;
   const me = venue(1, 'cafe', ['socializing'], MODA.lat, MODA.lon);
   const all = [
     me,
     venue(2, 'cafe', ['quiet'], 40.99, 29.025), // same category, ~0.7 km
-    venue(3, 'bar', ['socializing'], 40.985, 29.027), // shared tag, ~0.1 km
+    venue(3, 'bar', ['socializing'], 40.985, 29.027), // shared tag but a bar: not a café's competitor
     venue(4, 'library', ['quiet'], 40.985, 29.027), // unrelated
     venue(5, 'cafe', ['socializing'], TAKSIM.lat, TAKSIM.lon), // too far
   ];
-  assert.deepEqual(nearbyCompetitors(me, all).map((c) => c.venue.id), [3, 2]);
+  assert.deepEqual(nearbyCompetitors(me, all).map((c) => c.venue.id), [2]);
 });
 
 test('new venue form validation and local ids', () => {

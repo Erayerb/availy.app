@@ -48,6 +48,7 @@ class CheckinOut(BaseModel):
     visitor_rank: int | None  # "Burayı keşfeden 12. kişisin" (first visit only)
     my_visits: int
     coupons: list[CheckinCoupon] = []  # from "Check-in yapana kupon" campaigns
+    weekly_streak: int = 0  # weeks in a row with a check-in, this one included
 
 
 class VisitOut(BaseModel):

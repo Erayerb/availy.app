@@ -4,9 +4,11 @@ import L from 'leaflet';
 import { useEffect, useRef, useState } from 'react';
 
 import { useSettings } from '../context/SettingsContext';
+import { clusterColor, clusterVenues, clusterZoomTarget } from '../lib/clusters';
+import { UNEXPLORED_STYLE } from '../lib/occupancy';
 import { LABEL_LINE_HEIGHT, LABEL_MAX_WIDTH, labelPriority, visibleLabels } from '../lib/labels';
 import { colors, getScheme } from '../theme';
-import { DOT_SIZE, LABEL_MIN_ZOOM, SELECTED_DOT_SIZE, zoomForDelta, type VenueMapProps } from './VenueMap.types';
+import { clusterSize, DOT_SIZE, LABEL_MIN_ZOOM, SELECTED_DOT_SIZE, zoomForDelta, type VenueMapProps } from './VenueMap.types';
 
 /** Web map (Leaflet + OpenStreetMap tiles); react-native-maps has no web support. */
 const USER_PANE = 'user';
@@ -118,8 +120,29 @@ export function VenueMap({
       zoom >= LABEL_MIN_ZOOM
         ? visibleLabels(labelPriority(venues, selectedId), (v) => map.latLngToContainerPoint([v.lat, v.lon]))
         : new Set<number>();
+    // Close dots as one circle with a count; a tap zooms in until they split
+    const items = clusterVenues(venues, zoom, selectedId);
+    for (const item of items) {
+      if (item.kind !== 'cluster') continue;
+      const size = clusterSize(item.venues.length);
+      const color = clusterColor(item.venues, (v) => crowdLook(v).color, UNEXPLORED_STYLE.color);
+      const icon = L.divIcon({
+        className: '',
+        iconSize: [size, size],
+        html: `<div style="width:${size}px;height:${size}px;box-sizing:border-box;border-radius:50%;background:${color};border:3px solid ${colors.white};box-shadow:0 1px 4px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;color:#fff;font:800 14px -apple-system,system-ui,sans-serif">${item.venues.length}</div>`,
+      });
+      L.marker([item.lat, item.lon], { icon })
+        .on('click', (event) => {
+          L.DomEvent.stopPropagation(event);
+          const bounds = L.latLngBounds(item.venues.map((v) => [v.lat, v.lon] as [number, number]));
+          const fit = map.getBoundsZoom(bounds, false, L.point(120, 120));
+          map.setView(bounds.getCenter(), clusterZoomTarget(map.getZoom(), fit));
+        })
+        .addTo(layer);
+    }
+    const single = items.flatMap((i) => (i.kind === 'venue' ? [i.venue] : []));
     // Selected dot last so it is drawn on top
-    const ordered = [...venues].sort((a, b) => Number(a.id === selectedId) - Number(b.id === selectedId));
+    const ordered = single.sort((a, b) => Number(a.id === selectedId) - Number(b.id === selectedId));
     for (const venue of ordered) {
       const isSelected = venue.id === selectedId;
       const size = isSelected ? SELECTED_DOT_SIZE : DOT_SIZE;

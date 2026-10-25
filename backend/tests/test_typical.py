@@ -20,7 +20,12 @@ def test_usual_busy_and_quiet_hours(client, conn, clock):
         for _ in range(3):
             report(conn, kafe, "low", day - timedelta(hours=2))
     typical = client.get(f"/v1/venues/{kafe}/typical").json()
-    assert typical == {"scope": "today", "weekday": 2, "busy_hours": [18], "quiet_hours": [10]}
+    assert typical == {"scope": "today", "weekday": 2, "busy_hours": [18], "quiet_hours": [10], "usual_now": None}
+    # At 18:00 on a Wednesday it is usually Kalabalık (today's own check-ins do not count)
+    clock.now = NOON + timedelta(hours=6, minutes=20)
+    report(conn, kafe, "low", clock.now - timedelta(minutes=5))
+    assert client.get(f"/v1/venues/{kafe}/typical").json()["usual_now"] == "high"
+    clock.now = NOON
     # On another weekday there is nothing for that day, so all days together
     clock.now = NOON + timedelta(days=1)
     assert client.get(f"/v1/venues/{kafe}/typical").json()["scope"] == "all"

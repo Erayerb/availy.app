@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { isRegistered, type User } from '../lib/auth';
+import { confirmAction } from '../lib/confirm';
 import { sentence, timeAgo } from '../lib/crowd';
 import { stars } from '../lib/feedback';
 import { author, MAX_REPLIES_PER_PERSON, MAX_REVIEW, MAX_REVIEWS_PER_CHECKIN, reviewsApi, type Review, type Reviews } from '../lib/reviews';
@@ -186,7 +187,15 @@ function ReviewItem({
           <View style={styles.row}>
             <Text style={styles.muted}>{sentence(timeAgo(reply.created_at, now))}</Text>
             {reply.mine && token && (
-              <Pressable onPress={() => reviewsApi.removeReply(token, reply.id).then(reload)} hitSlop={6}>
+              <Pressable
+                onPress={() =>
+                  confirmAction('Yanıtın silinsin mi?', 'Bu yanıt herkesten kaldırılır.', 'Sil', () =>
+                    reviewsApi.removeReply(token, reply.id).then(reload),
+                  )
+                }
+                hitSlop={12}
+                style={styles.deleteButton}
+              >
                 <Text style={styles.delete}>Sil</Text>
               </Pressable>
             )}
@@ -206,7 +215,15 @@ function ReviewItem({
         {!review.allow_replies && !review.mine && !ownerBusiness && <Text style={styles.muted}>Yanıtlar kapalı</Text>}
         {allowed && !canReply && <Text style={styles.muted}>Bu yoruma {MAX_REPLIES_PER_PERSON} yanıt yazdın</Text>}
         {review.mine && token && (
-          <Pressable onPress={() => reviewsApi.remove(token, review.id).then(reload)} hitSlop={6}>
+          <Pressable
+            onPress={() =>
+              confirmAction('Yorumun silinsin mi?', 'Yorumun ve altındaki yanıtlar kaldırılır.', 'Sil', () =>
+                reviewsApi.remove(token, review.id).then(reload),
+              )
+            }
+            hitSlop={12}
+            style={styles.deleteButton}
+          >
             <Text style={styles.delete}>Yorumumu sil</Text>
           </Pressable>
         )}
@@ -311,7 +328,8 @@ const styles = themed(() => StyleSheet.create({
   replyForm: { gap: 8, marginLeft: 14 },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 14 },
   action: { color: colors.primary, fontWeight: '600', fontSize: 13 },
-  delete: { color: colors.danger, fontSize: 13 },
+  delete: { color: colors.danger, fontSize: 13, fontWeight: '600' },
+  deleteButton: { paddingVertical: 4, paddingHorizontal: 8, marginHorizontal: -8 },
   report: { color: colors.textMuted, fontSize: 13 },
   businessTag: { color: colors.onPrimary, backgroundColor: colors.primary, fontSize: 11, fontWeight: '700', borderRadius: 6, overflow: 'hidden' },
   reportBox: { gap: 6, padding: 10, borderRadius: 12, backgroundColor: colors.cream, width: '100%' },

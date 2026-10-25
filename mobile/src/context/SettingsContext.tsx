@@ -14,6 +14,7 @@ export type Settings = {
   premium: boolean; // B2C Premium (demo, no payment): no ads, unlimited watches
   // v2 notifications
   checkinSuggestions: boolean; // "Mado'dasın gibi, check-in yap?" after a few minutes near a venue
+  showMyLocation: boolean; // the blue dot on the map (Konum ve izinler > Konum)
   // Sosyal bildirimler (phone notifications; the 🔔 list always has everything)
   friendNotifications: boolean; // friend requests
   friendAcceptedNotifications: boolean; // my requests accepted
@@ -35,6 +36,7 @@ const DEFAULTS: Settings = {
   autoCampaign: false,
   premium: false,
   checkinSuggestions: true,
+  showMyLocation: true,
   friendNotifications: true,
   friendAcceptedNotifications: true,
   replyNotifications: true,

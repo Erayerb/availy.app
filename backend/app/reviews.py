@@ -34,7 +34,17 @@ def _clean(body: str) -> str:
     return text
 
 
-def save_review(conn: psycopg.Connection, user: dict, venue_id: int, rating: int, body: str, allow_replies: bool, now: datetime) -> dict:
+def save_review(
+    conn: psycopg.Connection,
+    user: dict,
+    venue_id: int,
+    rating: int,
+    body: str,
+    allow_replies: bool,
+    now: datetime,
+    checkin_id: int | None = None,
+) -> dict:
+    """`checkin_id`: written right after that check-in ("Burası nasıl?"); it shows with the check-in in Akış."""
     _require_registered(user, "Yorum yazmak")
     if user.get("role") == "business":
         raise ReviewError("İşletme hesapları yorum yazamaz; yorumlara yanıt verebilir.", 403)
@@ -50,13 +60,30 @@ def save_review(conn: psycopg.Connection, user: dict, venue_id: int, rating: int
         raise ReviewError(
             f"Her check-in için en fazla {MAX_REVIEWS_PER_CHECKIN} yorum yazabilirsin. Yeni yorum için tekrar check-in yap.", 409
         )
+    if checkin_id is not None and conn.execute(
+        "SELECT 1 FROM checkins WHERE id = %s AND user_id = %s AND venue_id = %s", (checkin_id, user["id"], venue_id)
+    ).fetchone() is None:
+        raise ReviewError("Check-in bulunamadı.", 404)
     return conn.execute(
         """
-        INSERT INTO reviews (venue_id, user_id, rating, body, allow_replies, created_at)
-        VALUES (%s, %s, %s, %s, %s, %s) RETURNING id
+        INSERT INTO reviews (venue_id, user_id, rating, body, allow_replies, created_at, checkin_id)
+        VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
         """,
-        (venue_id, user["id"], rating, text, allow_replies, now),
+        (venue_id, user["id"], rating, text, allow_replies, now, checkin_id),
     ).fetchone()
+
+
+def edit_review(conn: psycopg.Connection, user: dict, review_id: int, rating: int, body: str) -> int:
+    """Changes my review's stars and words; returns its venue."""
+    if rating not in range(1, 6):
+        raise ReviewError("Puan seç (1–5).")
+    row = conn.execute(
+        "UPDATE reviews SET rating = %s, body = %s WHERE id = %s AND user_id = %s RETURNING venue_id",
+        (rating, _clean(body), review_id, user["id"]),
+    ).fetchone()
+    if row is None:
+        raise ReviewError("Yorum bulunamadı.", 404)
+    return row["venue_id"]
 
 
 def review_allowance(conn: psycopg.Connection, user_id: int, venue_id: int) -> dict:
@@ -157,11 +184,16 @@ def friend_feed(conn: psycopg.Connection, me: dict, now: datetime) -> list[dict]
     return conn.execute(
         f"""
         SELECT * FROM (
+            -- A review written right after the check-in shows with it (older check-ins may have a note)
             SELECT 'checkin' AS kind, c.created_at AS at, u.username, v.id AS venue_id, v.name AS venue_name,
                    c.is_first, (SELECT COALESCE(sum(p.amount), 0) FROM points p WHERE p.checkin_id = c.id)::int AS points,
-                   NULL::smallint AS rating, c.note AS body, NULL AS review_author,
-                   NULL::bigint AS review_id, false AS allow_replies, c.id AS checkin_id
+                   rv.rating, COALESCE(rv.body, c.note) AS body, NULL AS review_author,
+                   rv.id AS review_id, COALESCE(rv.allow_replies, false) AS allow_replies, c.id AS checkin_id
             FROM checkins c JOIN users u ON u.id = c.user_id JOIN venues v ON v.id = c.venue_id
+            LEFT JOIN LATERAL (
+                SELECT r.id, r.rating, r.body, r.allow_replies FROM reviews r
+                WHERE r.checkin_id = c.id AND NOT {hidden_review("r")} ORDER BY r.created_at DESC LIMIT 1
+            ) rv ON true
             -- My own check-ins too, so I see friends' likes and comments under them
             WHERE (c.user_id IN ({friends}) AND u.share_checkins OR c.user_id = %(me)s)
               AND NOT c.is_private AND NOT c.is_demo AND c.created_at > %(since)s
@@ -170,6 +202,10 @@ def friend_feed(conn: psycopg.Connection, me: dict, now: datetime) -> list[dict]
                    r.id, r.allow_replies, NULL::bigint
             FROM reviews r JOIN users u ON u.id = r.user_id JOIN venues v ON v.id = r.venue_id
             WHERE r.user_id IN ({friends}) AND r.created_at > %(since)s AND NOT {hidden_review("r")}
+              -- Already shown with its check-in
+              AND NOT EXISTS (
+                  SELECT 1 FROM checkins c2 WHERE c2.id = r.checkin_id AND NOT c2.is_private AND NOT c2.is_demo AND u.share_checkins
+              )
             UNION ALL
             SELECT 'reply', p.created_at, u.username, v.id, v.name, false, 0, NULL, p.body, a.username,
                    r.id, r.allow_replies, NULL::bigint

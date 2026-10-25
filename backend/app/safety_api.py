@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
 
 from app.auth_api import BadgeOut, current_user
+from app.checkins_api import get_clock
 from app.db import get_conn
 from app.safety import SafetyError, block, blocked_people, mute, profile, report, unblock
 
@@ -32,6 +33,7 @@ class ProfileOut(BaseModel):
     discoveries: int
     badges: list[BadgeOut]  # the whole catalog with progress
     venues: list[ProfileVenue] | None  # None: not visible (not a friend, or they do not share check-ins)
+    weekly_streak: int = 0  # "🔥 4 haftalık seri"
 
 
 class BlockedOut(BaseModel):
@@ -48,9 +50,14 @@ def _fail(error: SafetyError) -> HTTPException:
 
 
 @router.get("/users/{username}", response_model=ProfileOut)
-def user_profile(username: str, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+def user_profile(
+    username: str,
+    user: dict = Depends(current_user),
+    conn: psycopg.Connection = Depends(get_conn),
+    now: datetime = Depends(get_clock),
+):
     try:
-        return profile(conn, user, username)
+        return profile(conn, user, username, now)
     except SafetyError as e:
         raise _fail(e) from None
 

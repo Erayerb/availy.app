@@ -15,7 +15,7 @@ import {
 import { levelStyle } from '../src/lib/occupancy.ts';
 import { checkinShareMessage, shareMessage, venueFromQuery, venueLink } from '../src/lib/share.ts';
 import { byQuietest, sortVenues } from '../src/lib/sort.ts';
-import { canWatch, notificationText, toggleWatch, watchTriggered } from '../src/lib/watch.ts';
+import { canWatch, notificationText, toggleWatch, watchExpired, watchTriggered } from '../src/lib/watch.ts';
 
 const NOW = new Date('2026-10-13T10:00:00Z');
 
@@ -78,10 +78,17 @@ test('"Sakin olunca haber ver": offered for Orta / Kalabalık, fires when check-
   assert.ok(canWatch(venue(live('medium'))));
   assert.ok(!canWatch(venue(live('low'))));
   assert.ok(!canWatch(venue({ crowd: { state: 'unexplored' } })));
-  assert.ok(watchTriggered(venue(live('low'))));
-  assert.ok(!watchTriggered(venue({ open_now: false, ...live('low') })));
-  assert.ok(!watchTriggered(venue({ crowd: { state: 'stale' } })));
   const on = toggleWatch([], { id: 1, name: 'X' }, NOW);
+  const after = (minutes: number) => new Date(NOW.getTime() + minutes * 60_000).toISOString();
+  const sakin = (at: string) => ({ ...live('low'), crowd: { ...live('low').crowd, last_report_at: at } });
+  // Only a check-in after turning the bell on counts; an older "Sakin" does not notify at once
+  assert.ok(watchTriggered(venue(sakin(after(10))), on[0]));
+  assert.ok(!watchTriggered(venue(sakin(after(-10))), on[0]));
+  assert.ok(!watchTriggered(venue({ open_now: false, ...sakin(after(10)) }), on[0]));
+  assert.ok(!watchTriggered(venue({ crowd: { state: 'stale' } }), on[0]));
+  // Off by itself after 6 hours
+  assert.ok(!watchExpired(on[0], new Date(after(5 * 60))));
+  assert.ok(watchExpired(on[0], new Date(after(6 * 60))));
   assert.equal(on.length, 1);
   assert.equal(toggleWatch(on, { id: 1, name: 'X' }, NOW).length, 0);
   assert.equal(notificationText(venue(live('low'))).title, 'Demo Kafe Moda sakinleşti');

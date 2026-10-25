@@ -7,7 +7,10 @@ import type { Venue } from '../lib/api';
 import type { User } from '../lib/auth';
 import { useCampaigns } from '../context/CampaignsContext';
 import { checkinBody, checkinMessage, followUpQuestion, sendCheckin, type CheckinResult } from '../lib/checkinApi';
-import { checkinSocialApi } from '../lib/reviews';
+import { isRegistered } from '../lib/auth';
+import { confirmAction } from '../lib/confirm';
+import { stars } from '../lib/feedback';
+import { MAX_REVIEW, newestMine, reviewsApi, type Reviews } from '../lib/reviews';
 import { checkinShareMessage } from '../lib/share';
 import { shareText } from '../lib/shareVenue';
 import { LEVELS, type Level } from '../lib/occupancy';
@@ -23,6 +26,8 @@ type Props = {
   onDone: () => void;
   // The user's last check-in here (ISO), if any: a new one is possible 90 minutes later
   lastCheckinAt?: string | null;
+  // "Burası nasıl?" wrote, changed or deleted a review: the venue's list (or null: reload it)
+  onReviewsChange?: (reviews: Reviews | null) => void;
 };
 
 // Same as the server: one check-in per venue every 90 minutes
@@ -37,7 +42,7 @@ const LOCATION_ERRORS = {
 };
 
 /** v2 check-in: first say how busy it is (and the follow-up question), then the Check-in button opens. */
-export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastCheckinAt = null }: Props) {
+export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastCheckinAt = null, onReviewsChange }: Props) {
   const { look, privateByDefault } = useSettings();
   const { locate } = useLocation();
   const [level, setLevel] = useState<Level | null>(null);
@@ -53,12 +58,17 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
     id: number;
     label: string;
     first: boolean;
+    streak: number;
     note: string | null;
     coupons: NonNullable<CheckinResult['coupons']>;
   } | null>(null);
-  // "Fikrini yazmak ister misin?": a few words with the check-in, seen by friends and shared with it
+  // "Burası nasıl?": stars and a few words right after the check-in. It is the venue review,
+  // and friends see it with the check-in in Akış
+  const [rating, setRating] = useState(0);
   const [words, setWords] = useState('');
-  const [savedWords, setSavedWords] = useState<string | null>(null);
+  const [review, setReview] = useState<{ id: number; rating: number; body: string } | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
   const { reload: reloadCoupons } = useCampaigns();
   const question = followUpQuestion(level);
   const last = Math.max(justCheckedIn ?? 0, lastCheckinAt ? new Date(lastCheckinAt).getTime() : 0);
@@ -111,9 +121,12 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
     try {
       const done = await sendCheckin(user.token, venue.id, checkinBody(level, answer, position.coords, isPrivate));
       setResult({ ok: true, text: checkinMessage(done) });
-      setShared({ id: done.id, label: look(level).label, first: done.is_first, note: null, coupons: done.coupons ?? [] });
+      setShared({ id: done.id, label: look(level).label, first: done.is_first, streak: done.weekly_streak ?? 0, note: null, coupons: done.coupons ?? [] });
+      setRating(0);
       setWords('');
-      setSavedWords(null);
+      setReview(null);
+      setEditing(false);
+      setReviewError(null);
       if (done.coupons?.length) reloadCoupons(); // shows up in Kuponlarım
       setJustCheckedIn(Date.now());
       setLevel(null);
@@ -126,6 +139,34 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
     }
   };
 
+  const saveReview = async () => {
+    if (!user?.token || !shared || rating < 1) return;
+    try {
+      const list = review
+        ? await reviewsApi.edit(user.token, review.id, rating, words)
+        : await reviewsApi.write(user.token, venue.id, rating, words, true, shared.id);
+      const mine = review ? list.items.find((r) => r.id === review.id) : newestMine(list);
+      if (mine) setReview({ id: mine.id, rating: mine.rating, body: mine.body });
+      setEditing(false);
+      setReviewError(null);
+      onReviewsChange?.(list);
+    } catch (e) {
+      setReviewError(e instanceof Error ? e.message : 'Paylaşılamadı.');
+    }
+  };
+
+  const removeReview = () => {
+    if (!user?.token || !review) return;
+    const token = user.token;
+    confirmAction('Yorumun silinsin mi?', 'Mekan sayfasından ve arkadaşlarının akışından kaldırılır.', 'Sil', async () => {
+      await reviewsApi.remove(token, review.id).catch(() => {});
+      setReview(null);
+      setRating(0);
+      setWords('');
+      onReviewsChange?.(null);
+    });
+  };
+
   // Checked in here less than 90 minutes ago: the button stays, closed, with the time it opens above it
   if (coolingDown) {
     return (
@@ -136,44 +177,79 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
             <Text style={styles.partyIcon}>{shared.first ? '✨' : '🎉'}</Text>
             <Text style={styles.partyTitle}>{shared.first ? 'Burayı sen keşfettin!' : 'Check-in yapıldı!'}</Text>
             <Text style={styles.success}>{result.text}</Text>
+            {shared.streak >= 2 && <Text style={styles.streak}>🔥 {shared.streak}. hafta üst üste check-in!</Text>}
             {shared.coupons.map((c) => (
               <View key={c.code} style={styles.coupon}>
                 <Text style={styles.couponTitle}>🎟 Kupon kazandın: {c.code}</Text>
                 <Text style={styles.muted}>{c.message} · Kasada göster (Kampanyalar → Kuponlarım)</Text>
               </View>
             ))}
-            {savedWords === null ? (
+            {!isRegistered(user) ? (
+              <Text style={styles.muted}>
+                Burası hakkında yorum yazmak için{' '}
+                <Text style={styles.link} onPress={onRegister}>
+                  kayıt ol
+                </Text>
+                .
+              </Text>
+            ) : review && !editing ? (
               <View style={styles.words}>
-                <Text style={styles.text}>💬 Fikrini yazmak ister misin?</Text>
+                <Text style={styles.quote}>
+                  <Text style={styles.stars}>{stars(review.rating)}</Text>
+                  {review.body ? `  “${review.body}”` : ''}
+                </Text>
+                <View style={styles.reviewActions}>
+                  <Pressable
+                    hitSlop={10}
+                    onPress={() => {
+                      setRating(review.rating);
+                      setWords(review.body);
+                      setEditing(true);
+                    }}
+                  >
+                    <Text style={styles.link}>Düzenle</Text>
+                  </Pressable>
+                  <Pressable hitSlop={10} onPress={removeReview}>
+                    <Text style={styles.deleteText}>Sil</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.words}>
+                <Text style={styles.text}>💬 Burası nasıl?</Text>
+                <View style={styles.starsRow}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <Pressable key={n} onPress={() => setRating(n)} hitSlop={6} accessibilityLabel={`${n} yıldız`}>
+                      <Text style={[styles.star, n <= rating && styles.starOn]}>{n <= rating ? '★' : '☆'}</Text>
+                    </Pressable>
+                  ))}
+                </View>
                 <TextInput
                   value={words}
                   onChangeText={setWords}
-                  placeholder="Burası nasıl? Arkadaşların check-in'inin altında görür"
+                  placeholder="Birkaç kelime (isteğe bağlı)"
                   placeholderTextColor={colors.placeholder}
-                  maxLength={280}
+                  maxLength={MAX_REVIEW}
                   multiline
                   style={styles.input}
                 />
-                {words.trim().length > 0 && (
-                  <Pressable
-                    style={styles.saveWords}
-                    onPress={async () => {
-                      if (!user?.token) return;
-                      const saved = await checkinSocialApi.note(user.token, shared.id, words).catch(() => null);
-                      setSavedWords(saved?.note ?? null);
-                    }}
-                  >
-                    <Text style={styles.saveWordsText}>Paylaş</Text>
+                {reviewError && <Text style={styles.error}>{reviewError}</Text>}
+                <View style={styles.reviewActions}>
+                  {editing && (
+                    <Pressable style={styles.saveWords} onPress={() => setEditing(false)}>
+                      <Text style={styles.saveWordsText}>Vazgeç</Text>
+                    </Pressable>
+                  )}
+                  <Pressable style={[styles.saveWords, rating < 1 && styles.disabled]} onPress={saveReview} disabled={rating < 1}>
+                    <Text style={styles.saveWordsText}>{editing ? 'Kaydet' : 'Paylaş'}</Text>
                   </Pressable>
-                )}
+                </View>
               </View>
-            ) : (
-              <Text style={styles.quote}>“{savedWords}”</Text>
             )}
             <Pressable
               style={styles.share}
               onPress={async () => {
-                const note = await shareText(checkinShareMessage(venue.name, shared.label, shared.first, savedWords ?? words));
+                const note = await shareText(checkinShareMessage(venue.name, shared.label, shared.first, review?.body ?? words));
                 setShared({ ...shared, note });
               }}
             >
@@ -308,6 +384,13 @@ const styles = themed(() => StyleSheet.create({
   saveWords: { alignSelf: 'flex-end', paddingVertical: 7, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary },
   saveWordsText: { color: colors.primary, fontWeight: '700' },
   quote: { fontSize: 14, fontStyle: 'italic', color: colors.text, textAlign: 'center' },
+  stars: { color: '#E0A800', fontStyle: 'normal' },
+  streak: { fontSize: 15, fontWeight: '800', color: colors.text },
+  starsRow: { flexDirection: 'row', gap: 6, justifyContent: 'center' },
+  star: { fontSize: 28, color: colors.textMuted },
+  starOn: { color: '#E0A800' },
+  reviewActions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 16 },
+  deleteText: { color: colors.danger, fontWeight: '700' },
   coupon: { alignSelf: 'stretch', padding: 10, borderRadius: 12, backgroundColor: colors.cream, gap: 2, alignItems: 'center' },
   couponTitle: { fontSize: 15, fontWeight: '800', color: colors.primary },
   partyIcon: { fontSize: 44 },

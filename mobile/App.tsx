@@ -128,7 +128,7 @@ function Main() {
   const [campaignsTab, setCampaignsTab] = useState<CampaignsTab | null>(null);
   const role: Role = isBusiness(auth.user) ? 'business' : 'personal';
   const goBack = () => setNav((h) => back(h, landingFor(role)));
-  const { premium, checkinSuggestions, appearance } = useSettings();
+  const { checkinSuggestions, appearance } = useSettings();
   // Görünüm: set the colors before any screen below reads them; a change re-renders everything
   const systemScheme = useColorScheme();
   const scheme: Scheme = appearance === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : appearance;
@@ -358,7 +358,6 @@ function Main() {
       setEntered(false);
       await auth.freezeAccount();
     },
-    onLogout: logout,
   };
 
   return (
@@ -397,7 +396,6 @@ function Main() {
               hideClosed={hideClosed}
               onHideClosedChange={setHideClosed}
               onOpenVenue={openDetails}
-              onPremium={premium ? null : () => goTo('subscription')}
               onOpenProfile={openMyProfile}
               onOpenNotifications={() => goTo('notifications')}
             />
@@ -496,8 +494,6 @@ function Main() {
               onBack={goBack}
               isBusiness={isBusiness(auth.user)}
               venueId={isBusiness(auth.user) ? (auth.user?.venueId ?? null) : null}
-              onOpenPermissions={() => goTo('permissions')}
-              onOpenPrivacy={() => goTo('privacy')}
               account={auth.user && isBusiness(auth.user) ? { user: auth.user, ...accountActions } : null}
             />
           )}
@@ -560,6 +556,10 @@ function Main() {
               }}
               onOpenFriends={() => {
                 setSocialTab('friends');
+                goTo('friends');
+              }}
+              onOpenRanking={() => {
+                setSocialTab('ranking');
                 goTo('friends');
               }}
               onOpenSettings={() => goTo('settings')}

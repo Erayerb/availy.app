@@ -22,7 +22,8 @@ def test_customers_join_and_get_stamped(client, conn, clock):
     assert refused.status_code == 409 and "Katıl" in refused.json()["detail"]
     # Joined: stamps, a full card, the reward used once
     assert client.post(f"/v1/loyalty/{kafe}/join", headers=auth(ali)).status_code == 204
-    assert [n["kind"] for n in client.get("/v1/notifications", headers=auth(ali)).json()].count("loyalty") == 0
+    # The notification stays (until deleted), marked as done
+    assert [n["done"] for n in client.get("/v1/notifications", headers=auth(ali)).json() if n["kind"] == "loyalty"] == [True]
     assert "1/2" in client.post("/v1/me/loyalty/stamp", json={"code": code}, headers=auth(token)).json()["message"]
     assert "doldu" in client.post("/v1/me/loyalty/stamp", json={"code": code.lower()}, headers=auth(token)).json()["message"]
     member = client.get("/v1/loyalty", headers=auth(ali)).json()[0]["member"]

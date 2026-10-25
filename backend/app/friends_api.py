@@ -126,3 +126,22 @@ def here(
 ):
     """"👥 @ayse burada": friends who checked in here in the last hour."""
     return friends_here(conn, user, venue_id, now)
+
+
+class RegularOut(BaseModel):
+    username: str
+    visits: int  # in the last 30 days
+    me: bool
+
+
+@router.get("/venues/{venue_id}/regular", response_model=RegularOut | None)
+def regular(
+    venue_id: int,
+    user: dict = Depends(current_user),
+    conn: psycopg.Connection = Depends(get_conn),
+    now: datetime = Depends(get_clock),
+):
+    """"👑 müdavim": among me and my friends, the most check-ins here lately (none: null)."""
+    from app.streaks import friends_regular
+
+    return friends_regular(conn, user, venue_id, now)

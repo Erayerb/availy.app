@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from app.accounts import user_for_token
 from app.auth_api import bearer_token, current_user
 from app.checkins_api import get_clock
-from app.checkin_social import SocialError, comment, delete_comment, like, set_note, social_for
+from app.checkin_social import SocialError, comment, delete_comment, like, social_for
 from app.db import get_conn
 from app.reviews import (
     MAX_BODY,
@@ -17,6 +17,7 @@ from app.reviews import (
     add_reply,
     delete_reply,
     delete_review,
+    edit_review,
     friend_feed,
     save_review,
     venue_reviews,
@@ -67,6 +68,12 @@ class ReviewIn(BaseModel):
     rating: int
     body: str = Field("", max_length=MAX_BODY + 50)
     allow_replies: bool = True
+    checkin_id: int | None = None  # written right after this check-in
+
+
+class ReviewEditIn(BaseModel):
+    rating: int
+    body: str = Field("", max_length=MAX_BODY + 50)
 
 
 class ReplyIn(BaseModel):
@@ -119,7 +126,18 @@ def write_review(
     now: datetime = Depends(get_clock),
 ):
     try:
-        save_review(conn, user, venue_id, body.rating, body.body, body.allow_replies, now)
+        save_review(conn, user, venue_id, body.rating, body.body, body.allow_replies, now, body.checkin_id)
+    except ReviewError as e:
+        raise _fail(e) from None
+    return venue_reviews(conn, venue_id, user)
+
+
+@router.patch("/reviews/{review_id}", response_model=ReviewsOut)
+def change_review(
+    review_id: int, body: ReviewEditIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)
+):
+    try:
+        venue_id = edit_review(conn, user, review_id, body.rating, body.body)
     except ReviewError as e:
         raise _fail(e) from None
     return venue_reviews(conn, venue_id, user)
@@ -159,10 +177,6 @@ def feed(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(
     return [{**i, **social.get(i["checkin_id"], {})} for i in items]
 
 
-class NoteIn(BaseModel):
-    note: str
-
-
 class LikeIn(BaseModel):
     liked: bool
 
@@ -173,15 +187,6 @@ class CommentIn(BaseModel):
 
 def _social_fail(e: SocialError) -> HTTPException:
     return HTTPException(status_code=e.status, detail=e.message)
-
-
-@router.patch("/checkins/{checkin_id}/note")
-def checkin_note(checkin_id: int, body: NoteIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
-    """"Fikrini yaz": a few words with my check-in, seen by friends with it."""
-    try:
-        return set_note(conn, user, checkin_id, body.note)
-    except SocialError as e:
-        raise _social_fail(e) from None
 
 
 @router.put("/checkins/{checkin_id}/like", status_code=204)

@@ -18,11 +18,10 @@ export function summarizeDay(hours: HourRatio[]) {
   return { quietest, busiest };
 }
 
-/** Similar venues nearby (same category or a shared purpose tag), nearest first. */
+/** Similar venues nearby (the same kind: a café's are cafés), nearest first. */
 export function nearbyCompetitors(venue: Venue, all: Venue[], maxKm = 2, limit = 3) {
   return all
-    .filter((v) => v.id !== venue.id)
-    .filter((v) => v.category === venue.category || v.tags.some((t) => venue.tags.includes(t)))
+    .filter((v) => v.id !== venue.id && v.category === venue.category)
     .map((v) => ({ venue: v, distanceKm: distanceKm(venue, v) }))
     .filter((c) => c.distanceKm <= maxKm)
     .sort((a, b) => a.distanceKm - b.distanceKm)

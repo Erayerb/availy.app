@@ -51,7 +51,7 @@ export function PrivacyScreen({ token, onBack, onOpenPermissions, onOpenLegal }:
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
         <BackButton onPress={onBack} />
-        <Text style={styles.title}>Gizlilik</Text>
+        <Text style={styles.title}>Gizlilik ayarları</Text>
       </View>
 
       <View style={styles.card}>
