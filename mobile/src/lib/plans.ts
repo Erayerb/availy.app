@@ -7,7 +7,7 @@ export type PlanId = 'saas' | 'pay_per_use';
 
 export const PLANS: Record<PlanId, { name: string; price: string; features: string[] }> = {
   saas: {
-    name: 'SaaS Panel',
+    name: 'Aylık Paket',
     price: '₺1.899 / ay',
     features: ['Anlık doluluk analizi', 'Rakip karşılaştırması', 'Sınırsız kampanya'],
   },
@@ -22,5 +22,5 @@ export const DEFAULT_PLAN: PlanId = 'pay_per_use';
 
 /** Text shown before sending a campaign. */
 export function campaignCostNote(plan: PlanId): string {
-  return plan === 'saas' ? 'Paketine dahil (sınırsız).' : 'Bu kampanya ₺150 (demo, ödeme alınmaz).';
+  return plan === 'saas' ? 'Paketine dahil (sınırsız).' : 'Bu kampanyanın ücreti ₺150.';
 }

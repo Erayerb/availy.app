@@ -9,8 +9,6 @@ import { KEYS } from '../lib/storage';
 export type Settings = {
   colorBlind: boolean; // colour-blind friendly palette + symbols
   watchNotifications: boolean; // phone notification when a watched venue empties
-  deadHourAlerts: boolean; // business: tell me when my venue is in a dead hour
-  autoCampaign: boolean; // business: send the ready-made campaign automatically in a dead hour
   premium: boolean; // B2C Premium (demo, no payment): no ads, unlimited watches
   // v2 notifications
   checkinSuggestions: boolean; // "Mado'dasın gibi, check-in yap?" after a few minutes near a venue
@@ -32,8 +30,6 @@ export type Appearance = 'system' | 'light' | 'dark';
 const DEFAULTS: Settings = {
   colorBlind: false,
   watchNotifications: true,
-  deadHourAlerts: true,
-  autoCampaign: false,
   premium: false,
   checkinSuggestions: true,
   showMyLocation: true,

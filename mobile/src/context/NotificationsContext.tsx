@@ -50,6 +50,9 @@ export function NotificationsProvider({ token, accountKey, children }: Props) {
     // A venue's reward and a new loyalty program are always shown
     reward: true,
     loyalty: true,
+    // The business's own alerts (Ayarlar > Ölü saat bildirimi turns them off on the server)
+    dead_hour: true,
+    auto_campaign: true,
   };
 
   useEffect(() => {

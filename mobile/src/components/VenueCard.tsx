@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Linking, Platform, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { Linking, Platform, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { Pressable } from './Pressable';
 
 import { useCampaigns } from '../context/CampaignsContext';
 import { useEngagement } from '../context/EngagementContext';
@@ -14,6 +15,7 @@ import { shareVenue } from '../lib/shareVenue';
 import { colors, themed } from '../theme';
 import { CampaignBox } from './CampaignBox';
 import { FavoriteButton } from './FavoriteButton';
+import { Icon } from './Icon';
 import { CrowdDot } from './CrowdDot';
 import { FriendsHere } from './FriendsHere';
 import { WatchButton } from './WatchButton';
@@ -51,7 +53,7 @@ export function VenueCard({ venue, friendsToken = null, onClose, onDetails, onSh
         <View style={styles.actions}>
           <WatchButton venue={venue} />
           <Pressable onPress={async () => setNote(await shareVenue(venue))} hitSlop={10} accessibilityLabel="Paylaş">
-            <Text style={styles.icon}>⤴</Text>
+            <Icon name="share-outline" size={20} color={colors.text} />
           </Pressable>
           <FavoriteButton venueId={venue.id} />
           <Pressable onPress={onClose} hitSlop={12}>
@@ -118,7 +120,6 @@ const styles = themed(() => StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
   title: { fontSize: 16, fontWeight: '600', flexShrink: 1, color: colors.text },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  icon: { fontSize: 18, color: colors.textMuted },
   close: { fontSize: 16, color: colors.textMuted },
   category: { fontSize: 13, color: colors.textMuted },
   row: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },

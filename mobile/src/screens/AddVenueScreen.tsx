@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '../components/Pressable';
 
 import { BackButton } from '../components/BackButton';
 import { NewVenueForm } from '../components/NewVenueForm';

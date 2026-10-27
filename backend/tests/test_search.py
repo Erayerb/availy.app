@@ -24,12 +24,6 @@ def test_search_combines_query_district_and_tags(client):
     }
 
 
-def test_search_includes_occupancy(client):
-    venue = client.get("/v1/venues/search", params={"q": "Kafe A"}).json()[0]
-    assert venue["occupancy"]["ratio"] == 0.2
-    assert venue["district_occupancy"] == {"level": "medium", "ratio": 0.53}
-
-
 def test_search_rejects_unknown_tag(client):
     assert client.get("/v1/venues/search", params={"tags": "club"}).status_code == 422
 

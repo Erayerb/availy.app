@@ -22,6 +22,7 @@ export type Profile = {
   badges: Badge[];
   venues: ProfileVenue[] | null; // null: only friends see them
   weekly_streak?: number; // "🔥 4 haftalık seri"
+  photo_at?: string | null; // profile photo (userPhotoUrl)
 };
 
 export type ReportReason = 'insult' | 'spam' | 'false' | 'other';

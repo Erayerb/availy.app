@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable } from '../components/Pressable';
 import QRCode from 'react-native-qrcode-svg';
 
+import { Avatar } from '../components/Avatar';
 import { ContactsFinder } from '../components/ContactsFinder';
 import { HeaderButtons } from '../components/HeaderButtons';
 import { useLocation } from '../context/LocationContext';
@@ -275,9 +277,7 @@ export function SocialScreen({
                 accessibilityLabel={`${author(group.username)}: ${folded.has(group.username ?? '') ? 'aç' : 'kapat'}`}
               >
                 <Pressable onPress={() => group.username && onOpenUser(group.username)} hitSlop={6} accessibilityLabel={`${author(group.username)} profili`}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{(group.username ?? '?').slice(0, 1).toLocaleUpperCase('tr-TR')}</Text>
-                  </View>
+                  <Avatar username={group.username} />
                 </Pressable>
                 <Text style={[styles.bold, styles.flex]}>{author(group.username)}</Text>
                 {/* Newest item first: its date */}
@@ -451,9 +451,7 @@ function PersonRow({ person, children, onOpen }: { person: Person; children: Rea
     <View style={styles.person}>
       {/* Name and picture open the profile */}
       <Pressable onPress={() => onOpen(person.username)} style={[styles.person, styles.flex]} accessibilityLabel={`@${person.username} profili`}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{person.username.slice(0, 1).toLocaleUpperCase('tr-TR')}</Text>
-        </View>
+        <Avatar username={person.username} />
         <Text style={[styles.text, styles.flex]}>@{person.username}</Text>
       </Pressable>
       {children}
@@ -518,8 +516,6 @@ const styles = themed(() => StyleSheet.create({
   // Four person rows (38 + 8) with the gaps between them
   friendList: { maxHeight: 4 * 46 + 3 * 10 },
   friendRows: { gap: 10 },
-  avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 16, fontWeight: '800', color: colors.primary },
   action: { paddingVertical: 7, paddingHorizontal: 12, borderRadius: 12, backgroundColor: colors.primary },
   actionText: { color: colors.onPrimary, fontWeight: '700', fontSize: 13 },
   actionQuiet: { paddingVertical: 7, paddingHorizontal: 10 },

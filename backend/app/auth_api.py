@@ -4,6 +4,7 @@ from typing import Literal
 
 import psycopg
 from fastapi import APIRouter, Depends, Header, HTTPException, Response
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.accounts import (
@@ -77,6 +78,7 @@ class PrivacyOut(BaseModel):
     show_in_leaderboard: bool  # shown in the "Herkes" ranking
     searchable: bool  # others find me by user-name search
     suggest_by_venues: bool = True  # suggested to people who go to the same venues
+    regular_public: bool = False  # "👑 müdavim" shown to everyone, not only to friends
 
 
 class MeOut(UserOut, PrivacyOut):
@@ -141,7 +143,8 @@ def login(body: LoginIn, conn: psycopg.Connection = Depends(get_conn)):
     try:
         user = authenticate(conn, body.login or body.email, body.password, body.role)
     except AccountError as e:
-        raise _fail(e) from None
+        # Returned, not raised: the wrong-password count is saved together with the failed request
+        return JSONResponse(status_code=e.status, content={"detail": e.message})
     return {"token": create_session(conn, user["id"]), "user": user}
 
 
@@ -191,6 +194,14 @@ class RenameIn(BaseModel):
 class PasswordIn(BaseModel):
     old_password: str
     new_password: str
+
+
+@router.get("/me/export")
+def export_data(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    """"Verilerimi indir" (KVKK): everything kept about me, as one JSON document."""
+    from app.export import export_my_data
+
+    return export_my_data(conn, user, datetime.now(timezone.utc))
 
 
 @router.patch("/me", response_model=UserOut)
@@ -245,6 +256,7 @@ class PrivacyIn(BaseModel):
     show_in_leaderboard: bool | None = None
     searchable: bool | None = None
     suggest_by_venues: bool | None = None
+    regular_public: bool | None = None
 
 
 @router.patch("/me/privacy", response_model=PrivacyOut)
@@ -255,7 +267,7 @@ def privacy(body: PrivacyIn, user: dict = Depends(current_user), conn: psycopg.C
         return user
     columns = ", ".join(f"{name} = %({name})s" for name in changes)
     return conn.execute(
-        f"UPDATE users SET {columns} WHERE id = %(id)s RETURNING share_checkins, show_in_leaderboard, searchable, suggest_by_venues",
+        f"UPDATE users SET {columns} WHERE id = %(id)s RETURNING share_checkins, show_in_leaderboard, searchable, suggest_by_venues, regular_public",
         {**changes, "id": user["id"]},
     ).fetchone()
 

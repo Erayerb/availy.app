@@ -1,66 +1,40 @@
 /**
- * Scheduled / weekly recurring campaigns (SaaS plan): e.g. every Tuesday
- * 13:00 for 3 hours. While the app is open, due occurrences become campaigns.
+ * Scheduled / weekly recurring campaigns (Aylık Paket): e.g. every Tuesday 13:00 for 3 hours.
+ * They live on the server, which starts the campaign when its time comes (the app need not be open).
  */
-import type { NewCampaign } from './campaigns.ts';
+import { send } from './accountApi.ts';
+
+export const WEEKDAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz']; // 0 = Monday
 
 export type ScheduledCampaign = {
-  id: string;
-  venueId: number;
-  venueName: string;
-  lat: number;
-  lon: number;
+  id: number;
   message: string;
   discount: number | null;
-  radiusKm: number;
+  radius_km: number;
   days: number[]; // 0 = Monday ... 6 = Sunday
-  startHour: number;
-  durationHours: number;
+  start_hour: number;
+  duration_hours: number;
   active: boolean;
 };
 
-const ISTANBUL_OFFSET_MS = 3 * 3_600_000;
+export type NewSchedule = Omit<ScheduledCampaign, 'id' | 'active'>;
 
-/** Istanbul weekday (Monday 0), hour and date of a moment. */
-export function istanbulTime(now: Date) {
-  const local = new Date(now.getTime() + ISTANBUL_OFFSET_MS);
-  return { weekday: (local.getUTCDay() + 6) % 7, hour: local.getUTCHours(), date: local.toISOString().slice(0, 10) };
-}
-
-export function validateSchedule(s: Pick<ScheduledCampaign, 'message' | 'days' | 'startHour' | 'durationHours'>): string | null {
+export function validateSchedule(s: Pick<NewSchedule, 'message' | 'days' | 'start_hour'>): string | null {
   if (s.message.trim().length < 5) return 'Kampanya mesajını yaz.';
   if (s.days.length === 0) return 'En az bir gün seç.';
-  if (!Number.isInteger(s.startHour) || s.startHour < 0 || s.startHour > 23) return 'Başlangıç saati 0–23 olmalı.';
+  if (!Number.isInteger(s.start_hour) || s.start_hour < 0 || s.start_hour > 23) return 'Başlangıç saati 0–23 olmalı.';
   return null;
 }
 
-/** Occurrence key so the same schedule fires once per day. */
-export const occurrenceKey = (scheduleId: string, date: string) => `${scheduleId}@${date}`;
+/** The business's automations: ölü saat bildirimi, otomatik kampanya, zamanlanmış kampanyalar. */
+export type Automation = { dead_hour_alerts: boolean; auto_campaign: boolean };
 
-/** Schedules that should be running now and have not created a campaign today. */
-export function dueSchedules(
-  schedules: ScheduledCampaign[],
-  firedKeys: Set<string>,
-  now: Date,
-): { schedule: ScheduledCampaign; key: string; campaign: NewCampaign }[] {
-  const { weekday, hour, date } = istanbulTime(now);
-  return schedules
-    .filter((s) => s.active && s.days.includes(weekday) && hour >= s.startHour && hour < s.startHour + s.durationHours)
-    .map((s) => ({ schedule: s, key: occurrenceKey(s.id, date) }))
-    .filter(({ key }) => !firedKeys.has(key))
-    .map(({ schedule: s, key }) => ({
-      schedule: s,
-      key,
-      campaign: {
-        venueId: s.venueId,
-        venueName: s.venueName,
-        lat: s.lat,
-        lon: s.lon,
-        message: s.message,
-        discount: s.discount,
-        radiusKm: s.radiusKm,
-        // Only the part of the window that is left
-        durationHours: s.startHour + s.durationHours - hour,
-      },
-    }));
-}
+export const automationApi = {
+  settings: (token: string) => send<Automation>('GET', '/v1/business/automation', undefined, token),
+  saveSettings: (token: string, settings: Automation) => send<Automation>('PUT', '/v1/business/automation', settings, token),
+  schedules: (token: string) => send<ScheduledCampaign[]>('GET', '/v1/business/schedules', undefined, token),
+  addSchedule: (token: string, schedule: NewSchedule) => send<ScheduledCampaign>('POST', '/v1/business/schedules', schedule, token),
+  setActive: (token: string, id: number, active: boolean) =>
+    send<void>('PATCH', `/v1/business/schedules/${id}`, { active }, token),
+  removeSchedule: (token: string, id: number) => send<void>('DELETE', `/v1/business/schedules/${id}`, undefined, token),
+};

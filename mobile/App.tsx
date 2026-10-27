@@ -1,7 +1,8 @@
 import { DancingScript_700Bold, useFonts } from '@expo-google-fonts/dancing-script';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, Text, View, useColorScheme } from 'react-native';
+import { Alert, Platform, StyleSheet, Text, View, useColorScheme } from 'react-native';
+import { Pressable } from './src/components/Pressable';
 
 import { Logo } from './src/components/Logo';
 import { Wordmark } from './src/components/Wordmark';
@@ -20,8 +21,11 @@ import { UserProfileScreen } from './src/screens/UserProfileScreen';
 import { NotificationsScreen } from './src/screens/NotificationsScreen';
 import { NotificationsProvider } from './src/context/NotificationsContext';
 import { FirstCheckinSheet } from './src/components/FirstCheckinSheet';
+import { InviteSheet } from './src/components/InviteSheet';
 import { IntroOverlay } from './src/components/IntroOverlay';
 import { friendsApi, inviteFromQuery } from './src/lib/friends';
+import { listCodeFromQuery } from './src/lib/lists';
+import { ListScreen } from './src/screens/ListScreen';
 import { SubscriptionScreen } from './src/screens/SubscriptionScreen';
 import { AddVenueScreen } from './src/screens/AddVenueScreen';
 import { CustomersScreen } from './src/screens/CustomersScreen';
@@ -39,9 +43,6 @@ import { accountKey, isBusiness, isRegistered, type Role } from './src/lib/auth'
 import { DEFAULT_PLAN } from './src/lib/plans';
 import { removeOldData } from './src/lib/cleanup';
 import { isLocalVenueId } from './src/lib/localVenues';
-import { loadLocalVenues } from './src/lib/localVenueStore';
-import { loadOverrides } from './src/lib/overrideStore';
-import { BusinessMonitor } from './src/components/BusinessMonitor';
 import type { Region } from './src/lib/bbox';
 import { toggleSingle, type Tag } from './src/lib/filters';
 import type { Side } from './src/lib/istanbul';
@@ -55,7 +56,7 @@ import { CampaignsScreen, type Tab as CampaignsTab } from './src/screens/Campaig
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { VenueDetailScreen } from './src/screens/VenueDetailScreen';
-import { FavoritesScreen } from './src/screens/FavoritesScreen';
+import { FavoritesScreen, type FavoritesTab } from './src/screens/FavoritesScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { MoreScreen } from './src/screens/MoreScreen';
 import { SupportScreen } from './src/screens/SupportScreen';
@@ -96,8 +97,6 @@ export default function App() {
 
 function Main() {
   const auth = useAuth();
-  // Venues added by businesses on this phone must be loaded before the first data request
-  const [localVenuesReady, setLocalVenuesReady] = useState(false);
   // Script font of the "availy" wordmark; continue anyway if it fails to load
   const [fontLoaded, fontError] = useFonts({ DancingScript_700Bold });
   // Signed-out users start on the welcome page; signed-in users see a short splash
@@ -115,6 +114,12 @@ function Main() {
     setProfileUsername(username);
     goTo('user');
   };
+  // v2: a venue list (Favoriler > Listelerim, a friend's profile, or a shared link)
+  const [openedList, setOpenedList] = useState<{ id: number } | { code: string } | null>(null);
+  const openList = (id: number) => {
+    setOpenedList({ id });
+    goTo('venueList');
+  };
   // Guests have no public profile: they get the sign-up page instead
   const openMyProfile = () => {
     // A business's profile is its venue page, as customers see it
@@ -124,6 +129,8 @@ function Main() {
   };
   // Sosyal opens on Akış; a friend-request notification opens it on Arkadaşlar
   const [socialTab, setSocialTab] = useState<SocialTab>('feed');
+  // Favoriler / Listelerim / Ziyaret edilenler: kept here so "back" from a list returns to the same tab
+  const [favoritesTab, setFavoritesTab] = useState<FavoritesTab>('saved');
   // Kampanyalar opened on one of its tabs (Müşteriler > "Sadakat programı oluştur")
   const [campaignsTab, setCampaignsTab] = useState<CampaignsTab | null>(null);
   const role: Role = isBusiness(auth.user) ? 'business' : 'personal';
@@ -159,7 +166,6 @@ function Main() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   useEffect(() => {
-    Promise.all([loadLocalVenues(), loadOverrides()]).finally(() => setLocalVenuesReady(true));
     removeOldData(); // data earlier versions kept on the phone
   }, []);
 
@@ -183,7 +189,8 @@ function Main() {
 
 
   // Right after a new account: how-to slides, then (customers) "İlk check-in'in"
-  const [onboarding, setOnboarding] = useState<'intro' | 'first' | null>(null);
+  // After sign-up: the intro, then (registered customers) inviting friends, then the first check-in
+  const [onboarding, setOnboarding] = useState<'intro' | 'invite' | 'first' | null>(null);
   // v2: "Mado yakınındasın, burası şu an nasıl?" (customers, after the onboarding)
   const { suggestion, dismiss: dismissSuggestion } = useCheckinSuggestion(
     point,
@@ -207,6 +214,19 @@ function Main() {
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invite, gate, auth.user]);
+
+  // Web: a shared list's link (?list=ABCD2345) opens it once there is a session (a guest's too)
+  const [sharedList, setSharedList] = useState(() =>
+    Platform.OS === 'web' && typeof window !== 'undefined' ? listCodeFromQuery(window.location.search) : null,
+  );
+  useEffect(() => {
+    if (!sharedList || gate !== null || !auth.user?.token) return;
+    setOpenedList({ code: sharedList });
+    setSharedList(null);
+    window.history.replaceState(null, '', window.location.pathname);
+    goTo('venueList');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sharedList, gate, auth.user]);
 
   const logout = async () => {
     setEntered(false);
@@ -244,7 +264,7 @@ function Main() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sharedVenue, gate]);
 
-  if (!auth.ready || !localVenuesReady || (!fontLoaded && !fontError)) {
+  if (!auth.ready || (!fontLoaded && !fontError)) {
     // Reading the stored session takes a moment; avoid flashing the welcome page
     return <View style={styles.container} />;
   }
@@ -310,7 +330,9 @@ function Main() {
                 if (Platform.OS === 'web') window.history.replaceState(null, '', window.location.pathname);
               }
               enterApp(role);
-              if (!wasGuest) startOnboarding();
+              // A guest who signs up has seen the intro; the invite step comes now
+              if (role === 'personal') setOnboarding(wasGuest ? 'invite' : 'intro');
+              else if (!wasGuest) startOnboarding();
             }
             return error;
           }}
@@ -449,6 +471,10 @@ function Main() {
               onOpenVenue={openDetails}
               visits={visits}
               signedIn={isRegistered(auth.user)}
+              token={auth.user?.token ?? null}
+              onOpenList={openList}
+              tab={favoritesTab}
+              onTabChange={setFavoritesTab}
               onLogin={() => setAuthForm('login')}
               onRegister={() => {
                 setAuthRole('personal');
@@ -531,6 +557,16 @@ function Main() {
             />
           )}
           {screen === 'legal' && <LegalScreen initial="terms" onBack={goBack} />}
+          {screen === 'venueList' && openedList && auth.user?.token && (
+            <ListScreen
+              key={'id' in openedList ? `id-${openedList.id}` : `code-${openedList.code}`}
+              token={auth.user.token}
+              target={openedList}
+              onBack={goBack}
+              onOpenVenue={openDetails}
+              onOpenList={openList}
+            />
+          )}
           {screen === 'user' && profileUsername && auth.user?.token && (
             <UserProfileScreen
               key={profileUsername}
@@ -539,6 +575,7 @@ function Main() {
               onBack={goBack}
               onOpenVenue={openDetails}
               onOpenSettings={() => goTo('profile')}
+              onOpenList={openList}
             />
           )}
           {screen === 'notifications' && (
@@ -630,9 +667,6 @@ function Main() {
             }}
           />
 
-          {isBusiness(auth.user) && auth.user?.venueId && (
-            <BusinessMonitor venueId={auth.user.venueId} />
-          )}
           <WatchAlert />
           {suggestion && !(screen === 'detail' && detailId === suggestion.venue.id) && (
             <SuggestionBanner
@@ -645,7 +679,21 @@ function Main() {
             />
           )}
           {onboarding === 'intro' && (
-            <IntroOverlay role={role} onDone={() => setOnboarding(role === 'business' ? null : 'first')} />
+            <IntroOverlay
+              role={role}
+              onDone={() => setOnboarding(role === 'business' ? null : isRegistered(auth.user) && auth.user?.username ? 'invite' : 'first')}
+            />
+          )}
+          {onboarding === 'invite' && auth.user?.username && (
+            <InviteSheet
+              username={auth.user.username}
+              onFindContacts={() => {
+                setOnboarding(null);
+                setSocialTab('friends');
+                goTo('friends');
+              }}
+              onDone={() => setOnboarding('first')}
+            />
           )}
           {onboarding === 'first' && (
             <FirstCheckinSheet

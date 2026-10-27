@@ -1,7 +1,8 @@
 import { BackButton } from '../components/BackButton';
 import { HeaderButtons } from '../components/HeaderButtons';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '../components/Pressable';
 
 import { CampaignBox } from '../components/CampaignBox';
 import { CampaignForm } from '../components/business/CampaignForm';
@@ -15,7 +16,7 @@ import { useLocation } from '../context/LocationContext';
 import { isActive, repeatCampaign, timeLeft, visibleCampaigns, type Campaign } from '../lib/campaigns';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
 import { couponQrPayload, couponValid } from '../lib/coupons';
-import { campaignTotals } from '../lib/history';
+import { campaignTotals } from '../lib/campaigns';
 import { distanceKm, formatDistance } from '../lib/geo';
 import type { PlanId } from '../lib/plans';
 import QRCode from 'react-native-qrcode-svg';
@@ -112,8 +113,7 @@ function CampaignList({ onOpenVenue }: Pick<Props, 'onOpenVenue'>) {
       </Text>
       {nearby.length === 0 && (
         <Text style={styles.empty}>
-          Yakınında aktif kampanya yok.{'\n'}İşletme hesabıyla Kampanyalar sekmesinden kampanya oluşturup
-          burada görebilirsin.
+          Yakınında şu an aktif kampanya yok. Mekanlar kampanya başlatınca burada görünür.
         </Text>
       )}
       {nearby.map(({ campaign, distanceKm }) => (
@@ -257,7 +257,7 @@ function Loyalty({
                 onPress={async () => setError(await join(program.venueId))}
               >
                 <Text style={styles.primaryText}>
-                  {program.kind === 'stamps' ? 'Katıl' : `Üye ol (₺${program.price}/ay, demo)`}
+                  {program.kind === 'stamps' ? 'Katıl' : `Üye ol (₺${program.price}/ay)`}
                 </Text>
               </Pressable>
             )}

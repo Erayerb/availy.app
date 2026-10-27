@@ -1,10 +1,12 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { Icon } from './Icon';
+import { Pressable } from './Pressable';
 import { colors, themed } from '../theme';
 
 export function BackButton({ onPress }: { onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={styles.button} hitSlop={8} accessibilityLabel="Geri">
-      <Text style={styles.icon}>‹</Text>
+      <Icon name="chevron-back" size={24} color={colors.text} />
     </Pressable>
   );
 }
@@ -23,5 +25,4 @@ const styles = themed(() => StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 6,
   },
-  icon: { fontSize: 30, lineHeight: 32, marginTop: -2, marginRight: 2, color: colors.text },
 }));

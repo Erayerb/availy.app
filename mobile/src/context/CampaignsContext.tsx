@@ -3,8 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { campaignApi } from '../lib/campaignApi';
 import { activeCampaignForVenue, type Campaign, type NewCampaign } from '../lib/campaigns';
 import type { Coupon } from '../lib/coupons';
-import { dueSchedules, type ScheduledCampaign } from '../lib/schedules';
-import { KEYS, loadJson, saveJson } from '../lib/storage';
+import { automationApi, type NewSchedule, type ScheduledCampaign } from '../lib/schedules';
 
 // Re-check "active" / "time left" this often
 const TICK_MS = 30_000;
@@ -24,29 +23,33 @@ type Campaigns = {
   recordView: (campaignId: string) => void;
   reload: () => Promise<void>; // e.g. after a check-in that gave a coupon
   activeFor: (venueId: number) => Campaign | null;
+  // Business: weekly scheduled campaigns, run by the server
   schedules: ScheduledCampaign[];
-  saveSchedule: (schedule: ScheduledCampaign) => void;
-  removeSchedule: (id: string) => void;
+  addSchedule: (schedule: NewSchedule) => Promise<string | null>;
+  setScheduleActive: (id: number, active: boolean) => void;
+  removeSchedule: (id: number) => void;
 };
 
 const CampaignsContext = createContext<Campaigns | null>(null);
 
 const asMessage = (e: unknown) => (e instanceof Error ? e.message : 'Bir sorun oldu, tekrar dene.');
 
-/** v2: campaigns and coupons on the server; scheduled campaigns are kept on the business's phone. */
+/** v2: campaigns, coupons and the business's scheduled campaigns, all on the server. */
 export function CampaignsProvider({ token, business, children }: { token: string | null; business: boolean; children: ReactNode }) {
   const [running, setRunning] = useState<Campaign[]>([]);
   const [mine, setMine] = useState<Campaign[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [now, setNow] = useState(() => new Date());
   const [schedules, setSchedules] = useState<ScheduledCampaign[]>([]);
-  const [fired, setFired] = useState<string[] | null>(null);
 
   const reload = useCallback(async () => {
     campaignApi.running().then(setRunning).catch(() => {});
     if (!token) return setCoupons([]);
     campaignApi.coupons(token).then(setCoupons).catch(() => {});
-    if (business) campaignApi.mine(token).then(setMine).catch(() => {});
+    if (business) {
+      campaignApi.mine(token).then(setMine).catch(() => {});
+      automationApi.schedules(token).then(setSchedules).catch(() => {});
+    }
   }, [token, business]);
 
   useEffect(() => {
@@ -56,8 +59,6 @@ export function CampaignsProvider({ token, business, children }: { token: string
   }, [reload]);
 
   useEffect(() => {
-    loadJson<ScheduledCampaign[]>(KEYS.schedules).then((raw) => setSchedules(Array.isArray(raw) ? raw : []));
-    loadJson<string[]>(KEYS.firedSchedules).then((raw) => setFired(Array.isArray(raw) ? raw : []));
     const timer = setInterval(() => setNow(new Date()), TICK_MS);
     return () => clearInterval(timer);
   }, []);
@@ -138,34 +139,37 @@ export function CampaignsProvider({ token, business, children }: { token: string
     [token, business],
   );
 
-  // Turn due scheduled campaigns into real ones (checked every tick while the app is open)
-  useEffect(() => {
-    if (fired === null || !business) return;
-    const due = dueSchedules(schedules, new Set(fired), now);
-    if (due.length === 0) return;
-    // Marked first, so a slow request does not send the same one twice
-    const next = [...fired, ...due.map((d) => d.key)].slice(-500);
-    setFired(next);
-    saveJson(KEYS.firedSchedules, next);
-    due.forEach(({ campaign }) => create(campaign));
-  }, [schedules, fired, now, business, create]);
+  const addSchedule = useCallback(
+    async (schedule: NewSchedule) => {
+      if (!token) return 'Giriş yapmalısın.';
+      try {
+        const saved = await automationApi.addSchedule(token, schedule);
+        setSchedules((list) => [...list, saved]);
+        return null;
+      } catch (e) {
+        return asMessage(e);
+      }
+    },
+    [token],
+  );
 
-  const saveSchedule = useCallback((schedule: ScheduledCampaign) => {
-    setSchedules((current) => {
-      const next = [schedule, ...current.filter((s) => s.id !== schedule.id)];
-      saveJson(KEYS.schedules, next);
-      return next;
-    });
-    setNow(new Date());
-  }, []);
+  const setScheduleActive = useCallback(
+    (id: number, active: boolean) => {
+      if (!token) return;
+      setSchedules((list) => list.map((s) => (s.id === id ? { ...s, active } : s)));
+      automationApi.setActive(token, id, active).catch(reload);
+    },
+    [token, reload],
+  );
 
-  const removeSchedule = useCallback((id: string) => {
-    setSchedules((current) => {
-      const next = current.filter((s) => s.id !== id);
-      saveJson(KEYS.schedules, next);
-      return next;
-    });
-  }, []);
+  const removeSchedule = useCallback(
+    (id: number) => {
+      if (!token) return;
+      setSchedules((list) => list.filter((s) => s.id !== id));
+      automationApi.removeSchedule(token, id).catch(reload);
+    },
+    [token, reload],
+  );
 
   // The business's own list has its ended campaigns too; the rest are only the running ones
   const campaigns = useMemo(() => [...mine, ...running.filter((r) => !mine.some((m) => m.id === r.id))], [mine, running]);
@@ -176,7 +180,7 @@ export function CampaignsProvider({ token, business, children }: { token: string
 
   return (
     <CampaignsContext.Provider
-      value={{ campaigns, coupons, now, create, end, remove, claim, redeem, recordView, reload, activeFor, schedules, saveSchedule, removeSchedule }}
+      value={{ campaigns, coupons, now, create, end, remove, claim, redeem, recordView, reload, activeFor, schedules, addSchedule, setScheduleActive, removeSchedule }}
     >
       {children}
     </CampaignsContext.Provider>

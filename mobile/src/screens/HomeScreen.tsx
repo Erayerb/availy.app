@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable } from '../components/Pressable';
 
 import { ClearButton } from '../components/ClearButton';
 import { Chip, TagChips } from '../components/TagChips';

@@ -89,8 +89,16 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Check-in sonrası "💬 Burası nasıl?": yıldız + birkaç kelime = mekan yorumu (reviews.checkin_id ile check-in'e bağlı); mekan sayfasında yorum, Akış'ta check-in'in altında görünür (ayrı yorum satırı çıkmaz), "Arkadaşlarına paylaş" metnine de eklenir; Düzenle (PATCH /v1/reviews/{id}) / Sil. Eski check-in notları (checkins.note) yalnızca gösterilir
 - 🔔 Bildirimler silinene kadar kalır (kabul edilen istek "artık arkadaşsınız", katılınan sadakat "Katıldın" olarak): her satırda 🗑 (notification_dismissals), üstte "Temizle" (users.notifications_cleared_at)
 - "Sakin olunca haber ver": yalnızca zil açıldıktan sonraki check-in'ler Sakin derse haber verir; 6 saat sonra kendiliğinden kapanır
+- Veritabanı değişiklikleri: backend/app/sql/migrations/ (numaralı dosyalar, açılışta bir kez; schema_migrations). schema.sql temel şema
+- İşletme otomasyonu sunucuda: mekan bilgileri (ad, saatler, amaçlar, özellikler, açıklama; PUT /v1/venues/{id}/details), ölü saat bildirimi ve otomatik kampanya (her check-in'den sonra, açık mekanda 2+ kişi Sakin: işletmenin 🔔'üne, 2 saatte bir; otomatik kampanya 3 saatte bir), zamanlanmış kampanyalar (kampanya listesi istenince ya da check-in olunca zamanı gelen başlar; günde bir). İşletmenin uygulaması kapalı olsa da çalışır (backend/app/automation.py)
+- Kayıttan sonra: tanıtım → "Arkadaşlarını davet et" (bağlantı / rehber) → ilk check-in
+- Görünüm: her düğmede basma efekti (components/Pressable), ikonlar Ionicons (@expo/vector-icons; mekan görseli, favori, haber ver, paylaş, liste, geri, konum, bildirimler); profil fotoğrafı (Profil ayarları; PUT /v1/me/photo, GET /v1/users/{ad}/photo)
+- Yanlış şifre: 2. yanlışta uyarı, 3. yanlışta şifreyle giriş kilitlenir; "Şifremi unuttum" (e-posta kodu) ile yeni şifre belirleyince açılır (users.failed_logins / password_locked)
+- Verilerimi indir (KVKK): Profil ayarları'nda; sunucudaki her şey tek JSON dosyası (GET /v1/me/export; şifre, oturum, telefon özeti yok)
+- 📋 Listeler: Favoriler > Listelerim (istediğin kadar liste), listenin içinde "＋ Mekan ekle" araması ve mekan sayfasındaki liste simgesi; listede mekanlar satır olarak, sahibi "Çıkar" ile çıkarır; liste gizli / arkadaşlar (profilde görünür) / bağlantıyla herkes (?list=KOD); başkasının listesi "Listeyi kaydet" ile kopyalanır; listede "şu an N tanesi sakin" (backend/app/lists.py)
 - 🔥 Haftalık seri: üst üste kaç hafta (Pazartesi–Pazar, İstanbul saati) en az bir check-in; bu hafta henüz yoksa seri hafta bitene kadar sürer. Check-in kutlamasında (2+ hafta) ve profilde (backend/app/streaks.py)
-- 👑 Müdavim: mekan sayfasında, ben ve arkadaşlarım arasında son 30 günde en çok (en az 2) gizli olmayan check-in yapan (GET /v1/venues/{id}/regular)
+- 👑 Müdavim: mekan sayfasında son 30 günde en çok (en az 2) gizli olmayan check-in yapan; arkadaşlar her zaman, diğerleri yalnızca "Müdavimi olduğum mekanlarda herkes görsün" (Gizlilik, users.regular_public) açıksa (GET /v1/venues/{id}/regular)
+- "Daha boş alternatifler": önce güncel check-in'lere göre daha boş benzer mekanlar, sonra yakındaki açık benzer mekanlardan bilgisi olmayanlar ("şu an bilgi yok")
 - Haritada gruplama: yakın noktalar sayılı tek daire (renk: açık / güncel noktaların çoğunluğu; hiç gri olmaz, yalnız kapalı / eski bilgili gruplar mor), dokununca en fazla 2 seviye yakınlaşır; 16. yakınlaştırmadan sonra grup yok (mobile/src/lib/clusters.ts, ek kütüphane yok)
 - "✨ Şu an normalden daha sakin (bu saatte genelde Kalabalık)" / "normalden daha kalabalık": canlı doluluk ile bu saatin önceki günlerdeki olağan seviyesi (typical usual_now) karşılaştırılır; mekan sayfasında
 - 👥 Gruplar (Sosyal > Sıralama > Gruplar): "＋ Grup oluştur" (ad + davet: arkadaşlar, çevrendekiler / öneriler, kullanıcı adıyla arama), davet 🔔'ye düşer, "Katıl" / "Reddet"; her grubun kendi haftalık / tüm zamanlar sıralaması; üyeler davet edebilir, son üye çıkınca grup silinir (backend/app/groups.py; en fazla 50 üye, kişi başı 20 grup)
@@ -177,7 +185,6 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Push bildirimleri (bkz. Bildirimler)
 - Deneme ve gerçek ortam ayrı: ikinci Render servisi + ikinci Neon veritabanı (gerçek ortam `main`'den, kod aynı)
 - Planlar: Render Starter (~7 $/ay, uyumaz), Neon ücretli plan (~19 $/ay; 7–30 gün yedek)
-- Veritabanı değişiklikleri sürümlü olsun (Alembic ya da numaralı SQL dosyaları)
 - Hata takibi: Sentry (backend + uygulama)
 - Mağaza sürümü: Expo EAS Build ile App Store / Google Play
 - E-posta: Resend hesabı açıldı, anahtar Render'da (`resend` ortam grubu, RESEND_API_KEY). Alan adı olmadan Resend yalnızca hesap sahibinin adresine gönderir; herkese gidebilmesi için alan adı al (ör. availy.app), Resend → Domains'te doğrula (DNS: SPF, DKIM) ve Render'da MAIL_FROM = "availy <no-reply@alanadı>" yap
@@ -190,8 +197,6 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Gerçek reklamlar gelince: yakındaki mekanların kampanyaları, Premium'da gizli
 
 **Görünüm**
-- Düğmelere basma efekti (basınca hafif kararma / küçülme); şimdi çoğu düğmede geri bildirim yok, basılmamış gibi hissettiriyor
-- Emoji ikonları (📍 🔔 ♡ ☕ …) gerçek bir ikon setiyle değiştir (`@expo/vector-icons`): her telefonda aynı görünür
 - Not: Expo Go geliştirme modunda çalışır (sıkıştırılmamış kod, ek kontroller); yavaş sayfa geçişleri gerçek (release) sürümde büyük ölçüde düzelir
 
 **Bildirimler** (olay olunca, uygulama kapalıyken de)
@@ -201,30 +206,23 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Haftalık sıralama ödülleri: ne verileceği ve nasıl dağıtılacağı
 
 **Güvenlik ve hile**
-- Girişte deneme sınırı: aynı hesaba 15 dk'da 5 yanlış şifre → 15 dk bekleme; aynı IP'den 15 dk'da en fazla 20 deneme; doğru girişte sıfırlanır
+- Aynı IP'den çok sayıda giriş denemesine sınır (hesap kilidi var, IP sınırı yok)
+- Yanlış şifre kilidi: Resend alan adı doğrulanmadan "Şifremi unuttum" e-postası yalnızca hesap sahibine gider; yayından önce alan adı şart. Başkası bilerek yanlış şifre girip bir hesabı kilitleyebilir (e-postayla açılır)
 - İşletme sahibinin bireysel hesabıyla kendi mekanını "Sakin" göstermesi: "aynı telefon kuralı" (bir telefonda işletme hesabı açıldıysa o telefondaki bireysel hesapların o mekana check-in'i sayılmaz) denendi ve kaldırıldı (sahibin kendi denemelerini de engelliyordu); yayına yakın yeniden düşünülecek
 - Aynı telefondan açılan birden çok bireysel hesap aynı mekanda tek kişi sayılsın (sahte hesapla doluluk şişirme)
-- Yeni hesap ilk günlerinde / ilk check-in'lerinde az sayılsın; aynı mekana sürekli gelen (ör. çalışan) az sayılsın
+- Yeni hesap ilk günlerinde / ilk check-in'lerinde az sayılsın
 - Şikâyet incelemesi için yönetici ekranı (şimdilik 3 şikâyette otomatik gizleniyor)
-- Verilerimi indir (KVKK): hesabındaki her şey tek JSON dosyası
 
 **İşletme**
-- Mekan bilgisi düzenlemeleri (saatler, özellikler, açıklama; İşletme Ayarları) sunucuya: şimdi yalnızca işletmenin telefonunda
 - Mekan sahipliği doğrulaması (✓ rozeti; şimdi ekran "Yakında", `venue_profiles.verified` elle): OSM'den telefon / e-posta içe aktar (pilot: 282 mekanın 32'sinde telefon, 7'sinde e-posta) → e-postası varsa kod, telefonu varsa SMS (ücretli) ya da arama → yoksa vergi levhası / ruhsat + mekandayken konum + yönetici onayı → ✓, kampanya ve sadakat açılır; başkasına bağlı mekan için "Bu mekan benim" aynı yolla
-- Ölü saat bildirimi ve otomatik kampanya sunucuya (şimdi işletmenin telefonunda, uygulama açıkken; tek kişinin "Sakin"i yetiyor): her check-in'den sonra, açık mekanda 2+ kişiyle Sakin ise işletmeye push (2 saatte bir), otomatik kampanya açıksa hazır kampanya (3 saatte bir, aktif kampanya yoksa). Push ile birlikte
-- Zamanlanmış kampanyalar sunucuda çalışsın (şimdi işletmenin telefonunda)
 - "Check-in yapana %10" gibi check-in'e bağlı kampanyalar
 - İşletme profiline belki: "Hakkımızda", menü / fiyat aralığı, genelde en sakin saatler
 
 **Mekanlar**
 - "Bilgi yanlış mı?": saatler / kapanmış / konum / ad; 3 farklı kişi aynı şeyi bildirirse "kontrol edilecek" (yönetici ekranı)
 
-**Görsel**
-- Kullanıcı profil fotoğrafı (şimdi baş harf); mekan kapak fotoğrafı yalnızca işletmesi yüklerse var (yoksa türün emojisi)
-
 **Tanıdıkları bulmak**
 - Render'da PHONE_PEPPER ayarı girilmeli. Ne işe yarar: "Rehberden bul"da telefon numaraları açık hâliyle saklanmaz, bu gizli metinle karıştırılıp geri çevrilemez bir özete (hash) dönüştürülür. Türkiye'de olası numara sayısı az olduğu için gizli metin olmadan özetler denenerek numaraya geri çevrilebilir; gizli metin bunu imkânsız yapar. Değer: uzun, rastgele bir metin (ör. 40+ karakter); bir kez girilir, sonra değiştirilmez (değişirse kayıtlı numaralar artık eşleşmez). Girilmezse geliştirme için yazılmış varsayılan metin kullanılır (güvensiz)
-- Kayıttan hemen sonra "Arkadaşlarını davet et" adımı (şimdi yalnızca boş akışta)
 - Rehberden bul için gizlilik politikasına madde (hukukçu kontrolü)
 
 **availy puanı** (kullanıcı "puan ne işe yarar?" diye soracak: yayından önce bir karşılığı olmalı ve uygulamada anlatılmalı)
@@ -240,12 +238,9 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Tahmini boşalma ("~15:20"), geçmiş haftaların check-in'lerine göre
 - "Bölge: Yoğun" satırı, semtteki mekanların check-in ortalamasıyla
 
-### Kullanılmayan kalıntılar (silinmedi; istenirse silinir)
-- Veritabanı: `device_accounts` tablosu (kaldırılan aynı telefon kuralından; 3 satır) ve `checkins.counts` sütunu (artık okunmuyor)
-- Backend: v1'in sahte doluluğu (`occupancy` alanı, /v1/venues/{id}/hourly, /history, /forecast, app/occupancy.py, demo_data.py, seed.py); stats'taki `week_new` artık gösterilmiyor
-- Mobil kod: lib/campaigns.ts'te `createCampaign`, `endCampaign`, `parseCampaigns` yalnızca testlerde; v1'in telefonda mekan ekleme kodu (lib/localVenueStore.ts, localVenues.ts; eski telefonda eklenmiş mekanlar hâlâ okunuyor); telefona kaydedilmiş mekan fotoğrafları (`availy.photos`) sunucuda fotoğraf yoksa yedek
-- Silindi: yerel veritabanındaki 43 v1 demo mekanı (Neon'da hiç yoktu; v1 web demosu kendi gömülü verisini kullanır; backend/app/seed.py yalnızca elle çalıştırılırsa yeniden ekler)
-- Silindi (uygulama açılınca, mobile/src/lib/cleanup.ts): telefondaki eski kampanyalar, kuponlar, gösterim sayıları, eski ortak favori listesi, v1 değerlendirmeleri, telefondaki sadakat programları / damga kartları / üyelikler ve telefonda kullanılmış hesap listesi (artık hepsi sunucuda)
+### Kaldırılan kalıntılar
+- v1'in sahte doluluğu (backend `occupancy` alanı, /hourly, /history, /forecast, demo_data.py, seed.py; uygulamada gömülü demo veri, statik mod, telefonda mekan ekleme ve mekan düzenlemeleri), `device_accounts` tablosu ve `checkins.counts` sütunu (migration 003). v1 web demosu `main` dalından derlendiği için etkilenmez
+- Telefonda kalan eski işletme verileri (availy.venueOverrides, availy.schedules, availy.localVenues) artık okunmuyor ama silinmedi; sahibine sorulmadan silinmez
 
 ---
 

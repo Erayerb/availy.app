@@ -132,6 +132,7 @@ class RegularOut(BaseModel):
     username: str
     visits: int  # in the last 30 days
     me: bool
+    friend: bool
 
 
 @router.get("/venues/{venue_id}/regular", response_model=RegularOut | None)
@@ -141,7 +142,7 @@ def regular(
     conn: psycopg.Connection = Depends(get_conn),
     now: datetime = Depends(get_clock),
 ):
-    """"👑 müdavim": among me and my friends, the most check-ins here lately (none: null)."""
-    from app.streaks import friends_regular
+    """"👑 müdavim": the most check-ins here lately, among me, my friends and people who show it to everyone (none: null)."""
+    from app.streaks import venue_regular
 
-    return friends_regular(conn, user, venue_id, now)
+    return venue_regular(conn, user, venue_id, now)

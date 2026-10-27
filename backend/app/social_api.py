@@ -35,7 +35,16 @@ class LeaderboardOut(BaseModel):
 
 class NotificationOut(BaseModel):
     kind: Literal[
-        "friend_request", "friend_accepted", "reply", "reward", "loyalty", "checkin_like", "checkin_comment", "group_invite"
+        "friend_request",
+        "friend_accepted",
+        "reply",
+        "reward",
+        "loyalty",
+        "checkin_like",
+        "checkin_comment",
+        "group_invite",
+        "dead_hour",
+        "auto_campaign",
     ]
     at: datetime
     username: str | None

@@ -1,9 +1,11 @@
+import { useEffect, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BackButton } from '../components/BackButton';
 import { VenueEditSection } from '../components/business/VenueEditSection';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
 import { useSettings } from '../context/SettingsContext';
+import { automationApi, type Automation } from '../lib/schedules';
 import { colors, themed } from '../theme';
 import { ThemedSwitch } from '../components/ThemedSwitch';
 import { AccountSettings } from './ProfileScreen';
@@ -21,7 +23,19 @@ export function SettingsScreen({ onBack, isBusiness, venueId, account }: Props) 
   const { venues } = useVenuesByIds(venueId ? [venueId] : []);
   const venue = venues[0];
   const settings = useSettings();
-  const { watchNotifications, deadHourAlerts, autoCampaign, update } = settings;
+  const { watchNotifications, update } = settings;
+  // Business: ölü saat bildirimi and otomatik kampanya, kept (and run) on the server
+  const token = isBusiness ? (account?.user.token ?? null) : null;
+  const [automation, setAutomation] = useState<Automation | null>(null);
+  useEffect(() => {
+    if (token) automationApi.settings(token).then(setAutomation).catch(() => {});
+  }, [token]);
+  const changeAutomation = (patch: Partial<Automation>) => {
+    if (!token || !automation) return;
+    const next = { ...automation, ...patch };
+    setAutomation(next);
+    automationApi.saveSettings(token, next).catch(() => setAutomation(automation));
+  };
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
@@ -37,21 +51,23 @@ export function SettingsScreen({ onBack, isBusiness, venueId, account }: Props) 
         </>
       )}
 
-      {isBusiness && venue && <VenueEditSection key={venue.id} venue={venue} onSaved={() => {}} />}
+      {isBusiness && venue && token && <VenueEditSection key={venue.id} venue={venue} token={token} onSaved={() => {}} />}
 
       {isBusiness ? (
         <View style={styles.card}>
           <Row
             title="Ölü saat bildirimi"
-            subtitle="Müşteriler mekanını açıkken Sakin bildirdiğinde haber veririz (en fazla 2 saatte bir, uygulama açıkken)."
-            value={deadHourAlerts}
-            onChange={(v) => update({ deadHourAlerts: v })}
+            subtitle="Mekanın açıkken en az 2 müşteri Sakin bildirince 🔔 listene haber düşer (en fazla 2 saatte bir). Uygulaman kapalı olsa da çalışır."
+            value={automation?.dead_hour_alerts ?? true}
+            onChange={(v) => changeAutomation({ dead_hour_alerts: v })}
+            disabled={!automation}
           />
           <Row
             title="Otomatik kampanya"
-            subtitle="Ölü saatte hazır kampanyayı (2 saat, %20, 2 km) otomatik gönderir. En fazla 3 saatte bir; aktif kampanya varken göndermez."
-            value={autoCampaign}
-            onChange={(v) => update({ autoCampaign: v })}
+            subtitle="Ölü saatte hazır kampanyayı (2 saat, %20, 2 km) kendiliğinden gönderir. En fazla 3 saatte bir; aktif kampanya varken göndermez."
+            value={automation?.auto_campaign ?? false}
+            onChange={(v) => changeAutomation({ auto_campaign: v })}
+            disabled={!automation}
           />
         </View>
       ) : (
@@ -112,7 +128,7 @@ export function SettingsScreen({ onBack, isBusiness, venueId, account }: Props) 
         </>
       )}
 
-      <Text style={styles.version}>availy · prototip sürüm</Text>
+      <Text style={styles.version}>availy</Text>
     </ScrollView>
   );
 }

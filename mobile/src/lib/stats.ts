@@ -7,16 +7,7 @@ export type HourRatio = { hour: number; ratio: number };
 const OPEN_FROM = 8;
 
 export const DEAD_HOUR_MAX_RATIO = 0.4;
-export const isDeadHour = (ratio: number) => ratio < DEAD_HOUR_MAX_RATIO;
-
 export const formatHour = (hour: number) => `${String(hour).padStart(2, '0')}:00`;
-
-export function summarizeDay(hours: HourRatio[]) {
-  const open = hours.filter((h) => h.hour >= OPEN_FROM);
-  const quietest = open.reduce((a, b) => (b.ratio < a.ratio ? b : a));
-  const busiest = open.reduce((a, b) => (b.ratio > a.ratio ? b : a));
-  return { quietest, busiest };
-}
 
 /** Similar venues nearby (the same kind: a café's are cafés), nearest first. */
 export function nearbyCompetitors(venue: Venue, all: Venue[], maxKm = 2, limit = 3) {

@@ -4,14 +4,9 @@ export const KEYS = {
   user: 'availy.user',
   businessProfiles: 'availy.businessProfiles', // account id -> venue / plan kept on this phone (v2: server later)
   favorites: 'availy.favorites',
-  localVenues: 'availy.localVenues', // venues added by business accounts on this phone
   settings: 'availy.settings',
   watches: 'availy.watches',
   photos: 'availy.photos', // venueId -> one photo (data URI) shown on the home tile
-  venueOverrides: 'availy.venueOverrides', // details edited by the business
-  schedules: 'availy.schedules', // scheduled / recurring campaigns
-  firedSchedules: 'availy.firedSchedules',
-  monitor: 'availy.monitor', // dead-hour alert / auto campaign timestamps
   notificationsSeen: 'availy.notificationsSeen', // account -> when the 🔔 list was last opened (v2)
   lastLogin: 'availy.lastLogin', // "Beni hatırla": the user name / e-mail typed last
 } as const;

@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Text, TextInput, View } from 'react-native';
+import { Pressable } from '../Pressable';
 
 import { ALL_AMENITIES, type AmenityKey } from '../../lib/amenities';
 import type { Venue } from '../../lib/api';
 import { toggleTag, type Tag } from '../../lib/filters';
-import { saveOverride, getOverride } from '../../lib/overrideStore';
-import { validateOverride } from '../../lib/overrides';
+import { venueApi } from '../../lib/venueApi';
 import { amenitiesFor } from '../../lib/amenities';
 import { colors } from '../../theme';
 import { Chip, TagChips } from '../TagChips';
@@ -16,8 +16,8 @@ const parseHours = (label: string): [string, string] => {
   return m ? [String(Number(m[1])), String(Number(m[2]) || 24)] : ['0', '24'];
 };
 
-/** Business edits its name, opening hours, purposes and features. */
-export function VenueEditSection({ venue, onSaved }: { venue: Venue; onSaved: () => void }) {
+/** Business edits its name, opening hours, purposes and features; saved on the server, so every customer sees them. */
+export function VenueEditSection({ venue, token, onSaved }: { venue: Venue; token: string; onSaved: () => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(venue.name);
   const [openHour, setOpenHour] = useState(parseHours(venue.hours)[0]);
@@ -29,19 +29,27 @@ export function VenueEditSection({ venue, onSaved }: { venue: Venue; onSaved: ()
   const [amenities, setAmenities] = useState<AmenityKey[]>(currentAmenities);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
+  const [description, setDescription] = useState(venue.description ?? '');
+
   const save = async () => {
-    const override = {
-      ...getOverride(venue.id),
-      name: name.trim(),
-      hours: [Number(openHour), Number(closeHour)] as [number, number],
-      tags,
-      amenities,
-    };
-    const problem = validateOverride(override);
-    if (problem) return setMessage({ ok: false, text: problem });
-    await saveOverride(venue.id, override);
-    setMessage({ ok: true, text: 'Kaydedildi. Haritada ve listelerde güncel bilgi görünür.' });
-    onSaved();
+    const open = Number(openHour);
+    const close = Number(closeHour);
+    if (![open, close].every((h) => Number.isInteger(h) && h >= 0 && h <= 24) || open === close)
+      return setMessage({ ok: false, text: 'Saatler 0 ile 24 arasında olmalı; açılış ve kapanış aynı olamaz.' });
+    try {
+      await venueApi.saveDetails(token, venue.id, {
+        name: name.trim(),
+        open_hour: open,
+        close_hour: close,
+        tags,
+        amenities,
+        description: description.trim(),
+      });
+      setMessage({ ok: true, text: 'Kaydedildi. Müşteriler mekan sayfanda yeni bilgileri görür.' });
+      onSaved();
+    } catch (e) {
+      setMessage({ ok: false, text: e instanceof Error ? e.message : 'Kaydedilemedi.' });
+    }
   };
 
   return (
@@ -82,11 +90,20 @@ export function VenueEditSection({ venue, onSaved }: { venue: Venue; onSaved: ()
               />
             ))}
           </View>
+          <Text style={panel.label}>Kısa açıklama (isteğe bağlı)</Text>
+          <TextInput
+            value={description}
+            onChangeText={setDescription}
+            placeholder="ör. Bahçeli, sessiz bir kahve dükkanı"
+            placeholderTextColor={colors.placeholder}
+            maxLength={200}
+            multiline
+            style={[panel.input, { minHeight: 56 }]}
+          />
           {message && <Text style={message.ok ? panel.success : panel.error}>{message.text}</Text>}
           <Pressable style={panel.primary} onPress={save}>
             <Text style={panel.primaryText}>Kaydet</Text>
           </Pressable>
-          <Text style={panel.muted}>Prototip: değişiklikler bu telefonda saklanır.</Text>
         </>
       )}
     </View>

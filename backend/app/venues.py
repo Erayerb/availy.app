@@ -94,18 +94,6 @@ def find_venues_in_bbox(
     ).fetchall()
 
 
-def find_venues_by_district(conn: psycopg.Connection, districts: list[str]) -> dict[str, list[dict]]:
-    """All venues (id, popularity, always_busy) per district, ignoring bbox and filters."""
-    rows = conn.execute(
-        f"SELECT id, popularity, always_busy, district FROM venues WHERE district = ANY(%(districts)s) AND {VISIBLE} ORDER BY id",
-        {"districts": districts, "hidden": settings.hidden_venue_sources},
-    ).fetchall()
-    result: dict[str, list[dict]] = {}
-    for row in rows:
-        result.setdefault(row["district"], []).append(row)
-    return result
-
-
 # Turkish letters folded to plain ASCII so "nisantasi" finds "Nişantaşı"
 _TR_FROM = "ÇĞİIÖŞÜçğıöşüÂâÎîÛû"
 _TR_TO = "cgiiosucgiosuaaiiuu"
@@ -183,10 +171,3 @@ def list_districts(conn: psycopg.Connection) -> list[str]:
         {"hidden": settings.hidden_venue_sources},
     ).fetchall()
     return [row["district"] for row in rows]
-
-
-def find_venue_profile(conn: psycopg.Connection, venue_id: int) -> dict | None:
-    """Dummy occupancy settings of one venue: popularity and always_busy."""
-    return conn.execute(
-        "SELECT category, popularity, always_busy, open_hour, close_hour FROM venues WHERE id = %s", (venue_id,)
-    ).fetchone()

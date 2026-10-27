@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from './Pressable';
 
 import { confirmAction } from '../lib/confirm';
 import { groupsApi, type Group } from '../lib/groups';

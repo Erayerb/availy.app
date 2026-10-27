@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable } from '../components/Pressable';
 
 import { HeaderButtons } from '../components/HeaderButtons';
 import { VenueGrid } from '../components/VenueGrid';
@@ -9,21 +10,36 @@ import { sortByDistance } from '../lib/geo';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
 import type { Venue } from '../lib/api';
 import type { Visit } from '../lib/checkinApi';
+import { listsApi, MAX_LIST_NAME, VISIBILITY_OPTIONS, type VenueList } from '../lib/lists';
 import { colors, themed } from '../theme';
 
-type Tab = 'saved' | 'visited';
+export type FavoritesTab = 'saved' | 'lists' | 'visited';
 
 type Props = {
   onOpenVenue: (venue: Venue) => void;
   // v2: venues the user checked in at
   visits: Visit[];
   signedIn: boolean; // favorites are for registered users only
+  token: string | null;
   onLogin: () => void;
   onRegister: () => void;
+  onOpenList: (id: number) => void; // Listelerim > a list
+  // The tab shown, kept by the app: "back" from a list returns to Listelerim
+  tab: FavoritesTab;
+  onTabChange: (tab: FavoritesTab) => void;
 };
 
-export function FavoritesScreen({ onOpenVenue, visits, signedIn, onLogin, onRegister }: Props) {
-  const [tab, setTab] = useState<Tab>('saved');
+export function FavoritesScreen({ onOpenVenue, visits, signedIn, token, onLogin, onRegister, onOpenList, tab, onTabChange: setTab }: Props) {
+  // Listelerim (on the server)
+  const [lists, setLists] = useState<VenueList[] | null>(null);
+  const [newName, setNewName] = useState('');
+  const [listError, setListError] = useState<string | null>(null);
+  const loadLists = useCallback(() => {
+    if (token) listsApi.mine(token).then(setLists).catch(() => setLists([]));
+  }, [token]);
+  useEffect(() => {
+    if (tab === 'lists') loadLists();
+  }, [tab, loadLists]);
   const { ids: savedIds } = useFavorites();
   // Most recently visited first
   const visitedIds = [...visits].sort((a, b) => b.last_at.localeCompare(a.last_at)).map((v) => v.venue_id);
@@ -45,10 +61,11 @@ export function FavoritesScreen({ onOpenVenue, visits, signedIn, onLogin, onRegi
         <Text style={styles.title}>Favoriler</Text>
         <HeaderButtons />
       </View>
-      <View style={styles.tabs}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
         {(
           [
-            { id: 'saved', label: `Kaydedilenler${savedIds.length ? ` (${savedIds.length})` : ''}` },
+            { id: 'saved', label: `Favoriler${savedIds.length ? ` (${savedIds.length})` : ''}` },
+            { id: 'lists', label: `Listelerim${lists?.length ? ` (${lists.length})` : ''}` },
             { id: 'visited', label: `Ziyaret edilenler${visitedIds.length ? ` (${visitedIds.length})` : ''}` },
           ] as const
         ).map(({ id, label }) => (
@@ -62,7 +79,7 @@ export function FavoritesScreen({ onOpenVenue, visits, signedIn, onLogin, onRegi
             <Text style={[styles.tabText, tab === id && styles.tabTextActive]}>{label}</Text>
           </Pressable>
         ))}
-      </View>
+      </ScrollView>
     </View>
   );
 
@@ -81,6 +98,66 @@ export function FavoritesScreen({ onOpenVenue, visits, signedIn, onLogin, onRegi
           <Text style={styles.secondaryText}>Giriş yap</Text>
         </Pressable>
       </View>
+    );
+  }
+
+  if (tab === 'lists') {
+    const create = async () => {
+      if (!token || !newName.trim()) return;
+      try {
+        const created = await listsApi.create(token, newName, 'private');
+        setNewName('');
+        setListError(null);
+        onOpenList(created.id);
+      } catch (e) {
+        setListError(e instanceof Error ? e.message : 'Olmadı, tekrar dene.');
+      }
+    };
+    return (
+      <ScrollView
+        style={styles.page}
+        contentContainerStyle={styles.listsPage}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={loadLists} />}
+      >
+        {header}
+        <Text style={styles.label}>＋ Yeni liste oluştur</Text>
+        <View style={styles.newRow}>
+          <TextInput
+            value={newName}
+            onChangeText={setNewName}
+            placeholder="Yeni liste (ör. Kadıköy'de ders çalışılacak yerler)"
+            placeholderTextColor={colors.placeholder}
+            maxLength={MAX_LIST_NAME}
+            style={[styles.input, styles.flex]}
+            onSubmitEditing={create}
+          />
+          <Pressable style={[styles.add, !newName.trim() && styles.disabled]} onPress={create} disabled={!newName.trim()}>
+            <Text style={styles.addText}>Oluştur</Text>
+          </Pressable>
+        </View>
+        {listError && <Text style={styles.error}>{listError}</Text>}
+        {lists === null && <Text style={styles.muted}>Yükleniyor…</Text>}
+        {lists?.length === 0 && (
+          <Text style={styles.muted}>
+            Mekanları listelere ayır, arkadaşlarınla ya da bağlantıyla paylaş. İstediğin kadar liste oluşturabilirsin;
+            mekanları listenin içinden ya da mekan sayfasındaki liste simgesinden eklersin.
+          </Text>
+        )}
+        {lists && lists.length > 0 && <Text style={styles.label}>Listelerin · {lists.length}</Text>}
+        {lists?.map((l) => (
+          <Pressable key={l.id} style={({ pressed }) => [styles.listCard, pressed && styles.pressed]} onPress={() => onOpenList(l.id)}>
+            <View style={styles.flex}>
+              <Text style={styles.listName} numberOfLines={1}>
+                {l.name}
+              </Text>
+              <Text style={styles.muted}>
+                {l.venue_ids.length} mekan · {VISIBILITY_OPTIONS.find((o) => o.id === l.visibility)?.label}
+              </Text>
+            </View>
+            <Text style={styles.chevron}>›</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
     );
   }
 
@@ -117,4 +194,29 @@ const styles = themed(() => StyleSheet.create({
   tabActive: { backgroundColor: colors.primary },
   tabText: { fontSize: 14, fontWeight: '600', color: colors.text },
   tabTextActive: { color: colors.onPrimary },
+  // Same top space as the other tabs (VenueGrid)
+  page: { flex: 1, marginTop: 50, backgroundColor: colors.background },
+  listsPage: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 40, gap: 12 },
+  newRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  input: { padding: 12, borderRadius: 12, backgroundColor: colors.cream, fontSize: 15, color: colors.text },
+  flex: { flex: 1 },
+  add: { paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12, backgroundColor: colors.primary },
+  addText: { color: colors.onPrimary, fontWeight: '700' },
+  disabled: { opacity: 0.5 },
+  error: { color: colors.danger },
+  muted: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
+  listCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  pressed: { opacity: 0.7 },
+  listName: { fontSize: 16, fontWeight: '700', color: colors.text },
+  label: { fontSize: 15, fontWeight: '700', color: colors.text, marginTop: 4 },
+  chevron: { fontSize: 22, color: colors.textMuted },
 }));

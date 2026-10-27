@@ -122,10 +122,17 @@ export function deadHourSuggestion(category: string, discount = 20, hours = 2): 
   return `Şu an çok sayıda boş yerimiz var! Önümüzdeki ${hours} saat ${items} %${discount} indirim.`;
 }
 
-export function parseCampaigns(raw: unknown): Campaign[] {
-  if (!Array.isArray(raw)) return [];
-  return raw.filter(
-    (c): c is Campaign =>
-      c && typeof c.id === 'string' && Number.isInteger(c.venueId) && typeof c.endsAt === 'string',
-  );
+const DAY_MS = 86_400_000;
+
+/** Campaign results of one venue over the last `days` days. */
+export function campaignTotals(
+  campaigns: { venueId: number; startsAt: string; stats?: { views: number; claims: number; redemptions: number } }[],
+  venueId: number,
+  days: number,
+  now = new Date(),
+) {
+  const since = now.getTime() - days * DAY_MS;
+  const recent = campaigns.filter((c) => c.venueId === venueId && new Date(c.startsAt).getTime() >= since);
+  const sum = (key: 'views' | 'claims' | 'redemptions') => recent.reduce((n, c) => n + (c.stats?.[key] ?? 0), 0);
+  return { campaigns: recent.length, views: sum('views'), claims: sum('claims'), redemptions: sum('redemptions') };
 }

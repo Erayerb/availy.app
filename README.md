@@ -7,8 +7,11 @@ Mekanların anlık doluluğunu haritada gösteren mobil uygulama. (Geliştirme a
 ```bash
 cp .env.example .env
 docker compose up -d --build --wait
-docker compose run --rm backend python -m app.seed
+docker compose run --rm backend python -m app.import_osm   # pilot bölgelerin mekanları (OpenStreetMap)
 ```
+
+Veritabanı değişiklikleri: `backend/app/sql/migrations/` (numaralı dosyalar, sunucu açılırken bir kez çalışır;
+ayrıntı orada README'de).
 
 - API: http://localhost:8000 (dokümantasyon: http://localhost:8000/docs)
 - Örnek: http://localhost:8000/v1/venues?bbox=28.95,40.97,29.05,41.10
@@ -33,17 +36,8 @@ cd mobile && npm start
 
 Testler: `cd mobile && npm test && npm run typecheck`
 
-## Web demo (GitHub Pages)
+## Web (GitHub Pages)
 
-`main` dalına her push'ta GitHub Actions uygulamanın web sürümünü üretip yayınlar:
-https://erayerb.github.io/availy.app/
-
-- Backend gerekmez: demo mekanlar uygulamaya gömülür, doluluk tarayıcıda sahte üretilir
-  (`EXPO_PUBLIC_DATA_MODE=static`). Expo Go ve yerel geliştirme yine backend'i kullanır.
-- Demo mekanlar `backend/app/demo_data.py` içinde; web için `python3 backend/scripts/export_demo_venues.py`
-  ile `mobile/src/data/demoVenues.json` üretilir (CI bunu her build'de yapar).
-- Yerelde denemek için:
-
-```bash
-cd mobile && EXPO_PUBLIC_DATA_MODE=static npx expo start --web
-```
+Her push'ta GitHub Actions iki sürümü yayınlar:
+- https://erayerb.github.io/availy.app/ : v1 (`main` dalı), backend olmadan gömülü demo verisiyle
+- https://erayerb.github.io/availy.app/v2/ : v2 (`v2-checkin` dalı), çevrimiçi backend'le (`V2_API_URL`)

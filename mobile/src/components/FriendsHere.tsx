@@ -12,9 +12,9 @@ type Props = {
   reloadKey?: unknown; // a new value loads again (e.g. after a refresh)
 };
 
-/** "👑 @ayse arkadaşların arasında buranın müdavimi · 30 günde 5 check-in" (me or a friend). */
-export function FriendsRegular({ venueId, token, onOpenUser, reloadKey }: Props) {
-  const [regular, setRegular] = useState<{ username: string; visits: number; me: boolean } | null>(null);
+/** "👑 Buranın müdavimi @ayse · 30 günde 5 check-in" (me, a friend, or someone who shows it to everyone). */
+export function VenueRegular({ venueId, token, onOpenUser, reloadKey }: Props) {
+  const [regular, setRegular] = useState<{ username: string; visits: number; me: boolean; friend: boolean } | null>(null);
 
   useEffect(() => {
     if (!token) return setRegular(null);
@@ -26,13 +26,14 @@ export function FriendsRegular({ venueId, token, onOpenUser, reloadKey }: Props)
     <Text style={styles.line}>
       👑{' '}
       {regular.me ? (
-        'Arkadaşların arasında buranın müdavimi sensin'
+        'Buranın müdavimi sensin'
       ) : (
         <>
+          Buranın müdavimi{' '}
           <Text style={styles.name} onPress={onOpenUser ? () => onOpenUser(regular.username) : undefined}>
             @{regular.username}
-          </Text>{' '}
-          arkadaşların arasında buranın müdavimi
+          </Text>
+          {regular.friend ? ' (arkadaşın)' : ''}
         </>
       )}
       <Text style={styles.muted}> · 30 günde {regular.visits} check-in</Text>

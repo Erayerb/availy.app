@@ -96,6 +96,11 @@ def notifications(conn: psycopg.Connection, me: dict, now: datetime) -> list[dic
             JOIN venues v ON v.id = c.venue_id
             WHERE c.user_id = %(me)s AND k.user_id <> %(me)s AND k.created_at > %(since)s AND k.user_id NOT IN {BLOCKED}
             UNION ALL
+            -- The business: its venue is quiet ("Ölü saat"), and the campaign sent for it
+            SELECT a.kind, a.created_at, NULL, v.id, v.name, c.message, false
+            FROM business_alerts a JOIN venues v ON v.id = a.venue_id LEFT JOIN campaigns c ON c.id = a.campaign_id
+            WHERE a.venue_id = %(venue)s AND a.created_at > %(since)s
+            UNION ALL
             -- Invited to a group (done: I joined it)
             SELECT 'group_invite', m.created_at, u.username, NULL, NULL, g.name, m.status = 'member'
             FROM group_members m JOIN groups g ON g.id = m.group_id JOIN users u ON u.id = m.invited_by
@@ -113,7 +118,12 @@ def notifications(conn: psycopg.Connection, me: dict, now: datetime) -> list[dic
         WHERE %(cleared)s::timestamptz IS NULL OR at > %(cleared)s
         ORDER BY at DESC LIMIT 100
         """,
-        {"me": me["id"], "since": now - timedelta(days=NOTIFICATION_DAYS), "cleared": _cleared_at(conn, me["id"])},
+        {
+            "me": me["id"],
+            "venue": me.get("venue_id") if me.get("role") == "business" else None,
+            "since": now - timedelta(days=NOTIFICATION_DAYS),
+            "cleared": _cleared_at(conn, me["id"]),
+        },
     ).fetchall()
     dismissed = {r["key"] for r in conn.execute("SELECT key FROM notification_dismissals WHERE user_id = %s", (me["id"],))}
     items = [{**r, "key": notification_key(r)} for r in rows]

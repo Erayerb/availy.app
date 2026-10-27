@@ -48,3 +48,29 @@ def test_business_corrects_address_and_map_point(client, conn):
     assert client.put(f"/v1/venues/{kafe}/address", json={**body, "district": " "}, headers=auth(token)).status_code == 400
     customer = account(client, "t_ali")
     assert client.put(f"/v1/venues/{kafe}/address", json=body, headers=auth(customer)).status_code == 403
+
+
+def test_business_edits_venue_details_for_everyone(client, conn):
+    token, kafe = business_at(client, conn)
+    other = account(client, "t_ali")
+    body = {"name": " Kafe   Moda ", "open_hour": 7, "close_hour": 2, "tags": ["quiet", "wifi"], "amenities": ["power"], "description": "Bahçeli"}
+    assert client.put(f"/v1/venues/{kafe}/details", json=body, headers=auth(other)).status_code == 403
+    assert client.put(f"/v1/venues/{kafe}/details", json={**body, "close_hour": 7}, headers=auth(token)).status_code == 400
+    assert client.put(f"/v1/venues/{kafe}/details", json={**body, "amenities": ["havuz"]}, headers=auth(token)).status_code == 400
+    assert client.put(f"/v1/venues/{kafe}/details", json=body, headers=auth(token)).status_code == 204
+    shown = {v["id"]: v for v in client.get("/v1/venues", params={"bbox": KADIKOY_BBOX}).json()}[kafe]
+    assert (shown["name"], shown["hours"], sorted(shown["tags"])) == ("Kafe Moda", "07:00–02:00", ["quiet", "wifi"])
+    assert (shown["amenity_keys"], shown["description"]) == (["power"], "Bahçeli")
+
+
+def test_profile_photo(client, conn):
+    token = account(client, "t_ali")
+    assert client.get("/v1/users/t_ali/photo").status_code == 404
+    assert client.put("/v1/me/photo", json={"photo": "data:text/html;base64,PGI+"}, headers=auth(token)).status_code == 400
+    saved = client.put("/v1/me/photo", json={"photo": PIXEL}, headers=auth(token))
+    assert saved.status_code == 200
+    shown = client.get("/v1/users/t_ali/photo")
+    assert shown.status_code == 200 and shown.headers["content-type"] == "image/png"
+    assert client.get("/v1/users/t_ali", headers=auth(token)).json()["photo_at"] is not None
+    client.delete("/v1/me/photo", headers=auth(token))
+    assert client.get("/v1/users/t_ali/photo").status_code == 404

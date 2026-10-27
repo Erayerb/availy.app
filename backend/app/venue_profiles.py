@@ -88,9 +88,58 @@ def load_profiles(conn: psycopg.Connection, venue_ids: list[int]) -> dict[int, d
     if not venue_ids:
         return {}
     rows = conn.execute(
-        "SELECT venue_id, photo_at, instagram, phone, verified FROM venue_profiles WHERE venue_id = ANY(%s)", (venue_ids,)
+        """
+        SELECT venue_id, photo_at, instagram, phone, verified, description, amenities AS amenity_keys
+        FROM venue_profiles WHERE venue_id = ANY(%s)
+        """,
+        (venue_ids,),
     ).fetchall()
     return {r.pop("venue_id"): r for r in rows}
+
+
+AMENITIES = frozenset({"wifi", "power", "quiet", "outdoor", "meeting", "music", "veggie"})
+
+
+def save_details(
+    conn: psycopg.Connection,
+    user: dict,
+    venue_id: int,
+    name: str,
+    open_hour: int,
+    close_hour: int,
+    tags: list[str],
+    amenities: list[str],
+    description: str,
+    now: datetime,
+) -> None:
+    """"Mekan bilgilerini düzenle": name, opening hours, purposes, features and a short description."""
+    from app.venues import TAGS
+
+    _own_venue(user, venue_id)
+    clean = " ".join(name.split())
+    if not 2 <= len(clean) <= 60:
+        raise ProfileError("İşletme adı 2 ile 60 karakter arasında olmalı.")
+    if not (0 <= open_hour <= 24 and 0 <= close_hour <= 24) or open_hour == close_hour:
+        raise ProfileError("Saatler 0 ile 24 arasında olmalı; açılış ve kapanış aynı olamaz.")
+    if not tags or set(tags) - TAGS:
+        raise ProfileError("En az bir amaç seç.")
+    if set(amenities) - AMENITIES:
+        raise ProfileError("Bilinmeyen bir özellik seçildi.")
+    text = description.strip()
+    if len(text) > 200:
+        raise ProfileError("Açıklama en fazla 200 karakter olabilir.")
+    conn.execute(
+        "UPDATE venues SET name = %s, open_hour = %s, close_hour = %s, tags = %s WHERE id = %s",
+        (clean, open_hour, close_hour, sorted(set(tags)), venue_id),
+    )
+    conn.execute(
+        """
+        INSERT INTO venue_profiles (venue_id, description, amenities, updated_at) VALUES (%s, %s, %s, %s)
+        ON CONFLICT (venue_id) DO UPDATE SET description = EXCLUDED.description, amenities = EXCLUDED.amenities,
+                                             updated_at = EXCLUDED.updated_at
+        """,
+        (venue_id, text or None, sorted(set(amenities)), now),
+    )
 
 
 MAX_MOVE_M = 1000  # a correction, not a move to another place

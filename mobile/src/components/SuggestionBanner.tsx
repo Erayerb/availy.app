@@ -1,5 +1,6 @@
 import { useRef } from 'react';
-import { Animated, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, PanResponder, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from './Pressable';
 
 import type { Suggestion } from '../hooks/useCheckinSuggestion';
 import { suggestionText } from '../lib/suggestion';

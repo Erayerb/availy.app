@@ -8,17 +8,15 @@ import {
   deadHourSuggestion,
   endCampaign,
   isActive,
-  parseCampaigns,
   timeLeft,
   validateCampaign,
   visibleCampaigns,
   type Campaign,
 } from '../src/lib/campaigns.ts';
-import { hourlyProfile } from '../src/lib/dummyOccupancy.ts';
 import { distanceKm, formatDistance, sortByDistance } from '../src/lib/geo.ts';
-import { createLocalVenue, isLocalVenueId, LOCAL_ID_START, validateNewVenue } from '../src/lib/localVenues.ts';
+import { isLocalVenueId, LOCAL_ID_START } from '../src/lib/localVenues.ts';
 import { campaignCostNote } from '../src/lib/plans.ts';
-import { formatHour, isDeadHour, nearbyCompetitors, summarizeDay } from '../src/lib/stats.ts';
+import { formatHour, nearbyCompetitors } from '../src/lib/stats.ts';
 
 const NOW = new Date('2026-10-13T10:00:00Z'); // 13:00 in Istanbul
 const MODA = { lat: 40.984, lon: 29.026 };
@@ -67,12 +65,10 @@ test('users only see active campaigns whose radius reaches them, nearest first',
   assert.equal(activeCampaignForVenue([ended], 4, NOW), null);
 });
 
-test('campaign message validation and stored data parsing', () => {
+test('campaign message validation', () => {
   assert.equal(validateCampaign('  '), 'Kampanya mesajını yaz.');
   assert.equal(validateCampaign('x'.repeat(141)), 'Mesaj en fazla 140 karakter olabilir.');
   assert.equal(validateCampaign('Kahveler %20 indirimli'), null);
-  assert.deepEqual(parseCampaigns('bad'), []);
-  assert.equal(parseCampaigns([campaign(), { id: 1 }]).length, 1);
 });
 
 test('dead hour suggestion matches the venue type', () => {
@@ -81,21 +77,9 @@ test('dead hour suggestion matches the venue type', () => {
     'Şu an çok sayıda boş yerimiz var! Önümüzdeki 2 saat tüm kahvelerde %20 indirim.',
   );
   assert.match(deadHourSuggestion('restaurant', 30, 1), /1 saat tüm menüde %30/);
-  assert.ok(isDeadHour(0.2));
-  assert.ok(!isDeadHour(0.4));
 });
 
-test('hourly profile: 24 hours, evening busier than night, empty venue stays empty', () => {
-  const profile = hourlyProfile(1, 1, NOW);
-  assert.deepEqual(profile.map((h) => h.hour), [...Array(24).keys()]);
-  assert.ok(profile[19].ratio > profile[3].ratio);
-  assert.ok(hourlyProfile(1, 0, NOW).every((h) => h.ratio === 0));
-});
-
-test('day summary ignores the night and finds quietest and busiest hours', () => {
-  const hours = [...Array(24).keys()].map((hour) => ({ hour, ratio: hour === 3 ? 0 : hour === 15 ? 0.1 : hour === 20 ? 0.9 : 0.5 }));
-  const { quietest, busiest } = summarizeDay(hours);
-  assert.deepEqual([quietest.hour, busiest.hour], [15, 20]);
+test('hours are written as 09:00', () => {
   assert.equal(formatHour(9), '09:00');
 });
 
@@ -113,31 +97,9 @@ test('competitors: the same kind of venue within 2 km, nearest first', () => {
   assert.deepEqual(nearbyCompetitors(me, all).map((c) => c.venue.id), [2]);
 });
 
-test('new venue form validation and local ids', () => {
-  const input = {
-    name: 'Benim Kafem',
-    category: 'cafe',
-    tags: ['quiet'],
-    district: 'Kadıköy',
-    neighborhood: 'Moda',
-    address: '',
-    location: MODA,
-  };
-  assert.equal(validateNewVenue(input), null);
-  assert.equal(validateNewVenue({ ...input, tags: [] }), 'En az bir amaç seç (ör. Sosyalleşme).');
-  assert.equal(validateNewVenue({ ...input, location: null }), 'Açık adresi yaz ya da haritadan konum seç.');
-  assert.equal(validateNewVenue({ ...input, location: null, address: 'Moda Cad. No:12' }), null);
-
-  const first = createLocalVenue(input, []);
-  assert.equal(first.id, LOCAL_ID_START);
-  assert.equal(first.capacity, 50); // default; capacity is not asked any more
-  assert.equal(createLocalVenue(input, [first]).id, LOCAL_ID_START + 1);
-  assert.ok(isLocalVenueId(first.id) && !isLocalVenueId(38));
-});
-
 test('campaign cost note depends on the plan', () => {
   assert.equal(campaignCostNote('saas'), 'Paketine dahil (sınırsız).');
-  assert.equal(campaignCostNote('pay_per_use'), 'Bu kampanya ₺150 (demo, ödeme alınmaz).');
+  assert.equal(campaignCostNote('pay_per_use'), 'Bu kampanyanın ücreti ₺150.');
 });
 
 test('without a location every active campaign is visible', () => {
@@ -150,4 +112,8 @@ test('without a location every active campaign is visible', () => {
 test('sortByDistance puts the nearest venue first', () => {
   const venues = [{ id: 1, ...TAKSIM }, { id: 2, lat: 40.985, lon: 29.027 }, { id: 3, ...MODA }];
   assert.deepEqual(sortByDistance(venues, MODA).map((v) => v.id), [3, 2, 1]);
+});
+
+test('venues added only on a phone in v1 are told apart by their ids', () => {
+  assert.ok(isLocalVenueId(LOCAL_ID_START) && !isLocalVenueId(38));
 });

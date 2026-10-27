@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable } from './Pressable';
 
 import { useLocation } from '../context/LocationContext';
 import { friendsApi } from '../lib/friends';

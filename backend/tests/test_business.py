@@ -57,7 +57,7 @@ def test_panel_stats_from_check_ins(client, conn, clock):
     checkin(client, newcomer, kafe, level="medium")
     stats = client.get(f"/v1/venues/{kafe}/stats", headers=auth(token)).json()
     assert stats["today_checkins"] == 2 and stats["week_checkins"] == 2 and stats["total_checkins"] == 3
-    assert stats["week_people"] == 2 and stats["week_returning"] == 1 and stats["week_new"] == 1
+    assert stats["week_people"] == 2 and stats["week_returning"] == 1
     noon_hour = [h for h in stats["today"] if h["checkins"]]
     assert len(noon_hour) == 1 and noon_hour[0]["hour"] == 12 and noon_hour[0]["level"] == "high"  # (0.98 + 0.55) / 2
     assert sum(stats["weekday"]) == 3 and stats["discovered_by"]["username"] == "t_mudavim"

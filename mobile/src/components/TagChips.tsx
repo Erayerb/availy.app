@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Pressable } from './Pressable';
 
 import { TAG_OPTIONS, type Tag } from '../lib/filters';
 import { colors, themed } from '../theme';

@@ -1,11 +1,13 @@
 import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable } from '../components/Pressable';
 
 import { AlternativesPopup } from '../components/AlternativesPopup';
 import { FilterBar } from '../components/FilterBar';
 import { MapSearch } from '../components/MapSearch';
 import { BackButton } from '../components/BackButton';
 import { CARD_WIDTH, VenueCard } from '../components/VenueCard';
+import { Icon } from '../components/Icon';
 import { VenueMap } from '../components/VenueMap';
 import { SELECTED_DOT_SIZE } from '../components/VenueMap.types';
 import { useVenues } from '../hooks/useVenues';
@@ -132,8 +134,8 @@ export function MapScreen({
       ? cardPosition({
           pin: pinPoint,
           card: { width: CARD_WIDTH, height: cardHeight },
-          // Keep the venue card above the pop-up when it is shown
-          screen: showPopup ? { width: window.width, height: window.height - popupHeight - 36 } : window,
+          // Keep the venue card above the pop-up, or above the legend at the bottom
+          screen: { width: window.width, height: window.height - (showPopup ? popupHeight : legendHeight) - 36 },
           topInset: headerBottom + 8,
           margin: 8,
           pinHeight: SELECTED_DOT_SIZE / 2 + 4,
@@ -162,7 +164,7 @@ export function MapScreen({
         onPress={goToMyLocation}
         accessibilityLabel="Konumuma git"
       >
-        <Text style={styles.locateIcon}>◎</Text>
+        <Icon name="locate" size={24} color="#1A73E8" />
       </Pressable>
       {/* Check in: nearest venues and a search */}
       <Pressable
@@ -374,7 +376,6 @@ const styles = themed(() => StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 5,
   },
-  locateIcon: { fontSize: 26, color: '#1A73E8' },
   checkinButton: {
     position: 'absolute',
     right: 14,

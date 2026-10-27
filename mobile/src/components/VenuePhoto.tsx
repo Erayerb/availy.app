@@ -1,8 +1,9 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 
 import { useEngagement } from '../context/EngagementContext';
 import { photoUrl } from '../lib/venueApi';
 import { categoryVisual } from '../lib/visuals';
+import { Icon } from './Icon';
 import { themed } from '../theme';
 
 type Props = {
@@ -19,12 +20,12 @@ export function VenuePhoto({ venueId, category, photoAt = null, size, height, ra
   // Photos picked before they were kept on the server stay on that phone
   const local = useEngagement().photos[venueId];
   const uri = photoAt ? photoUrl(venueId, photoAt) : local;
-  const { emoji, background } = categoryVisual(category);
+  const { icon, color, background } = categoryVisual(category);
   const box = { width: size, height, borderRadius: radius };
   if (uri) return <Image source={{ uri }} style={[box, styles.image]} resizeMode="cover" />;
   return (
     <View style={[box, styles.placeholder, { backgroundColor: background }]}>
-      <Text style={{ fontSize: height * 0.32 }}>{emoji}</Text>
+      <Icon name={icon} size={height * 0.34} color={color} />
     </View>
   );
 }

@@ -357,3 +357,28 @@ CREATE TABLE IF NOT EXISTS group_members (
     PRIMARY KEY (group_id, user_id)
 );
 CREATE INDEX IF NOT EXISTS group_members_user ON group_members (user_id);
+
+-- v2: wrong passwords. The 2nd wrong one warns, the 3rd locks password sign-in until the
+-- password is reset with a code sent by e-mail ("Şifremi unuttum")
+ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_logins INT NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_locked BOOLEAN NOT NULL DEFAULT false;
+
+-- v2: "👑 Buranın müdavimi" on a venue page: friends always see it (when check-ins are shared); everyone only with this on
+ALTER TABLE users ADD COLUMN IF NOT EXISTS regular_public BOOLEAN NOT NULL DEFAULT false;
+
+-- v2: venue lists ("Ders çalışılacak yerler"): private, for friends, or for anyone with the link
+CREATE TABLE IF NOT EXISTS venue_lists (
+    id          BIGSERIAL PRIMARY KEY,
+    owner_id    BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name        TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 40),
+    visibility  TEXT NOT NULL DEFAULT 'private' CHECK (visibility IN ('private', 'friends', 'link')),
+    share_code  TEXT NOT NULL UNIQUE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS venue_lists_owner ON venue_lists (owner_id);
+CREATE TABLE IF NOT EXISTS venue_list_items (
+    list_id   BIGINT NOT NULL REFERENCES venue_lists(id) ON DELETE CASCADE,
+    venue_id  BIGINT NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+    added_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (list_id, venue_id)
+);

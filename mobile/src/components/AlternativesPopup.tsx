@@ -1,11 +1,5 @@
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-    View,
-  type LayoutChangeEvent,
-} from 'react-native';
+import { ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { Pressable } from './Pressable';
 
 import type { Venue } from '../lib/api';
 import type { Campaign } from '../lib/campaigns';
@@ -23,7 +17,7 @@ const LIST_HEIGHT = VISIBLE_ROWS * ROW_HEIGHT + (VISIBLE_ROWS - 1) * ROW_GAP;
 
 type Props = {
   venue: Venue;
-  alternatives: { venue: Venue; distanceKm: number; hasCampaign: boolean }[];
+  alternatives: { venue: Venue; distanceKm: number; hasCampaign: boolean; known: boolean }[];
   campaignFor: (venueId: number) => Campaign | null;
   onChoose: (venue: Venue) => void;
   onClose: () => void;
@@ -50,9 +44,11 @@ export function AlternativesPopup({
         </Pressable>
       </View>
       <Text style={styles.subtitle}>
-        {alternatives.length > 0
+        {alternatives.some((a) => a.known)
           ? 'Yakında yer olan benzer mekanlar:'
-          : 'Şu an 2 km içinde daha boş benzer mekan yok.'}
+          : alternatives.length > 0
+            ? 'Doluluğu bilinen daha boş bir yer yok; yakındaki benzer mekanlar (şu an bilgi yok, gidip ilk sen bildirebilirsin):'
+            : 'Şu an 2 km içinde açık benzer mekan yok.'}
       </Text>
       <ScrollView
         style={{ maxHeight: LIST_HEIGHT }}

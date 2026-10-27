@@ -1,19 +1,18 @@
-import * as Crypto from 'expo-crypto';
 import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Text, TextInput, View } from 'react-native';
+import { Pressable } from '../Pressable';
 
 import { useCampaigns } from '../../context/CampaignsContext';
 import type { Venue } from '../../lib/api';
 import { DISCOUNT_OPTIONS, DURATION_OPTIONS_HOURS, RADIUS_OPTIONS_KM } from '../../lib/campaigns';
-import { WEEKDAYS } from '../../lib/history';
 import type { PlanId } from '../../lib/plans';
-import { validateSchedule } from '../../lib/schedules';
+import { validateSchedule, WEEKDAYS } from '../../lib/schedules';
 import { colors } from '../../theme';
 import { Chip } from '../TagChips';
 import { panel } from './panelStyles';
 import { ThemedSwitch } from '../ThemedSwitch';
 
-/** Weekly recurring campaigns; available on the SaaS plan. */
+/** Weekly recurring campaigns (Aylık Paket); the server starts them on time, the app need not be open. */
 export function ScheduleSection({
   venue,
   plan,
@@ -23,8 +22,7 @@ export function ScheduleSection({
   plan: PlanId;
   onUpgrade: () => void;
 }) {
-  const { schedules, saveSchedule, removeSchedule } = useCampaigns();
-  const mine = schedules.filter((s) => s.venueId === venue.id);
+  const { schedules: mine, addSchedule, setScheduleActive, removeSchedule } = useCampaigns();
   const [message, setMessage] = useState('Her salı öğleden sonra tüm kahvelerde %20 indirim!');
   const [days, setDays] = useState<number[]>([1]);
   const [startHour, setStartHour] = useState('13');
@@ -37,31 +35,20 @@ export function ScheduleSection({
     return (
       <View style={panel.card}>
         <Text style={panel.sectionTitle}>Zamanlanmış kampanyalar 🔒</Text>
-        <Text style={panel.muted}>Örn. "her salı 13–16 arası %20". SaaS Panel paketine özeldir.</Text>
+        <Text style={panel.muted}>Örn. "her salı 13–16 arası %20". Aylık Paket'e özeldir.</Text>
         <Pressable style={panel.secondary} onPress={onUpgrade}>
-          <Text style={panel.secondaryText}>SaaS paketine geç (demo)</Text>
+          <Text style={panel.secondaryText}>Aylık Paket'e geç</Text>
         </Pressable>
       </View>
     );
   }
 
-  const add = () => {
-    const input = { message, days, startHour: Number(startHour), durationHours: duration };
+  const add = async () => {
+    const input = { message: message.trim(), days, start_hour: Number(startHour), duration_hours: duration, discount, radius_km: radius };
     const problem = validateSchedule(input);
     setError(problem);
     if (problem) return;
-    saveSchedule({
-      id: Crypto.randomUUID(),
-      venueId: venue.id,
-      venueName: venue.name,
-      lat: venue.lat,
-      lon: venue.lon,
-      discount,
-      radiusKm: radius,
-      active: true,
-      ...input,
-      message: message.trim(),
-    });
+    setError(await addSchedule(input));
   };
 
   return (
@@ -75,10 +62,10 @@ export function ScheduleSection({
           <Text style={panel.text}>{s.message}</Text>
           <View style={[panel.row, { alignItems: 'center' }]}>
             <Text style={[panel.muted, { flex: 1 }]}>
-              {s.days.map((d) => WEEKDAYS[d]).join(', ')} · {String(s.startHour).padStart(2, '0')}:00 ·{' '}
-              {s.durationHours} saat · {s.radiusKm} km
+              {s.days.map((d) => WEEKDAYS[d]).join(', ')} · {String(s.start_hour).padStart(2, '0')}:00 ·{' '}
+              {s.duration_hours} saat · {s.radius_km} km
             </Text>
-            <ThemedSwitch value={s.active} onValueChange={(active) => saveSchedule({ ...s, active })} />
+            <ThemedSwitch value={s.active} onValueChange={(active) => setScheduleActive(s.id, active)} />
           </View>
           <Pressable onPress={() => removeSchedule(s.id)}>
             <Text style={{ color: colors.danger, fontWeight: '600' }}>Sil</Text>
@@ -131,7 +118,7 @@ export function ScheduleSection({
       <Pressable style={panel.primary} onPress={add}>
         <Text style={panel.primaryText}>Zamanla</Text>
       </Pressable>
-      <Text style={panel.muted}>Prototip: zamanı gelince uygulama açıkken kampanya başlar.</Text>
+      <Text style={panel.muted}>Zamanı gelince kampanya kendiliğinden başlar; uygulamanın açık olması gerekmez.</Text>
     </View>
   );
 }

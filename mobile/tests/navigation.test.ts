@@ -44,12 +44,13 @@ test('only venues reported crowded trigger the pop-up', () => {
   assert.ok(!shouldSuggestAlternatives(unexplored));
 });
 
-test('alternatives: similar, clearly emptier, nearby, quiet ones first', () => {
+test('alternatives: the same kind, clearly emptier, nearby, quiet ones first', () => {
   const full = venue(1, 'bar', ['socializing'], 0.8, 'high', 41.034, 28.979);
   const all = [
     full,
     venue(2, 'bar', ['entertainment'], 0.6, 'medium', 41.035, 28.98), // same category, medium, very close
-    venue(3, 'cafe', ['socializing'], 0.2, 'low', 41.04, 28.985), // shared tag, quiet, a bit further
+    venue(3, 'bar', ['socializing'], 0.2, 'low', 41.04, 28.985), // same type, quiet, a bit further
+    venue(9, 'cafe', ['socializing'], 0.1, 'low', 41.034, 28.979), // shared tag, but a café: not a bar's alternative
     venue(4, 'bar', [], 0.78, 'high', 41.034, 28.98), // also crowded
     venue(5, 'library', ['quiet'], 0.1, 'low', 41.034, 28.979), // unrelated type
     venue(6, 'bar', ['socializing'], 0.1, 'low', 41.1, 29.1), // too far
@@ -60,6 +61,12 @@ test('alternatives: similar, clearly emptier, nearby, quiet ones first', () => {
   const withCampaign = quieterAlternatives(full, all, new Set([2]));
   assert.deepEqual(withCampaign.map((a) => [a.venue.id, a.hasCampaign]), [[2, true], [3, false]]);
   assert.equal(quieterAlternatives(full, all, new Set(), 1).length, 1);
+  // Nobody reported lately: still offered, after the known ones
+  const unknown = { ...(venue(8, 'bar', [], 0, 'low', 41.034, 28.979) as object), crowd: { state: 'unexplored' } } as never;
+  assert.deepEqual(
+    quieterAlternatives(full, [...all, unknown]).map((a) => [a.venue.id, a.known]),
+    [[3, true], [2, true], [8, false]],
+  );
 });
 
 test('all 39 Istanbul districts are listed and split into the two sides', () => {

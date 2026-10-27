@@ -1,5 +1,5 @@
-"""v2: coming back. "🔥 4 haftalık seri" (weeks in a row with a check-in) and the friends' regular
-of a venue ("👑 müdavim": among me and my friends, the one with the most check-ins there lately).
+"""v2: coming back. "🔥 4 haftalık seri" (weeks in a row with a check-in) and a venue's regular
+("👑 müdavim": the one with the most check-ins there lately, among the people I may see as one).
 """
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -39,18 +39,22 @@ def weekly_streak(conn: psycopg.Connection, user_id: int, now: datetime) -> int:
     return streak
 
 
-def friends_regular(conn: psycopg.Connection, me: dict, venue_id: int, now: datetime) -> dict | None:
-    """"👑 Arkadaşların arasında buranın müdavimi": me or a friend, most public check-ins here in the
-    last 30 days (at least 2); on a tie, the one who was here last."""
+def venue_regular(conn: psycopg.Connection, me: dict, venue_id: int, now: datetime) -> dict | None:
+    """"👑 Buranın müdavimi": most public check-ins here in the last 30 days (at least 2), among me,
+    my friends (who share their check-ins) and people who show it to everyone (regular_public);
+    on a tie, the one who was here last."""
     row = conn.execute(
         f"""
-        SELECT u.username, count(*)::int AS visits, u.id = %(me)s AS me
+        WITH friends AS (
+            SELECT addressee_id AS id FROM friendships WHERE requester_id = %(me)s AND status = 'accepted'
+            UNION SELECT requester_id FROM friendships WHERE addressee_id = %(me)s AND status = 'accepted'
+        )
+        SELECT u.username, count(*)::int AS visits, u.id = %(me)s AS me, u.id IN (SELECT id FROM friends) AS friend
         FROM checkins c JOIN users u ON u.id = c.user_id
         WHERE c.venue_id = %(venue)s AND NOT c.is_private AND NOT c.is_demo AND c.created_at > %(since)s
-          AND NOT u.frozen AND u.username IS NOT NULL
-          AND (u.id = %(me)s OR (u.share_checkins AND u.id NOT IN {BLOCKED} AND u.id IN (
-                SELECT addressee_id FROM friendships WHERE requester_id = %(me)s AND status = 'accepted'
-                UNION SELECT requester_id FROM friendships WHERE addressee_id = %(me)s AND status = 'accepted')))
+          AND NOT u.frozen AND NOT u.is_guest AND u.username IS NOT NULL
+          AND (u.id = %(me)s OR (u.id NOT IN {BLOCKED} AND (
+                (u.share_checkins AND u.id IN (SELECT id FROM friends)) OR u.regular_public)))
         GROUP BY u.id, u.username
         HAVING count(*) >= %(min)s
         ORDER BY count(*) DESC, max(c.created_at) DESC

@@ -1,6 +1,7 @@
 import * as Contacts from 'expo-contacts/legacy';
 import { useState } from 'react';
-import { Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable } from './Pressable';
 
 import { friendsApi, smsInviteMessage, type Person, type Relation } from '../lib/friends';
 import { colors, themed } from '../theme';

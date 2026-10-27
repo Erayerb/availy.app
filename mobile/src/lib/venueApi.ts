@@ -37,7 +37,19 @@ export const instagramUrl = (handle: string) => `https://instagram.com/${handle}
 /** "tel:" link without spaces. */
 export const phoneUrl = (phone: string) => `tel:${phone.replace(/[^\d+]/g, '')}`;
 
+export type VenueDetails = {
+  name: string;
+  open_hour: number;
+  close_hour: number; // <= open_hour: closes after midnight
+  tags: string[];
+  amenities: string[];
+  description: string;
+};
+
 export const venueApi = {
+  // "Mekan bilgilerini düzenle" (the venue's business)
+  saveDetails: (token: string, venueId: number, details: VenueDetails) =>
+    send<void>('PUT', `/v1/venues/${venueId}/details`, details, token),
   saveLinks: (token: string, venueId: number, instagram: string, phone: string) =>
     send<{ instagram: string | null; phone: string | null }>('PUT', `/v1/venues/${venueId}/profile`, { instagram, phone }, token),
   // Address line, neighbourhood / district and the map point ("Yol tarifi" goes there)

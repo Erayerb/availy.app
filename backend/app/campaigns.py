@@ -4,7 +4,7 @@ A business sends a campaign ("next 2 hours, 20% off all coffees") to people with
 customers take a coupon code, show it at the counter and the business marks it used.
 """
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import psycopg
 
@@ -81,6 +81,9 @@ def campaign(conn: psycopg.Connection, campaign_id: int) -> dict:
 
 def active_campaigns(conn: psycopg.Connection, now: datetime) -> list[dict]:
     """Every running campaign; the app shows a customer those whose radius reaches them."""
+    from app.automation import run_due_schedules
+
+    run_due_schedules(conn, now)  # scheduled campaigns whose time has come
     return conn.execute(
         CAMPAIGN_SELECT + " WHERE c.starts_at <= %s AND c.ends_at > %s ORDER BY c.ends_at LIMIT 500", (now, now)
     ).fetchall()
@@ -88,7 +91,10 @@ def active_campaigns(conn: psycopg.Connection, now: datetime) -> list[dict]:
 
 def my_campaigns(conn: psycopg.Connection, user: dict) -> list[dict]:
     """The business's campaigns, newest first, with views, coupons and uses."""
+    from app.automation import run_due_schedules
+
     venue_id = _business_venue(user)
+    run_due_schedules(conn, datetime.now(timezone.utc))
     return conn.execute(
         CAMPAIGN_SELECT + " WHERE c.venue_id = %s AND NOT c.hidden ORDER BY c.starts_at DESC LIMIT 200", (venue_id,)
     ).fetchall()
@@ -207,6 +213,9 @@ def redeem_coupon(conn: psycopg.Connection, user: dict, raw_code: str, now: date
 
 def coupons_for_checkin(conn: psycopg.Connection, user: dict, venue_id: int, now: datetime) -> list[dict]:
     """Right after a check-in: the coupons of the venue's running "check-in yapana kupon" campaigns."""
+    from app.automation import run_due_schedules
+
+    run_due_schedules(conn, now)
     running = conn.execute(
         "SELECT id FROM campaigns WHERE venue_id = %s AND checkin_only AND starts_at <= %s AND ends_at > %s",
         (venue_id, now, now),

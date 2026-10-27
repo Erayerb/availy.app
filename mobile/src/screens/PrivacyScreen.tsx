@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '../components/Pressable';
 
 import { BackButton } from '../components/BackButton';
 import { ThemedSwitch } from '../components/ThemedSwitch';
@@ -26,8 +27,14 @@ export function PrivacyScreen({ token, onBack, onOpenPermissions, onOpenLegal }:
     if (!token) return;
     socialApi
       .privacy(token)
-      .then(({ share_checkins, show_in_leaderboard, searchable, suggest_by_venues }) =>
-        setPrivacy({ share_checkins, show_in_leaderboard, searchable, suggest_by_venues: suggest_by_venues ?? true }),
+      .then(({ share_checkins, show_in_leaderboard, searchable, suggest_by_venues, regular_public }) =>
+        setPrivacy({
+          share_checkins,
+          show_in_leaderboard,
+          searchable,
+          suggest_by_venues: suggest_by_venues ?? true,
+          regular_public: regular_public ?? false,
+        }),
       )
       .catch(() => setError('Gizlilik ayarları yüklenemedi.'));
     safetyApi.blocked(token).then(setBlocked).catch(() => {});
@@ -86,6 +93,12 @@ export function PrivacyScreen({ token, onBack, onOpenPermissions, onOpenLegal }:
               subtitle="Açıksa aynı mekanlara gittiğin kişilerin Sosyal'deki “Önerilen kişiler”inde görünürsün (gizli check-in'ler sayılmaz). Profilin yine yalnızca arkadaşlarına açık."
               value={privacy.suggest_by_venues}
               onChange={(v) => change({ suggest_by_venues: v })}
+            />
+            <Row
+              title="Müdavimi olduğum mekanlarda herkes görsün"
+              subtitle="Bir mekana son 30 günde en çok sen gidiyorsan mekan sayfasında “👑 Buranın müdavimi @sen” yazar. Kapalıysa bunu yalnızca arkadaşların görür."
+              value={privacy.regular_public}
+              onChange={(v) => change({ regular_public: v })}
             />
           </>
         )}

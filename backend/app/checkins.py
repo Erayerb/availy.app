@@ -147,8 +147,11 @@ def create_checkin(
         """,
         {"v": venue_id, "u": user["id"]},
     ).fetchone()
+    from app.automation import after_checkin
     from app.campaigns import coupons_for_checkin
     from app.streaks import weekly_streak
+
+    after_checkin(conn, venue_id, now)  # a quiet venue tells its business (and may send its campaign)
 
     return {
         **checkin,

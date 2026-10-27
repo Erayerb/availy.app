@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
-import { PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
+import { PanResponder, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from './Pressable';
 
 import { useSettings } from '../context/SettingsContext';
 import type { Role } from '../lib/auth';

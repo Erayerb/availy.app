@@ -40,8 +40,8 @@ export function checkinMessage(
   if (result.points_note === 'too_soon') return 'Doluluğa sayıldı · son 30 dakikada başka bir mekanda check-in yaptığın için puan yok';
   if (result.points_note === 'daily_limit') return 'Doluluğa sayıldı · bugünkü puanlı check-in hakkın doldu (günde 8)';
   const points = `+${result.points_earned} puan`;
-  // Shown under "✓ Check-in yapıldı", so it does not say it again
-  if (result.is_first) return `✨ Burayı sen keşfettin! ${points} · Kâşif rozeti`;
+  // Shown under the "Burayı sen keşfettin!" title, so it does not say it again
+  if (result.is_first) return `${points} · Kâşif rozeti kazandın`;
   if (result.visitor_rank !== null) return `${points} · Burayı keşfeden ${result.visitor_rank}. kişisin!`;
   return `${points} · Buraya ${result.my_visits}. check-in'in`;
 }

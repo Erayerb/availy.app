@@ -39,7 +39,6 @@ class StatsOut(BaseModel):
     today_checkins: int
     week_checkins: int
     week_people: int
-    week_new: int  # first time at this venue
     week_returning: int  # had been here before
     weekday: list[int]  # check-ins in the last 30 days, Monday first
     total_checkins: int

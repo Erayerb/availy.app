@@ -277,3 +277,13 @@ def test_change_email(client):
     assert ok.status_code == 200 and ok.json()["email"] == "yeni@example.test"
     assert client.post("/v1/auth/login", json={"login": "yeni@example.test", "password": PASSWORD}).status_code == 200
     assert client.post("/v1/auth/login", json={"login": EMAIL, "password": PASSWORD}).status_code == 401
+
+
+def test_export_my_data(client, conn):
+    token = client.post("/v1/auth/register", json={"email": "t_veri@example.test", "password": "gizli123", "username": "t_veri"}).json()["token"]
+    data = client.get("/v1/me/export", headers={"Authorization": f"Bearer {token}"}).json()
+    assert data["account"]["username"] == "t_veri" and data["account"]["email"] == "t_veri@example.test"
+    assert {"checkins", "reviews", "friends", "points", "groups"} <= data.keys()
+    # No secrets in it
+    text = str(data)
+    assert "password" not in text and "phone_hash" not in text and token not in text

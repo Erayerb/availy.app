@@ -1,11 +1,13 @@
 import { useEffect } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '../components/Pressable';
 
 import { BackButton } from '../components/BackButton';
 import { useNotifications } from '../context/NotificationsContext';
 import { sentence, timeAgo } from '../lib/crowd';
 import { confirmAction } from '../lib/confirm';
-import { NOTIFICATION_ICONS, notificationText } from '../lib/social';
+import { notificationText, type AppNotification } from '../lib/social';
+import { Icon, type IconName } from '../components/Icon';
 import { colors, themed } from '../theme';
 
 type Props = {
@@ -17,6 +19,19 @@ type Props = {
   onOpenFeed: () => void; // Sosyal > Akış: likes and comments under my check-in
   onOpenRanking: () => void; // Sosyal > Sıralama: a group invitation
   onOpenSettings: () => void;
+};
+
+const ICONS: Record<AppNotification['kind'], IconName> = {
+  friend_request: 'person-add',
+  friend_accepted: 'people',
+  reply: 'chatbubble-ellipses',
+  reward: 'gift',
+  loyalty: 'star',
+  checkin_like: 'heart',
+  checkin_comment: 'chatbubble',
+  group_invite: 'people-circle',
+  dead_hour: 'moon',
+  auto_campaign: 'megaphone',
 };
 
 /** v2 🔔 list: friend requests, accepted requests and replies to my reviews (last 30 days); kept until deleted. */
@@ -70,13 +85,15 @@ export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue,
               }
               style={({ pressed }) => [styles.row, i > 0 && styles.divider, pressed && styles.pressed]}
             >
-              <Text style={styles.icon}>{NOTIFICATION_ICONS[n.kind]}</Text>
+              <View style={styles.iconBox}>
+                <Icon name={ICONS[n.kind]} size={20} color={colors.primary} />
+              </View>
               <View style={styles.flex}>
                 <Text style={styles.text}>{notificationText(n)}</Text>
                 <Text style={styles.muted}>{sentence(timeAgo(n.at, new Date()))}</Text>
               </View>
               <Pressable onPress={() => dismiss(n.key)} hitSlop={10} style={styles.delete} accessibilityLabel="Bildirimi sil">
-                <Text style={styles.deleteText}>🗑</Text>
+                <Icon name="trash-outline" size={20} color={colors.textMuted} />
               </Pressable>
             </Pressable>
           ))}
@@ -105,12 +122,11 @@ const styles = themed(() => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
   divider: { borderTopWidth: 1, borderTopColor: colors.border },
   pressed: { opacity: 0.7 },
-  icon: { fontSize: 22 },
+  iconBox: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
   flex: { flex: 1, gap: 2 },
   text: { fontSize: 14, color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },
   delete: { padding: 6 },
-  deleteText: { fontSize: 18, color: colors.textMuted },
   clear: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 14, backgroundColor: colors.cream },
   clearText: { color: colors.danger, fontWeight: '700', fontSize: 14 },
   link: { color: colors.primary, fontWeight: '600', textAlign: 'center' },

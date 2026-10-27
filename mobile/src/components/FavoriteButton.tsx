@@ -1,4 +1,6 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { Icon } from './Icon';
+import { Pressable } from './Pressable';
 
 import { useFavorites } from '../context/FavoritesContext';
 import { colors, themed } from '../theme';
@@ -20,14 +22,11 @@ export function FavoriteButton({ venueId, size = 20, floating = false }: Props) 
       accessibilityLabel={active ? 'Favorilerden çıkar' : 'Favorilere ekle'}
       style={floating && [styles.floating, { width: size + 16, height: size + 16, borderRadius: (size + 16) / 2 }]}
     >
-      <Text style={[styles.heart, { fontSize: size, color: active ? colors.primary : colors.placeholder }]}>
-        {active ? '♥' : '♡'}
-      </Text>
+      <Icon name={active ? 'heart' : 'heart-outline'} size={size} color={active ? colors.primary : colors.textMuted} />
     </Pressable>
   );
 }
 
 const styles = themed(() => StyleSheet.create({
   floating: { backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  heart: { lineHeight: undefined },
 }));

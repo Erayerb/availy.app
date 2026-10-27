@@ -21,14 +21,6 @@ export function parseNominatimAddress(address: NominatimAddress | undefined): Ad
   return line ? { district, neighborhood, line } : { district, neighborhood };
 }
 
-export function nearestVenueAddress(
-  point: LatLon,
-  venues: (LatLon & { district: string; neighborhood: string })[],
-): Address | null {
-  const nearest = [...venues].sort((a, b) => distanceKm(point, a) - distanceKm(point, b))[0];
-  return nearest ? { district: nearest.district, neighborhood: nearest.neighborhood } : null;
-}
-
 export async function reverseGeocode(point: LatLon, signal?: AbortSignal): Promise<Address | null> {
   const params = new URLSearchParams({
     format: 'jsonv2',
@@ -65,12 +57,3 @@ export async function geocodeAddress(address: string, district: string, signal?:
   }
 }
 
-/** Rough centre of a district from the venues already in it (fallback when the address is not found). */
-export function districtCenter(district: string, venues: (LatLon & { district: string })[]): LatLon | null {
-  const inside = venues.filter((v) => v.district === district);
-  if (inside.length === 0) return null;
-  return {
-    lat: inside.reduce((s, v) => s + v.lat, 0) / inside.length,
-    lon: inside.reduce((s, v) => s + v.lon, 0) / inside.length,
-  };
-}

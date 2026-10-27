@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
+import { Pressable } from './Pressable';
 import { colors, themed } from '../theme';
 
 type Props = {

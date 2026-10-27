@@ -47,7 +47,7 @@ test('check-in body: only the answer of the chosen level is sent', async () => {
 test('check-in message: points, explorer note, "keşfeden 12. kişi", visit count', async () => {
   const { checkinMessage } = await import('../src/lib/checkinApi.ts');
   const base = { is_first: false, points_earned: 10, visitor_rank: null, my_visits: 3 };
-  assert.match(checkinMessage({ ...base, is_first: true, points_earned: 60, visitor_rank: 1, my_visits: 1 }), /Burayı sen keşfettin! \+60 puan · Kâşif rozeti/);
+  assert.match(checkinMessage({ ...base, is_first: true, points_earned: 60, visitor_rank: 1, my_visits: 1 }), /^\+60 puan · Kâşif rozeti kazandın$/);
   assert.equal(checkinMessage({ ...base, visitor_rank: 12, my_visits: 1 }), '+10 puan · Burayı keşfeden 12. kişisin!');
   assert.equal(checkinMessage(base), "+10 puan · Buraya 3. check-in'in");
   assert.match(checkinMessage({ ...base, points_earned: 0, points_note: 'too_soon' }), /30 dakikada.*puan yok/);

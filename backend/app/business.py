@@ -137,7 +137,6 @@ def venue_stats(conn: psycopg.Connection, user: dict, venue_id: int, now: dateti
         "week_checkins": sum(1 for r in rows if r["created_at"] > week_ago),
         "week_people": len(week_people),
         "week_returning": returning,
-        "week_new": len(week_people) - returning,
         "weekday": weekday,
         "total_checkins": total,
         "discovered_by": discoverer,

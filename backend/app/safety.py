@@ -126,6 +126,7 @@ def profile(conn: psycopg.Connection, me: dict, username: str, now: datetime) ->
     is_me = other["id"] == me["id"]
     from app.friends import relation
     from app.streaks import weekly_streak
+    from app.user_photos import photo_time
 
     rel = "self" if is_me else relation(conn, me["id"], other["id"])
     stats = user_stats(conn, other["id"])
@@ -159,4 +160,5 @@ def profile(conn: psycopg.Connection, me: dict, username: str, now: datetime) ->
         "badges": stats["badges"],
         "venues": venues,
         "weekly_streak": weekly_streak(conn, other["id"], now),
+        "photo_at": photo_time(conn, other["id"]),
     }

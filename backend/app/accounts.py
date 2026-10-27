@@ -32,6 +32,12 @@ KEY_BYTES = 32
 
 # Same message for an unknown e-mail and a wrong password, so the API does not reveal who has an account
 LOGIN_FAILED = "Kullanıcı adı, e-posta ya da şifre hatalı."
+# Wrong passwords in a row: the 2nd warns, this many lock password sign-in until a reset by e-mail
+MAX_FAILED_LOGINS = 3
+LAST_TRY = "Şifre hatalı. Bir kez daha yanlış girersen şifreni e-postayla sıfırlaman gerekecek."
+LOCKED = (
+    "Çok fazla yanlış şifre girildi. Giriş yapmak için \"Şifremi unuttum\" ile e-postana gelen kodla yeni şifre belirle."
+)
 
 
 @dataclass
@@ -105,7 +111,7 @@ def hash_token(token: str) -> str:
 
 USER_COLUMNS = (
     "id, email, username, name, role, venue_id, plan, trust, is_guest, created_at, "
-    "share_checkins, show_in_leaderboard, searchable, frozen, email_verified, suggest_by_venues"
+    "share_checkins, show_in_leaderboard, searchable, frozen, email_verified, suggest_by_venues, regular_public"
 )
 USERNAME_TAKEN = "Bu kullanıcı adı alınmış, başka bir tane dene."
 
@@ -195,13 +201,28 @@ def authenticate(conn: psycopg.Connection, login: str, password: str, role: str 
         query, value = "email = %s", normalize_email(login)
     else:
         query, value = "lower(username) = %s", normalize_username(login)
-    row = conn.execute(f"SELECT {USER_COLUMNS}, password_hash FROM users WHERE {query}", (value,)).fetchone()
+    row = conn.execute(
+        f"SELECT {USER_COLUMNS}, password_hash, failed_logins, password_locked FROM users WHERE {query}", (value,)
+    ).fetchone()
     if row is None:
         verify_password(password, _dummy_hash())
         raise AccountError(LOGIN_FAILED, 401)
     stored = row.pop("password_hash")
+    failed, locked = row.pop("failed_logins"), row.pop("password_locked")
+    if locked:
+        raise AccountError(LOCKED, 423)
     if stored is None or not verify_password(password, stored):
-        raise AccountError(LOGIN_FAILED, 401)
+        # Counted even though the request fails: the caller keeps this change (see auth_api.login)
+        failed += 1
+        conn.execute(
+            "UPDATE users SET failed_logins = %s, password_locked = %s WHERE id = %s",
+            (failed, failed >= MAX_FAILED_LOGINS, row["id"]),
+        )
+        if failed >= MAX_FAILED_LOGINS:
+            raise AccountError(LOCKED, 423)
+        raise AccountError(LAST_TRY if failed == MAX_FAILED_LOGINS - 1 else LOGIN_FAILED, 401)
+    if failed:
+        conn.execute("UPDATE users SET failed_logins = 0 WHERE id = %s", (row["id"],))
     # Signing in opens a frozen account again
     if row.get("frozen"):
         conn.execute("UPDATE users SET frozen = false WHERE id = %s", (row["id"],))

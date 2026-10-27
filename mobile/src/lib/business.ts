@@ -8,7 +8,6 @@ export type VenueStats = {
   today_checkins: number;
   week_checkins: number;
   week_people: number;
-  week_new: number;
   week_returning: number;
   weekday: number[]; // last 30 days, Monday first
   total_checkins: number;

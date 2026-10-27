@@ -1,6 +1,9 @@
+import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable } from '../components/Pressable';
 
+import { Avatar } from '../components/Avatar';
 import { Collapsible } from '../components/Collapsible';
 import { ProfileEditor } from '../components/business/ProfileEditor';
 import { BadgeGrid } from '../components/BadgeGrid';
@@ -9,6 +12,8 @@ import { useVenuesByIds } from '../hooks/useVenuesByIds';
 import { useCampaigns } from '../context/CampaignsContext';
 import { useLoyalty } from '../context/LoyaltyContext';
 import { accountKey, MIN_PASSWORD_LENGTH, normalizeUsername, type User } from '../lib/auth';
+import { downloadMyData } from '../lib/dataExport';
+import { userPhotoApi } from '../lib/userPhoto';
 import { availyPoints } from '../lib/loyalty';
 import { colors, themed } from '../theme';
 
@@ -96,6 +101,9 @@ export function ProfileScreen({
       </View>
 
       <View style={styles.card}>
+        {!business && user.username && user.token ? (
+          <ProfilePhoto username={user.username} token={user.token} />
+        ) : null}
         <Text style={styles.name}>{user.username ? `@${user.username}` : user.name}</Text>
         <Text style={styles.muted}>
           {user.email} · {user.role === 'business' ? 'İşletme hesabı' : 'Bireysel hesap'}
@@ -165,6 +173,86 @@ type AccountProps = Pick<
   Props,
   'onChangeUsername' | 'onChangePassword' | 'onChangeEmail' | 'onFreezeAccount' | 'onDeleteAccount'
 > & { user: User };
+
+/** Profile photo: shown on the profile and in Sosyal instead of the first letter. */
+function ProfilePhoto({ username, token }: { username: string; token: string }) {
+  const [version, setVersion] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const pick = async () => {
+    setNote(null);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.4,
+      base64: true,
+    });
+    if (result.canceled) return;
+    const asset = result.assets[0];
+    if (!asset.base64) return setNote('Fotoğraf okunamadı.');
+    setBusy(true);
+    try {
+      const saved = await userPhotoApi.save(token, `data:${asset.mimeType ?? 'image/jpeg'};base64,${asset.base64}`);
+      setVersion(saved.photo_at);
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : 'Kaydedilemedi.');
+    }
+    setBusy(false);
+  };
+
+  return (
+    <View style={styles.photoRow}>
+      <Avatar key={version ?? 'start'} username={username} size={64} version={version} />
+      <View style={styles.photoActions}>
+        <Pressable onPress={pick} disabled={busy} hitSlop={8}>
+          <Text style={styles.link}>{busy ? 'Yükleniyor…' : 'Profil fotoğrafı seç'}</Text>
+        </Pressable>
+        <Pressable
+          hitSlop={8}
+          onPress={() =>
+            userPhotoApi
+              .remove(token)
+              .then(() => setVersion(new Date().toISOString()))
+              .catch(() => {})
+          }
+        >
+          <Text style={styles.removePhoto}>Fotoğrafı kaldır</Text>
+        </Pressable>
+        {note && <Text style={styles.error}>{note}</Text>}
+      </View>
+    </View>
+  );
+}
+
+/** "Verilerimi indir" (KVKK): everything kept about me on the server, as a JSON file. */
+function MyData({ token }: { token: string | null | undefined }) {
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  if (!token) return null;
+  return (
+    <Collapsible title="Verilerimi indir" summary="Sunucuda senin hakkında tutulan her şey, tek dosyada">
+      <Text style={styles.muted}>
+        Hesap bilgilerin, check-in'lerin, puanların, yorumların, arkadaşların, grupların, kuponların ve sadakat
+        kartların bir JSON dosyası olarak iner. Şifren ve telefon numaran dosyada yer almaz.
+      </Text>
+      <Pressable
+        style={[styles.secondary, busy && { opacity: 0.6 }]}
+        disabled={busy}
+        onPress={async () => {
+          setBusy(true);
+          const error = await downloadMyData(token);
+          setBusy(false);
+          setNote(error ? { ok: false, text: error } : { ok: true, text: '✓ Verilerin hazırlandı.' });
+        }}
+      >
+        <Text style={styles.secondaryText}>{busy ? 'Hazırlanıyor…' : 'Verilerimi indir'}</Text>
+      </Pressable>
+      {note && <Text style={note.ok ? styles.success : styles.error}>{note.text}</Text>}
+    </Collapsible>
+  );
+}
 
 /** User name, e-mail, password, freeze and delete: Profil ayarları (customers) or Ayarlar (businesses); Çıkış Yap is in Daha fazla. */
 export function AccountSettings({
@@ -257,6 +345,8 @@ export function AccountSettings({
         </Pressable>
         {message && <Text style={message.ok ? styles.success : styles.error}>{message.text}</Text>}
       </Collapsible>
+
+      <MyData token={user.token} />
 
       <Collapsible title="Hesabı geçici olarak dondur" summary="Silmeden profilini ve aktiviteni gizler">
         <Text style={styles.muted}>
@@ -556,5 +646,8 @@ const styles = themed(() => StyleSheet.create({
   verifyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   smallPrimary: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 12, backgroundColor: colors.primary },
   link: { color: colors.primary, fontWeight: '600' },
+  photoRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 4 },
+  photoActions: { flex: 1, gap: 8 },
+  removePhoto: { color: colors.textMuted, fontWeight: '600', fontSize: 13 },
   error: { color: colors.danger },
 }));

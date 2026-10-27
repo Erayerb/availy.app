@@ -1,7 +1,6 @@
 from contextlib import asynccontextmanager
 from typing import Literal
-from datetime import date, datetime, timezone
-from zoneinfo import ZoneInfo
+from datetime import datetime, timezone
 
 import psycopg
 from fastapi import Depends, FastAPI, HTTPException, Query
@@ -18,25 +17,17 @@ from app.social_api import router as social_router
 from app.safety_api import router as safety_router
 from app.business_api import router as business_router
 from app.venues_api import router as venues_router
+from app.automation_api import router as automation_router
 from app.groups_api import router as groups_router
+from app.lists_api import router as lists_router
 from app.loyalty_api import router as loyalty_router
 from app.checkins import load_crowds, load_discoveries, load_trends
 from app.config import settings
 from app.db import apply_schema, get_conn, pool
 from app.hours import local_hour, venue_hours
 from app.venue_profiles import load_profiles
-from app.occupancy import (
-    Level,
-    OccupancyProvider,
-    average_occupancy,
-    daily_history,
-    get_occupancy_provider,
-    hourly_profile,
-    weekday_averages,
-)
+from app.occupancy import Level
 from app.venues import (
-    find_venue_profile,
-    find_venues_by_district,
     find_venues_in_bbox,
     list_districts,
     parse_bbox,
@@ -76,17 +67,8 @@ app.include_router(campaigns_router)
 app.include_router(venues_router)
 app.include_router(loyalty_router)
 app.include_router(groups_router)
-
-
-class OccupancyOut(BaseModel):
-    level: Level
-    ratio: float
-    updated_at: datetime
-
-
-class AreaOccupancyOut(BaseModel):
-    level: Level
-    ratio: float
+app.include_router(lists_router)
+app.include_router(automation_router)
 
 
 class CrowdOut(BaseModel):
@@ -120,9 +102,6 @@ class Venue(BaseModel):
     neighborhood: str
     district: str
     tags: list[str]
-    # v1 fake occupancy; kept until the app switches to `crowd` (v2 stage 6)
-    occupancy: OccupancyOut
-    district_occupancy: AreaOccupancyOut
     crowd: CrowdOut
     discovery: DiscoveryOut | None
     trend: int = 0  # different people who checked in during the last 24 hours ("Trendler")
@@ -136,6 +115,9 @@ class Venue(BaseModel):
     instagram: str | None = None
     phone: str | None = None
     verified: bool = False
+    # Written by the venue's business ("Mekan bilgilerini düzenle"); no features: guessed from the type
+    description: str | None = None
+    amenity_keys: list[str] | None = None
 
 
 @app.get("/health")
@@ -152,7 +134,6 @@ def list_venues(
     bbox: str = Query(..., description="minLon,minLat,maxLon,maxLat"),
     tags: str | None = Query(None, description=TAGS_DESCRIPTION),
     conn: psycopg.Connection = Depends(get_conn),
-    provider: OccupancyProvider = Depends(get_occupancy_provider),
 ):
     try:
         parsed = parse_bbox(bbox)
@@ -160,7 +141,7 @@ def list_venues(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from None
     venues = find_venues_in_bbox(conn, parsed, settings.max_venues_per_request, parsed_tags)
-    return with_occupancy(conn, provider, venues)
+    return with_crowds(conn, venues)
 
 
 @app.get("/v1/venues/search", response_model=list[Venue])
@@ -170,7 +151,6 @@ def search(
     tags: str | None = Query(None, description=TAGS_DESCRIPTION),
     ids: str | None = Query(None, description="Comma-separated venue ids, e.g. favorites"),
     conn: psycopg.Connection = Depends(get_conn),
-    provider: OccupancyProvider = Depends(get_occupancy_provider),
 ):
     try:
         parsed_tags = parse_tags(tags)
@@ -180,110 +160,7 @@ def search(
     venues = search_venues(
         conn, q.strip(), district or None, parsed_tags, settings.max_venues_per_request, parsed_ids
     )
-    return with_occupancy(conn, provider, venues)
-
-
-class HourOut(BaseModel):
-    hour: int
-    level: Level
-    ratio: float
-    open: bool
-
-
-class HourlyOut(BaseModel):
-    venue_id: int
-    date: date
-    hours: list[HourOut]
-
-
-@app.get("/v1/venues/{venue_id}/hourly", response_model=HourlyOut)
-def hourly(
-    venue_id: int,
-    conn: psycopg.Connection = Depends(get_conn),
-    provider: OccupancyProvider = Depends(get_occupancy_provider),
-):
-    """Today's occupancy per local hour for one venue (business stats panel)."""
-    venue = find_venue_profile(conn, venue_id)
-    if venue is None:
-        raise HTTPException(status_code=404, detail="venue not found")
-    today = datetime.now(ZoneInfo(settings.dummy_timezone)).date()
-    profile = hourly_profile(provider, venue_id, venue["popularity"], today, venue["always_busy"])
-    opening = venue_hours(venue)
-    return {
-        "venue_id": venue_id,
-        "date": today,
-        "hours": [
-            {"hour": h, "level": o.level, "ratio": o.ratio, "open": opening.is_open_at_hour(h)}
-            for h, o in enumerate(profile)
-        ],
-    }
-
-
-class DayOut(BaseModel):
-    date: date
-    ratio: float
-
-
-class HistoryOut(BaseModel):
-    venue_id: int
-    daily: list[DayOut]
-    weekday: list[float]  # Monday first
-
-
-@app.get("/v1/venues/{venue_id}/history", response_model=HistoryOut)
-def history(
-    venue_id: int,
-    days: int = Query(30, ge=7, le=90),
-    conn: psycopg.Connection = Depends(get_conn),
-    provider: OccupancyProvider = Depends(get_occupancy_provider),
-):
-    """Average occupancy during opening hours per day (business weekly / monthly statistics)."""
-    venue = find_venue_profile(conn, venue_id)
-    if venue is None:
-        raise HTTPException(status_code=404, detail="venue not found")
-    opening = venue_hours(venue)
-    open_hours = [h for h in range(24) if opening.is_open_at_hour(h)]
-    today = datetime.now(ZoneInfo(settings.dummy_timezone)).date()
-    past = daily_history(provider, venue_id, venue["popularity"], venue["always_busy"], open_hours, today, days)
-    return {
-        "venue_id": venue_id,
-        "daily": [{"date": d, "ratio": r} for d, r in past],
-        "weekday": weekday_averages(past),
-    }
-
-
-class ForecastPoint(BaseModel):
-    at: datetime
-    ratio: float
-    open: bool
-
-
-class ForecastOut(BaseModel):
-    venue_id: int
-    points: list[ForecastPoint]
-
-
-@app.get("/v1/venues/{venue_id}/forecast", response_model=ForecastOut)
-def forecast(
-    venue_id: int,
-    hours: int = Query(12, ge=1, le=24),
-    conn: psycopg.Connection = Depends(get_conn),
-    provider: OccupancyProvider = Depends(get_occupancy_provider),
-):
-    """Expected occupancy for each upcoming time step, so the app can schedule
-    "it emptied" / dead-hour notifications that fire while it is closed."""
-    venue = find_venue_profile(conn, venue_id)
-    if venue is None:
-        raise HTTPException(status_code=404, detail="venue not found")
-    opening = venue_hours(venue)
-    step = settings.dummy_bucket_seconds
-    first = (int(datetime.now(timezone.utc).timestamp()) // step + 1) * step
-    points = []
-    for i in range(hours * 3600 // step):
-        at = datetime.fromtimestamp(first + i * step, tz=timezone.utc)
-        o = provider.get(venue_id, at, venue["popularity"], venue["always_busy"])
-        points.append({"at": at, "ratio": o.ratio, "open": opening.is_open_at_hour(local_hour(at))})
-    return {"venue_id": venue_id, "points": points}
+    return with_crowds(conn, venues)
 
 
 @app.get("/v1/districts", response_model=list[str])
@@ -291,22 +168,15 @@ def districts(conn: psycopg.Connection = Depends(get_conn)):
     return list_districts(conn)
 
 
-def with_occupancy(conn: psycopg.Connection, provider: OccupancyProvider, venues: list[dict]) -> list[dict]:
-    """Attach each venue's occupancy and its district's average occupancy."""
+def with_crowds(conn: psycopg.Connection, venues: list[dict]) -> list[dict]:
+    """Each venue with its crowd from check-ins, discovery, trend, business profile and opening hours."""
     now = datetime.now(timezone.utc)
-
-    # District busyness covers every venue in the district, not only the visible ones
-    members = find_venues_by_district(conn, sorted({v["district"] for v in venues}))
-    district_occupancy = {
-        district: average_occupancy([provider.get(m["id"], now, m["popularity"], m["always_busy"]).ratio for m in group])
-        for district, group in members.items()
-    }
-
     hour = local_hour(now)
-    crowds = load_crowds(conn, [v["id"] for v in venues], now)
-    discoveries = load_discoveries(conn, [v["id"] for v in venues], now)
-    trends = load_trends(conn, [v["id"] for v in venues], now)
-    profiles = load_profiles(conn, [v["id"] for v in venues])
+    ids = [v["id"] for v in venues]
+    crowds = load_crowds(conn, ids, now)
+    discoveries = load_discoveries(conn, ids, now)
+    trends = load_trends(conn, ids, now)
+    profiles = load_profiles(conn, ids)
     result = []
     for v in venues:
         opening = venue_hours(v)
@@ -314,8 +184,6 @@ def with_occupancy(conn: psycopg.Connection, provider: OccupancyProvider, venues
             {
                 **v,
                 **profiles.get(v["id"], {}),
-                "occupancy": provider.get(v["id"], now, v["popularity"], v["always_busy"]),
-                "district_occupancy": district_occupancy[v["district"]],
                 "crowd": crowds[v["id"]],
                 "discovery": discoveries.get(v["id"]),
                 "trend": trends.get(v["id"], 0),

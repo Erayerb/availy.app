@@ -1,6 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Text, TextInput, View } from 'react-native';
+import { Pressable } from '../Pressable';
 
 import { codeMatches, verificationCode, VERIFICATION_METHODS, type VerificationMethod } from '../../lib/verification';
 import { colors } from '../../theme';

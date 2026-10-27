@@ -1,16 +1,19 @@
+import type { IconName } from '../components/Icon';
 import { getScheme } from '../theme.ts';
 
 /** Placeholder "photo" per category until real venue photos exist. */
-const VISUALS: Record<string, { emoji: string; background: string }> = {
-  cafe: { emoji: '☕', background: '#f6e3c8' },
-  bar: { emoji: '🍸', background: '#ead7f3' },
-  coworking: { emoji: '💻', background: '#d7e8f8' },
-  library: { emoji: '📚', background: '#dcf0dc' },
-  restaurant: { emoji: '🍽️', background: '#f8dcd2' },
-  park: { emoji: '🌳', background: '#d9efd3' },
+type Visual = { icon: IconName; color: string; background: string };
+
+const VISUALS: Record<string, Visual> = {
+  cafe: { icon: 'cafe', color: '#8a5a2b', background: '#f6e3c8' },
+  bar: { icon: 'wine', color: '#7a3e8f', background: '#ead7f3' },
+  coworking: { icon: 'laptop', color: '#2f6aa3', background: '#d7e8f8' },
+  library: { icon: 'library', color: '#3b7a3b', background: '#dcf0dc' },
+  restaurant: { icon: 'restaurant', color: '#b0503a', background: '#f8dcd2' },
+  park: { icon: 'leaf', color: '#3b7a3b', background: '#d9efd3' },
 };
 
-const FALLBACK = { emoji: '📍', background: '#e5e7eb' };
+const FALLBACK: Visual = { icon: 'location', color: '#6b7280', background: '#e5e7eb' };
 
 /** Mix a pastel with the dark page colour, so the tiles are not glaring in the dark theme. */
 function darken(hex: string, amount = 0.72): string {
@@ -20,7 +23,8 @@ function darken(hex: string, amount = 0.72): string {
   return `#${((mix[0] << 16) | (mix[1] << 8) | mix[2]).toString(16).padStart(6, '0')}`;
 }
 
-export function categoryVisual(category: string, dark = getScheme() === 'dark'): { emoji: string; background: string } {
+export function categoryVisual(category: string, dark = getScheme() === 'dark'): Visual {
   const visual = VISUALS[category] ?? FALLBACK;
-  return dark ? { ...visual, background: darken(visual.background) } : visual;
+  // On the dark tile the light pastel becomes the icon colour
+  return dark ? { ...visual, color: visual.background, background: darken(visual.background) } : visual;
 }

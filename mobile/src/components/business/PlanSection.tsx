@@ -1,4 +1,5 @@
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { Pressable } from '../Pressable';
 
 import { PLANS, type PlanId } from '../../lib/plans';
 import { colors } from '../../theme';

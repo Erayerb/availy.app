@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Linking, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '../components/Pressable';
 
 import { BackButton } from '../components/BackButton';
 import { BusinessRequest } from '../components/BusinessRequest';
 import { CampaignBox } from '../components/CampaignBox';
-import { FriendsHere, FriendsRegular } from '../components/FriendsHere';
+import { FriendsHere, VenueRegular } from '../components/FriendsHere';
+import { AddToList } from '../components/AddToList';
+import { Icon } from '../components/Icon';
 import { FavoriteButton } from '../components/FavoriteButton';
 import { CheckinPanel } from '../components/CheckinPanel';
 import { CrowdDot } from '../components/CrowdDot';
@@ -76,6 +79,7 @@ export function VenueDetailScreen({
   const usually = typical ? typicalLines(typical) : [];
   // "👥 @ayse burada" is for registered customers
   const herePerson = user?.token && !user.isGuest && user.role !== 'business' ? user.token : null;
+  const [listing, setListing] = useState(false);
   // v2: reviews and replies live on the server
   const { reviews, setReviews, reload: reloadReviews } = useReviews(venueId, user?.token);
   const { point } = useLocation();
@@ -123,8 +127,14 @@ export function VenueDetailScreen({
             hitSlop={10}
             accessibilityLabel="Paylaş"
           >
-            <Text style={styles.icon}>⤴</Text>
+            <Icon name="share-outline" size={22} color={colors.text} />
           </Pressable>
+          {/* Listeye ekle: registered customers */}
+          {herePerson && (
+            <Pressable onPress={() => setListing(true)} hitSlop={10} accessibilityLabel="Listeye ekle">
+              <Icon name="bookmarks-outline" size={21} color={colors.text} />
+            </Pressable>
+          )}
           {!owner && <FavoriteButton venueId={venue.id} size={22} />}
         </View>
       </View>
@@ -159,6 +169,8 @@ export function VenueDetailScreen({
         </Text>
       </View>
       {note && <Text style={styles.note}>{note}</Text>}
+      {/* Written by the venue's business */}
+      {venue.description ? <Text style={styles.text}>{venue.description}</Text> : null}
       {venue.address ? <Text style={styles.text}>📍 {venue.address}</Text> : null}
       {(venue.instagram || venue.phone) && (
         <View style={styles.links}>
@@ -186,7 +198,7 @@ export function VenueDetailScreen({
         {venue.open_now && <Text style={styles.text}>{crowdSummary(venue.crowd, new Date())}</Text>}
         {venue.open_now && crowdYesterday(venue.crowd) && <Text style={styles.text}>🕘 {crowdYesterday(venue.crowd)}</Text>}
         <FriendsHere venueId={venue.id} token={herePerson} onOpenUser={onOpenUser} reloadKey={venue} />
-        <FriendsRegular venueId={venue.id} token={herePerson} onOpenUser={onOpenUser} reloadKey={venue} />
+        <VenueRegular venueId={venue.id} token={herePerson} onOpenUser={onOpenUser} reloadKey={venue} />
         <Text style={styles.text}>🕒 {venue.hours}</Text>
         {comparedToUsual(liveLevel(venue), typical?.usual_now) && (
           <Text style={styles.unusual}>{comparedToUsual(liveLevel(venue), typical?.usual_now)}</Text>
@@ -200,7 +212,7 @@ export function VenueDetailScreen({
           <Text style={styles.watch}>🔔 Sakin olunca haber vereceğiz (6 saat açık kalır)</Text>
         ) : (
           canWatch(venue) && (
-            <Text style={styles.muted}>Kalabalık mı? 🔕 simgesine bas, sakinleşince haber verelim.</Text>
+            <Text style={styles.muted}>Kalabalık mı? Üstteki zil simgesine bas, sakinleşince haber verelim.</Text>
           )
         )}
       </View>
@@ -255,7 +267,7 @@ export function VenueDetailScreen({
             </>
           ) : user?.role !== 'business' ? (
             <Pressable style={styles.primary} onPress={async () => setLoyaltyNote(await join(program.venueId))}>
-              <Text style={styles.primaryText}>{program.kind === 'stamps' ? 'Sadakat programına katıl' : `Üye ol (₺${program.price}/ay, demo)`}</Text>
+              <Text style={styles.primaryText}>{program.kind === 'stamps' ? 'Sadakat programına katıl' : `Üye ol (₺${program.price}/ay)`}</Text>
             </Pressable>
           ) : null}
           {loyaltyNote && <Text style={styles.muted}>{loyaltyNote}</Text>}
@@ -284,6 +296,10 @@ export function VenueDetailScreen({
         onRegister={onRegister}
         onOpenUser={onOpenUser}
       />
+
+      {herePerson && (
+        <AddToList token={herePerson} venueId={venue.id} venueName={venue.name} visible={listing} onClose={() => setListing(false)} />
+      )}
 
       <Text style={styles.demo}>
         Mekan bilgileri © OpenStreetMap katkıcıları · doluluk kullanıcıların check-in'lerinden
@@ -323,7 +339,6 @@ const styles = themed(() => StyleSheet.create({
   },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  icon: { fontSize: 22, color: colors.textMuted },
   name: { fontSize: 24, fontWeight: '700', color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },
   link: { color: colors.primary, fontWeight: '600' },

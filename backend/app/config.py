@@ -28,8 +28,7 @@ class Settings(BaseSettings):
     # Bug reports and contact messages are also e-mailed here (empty: only kept in the database)
     support_email: str = ""
 
-    # Dummy occupancy: values stay constant within one time bucket
-    dummy_bucket_seconds: int = 300
+    # Local time of the venues (opening hours, "today", weekly rankings)
     dummy_timezone: str = "Europe/Istanbul"
 
 

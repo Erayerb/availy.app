@@ -1,4 +1,5 @@
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from './Pressable';
 
 import { colors, themed } from '../theme';
 import { TabIcon, type IconName } from './TabIcon';
@@ -27,6 +28,7 @@ export type Screen =
   | 'legal'
   | 'user'
   | 'appearance'
+  | 'venueList'
   | 'detail';
 
 type Tab = { screen: Screen; label: string; icon: IconName };

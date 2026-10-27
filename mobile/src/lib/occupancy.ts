@@ -33,21 +33,11 @@ export function levelStyle(level: string, colorBlind = false): LevelLook {
 
 export const LEVELS = Object.keys(LEVEL_STYLE) as Level[];
 
-/** 0.784 -> "%78 dolu" (Turkish puts the percent sign first). */
-export function formatRatio(ratio: number): string {
-  return `%${Math.round(ratio * 100)} dolu`;
-}
-
 const AREA_TEXT: Record<Level, string> = {
   low: 'Sakin',
   medium: 'Orta',
   high: 'Yoğun',
 };
-
-/** Area (district) busyness line on the venue card: "Bölge: Yoğun" */
-export function areaStatus(level: string): string {
-  return `Bölge: ${AREA_TEXT[level as Level] ?? 'Bilinmiyor'}`;
-}
 
 /** A level colour mixed with white, for a level only one person has reported. */
 export function fadeColor(hex: string, amount = 0.5): string {

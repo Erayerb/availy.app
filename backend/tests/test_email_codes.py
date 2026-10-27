@@ -64,3 +64,22 @@ def test_reset_code_stops_after_five_wrong_tries(client, conn):
         client.post("/v1/auth/reset", json={"email": "t_ali@example.test", "code": wrong, "password": "yenisifre"})
     right = client.post("/v1/auth/reset", json={"email": "t_ali@example.test", "code": code, "password": "yenisifre"})
     assert right.status_code == 400
+
+
+def test_three_wrong_passwords_lock_sign_in_until_a_reset(client, conn):
+    register(client, "t_ali")
+    login = lambda password: client.post("/v1/auth/login", json={"login": "t_ali", "password": password})  # noqa: E731
+    assert login("yanlis1").json()["detail"] == "Kullanıcı adı, e-posta ya da şifre hatalı."
+    # The 2nd wrong one warns
+    assert "Bir kez daha yanlış girersen" in login("yanlis2").json()["detail"]
+    # The 3rd locks: not even the right password works until the reset
+    assert login("yanlis3").status_code == 423
+    assert login("gizli123").status_code == 423
+    client.post("/v1/auth/forgot", json={"email": "t_ali@example.test"})
+    body = {"email": "t_ali@example.test", "code": last_code("t_ali@example.test"), "password": "yenisifre1"}
+    assert client.post("/v1/auth/reset", json=body).status_code == 204
+    assert login("yenisifre1").status_code == 200
+    # A right password clears the count
+    login("yanlis1")
+    assert login("yenisifre1").status_code == 200
+    assert login("yanlis1").json()["detail"] == "Kullanıcı adı, e-posta ya da şifre hatalı."

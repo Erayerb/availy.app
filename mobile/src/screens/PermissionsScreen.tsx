@@ -3,7 +3,8 @@ import * as Contacts from 'expo-contacts/legacy';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import { useCallback, useEffect, useState } from 'react';
-import { AppState, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppState, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '../components/Pressable';
 
 import { Collapsible } from '../components/Collapsible';
 import { BackButton } from '../components/BackButton';

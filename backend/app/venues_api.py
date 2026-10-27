@@ -3,14 +3,14 @@ from datetime import datetime
 
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.auth_api import current_user
 from app.checkins_api import get_clock
 from app.db import get_conn
 from app.reviews_api import optional_user
 from app.user_venues import VenueError, add_venue
-from app.venue_profiles import ProfileError, load_photo, save_address, save_links, save_photo
+from app.venue_profiles import ProfileError, load_photo, save_address, save_details, save_links, save_photo
 from app.support import SupportError, send_support
 from app.typical import typical_hours
 from app.venue_requests import RequestError, ask_business, request_status
@@ -35,6 +35,15 @@ class NewVenueIn(BaseModel):
 class LinksIn(BaseModel):
     instagram: str = ""
     phone: str = ""
+
+
+class DetailsIn(BaseModel):
+    name: str = Field(..., max_length=80)
+    open_hour: int
+    close_hour: int  # <= open_hour: closes after midnight
+    tags: list[str] = Field(..., max_length=10)
+    amenities: list[str] = Field(default_factory=list, max_length=10)
+    description: str = Field("", max_length=250)
 
 
 class AddressIn(BaseModel):
@@ -77,6 +86,22 @@ def links(
         return save_links(conn, user, venue_id, body.instagram, body.phone, now)
     except ProfileError as e:
         raise HTTPException(status_code=e.status, detail=e.message) from None
+
+
+@router.put("/venues/{venue_id}/details", status_code=204)
+def details(
+    venue_id: int,
+    body: DetailsIn,
+    user: dict = Depends(current_user),
+    conn: psycopg.Connection = Depends(get_conn),
+    now: datetime = Depends(get_clock),
+):
+    """"Mekan bilgilerini düzenle" (the venue's business): everyone sees the change."""
+    try:
+        save_details(conn, user, venue_id, body.name, body.open_hour, body.close_hour, body.tags, body.amenities, body.description, now)
+    except ProfileError as e:
+        raise HTTPException(status_code=e.status, detail=e.message) from None
+    return Response(status_code=204)
 
 
 @router.put("/venues/{venue_id}/address")

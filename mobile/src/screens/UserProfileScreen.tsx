@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '../components/Pressable';
 
 import { BackButton } from '../components/BackButton';
+import { Avatar } from '../components/Avatar';
 import { BadgeGrid } from '../components/BadgeGrid';
+import { listsApi, type VenueList as VenueListType } from '../lib/lists';
 import { shortDate, timeAgo } from '../lib/crowd';
 import { categoryLabel } from '../lib/filters';
 import { friendsApi } from '../lib/friends';
 import { safetyApi, splitVenues, type Profile, type ProfileVenue } from '../lib/safety';
 import { categoryVisual } from '../lib/visuals';
+import { Icon } from '../components/Icon';
 import { confirmAction } from '../lib/confirm';
 import { colors, themed } from '../theme';
 
@@ -21,14 +25,20 @@ type Props = {
   onBack: () => void;
   onOpenVenue: (venue: { id: number }) => void;
   onOpenSettings: () => void; // own profile: "Profil ayarları"
+  onOpenList: (id: number) => void; // one of their lists
 };
 
 /** v2: a person's profile (also mine, from the top-right icon): points, badges, venues and friend actions. */
-export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpenSettings }: Props) {
+export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpenSettings, onOpenList }: Props) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [fullList, setFullList] = useState(false);
+  // Their lists I may see (mine: all of them)
+  const [lists, setLists] = useState<VenueListType[]>([]);
+  useEffect(() => {
+    listsApi.ofUser(token, username).then(setLists).catch(() => setLists([]));
+  }, [token, username]);
 
   const load = useCallback(() => {
     safetyApi
@@ -86,7 +96,7 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
   if (fullList && venues) {
     const row = (v: ProfileVenue) => (
       <Pressable key={v.venue_id} onPress={() => onOpenVenue({ id: v.venue_id })} style={styles.venue}>
-        <Text style={styles.emoji}>{categoryVisual(v.category).emoji}</Text>
+        <Icon name={categoryVisual(v.category).icon} size={22} color={categoryVisual(v.category).color} />
         <View style={styles.flex}>
           <Text style={styles.text}>{v.venue_name}</Text>
           <Text style={styles.muted}>
@@ -130,9 +140,7 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
 
       <View style={styles.card}>
         <View style={styles.head}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{profile.username.slice(0, 1).toLocaleUpperCase('tr-TR')}</Text>
-          </View>
+          <Avatar username={profile.username} size={56} version={profile.photo_at} />
           <View style={styles.flex}>
             <Text style={styles.name}>@{profile.username}</Text>
             <Text style={styles.muted}>
@@ -223,6 +231,20 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
         </>
       )}
 
+      {lists.length > 0 && (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>📋 Listeleri · {lists.length}</Text>
+          {lists.map((l) => (
+            <Pressable key={l.id} onPress={() => onOpenList(l.id)} style={styles.listRow}>
+              <Text style={[styles.listName, styles.flex]} numberOfLines={1}>
+                {l.name}
+              </Text>
+              <Text style={styles.listCount}>{l.venue_ids.length} mekan ›</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+
       <BadgeGrid badges={profile.badges} />
     </ScrollView>
   );
@@ -253,7 +275,7 @@ function VenueList({
       <ScrollView style={venues.length > VISIBLE_VENUES ? styles.venueScroll : undefined} nestedScrollEnabled>
         {venues.map((v) => (
           <Pressable key={v.venue_id} onPress={() => onOpenVenue({ id: v.venue_id })} style={styles.venue}>
-            <Text style={styles.emoji}>{categoryVisual(v.category).emoji}</Text>
+            <Icon name={categoryVisual(v.category).icon} size={22} color={categoryVisual(v.category).color} />
             <View style={styles.flex}>
               <Text style={styles.text}>{v.venue_name}</Text>
               <Text style={styles.muted}>
@@ -294,8 +316,6 @@ const styles = themed(() => StyleSheet.create({
   center: { textAlign: 'center', marginTop: 40 },
   card: { padding: 16, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 12 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 24, fontWeight: '800', color: colors.primary },
   flex: { flex: 1 },
   name: { fontSize: 20, fontWeight: '800', color: colors.text },
   stats: { flexDirection: 'row', gap: 8 },
@@ -313,6 +333,9 @@ const styles = themed(() => StyleSheet.create({
   listHead: { flexDirection: 'row', alignItems: 'center' },
   link: { color: colors.primary, fontWeight: '600', fontSize: 14 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
+  listRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+  listName: { fontSize: 15, fontWeight: '600', color: colors.text },
+  listCount: { fontSize: 13, color: colors.textMuted },
   venue: { flexDirection: 'row', alignItems: 'center', gap: 12, height: VENUE_ROW },
   latest: {
     flexDirection: 'row',

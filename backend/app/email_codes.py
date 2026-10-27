@@ -98,7 +98,8 @@ def reset_password(conn: psycopg.Connection, email: str, code: str, password: st
         raise AccountError(WRONG_CODE)
     # The code came to this inbox, so the address is verified too; every old session signs out
     conn.execute(
-        "UPDATE users SET password_hash = %s, email_verified = true, frozen = false WHERE id = %s",
+        "UPDATE users SET password_hash = %s, email_verified = true, frozen = false,"
+        " failed_logins = 0, password_locked = false WHERE id = %s",
         (hash_password(password), user["id"]),
     )
     conn.execute("DELETE FROM sessions WHERE user_id = %s", (user["id"],))

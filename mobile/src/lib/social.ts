@@ -7,7 +7,18 @@ export type RankRow = { rank: number; username: string | null; points: number; m
 export type Leaderboard = { rows: RankRow[]; me: { rank: number; points: number } | null };
 
 export type AppNotification = {
-  kind: 'friend_request' | 'friend_accepted' | 'reply' | 'reward' | 'loyalty' | 'checkin_like' | 'checkin_comment' | 'group_invite';
+  kind:
+    | 'friend_request'
+    | 'friend_accepted'
+    | 'reply'
+    | 'reward'
+    | 'loyalty'
+    | 'checkin_like'
+    | 'checkin_comment'
+    | 'group_invite'
+    // The business: its venue is quiet, and the campaign sent for it automatically
+    | 'dead_hour'
+    | 'auto_campaign';
   at: string;
   username: string | null;
   venue_id: number | null;
@@ -36,6 +47,7 @@ export type Privacy = {
   show_in_leaderboard: boolean;
   searchable: boolean;
   suggest_by_venues: boolean; // suggested to people who check in at the same venues
+  regular_public: boolean; // "👑 Buranın müdavimi" shown to everyone, not only to friends
 };
 
 export const socialApi = {
@@ -64,6 +76,7 @@ export const unreadCount = (items: AppNotification[], lastSeen: string | null) =
 /** Compares times, not text: the server writes "+00:00", the phone "Z". */
 export const isAfter = (a: string, b: string) => new Date(a).getTime() > new Date(b).getTime();
 
+// Emoji for phone notifications (text only there); the 🔔 list draws its own icons
 export const NOTIFICATION_ICONS: Record<AppNotification['kind'], string> = {
   friend_request: '👋',
   friend_accepted: '🤝',
@@ -73,6 +86,8 @@ export const NOTIFICATION_ICONS: Record<AppNotification['kind'], string> = {
   checkin_like: '♥',
   checkin_comment: '💬',
   group_invite: '👥',
+  dead_hour: '🌙',
+  auto_campaign: '📣',
 };
 
 /** One line for a notification (the 🔔 list shows its icon next to it). */
@@ -87,6 +102,8 @@ export function notificationText(n: AppNotification): string {
     return `Check-in yaptığın ${n.venue_name} sadakat programı başlattı: ${n.body}.${n.done ? ' Katıldın.' : ' Katılmak için dokun.'}`;
   if (n.kind === 'group_invite')
     return n.done ? `"${n.body}" grubuna katıldın.` : `${who} seni "${n.body}" grubuna davet etti. Katılmak için dokun.`;
+  if (n.kind === 'dead_hour') return `${n.venue_name} şu an sakin: müşterilerin Sakin bildiriyor. Kampanya göndermek için iyi bir zaman.`;
+  if (n.kind === 'auto_campaign') return `Ölü saat için otomatik kampanya gönderildi: "${n.body}"`;
   if (n.kind === 'reward') return `${n.venue_name} keşfettiğin için sana ödül verdi: "${n.body}" Kasada bu bildirimi göster.`;
   return `${who} yorumunu yanıtladı (${n.venue_name}): "${n.body}"`;
 }

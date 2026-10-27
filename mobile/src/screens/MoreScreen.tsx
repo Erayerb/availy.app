@@ -1,4 +1,5 @@
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '../components/Pressable';
 
 import type { Screen } from '../components/TabBar';
 import { HeaderButtons } from '../components/HeaderButtons';
