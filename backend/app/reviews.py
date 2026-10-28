@@ -12,7 +12,11 @@ from app.safety import BLOCKED, FROZEN, MUTED, hidden_reply, hidden_review
 MAX_BODY = 280
 MAX_REVIEWS_PER_CHECKIN = 2  # each check-in at a venue allows 2 reviews there
 MAX_REPLIES_PER_PERSON = 2  # replies one person may write under one review
-FEED_DAYS = 7
+FEED_DAYS = 3  # Akış shows this many days; "Daha eski" asks for up to MAX_FEED_DAYS
+MAX_FEED_DAYS = 7
+# My own Akış: the last 7 days, "Daha eski" up to 30
+MAX_MY_FEED_DAYS = 30
+PLAIN_CHECKIN_DAYS = 2  # a check-in with no words, likes or comments leaves Akış after this
 FEED_LIMIT = 50
 
 
@@ -172,15 +176,35 @@ def venue_reviews(conn: psycopg.Connection, venue_id: int, me: dict | None) -> d
     }
 
 
-def friend_feed(conn: psycopg.Connection, me: dict, now: datetime) -> list[dict]:
-    """Friends' activity of the last 7 days, newest first: public check-ins (mine too), reviews and replies."""
-    params = {"me": me["id"], "since": now - timedelta(days=FEED_DAYS), "limit": FEED_LIMIT}
+def friend_feed(
+    conn: psycopg.Connection, me: dict, now: datetime, days: int = FEED_DAYS, who: str = "friends"
+) -> list[dict]:
+    """Activity of the last `days` days (friends: 3, up to 7; mine: 7, up to 30 with "Daha eski"), newest first: check-ins, reviews
+    and replies. who="friends" (Sosyal > Arkadaşlarım): friends' public ones, a bare check-in (no words,
+    likes or comments) stays 2 days. who="me" (Sosyal > Akış): all of mine, with friends' likes and comments."""
+    days = max(1, min(days, MAX_MY_FEED_DAYS if who == "me" else MAX_FEED_DAYS))
+    params = {
+        "me": me["id"],
+        "since": now - timedelta(days=days),
+        "plain_since": now - timedelta(days=PLAIN_CHECKIN_DAYS),
+        "limit": FEED_LIMIT * (days // FEED_DAYS + 1),
+    }
     # Friends, without the ones I muted
     friends = f"""
         SELECT CASE WHEN requester_id = %(me)s THEN addressee_id ELSE requester_id END
         FROM friendships WHERE status = 'accepted' AND %(me)s IN (requester_id, addressee_id)
         EXCEPT {MUTED} EXCEPT {FROZEN}
     """
+    if who == "me":
+        checkin_who, author_in = "c.user_id = %(me)s", "= %(me)s"
+        plain, shared = "true", "true"
+    else:
+        checkin_who, author_in = f"c.user_id IN ({friends}) AND u.share_checkins AND NOT c.is_private", f"IN ({friends})"
+        # Older than 2 days: only check-ins with something to look at
+        plain = """(c.created_at > %(plain_since)s OR rv.id IS NOT NULL OR c.note IS NOT NULL
+                   OR EXISTS (SELECT 1 FROM checkin_likes l WHERE l.checkin_id = c.id)
+                   OR EXISTS (SELECT 1 FROM checkin_comments k WHERE k.checkin_id = c.id))"""
+        shared = "NOT c2.is_private AND u.share_checkins"
     return conn.execute(
         f"""
         SELECT * FROM (
@@ -194,27 +218,43 @@ def friend_feed(conn: psycopg.Connection, me: dict, now: datetime) -> list[dict]
                 SELECT r.id, r.rating, r.body, r.allow_replies FROM reviews r
                 WHERE r.checkin_id = c.id AND NOT {hidden_review("r")} ORDER BY r.created_at DESC LIMIT 1
             ) rv ON true
-            -- My own check-ins too, so I see friends' likes and comments under them
-            WHERE (c.user_id IN ({friends}) AND u.share_checkins OR c.user_id = %(me)s)
-              AND NOT c.is_private AND NOT c.is_demo AND c.created_at > %(since)s
+            WHERE {checkin_who} AND NOT c.is_demo AND c.created_at > %(since)s AND {plain}
             UNION ALL
             SELECT 'review', r.created_at, u.username, v.id, v.name, false, 0, r.rating, r.body, NULL,
                    r.id, r.allow_replies, NULL::bigint
             FROM reviews r JOIN users u ON u.id = r.user_id JOIN venues v ON v.id = r.venue_id
-            WHERE r.user_id IN ({friends}) AND r.created_at > %(since)s AND NOT {hidden_review("r")}
+            WHERE r.user_id {author_in} AND r.created_at > %(since)s AND NOT {hidden_review("r")}
               -- Already shown with its check-in
               AND NOT EXISTS (
-                  SELECT 1 FROM checkins c2 WHERE c2.id = r.checkin_id AND NOT c2.is_private AND NOT c2.is_demo AND u.share_checkins
+                  SELECT 1 FROM checkins c2 WHERE c2.id = r.checkin_id AND NOT c2.is_demo AND {shared}
               )
             UNION ALL
             SELECT 'reply', p.created_at, u.username, v.id, v.name, false, 0, NULL, p.body, a.username,
                    r.id, r.allow_replies, NULL::bigint
             FROM review_replies p JOIN users u ON u.id = p.user_id JOIN reviews r ON r.id = p.review_id
             JOIN users a ON a.id = r.user_id JOIN venues v ON v.id = r.venue_id
-            WHERE p.user_id IN ({friends}) AND p.created_at > %(since)s AND NOT {hidden_reply("p")}
+            WHERE p.user_id {author_in} AND p.created_at > %(since)s AND NOT {hidden_reply("p")}
               AND r.user_id NOT IN {BLOCKED}
         ) feed
         ORDER BY at DESC LIMIT %(limit)s
         """,
         params,
     ).fetchall()
+
+
+def replies_for(conn: psycopg.Connection, me: dict, review_ids: list[int]) -> dict[int, list[dict]]:
+    """Replies under these reviews (oldest first): shown attached to my posts in Akış."""
+    if not review_ids:
+        return {}
+    out: dict[int, list[dict]] = {}
+    for r in conn.execute(
+        f"""
+        SELECT p.id, p.review_id, u.username, p.body, p.created_at AS at, p.user_id = %(me)s AS mine
+        FROM review_replies p JOIN users u ON u.id = p.user_id
+        WHERE p.review_id = ANY(%(ids)s) AND p.user_id NOT IN {BLOCKED} AND NOT {hidden_reply("p")}
+        ORDER BY p.created_at
+        """,
+        {"ids": review_ids, "me": me["id"]},
+    ).fetchall():
+        out.setdefault(r.pop("review_id"), []).append(r)
+    return out

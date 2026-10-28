@@ -16,12 +16,14 @@ export type Profile = {
   username: string;
   relation: 'self' | 'friend' | 'outgoing' | 'incoming' | 'none';
   muted: boolean;
-  points: number;
-  checkins: number;
-  discoveries: number;
+  // null: hidden (they show statistics only to friends, or only to themselves)
+  points: number | null;
+  checkins: number | null;
+  discoveries: number | null;
   badges: Badge[];
   venues: ProfileVenue[] | null; // null: only friends see them
-  weekly_streak?: number; // "🔥 4 haftalık seri"
+  weekly_streak?: number | null; // "🔥 4 haftalık seri"
+  stats_hidden?: boolean;
   photo_at?: string | null; // profile photo (userPhotoUrl)
 };
 

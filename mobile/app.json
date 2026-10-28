@@ -43,7 +43,14 @@
       "expo-font",
       "expo-status-bar",
       "expo-file-system",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Profil ve mekan fotoğrafı seçmek için fotoğraflarına erişiriz.",
+          "cameraPermission": "Profil fotoğrafı çekmek ve sadakat QR kodunu okutmak için kamerayı kullanırız."
+        }
+      ]
     ]
   }
 }

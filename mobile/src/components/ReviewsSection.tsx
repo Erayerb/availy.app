@@ -51,7 +51,9 @@ export function ReviewsSection({ venueId, user, reviews, onChange, reload, onReg
     }
   };
 
-  const shown = showAll ? reviews.items : reviews.items.slice(0, FIRST_REVIEWS);
+  // Stars without words count in the average only; my own stays listed (to change or delete it)
+  const written = reviews.items.filter((r) => r.body?.trim() || r.mine);
+  const shown = showAll ? written : written.slice(0, FIRST_REVIEWS);
 
   return (
     <View style={styles.section}>
@@ -116,9 +118,10 @@ export function ReviewsSection({ venueId, user, reviews, onChange, reload, onReg
           onOpenUser={onOpenUser}
         />
       ))}
-      {!showAll && reviews.items.length > FIRST_REVIEWS && (
+      {reviews.count > 0 && written.length === 0 && <Text style={styles.muted}>Henüz yazılı yorum yok.</Text>}
+      {!showAll && written.length > FIRST_REVIEWS && (
         <Pressable onPress={() => setShowAll(true)}>
-          <Text style={styles.link}>Tüm yorumları göster ({reviews.items.length})</Text>
+          <Text style={styles.link}>Tüm yorumları göster ({written.length})</Text>
         </Pressable>
       )}
     </View>

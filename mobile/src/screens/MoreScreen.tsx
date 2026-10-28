@@ -54,7 +54,11 @@ type Props = {
 
 /** Last bottom tab ("☰"): everything that is not a tab of its own. */
 export function MoreScreen({ user, onSelect, onLogin, onLogout }: Props) {
-  const items = [...(isBusiness(user) ? BUSINESS_ITEMS : CUSTOMER_ITEMS), ...COMMON_ITEMS];
+  const items = [
+    ...(isBusiness(user) ? BUSINESS_ITEMS : CUSTOMER_ITEMS),
+    ...COMMON_ITEMS,
+    ...(user?.isAdmin ? [{ screen: 'admin' as Screen, label: 'Yönetici', hint: 'Şikâyet edilen yorum ve yanıtlar' }] : []),
+  ];
 
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>

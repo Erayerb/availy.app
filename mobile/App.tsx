@@ -26,6 +26,7 @@ import { IntroOverlay } from './src/components/IntroOverlay';
 import { friendsApi, inviteFromQuery } from './src/lib/friends';
 import { listCodeFromQuery } from './src/lib/lists';
 import { ListScreen } from './src/screens/ListScreen';
+import { AdminScreen } from './src/screens/AdminScreen';
 import { SubscriptionScreen } from './src/screens/SubscriptionScreen';
 import { AddVenueScreen } from './src/screens/AddVenueScreen';
 import { CustomersScreen } from './src/screens/CustomersScreen';
@@ -133,6 +134,8 @@ function Main() {
   const [favoritesTab, setFavoritesTab] = useState<FavoritesTab>('saved');
   // Kampanyalar opened on one of its tabs (Müşteriler > "Sadakat programı oluştur")
   const [campaignsTab, setCampaignsTab] = useState<CampaignsTab | null>(null);
+  // Tapping Sosyal / Kampanyalar in the tab bar starts them over (their first tab); back keeps the last tab
+  const [tabReset, setTabReset] = useState(0);
   const role: Role = isBusiness(auth.user) ? 'business' : 'personal';
   const goBack = () => setNav((h) => back(h, landingFor(role)));
   const { checkinSuggestions, appearance } = useSettings();
@@ -140,7 +143,7 @@ function Main() {
   const systemScheme = useColorScheme();
   const scheme: Scheme = appearance === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : appearance;
   setScheme(scheme);
-  const statusBar = scheme === 'dark' ? 'light' : 'dark';
+  const statusBar = scheme === 'light' ? 'dark' : 'light';
   const { point } = useLocation();
   // v2: venues the user checked in at (reloaded after each check-in, when the check-in count changes)
   const visits = useVisits(auth.user?.token, auth.user?.checkins);
@@ -525,8 +528,9 @@ function Main() {
           )}
           {screen === 'campaigns' && (
             <CampaignsScreen
-              key={campaignsTab ?? 'default'}
+              key={tabReset}
               initialTab={campaignsTab ?? undefined}
+              onTabChange={setCampaignsTab}
               signedIn={isRegistered(auth.user)}
               serverPoints={auth.user?.points ?? 0}
               customerCode={auth.user?.customerCode ?? null}
@@ -557,6 +561,7 @@ function Main() {
             />
           )}
           {screen === 'legal' && <LegalScreen initial="terms" onBack={goBack} />}
+          {screen === 'admin' && auth.user?.token && <AdminScreen token={auth.user.token} onBack={goBack} onOpenVenue={openDetails} />}
           {screen === 'venueList' && openedList && auth.user?.token && (
             <ListScreen
               key={'id' in openedList ? `id-${openedList.id}` : `code-${openedList.code}`}
@@ -619,8 +624,9 @@ function Main() {
           {screen === 'verification' && <VerificationScreen onBack={goBack} />}
           {screen === 'friends' && (
             <SocialScreen
-              key={socialTab}
+              key={tabReset}
               initialTab={socialTab}
+              onTabChange={setSocialTab}
               user={auth.user}
               onOpenVenue={openDetails}
               onOpenProfile={openMyProfile}
@@ -662,6 +668,7 @@ function Main() {
             onSelect={(next) => {
               if (next === 'friends') setSocialTab('feed');
               if (next === 'campaigns') setCampaignsTab(null);
+              if (next === 'friends' || next === 'campaigns') setTabReset((n) => n + 1);
               goTo(next);
               setSelectedId(null);
             }}

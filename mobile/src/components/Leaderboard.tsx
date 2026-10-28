@@ -28,14 +28,20 @@ type Props = { token: string; me: string | null; onOpenUser: (username: string) 
  * v2 Sosyal > Sıralama: points this week (from Monday) or all time, among friends, everyone,
  * or one of my groups ("Grup oluştur", invitations to join).
  */
+// The last choice, so back from a profile shows the same list
+const last: { period: Period; scope: Scope; groupId: number | null } = { period: 'week', scope: 'friends', groupId: null };
+
 export function Leaderboard({ token, me, onOpenUser }: Props) {
-  const [period, setPeriod] = useState<Period>('week');
-  const [scope, setScope] = useState<Scope>('friends');
+  const [period, setPeriod] = useState<Period>(last.period);
+  const [scope, setScope] = useState<Scope>(last.scope);
   const [board, setBoard] = useState<Board | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Gruplar: mine and the invitations; the one shown; the form (new group, or inviting to the shown one)
   const [groups, setGroups] = useState<Group[] | null>(null);
-  const [groupId, setGroupId] = useState<number | null>(null);
+  const [groupId, setGroupId] = useState<number | null>(last.groupId);
+  useEffect(() => {
+    Object.assign(last, { period, scope, groupId });
+  }, [period, scope, groupId]);
   const [form, setForm] = useState<'create' | 'invite' | null>(null);
   const [groupNote, setGroupNote] = useState<string | null>(null);
 

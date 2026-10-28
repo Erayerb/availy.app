@@ -20,6 +20,8 @@ from app.venues_api import router as venues_router
 from app.automation_api import router as automation_router
 from app.groups_api import router as groups_router
 from app.lists_api import router as lists_router
+from app.moderation_api import router as moderation_router
+from app.moderation_api import venue_router as venue_issues_router
 from app.loyalty_api import router as loyalty_router
 from app.checkins import load_crowds, load_discoveries, load_trends
 from app.config import settings
@@ -69,6 +71,8 @@ app.include_router(loyalty_router)
 app.include_router(groups_router)
 app.include_router(lists_router)
 app.include_router(automation_router)
+app.include_router(moderation_router)
+app.include_router(venue_issues_router)
 
 
 class CrowdOut(BaseModel):

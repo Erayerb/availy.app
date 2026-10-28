@@ -1,4 +1,4 @@
-/** v2: venue reviews and replies on the server, and the friends' feed (Sosyal > Akış). */
+/** v2: venue reviews and replies on the server, and the feed (Sosyal > Akış: mine, Arkadaşlarım: friends'). */
 import { send } from './accountApi.ts';
 
 export const MAX_REVIEW = 280;
@@ -47,7 +47,9 @@ export type FeedItem = {
   checkin_id?: number | null;
   likes?: number;
   liked?: boolean;
+  likers?: string[]; // the last 3 who liked it
   comments?: CheckinComment[];
+  replies?: CheckinComment[]; // my own Akış: replies under my review
 };
 
 export type CheckinComment = { id: number; username: string | null; body: string; at: string; mine: boolean };
@@ -77,23 +79,42 @@ export const reviewsApi = {
   reply: (token: string, reviewId: number, body: string) =>
     send<{ id: number }>('POST', `/v1/reviews/${reviewId}/replies`, { body }, token),
   removeReply: (token: string, replyId: number) => send<void>('DELETE', `/v1/replies/${replyId}`, undefined, token),
-  feed: (token: string) => send<FeedItem[]>('GET', '/v1/feed', undefined, token),
+  // The last 3 days; "Daha eski" asks for 7
+  // who: "me" = Sosyal > Akış (my own), "friends" = Sosyal > Arkadaşlarım
+  feed: (token: string, days = 3, who: 'me' | 'friends' = 'friends') =>
+    send<FeedItem[]>('GET', `/v1/feed?days=${days}&who=${who}`, undefined, token),
 };
 
 /** "@ayse" (guests and deleted accounts have no user name). */
 export const author = (username: string | null) => (username ? `@${username}` : 'Misafir');
 
-/** Feed in blocks: what one person did in a row stays together, the next person gets a new block. */
-export function groupByPerson(items: FeedItem[]): { username: string | null; items: FeedItem[] }[] {
-  const groups: { username: string | null; items: FeedItem[] }[] = [];
-  for (const item of items) {
-    const last = groups[groups.length - 1];
-    if (last && last.username === item.username) last.items.push(item);
-    else groups.push({ username: item.username, items: [item] });
-  }
-  return groups;
-}
-
 /** My newest review in a venue's list (the one just written). */
 export const newestMine = (reviews: Reviews): Review | null =>
   reviews.items.filter((r) => r.mine).sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null;
+
+export type DaySection = { title: string; items: FeedItem[] };
+
+/**
+ * Akış: one heading per date ("Bugün", "Dün", "25 Ekim Cumartesi"); what is older
+ * than `recentDays` days (shown with "Daha eski") goes under "Daha eski". Items arrive newest first.
+ */
+export function daySections(items: FeedItem[], now = new Date(), recentDays = 3): DaySection[] {
+  const start = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const sections: DaySection[] = [];
+  for (const item of items) {
+    const at = new Date(item.at);
+    const days = Math.round((start(now) - start(at)) / 86_400_000);
+    const title =
+      days >= recentDays
+        ? 'Daha eski'
+        : days === 0
+          ? 'Bugün'
+          : days === 1
+            ? 'Dün'
+            : at.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' });
+    const last = sections[sections.length - 1];
+    if (last?.title === title) last.items.push(item);
+    else sections.push({ title, items: [item] });
+  }
+  return sections;
+}

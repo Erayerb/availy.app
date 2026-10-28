@@ -4,9 +4,9 @@ import psycopg
 
 from app.config import settings
 
-# Hidden sources (v1 demo venues), parks (no longer shown; kept with their check-ins), and venues
-# added by users that nobody approved within 30 days
-VISIBLE = """source <> ALL(%(hidden)s::text[]) AND category <> 'park'
+# Hidden sources (v1 demo venues), parks (no longer shown; kept with their check-ins), venues an admin
+# marked closed ("Bilgi yanlış mı?"), and venues added by users that nobody approved within 30 days
+VISIBLE = """source <> ALL(%(hidden)s::text[]) AND category <> 'park' AND closed_at IS NULL
           AND NOT (source = 'user' AND approved_at IS NULL AND created_at < now() - interval '30 days')"""
 # Shown as "⏳ Onay bekliyor"
 PENDING = "(source = 'user' AND approved_at IS NULL) AS pending"

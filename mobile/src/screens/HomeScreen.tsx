@@ -3,13 +3,14 @@ import { Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-n
 import { Pressable } from '../components/Pressable';
 
 import { ClearButton } from '../components/ClearButton';
-import { Chip, TagChips } from '../components/TagChips';
+import { Chip } from '../components/TagChips';
+import { FilterBar } from '../components/FilterSheet';
 import { VenueGrid } from '../components/VenueGrid';
 import { Wordmark } from '../components/Wordmark';
 import { useDistricts } from '../hooks/useDistricts';
 import { useSearch } from '../hooks/useSearch';
 import type { Venue } from '../lib/api';
-import { toggleTag, type Tag } from '../lib/filters';
+import type { Tag } from '../lib/filters';
 import {
   districtsForSides,
   isPilotDistrict,
@@ -22,7 +23,7 @@ import {
 import { useLocation } from '../context/LocationContext';
 import { sortByDistance } from '../lib/geo';
 import { HeaderButtons } from '../components/HeaderButtons';
-import { SORT_OPTIONS, sortVenues, type SortMode } from '../lib/sort';
+import { sortVenues, type SortMode } from '../lib/sort';
 import { stableShuffle } from '../lib/shuffle';
 import { colors, themed } from '../theme';
 
@@ -76,7 +77,8 @@ export function HomeScreen({
     [found, sides, districts, hideClosed],
   );
   const searching = query.trim().length > 0;
-  const hasFilters = districts.length > 0 || tags.length > 0 || sides.length > 0;
+  // Konum > Temizle: the place filters only (the rest are reset in Filtrele)
+  const hasPlaceFilter = districts.length > 0 || sides.length > 0;
 
   const changeSides = (side: Side) => {
     const next = toggleSide(sides, side);
@@ -111,9 +113,8 @@ export function HomeScreen({
           onPress={() => {
             onSidesChange([]);
             onDistrictsChange([]);
-            onTagsChange([]);
           }}
-          disabled={!hasFilters}
+          disabled={!hasPlaceFilter}
         />
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
@@ -140,9 +141,6 @@ export function HomeScreen({
         ))}
       </ScrollView>
 
-      <Text style={styles.sectionTitle}>Ne arıyorsun?</Text>
-      <TagChips selected={tags} onToggle={(tag) => onTagsChange(toggleTag(tags, tag))} />
-
       <View style={styles.search}>
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
@@ -161,6 +159,17 @@ export function HomeScreen({
         )}
       </View>
 
+      {/* Filtrele: Ne arıyorsun?, Sırala (Önerilen / En yakın / En sakin), Kapalıları gizle */}
+      <FilterBar
+        tags={tags}
+        onTagsChange={onTagsChange}
+        sortMode={sortMode}
+        onSortChange={onSortChange}
+        hideClosed={hideClosed}
+        onHideClosedChange={onHideClosedChange}
+        count={items.length}
+      />
+
       {needsLocation && <Text style={styles.hint}>En yakını göstermek için konum izni gerekli.</Text>}
       {updatedAt && (
         <Text style={styles.hint}>
@@ -168,13 +177,6 @@ export function HomeScreen({
           {Platform.OS === 'web' ? '' : ' · yenilemek için aşağı çek'}
         </Text>
       )}
-      {/* Sorting, right above the venues */}
-      <View style={styles.sortChips}>
-        {SORT_OPTIONS.map(({ mode, label }) => (
-          <Chip key={mode} label={label} active={sortMode === mode} onPress={() => onSortChange(mode)} />
-        ))}
-        <Chip label="Kapalıları gizle" active={hideClosed} onPress={() => onHideClosedChange(!hideClosed)} />
-      </View>
     </View>
   );
 
@@ -197,7 +199,6 @@ const styles = themed(() => StyleSheet.create({
   sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.text, marginTop: 8 },
   sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   row: { gap: 8 },
-  sortChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
   hint: { fontSize: 13, color: colors.textMuted },
   search: {
     flexDirection: 'row',

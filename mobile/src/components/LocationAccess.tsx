@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { AppState, Linking, Platform, StyleSheet, Text, View } from 'react-native';
 import { Pressable } from './Pressable';
 
-import { useSettings } from '../context/SettingsContext';
 import { colors, themed } from '../theme';
 
 type Access = 'unknown' | 'none' | 'ask' | 'inUse' | 'always';
@@ -16,26 +15,11 @@ const ACCESS: Record<Access, { title: string; hint: string }> = {
   always: { title: 'Daima', hint: 'Tüm özellikler açık' },
 };
 
-// What each feature needs: "inUse" works with "Uygulamayı kullanırken", "always" needs "Daima".
-// `setting`: the user can turn it off here; check-in always needs the location
-type Feature = {
-  icon: string;
-  title: string;
-  text: string;
-  needs: 'inUse' | 'always';
-  setting?: 'showMyLocation' | 'checkinSuggestions';
-  soon?: boolean;
-};
-const FEATURES: Feature[] = [
-  { icon: '📍', title: 'Check-in yap', text: 'Mekanda olduğunu bir kez doğrular (gerekli)', needs: 'inUse' },
-  { icon: '🗺️', title: 'Haritada konumum', text: 'Haritada mavi nokta', needs: 'inUse', setting: 'showMyLocation' },
-  {
-    icon: '👋',
-    title: 'Check-in önerisi',
-    text: 'Uygulama açıkken bir mekanın yanında kalınca sorar',
-    needs: 'inUse',
-    setting: 'checkinSuggestions',
-  },
+// What each feature needs: "inUse" works with "Uygulamayı kullanırken", "always" needs "Daima"
+const FEATURES: { icon: string; title: string; text: string; needs: 'inUse' | 'always'; soon?: boolean }[] = [
+  { icon: '📍', title: 'Check-in yap', text: 'Mekanda olduğunu bir kez doğrular', needs: 'inUse' },
+  { icon: '🗺️', title: 'Haritada konumum', text: 'Haritada mavi nokta ve mesafeler', needs: 'inUse' },
+  { icon: '👋', title: 'Check-in önerisi', text: 'Uygulama açıkken bir mekanın yanında kalınca sorar', needs: 'inUse' },
   { icon: '🔔', title: 'Kapalıyken check-in önerisi', text: 'Yakında; "Daima" izni ister', needs: 'always', soon: true },
 ];
 
@@ -44,10 +28,9 @@ const enough = (access: Access, needs: 'inUse' | 'always') =>
 
 /**
  * Inside "Konum" in Konum ve izinler: the current location permission, "Düzenle", and which
- * features it covers; the optional ones have a tick to turn them on or off.
+ * features it covers (✓ works with it, ! needs more). Check-in önerisi is turned off in Bildirim ayarları.
  */
 export function LocationAccess({ onChange }: { onChange?: () => void }) {
-  const settings = useSettings();
   const [access, setAccess] = useState<Access>('unknown');
   const [webHint, setWebHint] = useState(false);
 
@@ -55,7 +38,9 @@ export function LocationAccess({ onChange }: { onChange?: () => void }) {
     try {
       const foreground = await Location.getForegroundPermissionsAsync();
       if (foreground.status !== 'granted') return setAccess(foreground.status === 'undetermined' ? 'ask' : 'none');
-      // "Daima" is not asked for yet; reading it may fail where it is not set up (web, Expo Go)
+      // "Daima" is not asked for yet; reading it may fail where it is not set up (Expo Go), and a
+      // browser has no such thing (it answers "granted" for any allowed site)
+      if (Platform.OS === 'web') return setAccess('inUse');
       const background = await Location.getBackgroundPermissionsAsync().catch(() => null);
       setAccess(background?.status === 'granted' ? 'always' : 'inUse');
     } catch {
@@ -107,17 +92,9 @@ export function LocationAccess({ onChange }: { onChange?: () => void }) {
       </Text>
       <View style={styles.list}>
         {FEATURES.map((f, i) => {
-          const allowed = !f.soon && enough(access === 'always' || access === 'inUse' ? access : 'none', f.needs);
-          const on = f.setting ? settings[f.setting] : allowed;
+          const ok = !f.soon && enough(access === 'always' || access === 'inUse' ? access : 'none', f.needs);
           return (
-            <Pressable
-              key={f.title}
-              style={[styles.row, i > 0 && styles.divider]}
-              disabled={!allowed || !f.setting}
-              onPress={() => f.setting && settings.update({ [f.setting]: !settings[f.setting] })}
-              accessibilityRole={f.setting ? 'checkbox' : undefined}
-              accessibilityState={f.setting ? { checked: on, disabled: !allowed } : undefined}
-            >
+            <View key={f.title} style={[styles.row, i > 0 && styles.divider]}>
               <View style={styles.icon}>
                 <Text style={styles.iconText}>{f.icon}</Text>
               </View>
@@ -125,14 +102,8 @@ export function LocationAccess({ onChange }: { onChange?: () => void }) {
                 <Text style={styles.featureTitle}>{f.title}</Text>
                 <Text style={styles.small}>{f.text}</Text>
               </View>
-              {!allowed ? (
-                <Text style={[styles.mark, styles.notOk]}>!</Text>
-              ) : (
-                <View style={[styles.box, on && styles.boxOn, !f.setting && styles.boxLocked]}>
-                  {on && <Text style={styles.tick}>✓</Text>}
-                </View>
-              )}
-            </Pressable>
+              <Text style={[styles.mark, ok ? styles.ok : styles.notOk]}>{ok ? '✓' : '!'}</Text>
+            </View>
           );
         })}
       </View>
@@ -168,11 +139,6 @@ const styles = themed(() => StyleSheet.create({
   iconText: { fontSize: 16 },
   featureTitle: { fontSize: 14, fontWeight: '700', color: colors.text },
   small: { fontSize: 12, color: colors.textMuted, lineHeight: 16 },
-  // A tick box; check-in's is always on (needed), the others can be turned off
-  box: { width: 24, height: 24, borderRadius: 7, borderWidth: 2, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  boxOn: { backgroundColor: colors.success, borderColor: colors.success },
-  boxLocked: { opacity: 0.5 },
-  tick: { color: colors.white, fontSize: 14, fontWeight: '900' },
   mark: { fontSize: 18, fontWeight: '800', width: 22, textAlign: 'center' },
   ok: { color: colors.success },
   notOk: { color: colors.textMuted },

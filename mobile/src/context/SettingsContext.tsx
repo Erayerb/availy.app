@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, type ReactNode } from 'react';
 import { usePersistentState } from '../hooks/usePersistentState';
 import { isTentative, liveLevel, type Crowd } from '../lib/crowd';
 import { CLOSED_STYLE, fadeColor, levelColorFor, levelStyle, STALE_STYLE, UNEXPLORED_STYLE, type LevelLook } from '../lib/occupancy';
-import { getScheme } from '../theme';
+import { isDarkScheme } from '../theme';
 import { KEYS } from '../lib/storage';
 
 export type Settings = {
@@ -12,7 +12,6 @@ export type Settings = {
   premium: boolean; // B2C Premium (demo, no payment): no ads, unlimited watches
   // v2 notifications
   checkinSuggestions: boolean; // "Mado'dasın gibi, check-in yap?" after a few minutes near a venue
-  showMyLocation: boolean; // the blue dot on the map (Konum ve izinler > Konum)
   // Sosyal bildirimler (phone notifications; the 🔔 list always has everything)
   friendNotifications: boolean; // friend requests
   friendAcceptedNotifications: boolean; // my requests accepted
@@ -21,18 +20,18 @@ export type Settings = {
   checkinLikeNotifications: boolean; // likes on my check-ins
   // v2 privacy kept on the phone (the rest is on the server)
   privateByDefault: boolean; // the check-in screen starts with "Gizli check-in" on
-  // Görünüm: follow the phone, or always light / dark
+  // Görünüm: follow the phone, or always light / dark / petrol / graphite (on trial)
   appearance: Appearance;
 };
 
-export type Appearance = 'system' | 'light' | 'dark';
+export type Appearance = 'system' | 'light' | 'dark' | 'petrol' | 'graphite';
+const APPEARANCES: Appearance[] = ['system', 'light', 'dark', 'petrol', 'graphite'];
 
 const DEFAULTS: Settings = {
   colorBlind: false,
   watchNotifications: true,
   premium: false,
   checkinSuggestions: true,
-  showMyLocation: true,
   friendNotifications: true,
   friendAcceptedNotifications: true,
   replyNotifications: true,
@@ -52,7 +51,11 @@ type SettingsValue = Settings & {
 
 const SettingsContext = createContext<SettingsValue | null>(null);
 
-const parse = (raw: unknown): Settings => ({ ...DEFAULTS, ...(raw && typeof raw === 'object' ? raw : {}) });
+const parse = (raw: unknown): Settings => {
+  const settings = { ...DEFAULTS, ...(raw && typeof raw === 'object' ? raw : {}) };
+  // A theme that was removed (e.g. the trial "Koyu mavi") falls back to the phone's setting
+  return APPEARANCES.includes(settings.appearance) ? settings : { ...settings, appearance: 'system' };
+};
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = usePersistentState(KEYS.settings, DEFAULTS, parse);
@@ -62,7 +65,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     (level: string, open = true): LevelLook => {
       if (!open) return { ...CLOSED_STYLE, glyph: settings.colorBlind ? CLOSED_STYLE.glyph : null };
       const base = levelStyle(level, settings.colorBlind);
-      return { ...base, color: levelColorFor(base.color, getScheme() === 'dark') };
+      return { ...base, color: levelColorFor(base.color, isDarkScheme()) };
     },
     // The scheme is read when called, so the colours always follow Görünüm
     [settings.colorBlind],

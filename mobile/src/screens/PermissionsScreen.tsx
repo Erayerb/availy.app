@@ -135,11 +135,11 @@ export function PermissionsScreen({
       icon: '📷',
       title: 'Kamera',
       to: 'Kameraya',
-      summary: business ? 'Müşterinin kupon ve sadakat QR kodunu okutmak için' : 'Yalnızca QR okutmak için',
+      summary: business ? 'Müşterinin kupon ve sadakat QR kodunu okutmak için' : 'QR okutmak ve profil fotoğrafı çekmek için',
       status: asStatus(camera?.status),
       uses: business
         ? ['Müşterinin kupon QR kodunu okutup kullanıldı saymak', 'Sadakat kartına damga eklemek için müşteri QR kodunu okutmak']
-        : ['Arkadaşının QR kodunu okutmak', 'İşletmede damga / kupon QR kodunu okutmak'],
+        : ['Arkadaşının QR kodunu okutmak', 'İşletmede damga / kupon QR kodunu okutmak', 'İstersen profil fotoğrafı çekmek'],
       withoutIt: business
         ? 'Kupon ve müşteri kodlarını elle yazabilirsin.'
         : 'Arkadaşlarını kullanıcı adıyla ya da davet bağlantısıyla ekleyebilirsin.',
@@ -150,14 +150,17 @@ export function PermissionsScreen({
       icon: '🔔',
       title: 'Bildirimler',
       to: 'Bildirimlere',
-      summary: business ? 'Ölü saat uyarısı; reklam yok' : 'Check-in önerileri, arkadaşlık ve yanıtlar; reklam yok',
+      summary: business ? 'Ölü saat ve otomatik kampanya; reklam yok' : 'Check-in önerileri, arkadaşların ve yanıtlar; reklam yok',
       status: isWeb ? 'inApp' : notifications,
       uses: business
-        ? ['Ölü saat: müşteriler mekanını Sakin bildirince haber vermek (Ayarlar)']
-        : ['Check-in önerileri', 'Arkadaşlık istekleri ve yorumlarına gelen yanıtlar', '"Sakin olunca haber ver"'],
-      withoutIt: business
-        ? "Ölü saati yine İşletme Paneli'nde görürsün."
-        : 'Bildirimler yine uygulamadaki 🔔 listesinde görünür.',
+        ? ['Ölü saat: müşteriler mekanını Sakin bildirince haber vermek', 'Otomatik kampanya gönderildiğinde haber vermek']
+        : [
+            'Check-in önerileri',
+            'Arkadaşlık ve grup davetleri, yorumlarına gelen yanıtlar',
+            "Check-in'lerine gelen beğeni ve yorumlar",
+            '"Sakin olunca haber ver"',
+          ],
+      withoutIt: 'Bildirimler yine uygulamadaki 🔔 listesinde görünür. Şimdilik telefon bildirimi yalnızca uygulama açıkken gelir.',
       // The web version has no phone notifications; the 🔔 list is all there is
       onAsk: isWeb ? undefined : () => ask(Notifications.requestPermissionsAsync),
     },
@@ -171,8 +174,8 @@ export function PermissionsScreen({
         <Text style={styles.title}>{business ? 'İzinler' : 'Konum ve izinler'}</Text>
       </View>
       <Text style={styles.muted}>
-        availy yalnızca aşağıdaki izinleri ister. Rehberine yalnızca sen "Rehberden bul" dersen bakar; fotoğraflarına
-        (kapak fotoğrafı seçmek dışında) ve sosyal medya hesaplarına erişmez.
+        availy yalnızca aşağıdaki izinleri ister. Rehberine yalnızca sen "Rehberden bul" dersen bakar; fotoğraflarından
+        yalnızca senin seçtiğini alır; sosyal medya hesaplarına erişmez.
       </Text>
 
       {permissions.map((p) => (
@@ -223,12 +226,12 @@ export function PermissionsScreen({
         <Text style={styles.text}>
           {business
             ? 'Sunucuda tutulanlar: kullanıcı adın, e-postan, şifrenin özeti (şifrenin kendisi değil), mekanın ve yorumlara verdiğin yanıtlar. İstatistikler adsızdır; yalnızca mekanını keşfeden kişinin adını görürsün (gizli check-in değilse).'
-            : "Sunucuda tutulanlar: kullanıcı adın, e-postan, şifrenin özeti (şifrenin kendisi değil), check-in'lerin (mekan, doluluk, saat), puanların, arkadaşlıkların ve yorumların."}
+            : "Sunucuda tutulanlar: kullanıcı adın, e-postan, şifrenin özeti (şifrenin kendisi değil), profil fotoğrafın, check-in'lerin (mekan, doluluk, saat), puanların, arkadaşlıkların, grupların, listelerin ve yorumların."}
         </Text>
         <Text style={styles.muted}>
           {business
             ? "Hesabını İşletme Profili'nden silebilirsin: hesabın ve yanıtların silinir."
-            : "Hesabını Profil ayarları'ndan silebilirsin: hesabın ve yorumların silinir, check-in'lerin yalnızca adsız doluluk bilgisi olarak kalır."}
+            : "Hepsini Profil ayarları > Verilerimi indir ile tek dosya olarak alabilirsin. Hesabını yine Profil ayarları'ndan silebilirsin: hesabın ve yorumların silinir, check-in'lerin yalnızca adsız doluluk bilgisi olarak kalır."}
         </Text>
       </Collapsible>
     </ScrollView>

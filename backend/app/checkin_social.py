@@ -93,19 +93,21 @@ def delete_comment(conn: psycopg.Connection, me: dict, comment_id: int) -> None:
 
 
 def social_for(conn: psycopg.Connection, me: dict, checkin_ids: list[int]) -> dict[int, dict]:
-    """Likes (count, mine) and comments (oldest first) of these check-ins, for the feed."""
+    """Likes (count, mine, the last 3 who liked) and comments (oldest first) of these check-ins, for the feed."""
     if not checkin_ids:
         return {}
     params = {"ids": checkin_ids, "me": me["id"]}
-    out = {cid: {"likes": 0, "liked": False, "comments": []} for cid in checkin_ids}
+    out = {cid: {"likes": 0, "liked": False, "likers": [], "comments": []} for cid in checkin_ids}
     for r in conn.execute(
         f"""
-        SELECT checkin_id, count(*)::int AS likes, bool_or(user_id = %(me)s) AS liked FROM checkin_likes
-        WHERE checkin_id = ANY(%(ids)s) AND user_id NOT IN {BLOCKED} GROUP BY checkin_id
+        SELECT l.checkin_id, count(*)::int AS likes, bool_or(l.user_id = %(me)s) AS liked,
+               (array_agg(u.username ORDER BY l.created_at DESC))[1:3] AS likers
+        FROM checkin_likes l JOIN users u ON u.id = l.user_id
+        WHERE l.checkin_id = ANY(%(ids)s) AND l.user_id NOT IN {BLOCKED} GROUP BY l.checkin_id
         """,
         params,
     ).fetchall():
-        out[r["checkin_id"]].update(likes=r["likes"], liked=r["liked"])
+        out[r["checkin_id"]].update(likes=r["likes"], liked=r["liked"], likers=r["likers"])
     for r in conn.execute(
         f"""
         SELECT k.id, k.checkin_id, u.username, k.body, k.created_at AS at, k.user_id = %(me)s AS mine

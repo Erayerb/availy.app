@@ -29,12 +29,14 @@ class ProfileOut(BaseModel):
     username: str
     relation: Literal["self", "friend", "outgoing", "incoming", "none"]
     muted: bool
-    points: int
-    checkins: int
-    discoveries: int
-    badges: list[BadgeOut]  # the whole catalog with progress
+    # None: the person shows statistics only to friends, or only to themselves (stats_hidden)
+    points: int | None
+    checkins: int | None
+    discoveries: int | None
+    badges: list[BadgeOut]  # the whole catalog with progress (empty when hidden)
     venues: list[ProfileVenue] | None  # None: not visible (not a friend, or they do not share check-ins)
-    weekly_streak: int = 0  # "🔥 4 haftalık seri"
+    weekly_streak: int | None = 0  # "🔥 4 haftalık seri"
+    stats_hidden: bool = False
     photo_at: datetime | None = None  # profile photo: GET /v1/users/{username}/photo?v=<photo_at>
 
 

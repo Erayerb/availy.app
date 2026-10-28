@@ -1,9 +1,8 @@
-import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Pressable } from '../components/Pressable';
 
-import { Avatar } from '../components/Avatar';
+import { ProfilePhoto } from '../components/ProfilePhoto';
 import { Collapsible } from '../components/Collapsible';
 import { ProfileEditor } from '../components/business/ProfileEditor';
 import { BadgeGrid } from '../components/BadgeGrid';
@@ -13,7 +12,6 @@ import { useCampaigns } from '../context/CampaignsContext';
 import { useLoyalty } from '../context/LoyaltyContext';
 import { accountKey, MIN_PASSWORD_LENGTH, normalizeUsername, type User } from '../lib/auth';
 import { downloadMyData } from '../lib/dataExport';
-import { userPhotoApi } from '../lib/userPhoto';
 import { availyPoints } from '../lib/loyalty';
 import { colors, themed } from '../theme';
 
@@ -173,58 +171,6 @@ type AccountProps = Pick<
   Props,
   'onChangeUsername' | 'onChangePassword' | 'onChangeEmail' | 'onFreezeAccount' | 'onDeleteAccount'
 > & { user: User };
-
-/** Profile photo: shown on the profile and in Sosyal instead of the first letter. */
-function ProfilePhoto({ username, token }: { username: string; token: string }) {
-  const [version, setVersion] = useState<string | null>(null);
-  const [note, setNote] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const pick = async () => {
-    setNote(null);
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.4,
-      base64: true,
-    });
-    if (result.canceled) return;
-    const asset = result.assets[0];
-    if (!asset.base64) return setNote('Fotoğraf okunamadı.');
-    setBusy(true);
-    try {
-      const saved = await userPhotoApi.save(token, `data:${asset.mimeType ?? 'image/jpeg'};base64,${asset.base64}`);
-      setVersion(saved.photo_at);
-    } catch (e) {
-      setNote(e instanceof Error ? e.message : 'Kaydedilemedi.');
-    }
-    setBusy(false);
-  };
-
-  return (
-    <View style={styles.photoRow}>
-      <Avatar key={version ?? 'start'} username={username} size={64} version={version} />
-      <View style={styles.photoActions}>
-        <Pressable onPress={pick} disabled={busy} hitSlop={8}>
-          <Text style={styles.link}>{busy ? 'Yükleniyor…' : 'Profil fotoğrafı seç'}</Text>
-        </Pressable>
-        <Pressable
-          hitSlop={8}
-          onPress={() =>
-            userPhotoApi
-              .remove(token)
-              .then(() => setVersion(new Date().toISOString()))
-              .catch(() => {})
-          }
-        >
-          <Text style={styles.removePhoto}>Fotoğrafı kaldır</Text>
-        </Pressable>
-        {note && <Text style={styles.error}>{note}</Text>}
-      </View>
-    </View>
-  );
-}
 
 /** "Verilerimi indir" (KVKK): everything kept about me on the server, as a JSON file. */
 function MyData({ token }: { token: string | null | undefined }) {
@@ -646,8 +592,5 @@ const styles = themed(() => StyleSheet.create({
   verifyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   smallPrimary: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 12, backgroundColor: colors.primary },
   link: { color: colors.primary, fontWeight: '600' },
-  photoRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 4 },
-  photoActions: { flex: 1, gap: 8 },
-  removePhoto: { color: colors.textMuted, fontWeight: '600', fontSize: 13 },
   error: { color: colors.danger },
 }));

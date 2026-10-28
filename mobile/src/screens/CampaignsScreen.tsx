@@ -60,11 +60,16 @@ type Props = {
   // Set when opened from "Daha fazla" (customers); businesses have it as a tab
   onBack?: () => void;
   initialTab?: Tab; // e.g. "myPrograms" from Müşteriler
+  onTabChange?: (tab: Tab) => void; // remembered, so back from a venue returns to this tab
 };
 
-export function CampaignsScreen({ signedIn, serverPoints, customerCode, business, onLogin, onOpenVenue, onBack, initialTab }: Props) {
+export function CampaignsScreen({ signedIn, serverPoints, customerCode, business, onLogin, onOpenVenue, onBack, initialTab, onTabChange }: Props) {
   const tabs = business ? BUSINESS_TABS : CUSTOMER_TABS;
-  const [tab, setTab] = useState<Tab>(initialTab && tabs.some((t) => t.tab === initialTab) ? initialTab : tabs[0].tab);
+  const [tab, setTabState] = useState<Tab>(initialTab && tabs.some((t) => t.tab === initialTab) ? initialTab : tabs[0].tab);
+  const setTab = (next: Tab) => {
+    setTabState(next);
+    onTabChange?.(next);
+  };
 
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>

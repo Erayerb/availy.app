@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { groupByPerson, type FeedItem } from '../src/lib/reviews.ts';
+import { daySections, type FeedItem } from '../src/lib/reviews.ts';
 
-const item = (username: string, at: string): FeedItem => ({
-  kind: 'checkin',
+const item = (username: string, at: string, venue = 'Mado', kind: FeedItem['kind'] = 'checkin'): FeedItem => ({
+  kind,
   at,
   username,
   venue_id: 1,
-  venue_name: 'Mado',
+  venue_name: venue,
   is_first: false,
   points: 10,
   rating: null,
@@ -18,14 +18,20 @@ const item = (username: string, at: string): FeedItem => ({
   allow_replies: false,
 });
 
-test('the feed is grouped into one block per person in a row', () => {
-  const groups = groupByPerson([item('ali', '3'), item('ali', '2'), item('ayse', '1'), item('ali', '0')]);
+test('Akış: a heading per date, older ones under "Daha eski"', () => {
+  const now = new Date(2026, 9, 28, 18, 0);
+  const at = (day: number, hour: number) => new Date(2026, 9, day, hour).toISOString();
+  const sections = daySections(
+    [item('me', at(28, 17)), item('me', at(28, 9)), item('me', at(27, 20)), item('me', at(26, 20)), item('me', at(24, 20)), item('me', at(22, 8))],
+    now,
+  );
   assert.deepEqual(
-    groups.map((g) => [g.username, g.items.length]),
+    sections.map((s) => [s.title, s.items.length]),
     [
-      ['ali', 2],
-      ['ayse', 1],
-      ['ali', 1],
+      ['Bugün', 2],
+      ['Dün', 1],
+      [new Date(2026, 9, 26).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' }), 1],
+      ['Daha eski', 2],
     ],
   );
 });

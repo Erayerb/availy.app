@@ -69,6 +69,7 @@ def test_privacy_settings_and_search(client):
         "searchable": False,
         "suggest_by_venues": True,
         "regular_public": False,
+        "stats_visibility": "friends",
     }
     assert client.get("/v1/users/search", params={"q": "t_ay"}, headers=auth(ali)).json() == []
     # An exact user name (QR code, invite link) still works

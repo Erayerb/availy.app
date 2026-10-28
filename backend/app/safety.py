@@ -25,14 +25,17 @@ MUTED = "(SELECT muted_id FROM mutes WHERE muter_id = %(me)s)"
 
 
 def hidden_review(alias: str = "r") -> str:
-    """Condition for a review row (`alias`) I should not see: reported by me or by too many."""
-    return f"""(EXISTS (SELECT 1 FROM reports x WHERE x.review_id = {alias}.id AND x.reporter_id = %(me)s)
-              OR (SELECT count(*) FROM reports x WHERE x.review_id = {alias}.id) >= {REPORTS_TO_HIDE})"""
+    """Condition for a review row (`alias`) I should not see: removed by an admin, reported by me, or by
+    too many (reports an admin dismissed do not count)."""
+    return f"""({alias}.removed_at IS NOT NULL
+              OR EXISTS (SELECT 1 FROM reports x WHERE x.review_id = {alias}.id AND x.reporter_id = %(me)s AND x.dismissed_at IS NULL)
+              OR (SELECT count(*) FROM reports x WHERE x.review_id = {alias}.id AND x.dismissed_at IS NULL) >= {REPORTS_TO_HIDE})"""
 
 
 def hidden_reply(alias: str = "p") -> str:
-    return f"""(EXISTS (SELECT 1 FROM reports x WHERE x.reply_id = {alias}.id AND x.reporter_id = %(me)s)
-              OR (SELECT count(*) FROM reports x WHERE x.reply_id = {alias}.id) >= {REPORTS_TO_HIDE})"""
+    return f"""({alias}.removed_at IS NOT NULL
+              OR EXISTS (SELECT 1 FROM reports x WHERE x.reply_id = {alias}.id AND x.reporter_id = %(me)s AND x.dismissed_at IS NULL)
+              OR (SELECT count(*) FROM reports x WHERE x.reply_id = {alias}.id AND x.dismissed_at IS NULL) >= {REPORTS_TO_HIDE})"""
 
 
 @dataclass
@@ -117,7 +120,7 @@ def report(conn: psycopg.Connection, me: dict, reason: str, review_id: int | Non
 def profile(conn: psycopg.Connection, me: dict, username: str, now: datetime) -> dict:
     """A person's profile: stats, earned badges, and (for me and my friends) the venues they checked in at."""
     other = conn.execute(
-        "SELECT id, username, share_checkins, frozen FROM users WHERE lower(username) = %s AND NOT is_guest",
+        "SELECT id, username, share_checkins, frozen, stats_visibility FROM users WHERE lower(username) = %s AND NOT is_guest",
         (normalize_username(username),),
     ).fetchone()
     hidden = other is not None and other["id"] != me["id"] and (other["frozen"] or is_blocked_between(conn, me["id"], other["id"]))
@@ -129,7 +132,9 @@ def profile(conn: psycopg.Connection, me: dict, username: str, now: datetime) ->
     from app.user_photos import photo_time
 
     rel = "self" if is_me else relation(conn, me["id"], other["id"])
-    stats = user_stats(conn, other["id"])
+    # Statistics: for friends (default) or only for the person (Gizlilik ayarları)
+    show_stats = is_me or (other["stats_visibility"] == "friends" and rel == "friend")
+    stats = user_stats(conn, other["id"]) if show_stats else None
     # Others see only public check-ins, and only friends who share them
     show_venues = is_me or (rel == "friend" and other["share_checkins"])
     venues = (
@@ -154,11 +159,12 @@ def profile(conn: psycopg.Connection, me: dict, username: str, now: datetime) ->
         "username": other["username"],
         "relation": rel,
         "muted": muted,
-        "points": stats["points"],
-        "checkins": stats["checkins"],
-        "discoveries": stats["discoveries"],
-        "badges": stats["badges"],
+        "points": stats["points"] if stats else None,
+        "checkins": stats["checkins"] if stats else None,
+        "discoveries": stats["discoveries"] if stats else None,
+        "badges": stats["badges"] if stats else [],
         "venues": venues,
-        "weekly_streak": weekly_streak(conn, other["id"], now),
+        "weekly_streak": weekly_streak(conn, other["id"], now) if stats else None,
+        "stats_hidden": stats is None,
         "photo_at": photo_time(conn, other["id"]),
     }

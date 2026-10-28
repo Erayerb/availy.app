@@ -61,6 +61,7 @@ class UserOut(BaseModel):
     venue_id: int | None
     plan: str | None
     email_verified: bool = False
+    is_admin: bool = False  # Daha fazla > Yönetici
 
 
 class BadgeOut(BaseModel):
@@ -79,6 +80,7 @@ class PrivacyOut(BaseModel):
     searchable: bool  # others find me by user-name search
     suggest_by_venues: bool = True  # suggested to people who go to the same venues
     regular_public: bool = False  # "👑 müdavim" shown to everyone, not only to friends
+    stats_visibility: Literal["friends", "me"] = "friends"  # who sees the profile's statistics
 
 
 class MeOut(UserOut, PrivacyOut):
@@ -257,6 +259,7 @@ class PrivacyIn(BaseModel):
     searchable: bool | None = None
     suggest_by_venues: bool | None = None
     regular_public: bool | None = None
+    stats_visibility: Literal["friends", "me"] | None = None
 
 
 @router.patch("/me/privacy", response_model=PrivacyOut)
@@ -267,7 +270,7 @@ def privacy(body: PrivacyIn, user: dict = Depends(current_user), conn: psycopg.C
         return user
     columns = ", ".join(f"{name} = %({name})s" for name in changes)
     return conn.execute(
-        f"UPDATE users SET {columns} WHERE id = %(id)s RETURNING share_checkins, show_in_leaderboard, searchable, suggest_by_venues, regular_public",
+        f"UPDATE users SET {columns} WHERE id = %(id)s RETURNING share_checkins, show_in_leaderboard, searchable, suggest_by_venues, regular_public, stats_visibility",
         {**changes, "id": user["id"]},
     ).fetchone()
 

@@ -55,9 +55,10 @@ export function VenueMap({
     }).setView([initialRegion.latitude, initialRegion.longitude], zoomForDelta(initialRegion.longitudeDelta));
 
 
-    // The user's blue dot sits above the venue dots (Leaflet's marker pane is 600)
+    // The user's blue dot sits under the venue dots (Leaflet's marker pane is 600), so a venue
+    // right where the user stands (e.g. one just added) is never hidden behind it
     const userPane = map.createPane(USER_PANE);
-    userPane.style.zIndex = '650';
+    userPane.style.zIndex = '450';
     userPane.style.pointerEvents = 'none';
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -99,7 +100,7 @@ export function VenueMap({
     const map = mapRef.current;
     if (!map) return;
     map.getPane('tilePane')!.style.filter =
-      scheme === 'dark' ? 'invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.6)' : '';
+      scheme !== 'light' ? 'invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.6)' : '';
   }, [scheme]);
 
   useEffect(() => {

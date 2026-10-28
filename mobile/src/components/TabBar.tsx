@@ -29,6 +29,7 @@ export type Screen =
   | 'user'
   | 'appearance'
   | 'venueList'
+  | 'admin'
   | 'detail';
 
 type Tab = { screen: Screen; label: string; icon: IconName };

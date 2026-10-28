@@ -16,7 +16,7 @@ export function ClearButton({ onPress, disabled }: Props) {
       hitSlop={8}
       style={[styles.button, disabled && styles.disabled]}
     >
-      <Text style={styles.text}>✕ Temizle</Text>
+      <Text style={[styles.text, disabled && styles.disabledText]}>✕ Temizle</Text>
     </Pressable>
   );
 }
@@ -41,7 +41,9 @@ export function TogglePill({ label, active, onPress }: { label: string; active: 
 
 const styles = themed(() => StyleSheet.create({
   button: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: colors.primary },
-  disabled: { backgroundColor: colors.disabled },
+  // Nothing to clear: a quiet outline, readable on every theme
+  disabled: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border, paddingVertical: 4 },
+  disabledText: { color: colors.textMuted },
   text: { color: colors.onPrimary, fontSize: 12, fontWeight: '600' },
   // Faded until switched on
   off: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.primary, paddingVertical: 4, opacity: 0.5 },

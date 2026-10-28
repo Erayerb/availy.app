@@ -27,13 +27,14 @@ export function PrivacyScreen({ token, onBack, onOpenPermissions, onOpenLegal }:
     if (!token) return;
     socialApi
       .privacy(token)
-      .then(({ share_checkins, show_in_leaderboard, searchable, suggest_by_venues, regular_public }) =>
+      .then(({ share_checkins, show_in_leaderboard, searchable, suggest_by_venues, regular_public, stats_visibility }) =>
         setPrivacy({
           share_checkins,
           show_in_leaderboard,
           searchable,
           suggest_by_venues: suggest_by_venues ?? true,
           regular_public: regular_public ?? false,
+          stats_visibility: stats_visibility === 'me' ? 'me' : 'friends',
         }),
       )
       .catch(() => setError('Gizlilik ayarları yüklenemedi.'));
@@ -94,6 +95,28 @@ export function PrivacyScreen({ token, onBack, onOpenPermissions, onOpenLegal }:
               value={privacy.suggest_by_venues}
               onChange={(v) => change({ suggest_by_venues: v })}
             />
+            <View style={styles.choice}>
+              <Text style={styles.sectionTitle}>Profilimdeki istatistikleri kimler görsün?</Text>
+              <Text style={styles.muted}>Puanların, check-in ve keşif sayın, haftalık serin ve rozetlerin.</Text>
+              <View style={styles.choiceRow}>
+                {(
+                  [
+                    { id: 'friends', label: 'Arkadaşlarım' },
+                    { id: 'me', label: 'Sadece ben' },
+                  ] as const
+                ).map((o) => (
+                  <Pressable
+                    key={o.id}
+                    onPress={() => change({ stats_visibility: o.id })}
+                    style={[styles.choiceChip, privacy.stats_visibility === o.id && styles.choiceChipOn]}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: privacy.stats_visibility === o.id }}
+                  >
+                    <Text style={[styles.choiceText, privacy.stats_visibility === o.id && styles.choiceTextOn]}>{o.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
             <Row
               title="Müdavimi olduğum mekanlarda herkes görsün"
               subtitle="Bir mekana son 30 günde en çok sen gidiyorsan mekan sayfasında “👑 Buranın müdavimi @sen” yazar. Kapalıysa bunu yalnızca arkadaşların görür."
@@ -153,6 +176,12 @@ const styles = themed(() => StyleSheet.create({
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
   card: { padding: 16, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 14 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  choice: { gap: 6 },
+  choiceRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  choiceChip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 14, backgroundColor: colors.cream },
+  choiceChipOn: { backgroundColor: colors.primary },
+  choiceText: { fontSize: 14, fontWeight: '600', color: colors.text },
+  choiceTextOn: { color: colors.onPrimary },
   flex: { flex: 1, gap: 4 },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
   text: { fontSize: 15, color: colors.text },

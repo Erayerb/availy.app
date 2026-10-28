@@ -6,15 +6,19 @@ import { LevelDot } from '../components/LevelDot';
 import { ThemedSwitch } from '../components/ThemedSwitch';
 import { useSettings, type Appearance } from '../context/SettingsContext';
 import { LEVELS } from '../lib/occupancy';
-import { colors, darkColors, lightColors, themed, type Palette } from '../theme';
+import { colors, darkColors, graphiteColors, lightColors, petrolColors, themed, type Palette } from '../theme';
 
 const OPTIONS: { id: Appearance; label: string; hint: string }[] = [
   { id: 'system', label: 'Cihaz ayarı', hint: 'Telefonun açık / koyu ayarını takip eder.' },
   { id: 'light', label: 'Açık', hint: 'Her zaman krem zemin.' },
   { id: 'dark', label: 'Koyu', hint: 'Her zaman koyu kahve zemin; gece gözü yormaz.' },
+  { id: 'petrol', label: 'Petrol', hint: 'Deneme: koyu deniz yeşili zemin, mercan düğmeler.' },
+  { id: 'graphite', label: 'Grafit', hint: 'Deneme: renksiz koyu gri, mor-mavi düğmeler; doluluk renkleri öne çıkar.' },
 ];
 
-/** Daha fazla > Görünüm: follow the phone, or always light / dark; and the color-blind friendly colors. */
+const SWATCH: Record<Exclude<Appearance, 'system'>, Palette> = { light: lightColors, dark: darkColors, petrol: petrolColors, graphite: graphiteColors };
+
+/** Daha fazla > Görünüm: follow the phone, or always light / dark / petrol / graphite (on trial); and the color-blind friendly colors. */
 export function AppearanceScreen({ onBack }: { onBack: () => void }) {
   const { appearance, colorBlind, update, look } = useSettings();
 
@@ -40,7 +44,7 @@ export function AppearanceScreen({ onBack }: { onBack: () => void }) {
                 <Swatch palette={darkColors} half />
               </View>
             ) : (
-              <Swatch palette={o.id === 'dark' ? darkColors : lightColors} />
+              <Swatch palette={SWATCH[o.id]} />
             )}
             <View style={styles.flex}>
               <Text style={styles.label}>{o.label}</Text>

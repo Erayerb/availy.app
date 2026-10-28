@@ -80,7 +80,7 @@ export function MapScreen({
     setOnlyVisited(false);
     setOnlyTrending(false);
   };
-  const { look, showMyLocation } = useSettings();
+  const { look } = useSettings();
   const window = useWindowDimensions();
   const [queryBounds, setQueryBounds] = useState(() => regionToBounds(initialRegion, QUERY_PADDING));
   const [pinPoint, setPinPoint] = useState<Point | null>(null);
@@ -155,7 +155,7 @@ export function MapScreen({
         onRegionChangeComplete={handleRegionChangeComplete}
         onSelectedPointChange={handlePointChange}
         focus={focus}
-        userPoint={showMyLocation ? point : null}
+        userPoint={point}
       />
 
       {/* Jump to the user's own position; asks for permission again if it was not given */}

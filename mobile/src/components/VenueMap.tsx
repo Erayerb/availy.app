@@ -88,7 +88,13 @@ const ClusterMarker = memo(function ClusterMarker({
   const size = clusterSize(venues.length);
   const color = clusterColor(venues, (v) => crowdLook(v).color, UNEXPLORED_STYLE.color);
   return (
-    <Marker coordinate={{ latitude: lat, longitude: lon }} anchor={{ x: 0.5, y: 0.5 }} onPress={() => onZoomIn(venues)} tracksViewChanges={false}>
+    <Marker
+      coordinate={{ latitude: lat, longitude: lon }}
+      anchor={{ x: 0.5, y: 0.5 }}
+      onPress={() => onZoomIn(venues)}
+      zIndex={2}
+      tracksViewChanges={false}
+    >
       <View style={[styles.cluster, { width: size, height: size, borderRadius: size / 2, backgroundColor: color }]} collapsable={false}>
         <Text style={styles.clusterText}>{venues.length}</Text>
       </View>
@@ -201,13 +207,14 @@ export function VenueMap({
       onLayout={(e) => setSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
       showsMyLocationButton={false}
       // Apple Maps' own dark style in the dark theme
-      userInterfaceStyle={scheme}
+      userInterfaceStyle={scheme === 'light' ? 'light' : 'dark'}
     >
+      {/* Under the venue dots: a venue right where the user stands stays visible */}
       {userPoint && (
         <Marker
           coordinate={{ latitude: userPoint.lat, longitude: userPoint.lon }}
           anchor={{ x: 0.5, y: 0.5 }}
-          zIndex={20}
+          zIndex={0}
           tracksViewChanges={false}
           tappable={false}
         >

@@ -36,6 +36,12 @@ def test_profile_shows_venues_to_me_and_friends_only(client, conn):
     own = client.get("/v1/users/t_ayse", headers=auth(ayse)).json()
     assert own["relation"] == "self" and len(own["venues"]) == 2 and len(own["badges"]) == len(friend_view["badges"])
     assert client.get("/v1/users/yokboyle", headers=auth(ali)).status_code == 404
+    # Statistics: friends see them by default, others do not; "only me" hides them from friends too
+    stranger_view = client.get("/v1/users/t_ayse", headers=auth(can)).json()
+    assert stranger_view["stats_hidden"] and stranger_view["points"] is None and stranger_view["badges"] == []
+    client.patch("/v1/me/privacy", json={"stats_visibility": "me"}, headers=auth(ayse))
+    assert client.get("/v1/users/t_ayse", headers=auth(ali)).json()["stats_hidden"] is True
+    assert client.get("/v1/users/t_ayse", headers=auth(ayse)).json()["checkins"] == 2
 
 
 def test_block_ends_friendship_and_hides_both_ways(client, conn, visit):

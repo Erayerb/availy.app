@@ -145,6 +145,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - "📈 Cumartesi günleri genelde 18:00–20:00 kalabalık · En sakin: 10:00–11:00": son 8 haftanın check-in puanları gün ve saat başına ortalanır (en az 3 check-in olan saatler); bugünün gününde yeterli veri yoksa tüm günler birlikte (GET /v1/venues/{id}/typical, app/typical.py)
 - Mekan sayfası (✓ haritadaki kartta da): kapak fotoğrafı, ✓ Doğrulanmış işletme rozeti, ⏳ Onay bekliyor, keşfeden, yıldız ortalaması, doluluk, saatler, Instagram / Ara düğmeleri, check-in, Haritada gör / Yol tarifi, kampanya, özellikler, yorumlar; "Sakin olunca haber ver" (🔕)
 - Favoriler: yalnızca kayıtlı kullanıcılar (misafire "Kayıt ol / Giriş yap"); Kaydedilenler / Ziyaret edilenler (telefonda, hesap başına)
+- Ana sayfa: "Mekan ara"nın altında "Filtrele" (açılan alt menü: Ne arıyorsun?, Sırala: Önerilen / En yakın / En sakin, Kapalıları gizle; "N mekanı göster", "Sıfırla"); seçilenler düğmenin yanında ✕ ile kaldırılır; Konum > Temizle yalnızca konumu temizler
 - Görünüm: Cihaz ayarı / Açık / Koyu (koyu harita: telefonda Apple koyu mod, web'de koyulaştırılmış OSM)
 
 **Mekanlar**
@@ -175,6 +176,16 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - "Check-in yapana kupon": kampanyada "Kupon kimlere? Yalnızca check-in yapanlar"; müşteride "📍 Check-in yap, kuponu kap", check-in yapınca kupon kendiliğinden verilir ve kutlamada görünür (campaigns.checkin_only; kampanya başladıktan sonraki check-in gerekir)
 - Zamanlanmış / haftalık kampanyalar işletmenin telefonunda tutulur, zamanı gelince (uygulama açıkken) sunucuya gönderilir
 
+**Akış, gizlilik ve moderasyon**
+- Sosyal: Akış = kendi check-in ve yorumlarım, Arkadaşlarım = arkadaşlarınki (GET /v1/feed?who=me|friends); ikisi de zaman çizgisi: tarih başlıkları (Bugün / Dün / tarih), solda simge (bende) ya da kişinin fotoğrafı, çizgi yalnızca aynı günün paylaşımlarını bağlar; altında ↳ ile beğenenler, check-in yorumları ve yoruma gelen yanıtlar (son 3, "Önceki yanıtları gör"); sağdaki kişi+ simgesi arkadaş ekleme, istekler ve QR
+- Akış süreleri: bende son 7 gün açık, daha eskisi (30 güne kadar) "Daha eski" altında; arkadaşlarda son 3 gün, "Daha eski" ile 7; arkadaşların yazısız, beğenisiz, yorumsuz check-in'i 2 günde düşer
+- Profil istatistikleri: Gizlilik > "Arkadaşlarım / Sadece ben" (users.stats_visibility); gizliyse puan, check-in, rozet görünmez
+- Şikâyet: işletme ya da kullanıcı yorumu/yanıtı şikâyet eder; yönetici (users.is_admin, sunucuda elle verilir) Daha fazla > Yönetici'den "Kaldır" (removed_at) ya da "Şikâyeti reddet" (reports.dismissed_at); /v1/admin/*
+- Mekan yorumları: yazısız (yalnızca puan) yorumlar listede tek tek görünmez, ortalamaya sayılır (kendi puanın görünür)
+- Görünüm: Cihaz ayarı / Açık / Koyu / Petrol / Grafit (son ikisi deneme; theme.ts petrolColors: gece petrolü #061A1E + mercan #FF7A59; kaldırılan bir tema kayıtlıysa Cihaz ayarına döner; graphiteColors: koyu gri #111113 + indigo #8B7CFF, düğme yazısı koyu; ikisi de koyu tema gibi davranır: koyu harita, açık durum çubuğu)
+- "Bilgi yanlış mı?" (mekan adının sağında, pop-up): kapanmış / saatler / konum / ad + isteğe bağlı not (venue_issues); aynı şeyi 3 kişi bildirince Yönetici > Kontrol edilecek mekanlar: "Kapandı, kaldır" (venues.closed_at, haritadan ve aramadan çıkar), adı / saatleri kaydet, "Düzelttim" (konum), "Bildirim yanlış"
+- Konum ve izinler: konum özellikleri yalnızca ✓ / ! gösterir, seçilmez; Fotoğraflar izni listede yok; profil fotoğrafı menüsü (seç / çek / sil) iOS'ta menü kapandıktan sonra açılır
+
 **Yayın ve altyapı**
 - Render + Neon + GitHub Pages /v2/ (bkz. Ortamlar); şema Neon'da `CREATE EXTENSION postgis` ile başlar; bağlantı havuzu kopan bağlantıyı yeniler; CORS: localhost:8081, localhost:8765, erayerb.github.io
 
@@ -189,6 +200,11 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Mağaza sürümü: Expo EAS Build ile App Store / Google Play
 - E-posta: Resend hesabı açıldı, anahtar Render'da (`resend` ortam grubu, RESEND_API_KEY). Alan adı olmadan Resend yalnızca hesap sahibinin adresine gönderir; herkese gidebilmesi için alan adı al (ör. availy.app), Resend → Domains'te doğrula (DNS: SPF, DKIM) ve Render'da MAIL_FROM = "availy <no-reply@alanadı>" yap
 - Gizlilik politikası ve kullanım koşulları: hukukçu kontrolü, şirket bilgileri, web'de yayın; KVKK: sunucular Frankfurt'ta, yurt dışına aktarım şartları hukukçuya sorulmalı
+
+**Sürpriz paket** (Too Good To Go benzeri)
+- İşletme gün sonunda satılmayan ürünlerden indirimli "sürpriz paket" açar: fiyat, normal değeri, adet, teslim saati (ör. 18:00–19:00), kabaca içerik
+- Kullanıcı uygulamadan ayırır (kişi başı bir; adet bitince kapanır), saatinde kod / QR ile alır; ödeme önce kasada, sonra uygulamada
+- Mevcut kampanya ve kupon altyapısı kullanılır (kişi sınırı = adet, kupon = ayırma kodu); ölü saatte ya da kapanışa yakın "paket aç" önerisi
 
 **Premium'a teşvik** (ana sayfadaki "REKLAM" yeri kaldırıldı)
 - Premium'un ne kazandırdığını yerinde göster: ikinci mekanı takip etmeye çalışınca ("Sakin olunca haber ver" sınırı), geçmiş doluluk / tipik saatler ayrıntısında, haftalık özet kartında

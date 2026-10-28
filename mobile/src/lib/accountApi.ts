@@ -22,6 +22,7 @@ export type ServerUser = {
   venue_id: number | null;
   plan: string | null;
   email_verified?: boolean;
+  is_admin?: boolean; // Daha fazla > Yönetici
   customer_code?: string | null; // only from GET /v1/me: "M-123456" for loyalty stamps
   // Only from GET /v1/me
   points?: number;
@@ -57,6 +58,7 @@ export function toUser(server: ServerUser, token: string, local: LocalBusiness =
     plan: (server.plan as User['plan']) ?? local.plan,
     venueVerified: local.venueVerified,
     emailVerified: server.email_verified ?? false,
+    isAdmin: server.is_admin ?? false,
     customerCode: server.customer_code ?? undefined,
     points: server.points,
     checkins: server.checkins,

@@ -13,6 +13,7 @@ import { CheckinPanel } from '../components/CheckinPanel';
 import { CrowdDot } from '../components/CrowdDot';
 import { VenuePhoto } from '../components/VenuePhoto';
 import { WatchButton } from '../components/WatchButton';
+import { WrongInfo } from '../components/WrongInfo';
 import { useCampaigns } from '../context/CampaignsContext';
 import { useEngagement } from '../context/EngagementContext';
 import { useLoyalty } from '../context/LoyaltyContext';
@@ -144,10 +145,14 @@ export function VenueDetailScreen({
       <VenuePhoto venueId={venue.id} category={venue.category} photoAt={venue.photo_at} size="100%" height={200} />
 
       <View>
-        <Text style={styles.name}>
-          {venue.name}
-          {venue.verified && <Text style={styles.verified}> ✓</Text>}
-        </Text>
+        <View style={styles.nameRow}>
+          <Text style={[styles.name, styles.flex]}>
+            {venue.name}
+            {venue.verified && <Text style={styles.verified}> ✓</Text>}
+          </Text>
+          {/* Closed, wrong hours / location / name: 3 people → the admin checks it */}
+          {herePerson && !owner && <WrongInfo venueId={venue.id} venueName={venue.name} token={herePerson} />}
+        </View>
         {venue.verified && <Text style={styles.verifiedText}>Doğrulanmış işletme</Text>}
         {venue.pending && (
           <Text style={styles.pending}>⏳ Onay bekliyor · bir kullanıcı ekledi; 3 farklı kişi check-in yapınca onaylanır</Text>
@@ -340,6 +345,8 @@ const styles = themed(() => StyleSheet.create({
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   name: { fontSize: 24, fontWeight: '700', color: colors.text },
+  flex: { flex: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   muted: { fontSize: 13, color: colors.textMuted },
   link: { color: colors.primary, fontWeight: '600' },
   note: { fontSize: 13, color: colors.success },

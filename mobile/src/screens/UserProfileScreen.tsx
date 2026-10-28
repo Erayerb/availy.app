@@ -149,13 +149,17 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
             </Text>
           </View>
         </View>
-        <View style={styles.stats}>
-          <Stat value={profile.points} label="puan" />
-          <Stat value={profile.checkins} label="check-in" />
-          <Stat value={profile.discoveries} label="keşif" />
-          {/* Weeks in a row with a check-in */}
-          <Stat value={profile.weekly_streak ?? 0} label="🔥 haftalık seri" />
-        </View>
+        {profile.stats_hidden ? (
+          <Text style={styles.muted}>🔒 @{profile.username} istatistiklerini yalnızca {profile.relation === 'friend' ? 'kendisine' : 'arkadaşlarına'} gösteriyor.</Text>
+        ) : (
+          <View style={styles.stats}>
+            <Stat value={profile.points ?? 0} label="puan" />
+            <Stat value={profile.checkins ?? 0} label="check-in" />
+            <Stat value={profile.discoveries ?? 0} label="keşif" />
+            {/* Weeks in a row with a check-in */}
+            <Stat value={profile.weekly_streak ?? 0} label="🔥 haftalık seri" />
+          </View>
+        )}
 
         {me ? (
           <Pressable style={styles.secondary} onPress={onOpenSettings}>
@@ -245,7 +249,7 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
         </View>
       )}
 
-      <BadgeGrid badges={profile.badges} />
+      {!profile.stats_hidden && <BadgeGrid badges={profile.badges} />}
     </ScrollView>
   );
 }

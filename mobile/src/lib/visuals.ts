@@ -1,5 +1,5 @@
 import type { IconName } from '../components/Icon';
-import { getScheme } from '../theme.ts';
+import { getScheme, isDarkScheme } from '../theme.ts';
 
 /** Placeholder "photo" per category until real venue photos exist. */
 type Visual = { icon: IconName; color: string; background: string };
@@ -16,14 +16,16 @@ const VISUALS: Record<string, Visual> = {
 const FALLBACK: Visual = { icon: 'location', color: '#6b7280', background: '#e5e7eb' };
 
 /** Mix a pastel with the dark page colour, so the tiles are not glaring in the dark theme. */
-function darken(hex: string, amount = 0.72): string {
+function darken(hex: string, amount = getScheme() === 'petrol' ? 0.84 : 0.72): string {
   const n = parseInt(hex.slice(1), 16);
-  const dark = [0x17, 0x11, 0x0e];
+  // The page colour of the dark scheme
+  const page: Record<string, number[]> = { petrol: [0x06, 0x1a, 0x1e], graphite: [0x11, 0x11, 0x13] };
+  const dark = page[getScheme()] ?? [0x17, 0x11, 0x0e];
   const mix = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c, i) => Math.round(c + (dark[i] - c) * amount));
   return `#${((mix[0] << 16) | (mix[1] << 8) | mix[2]).toString(16).padStart(6, '0')}`;
 }
 
-export function categoryVisual(category: string, dark = getScheme() === 'dark'): Visual {
+export function categoryVisual(category: string, dark = isDarkScheme()): Visual {
   const visual = VISUALS[category] ?? FALLBACK;
   // On the dark tile the light pastel becomes the icon colour
   return dark ? { ...visual, color: visual.background, background: darken(visual.background) } : visual;

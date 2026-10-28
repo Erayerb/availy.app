@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Literal
 
 import psycopg
-from fastapi import APIRouter, Depends, Header, HTTPException, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 
 from app.accounts import user_for_token
@@ -19,6 +19,7 @@ from app.reviews import (
     delete_review,
     edit_review,
     friend_feed,
+    replies_for,
     save_review,
     venue_reviews,
 )
@@ -105,7 +106,10 @@ class FeedItem(BaseModel):
     checkin_id: int | None = None
     likes: int = 0
     liked: bool = False
+    likers: list[str] = []  # the last 3 who liked it
     comments: list[CheckinCommentOut] = []
+    # Replies under the review, shown attached to it
+    replies: list[CheckinCommentOut] = []
 
 
 def _fail(error: ReviewError) -> HTTPException:
@@ -170,11 +174,22 @@ def remove_reply(reply_id: int, user: dict = Depends(current_user), conn: psycop
 
 
 @router.get("/feed", response_model=list[FeedItem])
-def feed(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn), now: datetime = Depends(get_clock)):
-    """Friends' check-ins, reviews and replies of the last 7 days (the Sosyal > Akış list)."""
-    items = friend_feed(conn, user, now)
+def feed(
+    days: int = Query(3, ge=1, le=30),
+    who: Literal["friends", "me"] = "friends",
+    user: dict = Depends(current_user),
+    conn: psycopg.Connection = Depends(get_conn),
+    now: datetime = Depends(get_clock),
+):
+    """Check-ins, reviews and replies: friends' (Sosyal > Arkadaşlarım) or mine (who=me, Sosyal > Akış);
+    friends: the last 3 days, up to 7 with "Daha eski"; mine: 7, up to 30."""
+    items = friend_feed(conn, user, now, days, who)
     social = social_for(conn, user, [i["checkin_id"] for i in items if i["checkin_id"]])
-    return [{**i, **social.get(i["checkin_id"], {})} for i in items]
+    replies = replies_for(conn, user, [i["review_id"] for i in items if i["review_id"] and i["kind"] != "reply"])
+    return [
+        {**i, **social.get(i["checkin_id"], {}), "replies": replies.get(i["review_id"], []) if i["kind"] != "reply" else []}
+        for i in items
+    ]
 
 
 class LikeIn(BaseModel):
