@@ -1,4 +1,4 @@
-import { DancingScript_700Bold, useFonts } from '@expo-google-fonts/dancing-script';
+import { Tinos_400Regular, useFonts } from '@expo-google-fonts/tinos';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Platform, StyleSheet, Text, View, useColorScheme } from 'react-native';
@@ -98,8 +98,8 @@ export default function App() {
 
 function Main() {
   const auth = useAuth();
-  // Script font of the "availy" wordmark; continue anyway if it fails to load
-  const [fontLoaded, fontError] = useFonts({ DancingScript_700Bold });
+  // Serif font of the "availy" wordmark; continue anyway if it fails to load
+  const [fontLoaded, fontError] = useFonts({ Tinos_400Regular });
   // Signed-out users start on the welcome page; signed-in users see a short splash
   const [entered, setEntered] = useState(false);
   const [authForm, setAuthForm] = useState<'login' | 'register' | null>(null);

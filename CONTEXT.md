@@ -146,6 +146,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Mekan sayfası (✓ haritadaki kartta da): kapak fotoğrafı, ✓ Doğrulanmış işletme rozeti, ⏳ Onay bekliyor, keşfeden, yıldız ortalaması, doluluk, saatler, Instagram / Ara düğmeleri, check-in, Haritada gör / Yol tarifi, kampanya, özellikler, yorumlar; "Sakin olunca haber ver" (🔕)
 - Favoriler: yalnızca kayıtlı kullanıcılar (misafire "Kayıt ol / Giriş yap"); Kaydedilenler / Ziyaret edilenler (telefonda, hesap başına)
 - Ana sayfa: "Mekan ara"nın altında "Filtrele" (açılan alt menü: Ne arıyorsun?, Sırala: Önerilen / En yakın / En sakin, Kapalıları gizle; "N mekanı göster", "Sıfırla"); seçilenler düğmenin yanında ✕ ile kaldırılır; Konum > Temizle yalnızca konumu temizler
+- Logo yazısı (Wordmark): "availy", Tinos (serif, @expo-google-fonts/tinos), temanın ana renginde; y altında kıvrım yok
 - Görünüm: Cihaz ayarı / Açık / Koyu (koyu harita: telefonda Apple koyu mod, web'de koyulaştırılmış OSM)
 
 **Mekanlar**
