@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { View, Modal } from 'react-native';
+import { Text, TextInput } from '../Text';
 import { Pressable } from '../Pressable';
 
 import { useLocation } from '../../context/LocationContext';
@@ -9,6 +10,8 @@ import { venueApi } from '../../lib/venueApi';
 import { colors } from '../../theme';
 import { DistrictSearch } from '../DistrictSearch';
 import { panel } from './panelStyles';
+import { InlineIcon } from '../Icon';
+import { LocationPicker } from '../LocationPicker';
 
 type Props = { venue: Venue; token: string; onSaved: () => void };
 
@@ -20,6 +23,9 @@ export function AddressSection({ venue, token, onSaved }: Props) {
   const [district, setDistrict] = useState(venue.district);
   const [point, setPoint] = useState({ lat: venue.lat, lon: venue.lon });
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const [picking, setPicking] = useState(false);
+  // Closed by default, like "Mekan bilgilerini düzenle"
+  const [open, setOpen] = useState(false);
   const moved = point.lat !== venue.lat || point.lon !== venue.lon;
 
   const fillFrom = async (found: { lat: number; lon: number }, text: string) => {
@@ -57,42 +63,62 @@ export function AddressSection({ venue, token, onSaved }: Props) {
 
   return (
     <View style={panel.card}>
-      <Text style={panel.sectionTitle}>Adres ve konum</Text>
-      <Text style={panel.muted}>Mekan sayfasında ve yol tarifinde bu bilgiler kullanılır.</Text>
-      <Text style={panel.label}>Açık adres</Text>
-      <TextInput
-        value={address}
-        onChangeText={setAddress}
-        placeholder="Sokak, numara"
-        placeholderTextColor={colors.placeholder}
-        style={panel.input}
-      />
-      <Text style={panel.label}>Semt</Text>
-      <DistrictSearch value={district} onChange={setDistrict} />
-      <Text style={panel.label}>Mahalle</Text>
-      <TextInput
-        value={neighborhood}
-        onChangeText={setNeighborhood}
-        placeholder="Mahalle"
-        placeholderTextColor={colors.placeholder}
-        style={panel.input}
-      />
-      <Text style={panel.label}>Yol tarifinin gideceği nokta</Text>
-      <View style={panel.row}>
-        <Pressable style={[panel.secondary, { flex: 1 }]} onPress={findAddress}>
-          <Text style={panel.secondaryText}>📍 Adresten bul</Text>
-        </Pressable>
-        <Pressable style={[panel.secondary, { flex: 1 }]} onPress={useMyLocation}>
-          <Text style={panel.secondaryText}>Mekandayım: konumum</Text>
-        </Pressable>
-      </View>
-      <Text style={panel.muted}>
-        {moved ? 'Yeni nokta' : 'Şimdiki nokta'}: {point.lat.toFixed(5)}, {point.lon.toFixed(5)}
-      </Text>
-      <Pressable style={panel.primary} onPress={save}>
-        <Text style={panel.primaryText}>Adresi kaydet</Text>
+      <Pressable onPress={() => setOpen((o) => !o)} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+        <Text style={panel.sectionTitle}>Adres ve konum</Text>
+        <Text style={panel.muted}>{open ? '▲' : '▼'}</Text>
       </Pressable>
-      {note && <Text style={note.ok ? panel.success : panel.error}>{note.text}</Text>}
+      {open && (
+        <>
+          <Text style={panel.muted}>Mekan sayfasında ve yol tarifinde bu bilgiler kullanılır.</Text>
+          <Text style={panel.label}>Açık adres</Text>
+          <TextInput
+            value={address}
+            onChangeText={setAddress}
+            placeholder="Sokak, numara"
+            placeholderTextColor={colors.placeholder}
+            style={panel.input}
+          />
+          <Text style={panel.label}>Semt</Text>
+          <DistrictSearch value={district} onChange={setDistrict} />
+          <Text style={panel.label}>Mahalle</Text>
+          <TextInput
+            value={neighborhood}
+            onChangeText={setNeighborhood}
+            placeholder="Mahalle"
+            placeholderTextColor={colors.placeholder}
+            style={panel.input}
+          />
+          <Text style={panel.label}>Yol tarifinin gideceği nokta</Text>
+          <View style={panel.row}>
+            <Pressable style={[panel.secondary, { flex: 1 }]} onPress={findAddress}>
+              <Text style={panel.secondaryText}><InlineIcon name="map-pin" /> Adresten bul</Text>
+            </Pressable>
+            <Pressable style={[panel.secondary, { flex: 1 }]} onPress={() => setPicking(true)}>
+              <Text style={panel.secondaryText}><InlineIcon name="map" /> Haritadan seç</Text>
+            </Pressable>
+          </View>
+          <Pressable style={panel.secondary} onPress={useMyLocation}>
+            <Text style={panel.secondaryText}><InlineIcon name="current-location" /> Mekandayım: konumumu kullan</Text>
+          </Pressable>
+          <Modal visible={picking} animationType="slide" onRequestClose={() => setPicking(false)}>
+            <LocationPicker
+              start={point}
+              onBack={() => setPicking(false)}
+              onPick={(picked) => {
+                setPicking(false);
+                fillFrom(picked, 'Konum haritadan seçildi. Kaydedince yol tarifi buraya gider.');
+              }}
+            />
+          </Modal>
+          <Text style={panel.muted}>
+            {moved ? 'Yeni nokta' : 'Şimdiki nokta'}: {point.lat.toFixed(5)}, {point.lon.toFixed(5)}
+          </Text>
+          <Pressable style={panel.primary} onPress={save}>
+            <Text style={panel.primaryText}>Adresi kaydet</Text>
+          </Pressable>
+          {note && <Text style={note.ok ? panel.success : panel.error}>{note.text}</Text>}
+        </>
+      )}
     </View>
   );
 }

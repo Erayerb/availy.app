@@ -5,6 +5,7 @@ import { accountKey, normalizeUsername, validateUsername, type Role, type User }
 import { moveAccountData } from '../lib/accountData';
 import { isLocalVenueId } from '../lib/localVenues';
 import { KEYS, loadJson, remove, saveJson } from '../lib/storage';
+import { celebrateBadges } from '../lib/badgeEvents';
 
 const asMessage = (e: unknown) => (e instanceof Error ? e.message : 'Bilinmeyen hata');
 
@@ -57,6 +58,7 @@ export function useAuth() {
       // Refresh from the server; an expired or deleted session signs the user out
       try {
         const fresh = await accountApi.me(stored.token);
+      celebrateBadges(fresh.new_badges);
         await signIn(toUser(fresh, stored.token, await localBusiness(fresh.id)));
       } catch (e) {
         if (e instanceof ApiError && e.status === 401) await signOutLocally();
@@ -70,6 +72,7 @@ export function useAuth() {
     if (!stored?.token) return;
     try {
       const fresh = await accountApi.me(stored.token);
+      celebrateBadges(fresh.new_badges);
       await signIn(toUser(fresh, stored.token, await localBusiness(fresh.id)));
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) await signOutLocally();

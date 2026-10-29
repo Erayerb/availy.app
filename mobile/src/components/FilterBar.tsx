@@ -1,17 +1,19 @@
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
+import { Text } from './Text';
 import { Pressable } from './Pressable';
 
 import { TAG_OPTIONS, type Tag } from '../lib/filters';
 import { colors, themed } from '../theme';
+import { InlineIcon, type IconName } from './Icon';
 
-const TAG_ICONS: Record<Tag, string> = {
-  socializing: '👥',
-  coworking: '💻',
-  entertainment: '🎉',
-  quiet: '🤫',
-  food: '🍽️',
-  nightlife: '🌙',
-  wifi: '📶',
+const TAG_ICONS: Record<Tag, IconName> = {
+  socializing: 'users',
+  coworking: 'device-laptop',
+  entertainment: 'confetti',
+  quiet: 'volume-off',
+  food: 'tools-kitchen-2',
+  nightlife: 'moon',
+  wifi: 'wifi',
 };
 
 type Props = {
@@ -34,8 +36,8 @@ export function FilterBar({ selected, onToggle, hideClosed, onHideClosedChange, 
       style={styles.strip}
       keyboardShouldPersistTaps="handled"
     >
-      <Pill icon="🔥" label="Trendler" active={onlyTrending} onPress={() => onOnlyTrendingChange(!onlyTrending)} />
-      <Pill icon="🚪" label="Kapalıları gizle" active={hideClosed} onPress={() => onHideClosedChange(!hideClosed)} />
+      <Pill icon="flame" label="Trendler" active={onlyTrending} onPress={() => onOnlyTrendingChange(!onlyTrending)} />
+      <Pill icon="door" label="Kapalıları gizle" active={hideClosed} onPress={() => onHideClosedChange(!hideClosed)} />
       {TAG_OPTIONS.map(({ tag, label }) => (
         <Pill key={tag} icon={TAG_ICONS[tag]} label={label} active={selected.includes(tag)} onPress={() => onToggle(tag)} />
       ))}
@@ -43,7 +45,7 @@ export function FilterBar({ selected, onToggle, hideClosed, onHideClosedChange, 
   );
 }
 
-function Pill({ icon, label, active, onPress }: { icon: string; label: string; active: boolean; onPress: () => void }) {
+function Pill({ icon, label, active, onPress }: { icon: IconName; label: string; active: boolean; onPress: () => void }) {
   return (
     <Pressable
       onPress={onPress}
@@ -51,7 +53,7 @@ function Pill({ icon, label, active, onPress }: { icon: string; label: string; a
       accessibilityRole="switch"
       accessibilityState={{ checked: active }}
     >
-      <Text style={styles.icon}>{icon}</Text>
+      <Text style={[styles.icon, active && styles.labelActive]}><InlineIcon name={icon} /></Text>
       <Text style={[styles.label, active && styles.labelActive]}>{label}</Text>
     </Pressable>
   );
@@ -76,7 +78,7 @@ const styles = themed(() => StyleSheet.create({
     elevation: 3,
   },
   pillActive: { backgroundColor: colors.primary },
-  icon: { fontSize: 12 },
+  icon: { fontSize: 14, color: colors.text },
   label: { fontSize: 12, fontWeight: '600', color: colors.text },
   labelActive: { color: colors.onPrimary },
 }));

@@ -3,19 +3,20 @@
  * tags. "Ücretsiz Wi-Fi" only when the data says so (OpenStreetMap: Wi-Fi without a fee).
  */
 import type { Venue } from './api';
+import type { IconName } from '../components/Icon';
 
-export type Amenity = { icon: string; label: string };
+export type Amenity = { icon: IconName; label: string };
 
 export type AmenityKey = 'wifi' | 'power' | 'quiet' | 'outdoor' | 'meeting' | 'music' | 'veggie';
 
 export const ALL_AMENITIES: Record<AmenityKey, Amenity> = {
-  wifi: { icon: '📶', label: 'Ücretsiz Wi-Fi' },
-  power: { icon: '🔌', label: 'Priz' },
-  quiet: { icon: '🤫', label: 'Sessiz alan' },
-  outdoor: { icon: '🌿', label: 'Açık alan' },
-  meeting: { icon: '👥', label: 'Toplantı odası' },
-  music: { icon: '🎵', label: 'Müzik' },
-  veggie: { icon: '🥗', label: 'Vejetaryen seçenek' },
+  wifi: { icon: 'wifi', label: 'Ücretsiz Wi-Fi' },
+  power: { icon: 'plug', label: 'Priz' },
+  quiet: { icon: 'volume-off', label: 'Sessiz alan' },
+  outdoor: { icon: 'leaf', label: 'Açık alan' },
+  meeting: { icon: 'users', label: 'Toplantı odası' },
+  music: { icon: 'music', label: 'Müzik' },
+  veggie: { icon: 'salad', label: 'Vejetaryen seçenek' },
 };
 
 const BY_CATEGORY: Record<string, AmenityKey[]> = {

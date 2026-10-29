@@ -1,7 +1,19 @@
-import { Tinos_400Regular, useFonts } from '@expo-google-fonts/tinos';
+import {
+  Figtree_300Light,
+  Figtree_400Regular,
+  Figtree_500Medium,
+  Figtree_600SemiBold,
+  Figtree_700Bold,
+  Figtree_800ExtraBold,
+  Figtree_900Black,
+} from '@expo-google-fonts/figtree';
+import { Tinos_400Regular, Tinos_700Bold, useFonts } from '@expo-google-fonts/tinos';
+import { ICON_FONT, ICON_FONT_FILLED, InlineIcon } from './src/components/Icon';
+import { BadgeCelebration } from './src/components/BadgeCelebration';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Platform, StyleSheet, Text, View, useColorScheme } from 'react-native';
+import { Alert, Platform, StyleSheet, View, useColorScheme } from 'react-native';
+import { Text } from './src/components/Text';
 import { Pressable } from './src/components/Pressable';
 
 import { Logo } from './src/components/Logo';
@@ -18,6 +30,8 @@ import { AppearanceScreen } from './src/screens/AppearanceScreen';
 import { PrivacyScreen } from './src/screens/PrivacyScreen';
 import { LegalScreen } from './src/screens/LegalScreen';
 import { UserProfileScreen } from './src/screens/UserProfileScreen';
+import { LevelsScreen } from './src/screens/LevelsScreen';
+import type { Level } from './src/lib/safety';
 import { NotificationsScreen } from './src/screens/NotificationsScreen';
 import { NotificationsProvider } from './src/context/NotificationsContext';
 import { FirstCheckinSheet } from './src/components/FirstCheckinSheet';
@@ -34,7 +48,7 @@ import { BUSINESS_TABS, CUSTOMER_TABS, TabBar, type Screen } from './src/compone
 import { CampaignsProvider } from './src/context/CampaignsContext';
 import { LoyaltyProvider } from './src/context/LoyaltyContext';
 import { EngagementProvider, useEngagement } from './src/context/EngagementContext';
-import { SettingsProvider } from './src/context/SettingsContext';
+import { SettingsProvider, SettingsSync } from './src/context/SettingsContext';
 import { useLocation } from './src/context/LocationContext';
 import { LocationProvider } from './src/context/LocationContext';
 import { FavoritesProvider } from './src/context/FavoritesContext';
@@ -98,8 +112,21 @@ export default function App() {
 
 function Main() {
   const auth = useAuth();
-  // Serif font of the "availy" wordmark; continue anyway if it fails to load
-  const [fontLoaded, fontError] = useFonts({ Tinos_400Regular });
+  // Tinos: the "availy" wordmark and headings; Figtree: all other text (components/Text); Tabler icons.
+  // Continue anyway if they fail
+  const [fontLoaded, fontError] = useFonts({
+    [ICON_FONT]: require('./assets/fonts/tabler-icons.ttf'),
+    [ICON_FONT_FILLED]: require('./assets/fonts/tabler-icons-filled.ttf'),
+    Tinos_400Regular,
+    Tinos_700Bold,
+    Figtree_300Light,
+    Figtree_400Regular,
+    Figtree_500Medium,
+    Figtree_600SemiBold,
+    Figtree_700Bold,
+    Figtree_800ExtraBold,
+    Figtree_900Black,
+  });
   // Signed-out users start on the welcome page; signed-in users see a short splash
   const [entered, setEntered] = useState(false);
   const [authForm, setAuthForm] = useState<'login' | 'register' | null>(null);
@@ -136,8 +163,16 @@ function Main() {
   const [campaignsTab, setCampaignsTab] = useState<CampaignsTab | null>(null);
   // Tapping Sosyal / Kampanyalar in the tab bar starts them over (their first tab); back keeps the last tab
   const [tabReset, setTabReset] = useState(0);
+  // Seviyeler: whose level to mark (the profile it was opened from)
+  const [levelsFor, setLevelsFor] = useState<Level | null>(null);
   const role: Role = isBusiness(auth.user) ? 'business' : 'personal';
   const goBack = () => setNav((h) => back(h, landingFor(role)));
+  // Daha fazla: fresh points, profile steps and badges (a new photo or friend may have earned one)
+  const { refreshMe } = auth;
+  useEffect(() => {
+    if (screen === 'more' && auth.user?.token && !isBusiness(auth.user)) refreshMe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen]);
   const { checkinSuggestions, appearance } = useSettings();
   // Görünüm: set the colors before any screen below reads them; a change re-renders everything
   const systemScheme = useColorScheme();
@@ -390,11 +425,14 @@ function Main() {
       // A new key (e.g. a changed e-mail) loads that account's data again
       key={auth.user ? accountKey(auth.user) : 'guest'}
       userKey={auth.user ? accountKey(auth.user) : 'guest'}
+      token={isRegistered(auth.user) ? (auth.user?.token ?? null) : null}
     >
+      <SettingsSync token={isRegistered(auth.user) ? (auth.user?.token ?? null) : null} />
       <CampaignsProvider token={auth.user?.token ?? null} business={isBusiness(auth.user)}>
       <LoyaltyProvider token={auth.user?.token ?? null} business={isBusiness(auth.user)}>
       <FavoritesProvider
         accountKey={auth.user ? accountKey(auth.user) : null}
+        token={isRegistered(auth.user) ? (auth.user?.token ?? null) : null}
         signedIn={isRegistered(auth.user)} onLoginRequired={() => setAuthForm('login')}>
       <NotificationsProvider
         token={isRegistered(auth.user) ? (auth.user?.token ?? null) : null}
@@ -438,6 +476,7 @@ function Main() {
               onHideClosedChange={setHideClosed}
               visitedIds={visitedIds}
               onOpenCheckin={() => goTo('checkin')}
+              ownVenueId={isBusiness(auth.user) ? (auth.user?.venueId ?? null) : null}
               selectedId={selectedId}
               onSelect={setSelectedId}
               onMarkerPress={(id) => setSelectedId((current) => toggleSingle(current, id))}
@@ -455,6 +494,7 @@ function Main() {
               onShowOnMap={openVenueOnMap}
               onOpenUser={openProfile}
               onRegister={() => setAuthForm('register')}
+              onEditProfile={() => goTo('profile')}
             />
           )}
           {screen === 'customers' && auth.user?.venueId && (
@@ -561,6 +601,7 @@ function Main() {
             />
           )}
           {screen === 'legal' && <LegalScreen initial="terms" onBack={goBack} />}
+          {screen === 'levels' && <LevelsScreen current={levelsFor?.id ?? null} next={levelsFor?.next} onBack={goBack} />}
           {screen === 'admin' && auth.user?.token && <AdminScreen token={auth.user.token} onBack={goBack} onOpenVenue={openDetails} />}
           {screen === 'venueList' && openedList && auth.user?.token && (
             <ListScreen
@@ -581,6 +622,10 @@ function Main() {
               onOpenVenue={openDetails}
               onOpenSettings={() => goTo('profile')}
               onOpenList={openList}
+              onOpenLevels={(level) => {
+                setLevelsFor(level);
+                goTo('levels');
+              }}
             />
           )}
           {screen === 'notifications' && (
@@ -685,6 +730,8 @@ function Main() {
               onClose={dismissSuggestion}
             />
           )}
+          {/* "Yeni rozet!" wherever the user is (badges from a check-in, a photo, a friend…) */}
+          <BadgeCelebration />
           {onboarding === 'intro' && (
             <IntroOverlay
               role={role}
@@ -760,7 +807,7 @@ function WatchAlert() {
   if (!alert) return null;
   return (
     <Pressable style={styles.alert} onPress={dismissAlert}>
-      <Text style={styles.alertText}>🔔 {alert}</Text>
+      <Text style={styles.alertText}><InlineIcon name="bell" /> {alert}</Text>
       <Text style={styles.alertClose}>✕</Text>
     </Pressable>
   );

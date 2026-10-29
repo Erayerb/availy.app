@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from './Text';
 import { Pressable } from './Pressable';
 
 import { confirmAction } from '../lib/confirm';
@@ -8,8 +9,10 @@ import { GroupForm } from './GroupForm';
 
 import { socialApi, type Leaderboard as Board, type Period, type Scope } from '../lib/social';
 import { colors, themed } from '../theme';
+import { InlineIcon } from './Icon';
 
-const MEDALS = ['🥇', '🥈', '🥉'];
+// Gold, silver, bronze medals for the top three
+const MEDALS = ['#D4A017', '#A8A9AD', '#B87333'];
 
 type Choice<T> = { id: T; label: string };
 const PERIODS: Choice<Period>[] = [
@@ -99,7 +102,7 @@ export function Leaderboard({ token, me, onOpenUser }: Props) {
           {invites.map((g) => (
             <View key={g.id} style={styles.invite}>
               <Text style={[styles.inviteText, styles.flex]}>
-                👥 <Text style={styles.bold}>{g.name}</Text>
+                <InlineIcon name="users" /> <Text style={styles.bold}>{g.name}</Text>
                 {g.invited_by ? ` · @${g.invited_by} davet etti` : ''} · {g.members} kişi
               </Text>
               <Pressable
@@ -176,7 +179,7 @@ export function Leaderboard({ token, me, onOpenUser }: Props) {
           onPress={() => row.username && onOpenUser(row.username)}
           style={[styles.row, row.me && styles.meRow]}
         >
-          <Text style={[styles.rank, row.me && styles.meText]}>{row.rank <= 3 && row.points > 0 ? MEDALS[row.rank - 1] : `${row.rank}.`}</Text>
+          <Text style={[styles.rank, row.me && styles.meText]}>{row.rank <= 3 && row.points > 0 ? <InlineIcon name="medal" color={MEDALS[row.rank - 1]} /> : `${row.rank}.`}</Text>
           <Text style={[styles.name, row.me && styles.meText]} numberOfLines={1}>
             {row.username ? `@${row.username}` : 'Misafir'}
             {row.me ? ' (sen)' : ''}
@@ -212,7 +215,7 @@ export function Leaderboard({ token, me, onOpenUser }: Props) {
         </View>
       )}
 
-      <Text style={styles.prize}>🏆 Haftalık ödüller kazanabilirsin! Her pazartesi haftalık sıralama sıfırlanır.</Text>
+      <Text style={styles.prize}><InlineIcon name="trophy" /> Haftalık ödüller kazanabilirsin! Her pazartesi haftalık sıralama sıfırlanır.</Text>
       <Text style={styles.muted}>Check-in 10 puan, bir mekanın ilk check-in'i +50 puan.</Text>
     </View>
   );

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { BackButton } from '../components/BackButton';
@@ -119,7 +120,7 @@ export function PrivacyScreen({ token, onBack, onOpenPermissions, onOpenLegal }:
             </View>
             <Row
               title="Müdavimi olduğum mekanlarda herkes görsün"
-              subtitle="Bir mekana son 30 günde en çok sen gidiyorsan mekan sayfasında “👑 Buranın müdavimi @sen” yazar. Kapalıysa bunu yalnızca arkadaşların görür."
+              subtitle="Bir mekana son 30 günde en çok sen gidiyorsan mekan sayfasında “Buranın müdavimi @sen” yazar. Kapalıysa bunu yalnızca arkadaşların görür."
               value={privacy.regular_public}
               onChange={(v) => change({ regular_public: v })}
             />

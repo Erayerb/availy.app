@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { ClearButton } from '../components/ClearButton';
@@ -23,6 +24,7 @@ import {
 import { useLocation } from '../context/LocationContext';
 import { sortByDistance } from '../lib/geo';
 import { HeaderButtons } from '../components/HeaderButtons';
+import { TabIcon } from '../components/TabIcon';
 import { sortVenues, type SortMode } from '../lib/sort';
 import { stableShuffle } from '../lib/shuffle';
 import { colors, themed } from '../theme';
@@ -142,7 +144,7 @@ export function HomeScreen({
       </ScrollView>
 
       <View style={styles.search}>
-        <Text style={styles.searchIcon}>🔍</Text>
+        <TabIcon name="search" color={colors.textMuted} active={false} size={18} />
         <TextInput
           value={query}
           onChangeText={setQuery}
@@ -184,7 +186,8 @@ export function HomeScreen({
     <VenueGrid
       venues={items}
       header={header}
-      emptyText={loading ? 'Yükleniyor…' : 'Sonuç bulunamadı'}
+      emptyText="Sonuç bulunamadı"
+      loading={loading}
       error={error}
       onOpenVenue={onOpenVenue}
       refreshing={refreshing}
@@ -210,7 +213,6 @@ const styles = themed(() => StyleSheet.create({
     borderRadius: 14,
     backgroundColor: colors.cream,
   },
-  searchIcon: { fontSize: 15 },
   searchInput: { flex: 1, fontSize: 16, color: colors.text, padding: 0 },
   searchClear: { fontSize: 15, color: colors.textMuted },
 }));

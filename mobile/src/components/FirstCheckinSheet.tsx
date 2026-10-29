@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from './Text';
 import { Pressable } from './Pressable';
 
 import { useLocation } from '../context/LocationContext';
 import { fetchVenues, type Venue } from '../lib/api';
 import { bboxAround, nearestOpenVenue } from '../lib/nearby';
 import { colors, themed } from '../theme';
+import { InlineIcon } from './Icon';
 
 type Props = {
   // The venue the user is at was found: open its page (with the check-in panel) behind this sheet
@@ -54,7 +56,7 @@ export function FirstCheckinSheet({ onFound, onDone }: Props) {
           <Text style={styles.closeText}>✕</Text>
         </Pressable>
         <Text style={styles.title}>İlk check-in'in</Text>
-        <Text style={styles.art}>📍✨</Text>
+        <Text style={styles.art}><InlineIcon name="map-pin" /><InlineIcon name="sparkles" /></Text>
         <Text style={styles.text}>
           {state.status === 'looking'
             ? 'Yakınındaki mekanlara bakıyoruz…'
@@ -62,7 +64,7 @@ export function FirstCheckinSheet({ onFound, onDone }: Props) {
               ? `Şu an ${venue.name} yakınındasın. Doluluğu işaretle (Sakin, Orta, Kalabalık), check-in yap ve ilk puanını kazan.`
               : 'Yakınında check-in yapılabilecek bir mekan bulamadık. Bir mekana gidince haritadan seçip check-in yap.'}
         </Text>
-        <Text style={styles.muted}>✨ simgeli mekanların ilk check-in'ini yapan orayı keşfeder ve +50 puan alır.</Text>
+        <Text style={styles.muted}><InlineIcon name="sparkles" /> simgeli mekanların ilk check-in'ini yapan orayı keşfeder ve +50 puan alır.</Text>
         <Pressable style={styles.primary} onPress={() => onDone(venue)} disabled={state.status === 'looking'}>
           <Text style={styles.primaryText}>{state.status === 'looking' ? 'Bekle…' : 'Devam'}</Text>
         </Pressable>

@@ -1,10 +1,12 @@
 import * as Contacts from 'expo-contacts/legacy';
 import { useState } from 'react';
-import { Linking, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Platform, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from './Text';
 import { Pressable } from './Pressable';
 
 import { friendsApi, smsInviteMessage, type Person, type Relation } from '../lib/friends';
 import { colors, themed } from '../theme';
+import { InlineIcon } from './Icon';
 
 type Found = Person & { relation: Relation; phone: string };
 // One row per contact: an availy user (Ekle) or someone to invite (Davet et)
@@ -82,7 +84,7 @@ export function ContactsFinder({ token, me, onAdd, onOpenUser }: Props) {
   if (Platform.OS === 'web') {
     return (
       <View style={styles.card}>
-        <Text style={styles.title}>📱 Rehberden bul</Text>
+        <Text style={styles.title}><InlineIcon name="device-mobile" /> Rehberden bul</Text>
         <Text style={styles.muted}>Rehberden bulma yalnızca telefon uygulamasında çalışır.</Text>
       </View>
     );
@@ -90,7 +92,7 @@ export function ContactsFinder({ token, me, onAdd, onOpenUser }: Props) {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>📱 Rehberden bul</Text>
+      <Text style={styles.title}><InlineIcon name="device-mobile" /> Rehberden bul</Text>
       {step === 'closed' && (
         <>
           <Text style={styles.muted}>Rehberindeki availy kullanıcılarını bul. İsteğe bağlı; rehberin saklanmaz.</Text>
@@ -132,7 +134,7 @@ export function ContactsFinder({ token, me, onAdd, onOpenUser }: Props) {
             <TextInput
               value={filter}
               onChangeText={setFilter}
-              placeholder="🔍 Rehberde ara"
+              placeholder="Rehberde ara"
               placeholderTextColor={colors.placeholder}
               style={styles.input}
             />

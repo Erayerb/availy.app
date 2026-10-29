@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text, TextInput } from './Text';
 import { Pressable } from './Pressable';
 
 import { useLocation } from '../context/LocationContext';

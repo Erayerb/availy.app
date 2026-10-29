@@ -60,3 +60,9 @@ test('scheduled campaign input is checked before it goes to the server', () => {
   assert.equal(validateSchedule({ ...schedule, start_hour: 24 }), 'Başlangıç saati 0–23 olmalı.');
   assert.equal(validateSchedule({ ...schedule, message: 'kısa' }), 'Kampanya mesajını yaz.');
 });
+
+test('"Profilin %60 dolu": the venue page steps', async () => {
+  const { profileSteps } = await import('../src/lib/business.ts');
+  const steps = profileSteps({ photo_at: '2026-10-29', address: 'Moda Cd. 1', instagram: '', phone: null, amenity_keys: [] });
+  assert.deepEqual(steps.filter((s) => !s.done).map((s) => s.key), ['instagram', 'phone', 'amenities']);
+});

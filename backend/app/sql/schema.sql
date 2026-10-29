@@ -248,7 +248,7 @@ ALTER TABLE venues ADD COLUMN IF NOT EXISTS added_by BIGINT REFERENCES users(id)
 ALTER TABLE venues ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
 ALTER TABLE points DROP CONSTRAINT IF EXISTS points_reason_check;
 ALTER TABLE points ADD CONSTRAINT points_reason_check
-    CHECK (reason IN ('checkin', 'first_checkin', 'venue_added', 'invite'));
+    CHECK (reason IN ('checkin', 'first_checkin', 'venue_added', 'invite', 'badge'));
 
 -- v2: the business corrects its venue's address, neighbourhood / district and map point (where "Yol tarifi" goes);
 -- an OpenStreetMap re-import then keeps them

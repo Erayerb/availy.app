@@ -4,6 +4,9 @@ import type { PlanId } from './plans.ts';
 export type Role = 'personal' | 'business';
 
 /** A badge from the server's catalog; locked ones have earned = false and show their progress. */
+/** One step of a full personal profile (all done: the Tam Profil badge, +100 points). */
+export type ProfileStep = { key: 'photo' | 'email' | 'checkin' | 'friend' | 'review'; label: string; done: boolean };
+
 export type Badge = {
   id: string;
   name: string;
@@ -24,6 +27,7 @@ export type User = {
   checkins?: number;
   discoveries?: number;
   badges?: Badge[];
+  profile?: ProfileStep[]; // "Profilin %60 dolu" (personal accounts)
   name: string;
   email: string | null;
   username?: string | null; // "@eray" (v2); guests have none

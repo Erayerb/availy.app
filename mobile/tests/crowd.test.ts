@@ -50,6 +50,7 @@ test('check-in message: points, explorer note, "keşfeden 12. kişi", visit coun
   assert.match(checkinMessage({ ...base, is_first: true, points_earned: 60, visitor_rank: 1, my_visits: 1 }), /^\+60 puan · Kâşif rozeti kazandın$/);
   assert.equal(checkinMessage({ ...base, visitor_rank: 12, my_visits: 1 }), '+10 puan · Burayı keşfeden 12. kişisin!');
   assert.equal(checkinMessage(base), "+10 puan · Buraya 3. check-in'in");
+  assert.equal(checkinMessage({ ...base, points_earned: 20, first_today: true }), '+20 puan · Bugünün ilk bilgisi senden, 2 kat puan!');
   assert.match(checkinMessage({ ...base, points_earned: 0, points_note: 'too_soon' }), /30 dakikada.*puan yok/);
   assert.match(checkinMessage({ ...base, points_earned: 0, points_note: 'daily_limit' }), /günde 8/);
 });
@@ -84,4 +85,14 @@ test('shortDate: the time only today', () => {
   assert.equal(shortDate(new Date(2026, 9, 24, 9, 5).toISOString(), now), 'Dün');
   assert.equal(shortDate(new Date(2026, 9, 23, 18, 40).toISOString(), now), '23 Eki');
   assert.match(shortDate(new Date(2025, 11, 30, 8, 0).toISOString(), now), /2025/);
+});
+
+test('"Bugünün ilk bilgisini sen ver": open, discovered, nothing since midnight', async () => {
+  const { firstOfDayOpen } = await import('../src/lib/checkinApi.ts');
+  const now = new Date(2026, 9, 29, 15, 0);
+  const at = (d: number, h: number) => new Date(2026, 9, d, h).toISOString();
+  assert.equal(firstOfDayOpen({ open_now: true, crowd: { last_report_at: at(28, 20) } }, now), true);
+  assert.equal(firstOfDayOpen({ open_now: true, crowd: { last_report_at: at(29, 9) } }, now), false);
+  assert.equal(firstOfDayOpen({ open_now: false, crowd: { last_report_at: at(28, 20) } }, now), false);
+  assert.equal(firstOfDayOpen({ open_now: true, crowd: { last_report_at: null } }, now), false); // the discovery bonus instead
 });

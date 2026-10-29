@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { View } from 'react-native';
+import { Text, TextInput } from '../Text';
 import { Pressable } from '../Pressable';
 
 import { useLoyalty } from '../../context/LoyaltyContext';
@@ -15,6 +16,7 @@ import { colors } from '../../theme';
 import { Chip } from '../TagChips';
 import { panel } from './panelStyles';
 import { ThemedSwitch } from '../ThemedSwitch';
+import { InlineIcon } from '../Icon';
 
 /** Business side of loyalty (on the server): set up a stamp card or a paid membership, then stamp members. */
 export function LoyaltySetup() {
@@ -65,7 +67,7 @@ export function LoyaltySetup() {
       <Text style={panel.sectionTitle}>Sadakat programı</Text>
       {program && !editing ? (
         <>
-          <Text style={panel.text}>⭐ {describeProgram(program)}</Text>
+          <Text style={panel.text}><InlineIcon name="star" /> {describeProgram(program)}</Text>
           <View style={[panel.row, { alignItems: 'center' }]}>
             <Text style={[panel.text, { flex: 1 }]}>
               {isProgramActive(program) ? 'Aktif · müşteriler görüyor' : 'Pasif · müşterilere gizli'}
@@ -85,14 +87,14 @@ export function LoyaltySetup() {
                 İki durumda da müşterinin Kampanyalar ve Sadakat → Sadakat sekmesindeki QR'ını okutursun.
               </Text>
               <Pressable style={panel.primary} onPress={() => setScan('stamp')}>
-                <Text style={panel.primaryText}>📷 Damga ver</Text>
+                <Text style={panel.primaryText}><InlineIcon name="camera" /> Damga ver</Text>
               </Pressable>
               <Text style={panel.muted}>
                 Her alışverişte: müşterinin kartına 1 damga eklenir. {program.stampsRequired}. damgada kart
                 dolar ve müşteri 1 ödül kazanır.
               </Text>
               <Pressable style={panel.secondary} onPress={() => setScan('reward')}>
-                <Text style={panel.secondaryText}>📷 Ödülü kullandır</Text>
+                <Text style={panel.secondaryText}><InlineIcon name="camera" /> Ödülü kullandır</Text>
               </Pressable>
               <Text style={panel.muted}>
                 Kartı dolmuş müşteri ödülünü ({program.reward}) aldığında: ödül kartından düşer, böylece

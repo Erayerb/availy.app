@@ -1,12 +1,12 @@
 import { StyleSheet } from 'react-native';
-import { Icon } from './Icon';
+import { TabIcon } from './TabIcon';
 import { Pressable } from './Pressable';
 import { colors, themed } from '../theme';
 
 export function BackButton({ onPress }: { onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={styles.button} hitSlop={8} accessibilityLabel="Geri">
-      <Icon name="chevron-back" size={24} color={colors.text} />
+      <TabIcon name="back" color={colors.text} active size={24} />
     </Pressable>
   );
 }

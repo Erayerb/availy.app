@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Linking, Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { BackButton } from '../components/BackButton';
@@ -7,7 +8,7 @@ import { BusinessRequest } from '../components/BusinessRequest';
 import { CampaignBox } from '../components/CampaignBox';
 import { FriendsHere, VenueRegular } from '../components/FriendsHere';
 import { AddToList } from '../components/AddToList';
-import { Icon } from '../components/Icon';
+import { Icon, InlineIcon } from '../components/Icon';
 import { FavoriteButton } from '../components/FavoriteButton';
 import { CheckinPanel } from '../components/CheckinPanel';
 import { CrowdDot } from '../components/CrowdDot';
@@ -33,7 +34,7 @@ import type { User } from '../lib/auth';
 import { crowdRatioText, crowdSummary, crowdYesterday, liveLevel } from '../lib/crowd';
 import { shareVenue } from '../lib/shareVenue';
 import { instagramUrl, phoneUrl } from '../lib/venueApi';
-import { comparedToUsual, fetchTypical, typicalLines, type Typical } from '../lib/typical';
+import { comparedToUsual, fetchTypical, typicalLines, usualNowText, type Typical } from '../lib/typical';
 import { canWatch } from '../lib/watch';
 import { colors, themed } from '../theme';
 
@@ -119,7 +120,7 @@ export function VenueDetailScreen({
         <View style={styles.actions}>
           {owner && (
             <Pressable style={styles.edit} onPress={onEditProfile} hitSlop={6}>
-              <Text style={styles.editText}>✏️ Düzenle</Text>
+              <Text style={styles.editText}><InlineIcon name="pencil" /> Düzenle</Text>
             </Pressable>
           )}
           {!owner && <WatchButton venue={venue} size={22} />}
@@ -128,19 +129,19 @@ export function VenueDetailScreen({
             hitSlop={10}
             accessibilityLabel="Paylaş"
           >
-            <Icon name="share-outline" size={22} color={colors.text} />
+            <Icon name="share-3" size={22} color={colors.text} />
           </Pressable>
           {/* Listeye ekle: registered customers */}
           {herePerson && (
             <Pressable onPress={() => setListing(true)} hitSlop={10} accessibilityLabel="Listeye ekle">
-              <Icon name="bookmarks-outline" size={21} color={colors.text} />
+              <Icon name="bookmarks" size={21} color={colors.text} />
             </Pressable>
           )}
           {!owner && <FavoriteButton venueId={venue.id} size={22} />}
         </View>
       </View>
 
-      {owner && <Text style={styles.ownerNote}>👁 Müşteriler mekanını böyle görüyor</Text>}
+      {owner && <Text style={styles.ownerNote}><InlineIcon name="eye" /> Müşteriler mekanını böyle görüyor</Text>}
 
       <VenuePhoto venueId={venue.id} category={venue.category} photoAt={venue.photo_at} size="100%" height={200} />
 
@@ -155,11 +156,11 @@ export function VenueDetailScreen({
         </View>
         {venue.verified && <Text style={styles.verifiedText}>Doğrulanmış işletme</Text>}
         {venue.pending && (
-          <Text style={styles.pending}>⏳ Onay bekliyor · bir kullanıcı ekledi; 3 farklı kişi check-in yapınca onaylanır</Text>
+          <Text style={styles.pending}><InlineIcon name="hourglass" /> Onay bekliyor · bir kullanıcı ekledi; 3 farklı kişi check-in yapınca onaylanır</Text>
         )}
         {venue.discovery && (
           <Text style={styles.discovery}>
-            ✨ Burayı {discoverer(venue.discovery)} keşfetti ·{' '}
+            <InlineIcon name="sparkles" /> Burayı {discoverer(venue.discovery)} keşfetti ·{' '}
             {new Date(venue.discovery.at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}
           </Text>
         )}
@@ -175,18 +176,17 @@ export function VenueDetailScreen({
       </View>
       {note && <Text style={styles.note}>{note}</Text>}
       {/* Written by the venue's business */}
-      {venue.description ? <Text style={styles.text}>{venue.description}</Text> : null}
-      {venue.address ? <Text style={styles.text}>📍 {venue.address}</Text> : null}
+      {venue.address ? <Text style={styles.text}><InlineIcon name="map-pin" /> {venue.address}</Text> : null}
       {(venue.instagram || venue.phone) && (
         <View style={styles.links}>
           {venue.instagram && (
             <Pressable style={styles.linkButton} onPress={() => Linking.openURL(instagramUrl(venue.instagram!))}>
-              <Text style={styles.linkText}>📷 @{venue.instagram}</Text>
+              <Text style={styles.linkText}><InlineIcon name="camera" /> @{venue.instagram}</Text>
             </Pressable>
           )}
           {venue.phone && (
             <Pressable style={styles.linkButton} onPress={() => Linking.openURL(phoneUrl(venue.phone!))}>
-              <Text style={styles.linkText}>📞 Ara</Text>
+              <Text style={styles.linkText}><InlineIcon name="phone" /> Ara</Text>
             </Pressable>
           )}
         </View>
@@ -201,20 +201,24 @@ export function VenueDetailScreen({
           </Text>
         </View>
         {venue.open_now && <Text style={styles.text}>{crowdSummary(venue.crowd, new Date())}</Text>}
-        {venue.open_now && crowdYesterday(venue.crowd) && <Text style={styles.text}>🕘 {crowdYesterday(venue.crowd)}</Text>}
+        {/* Nothing live: what this hour is usually like here */}
+        {venue.open_now && usualNowText(liveLevel(venue), typical?.usual_now) && (
+          <Text style={styles.unusual}>{usualNowText(liveLevel(venue), typical?.usual_now)}</Text>
+        )}
+        {venue.open_now && crowdYesterday(venue.crowd) && <Text style={styles.text}><InlineIcon name="history" /> {crowdYesterday(venue.crowd)}</Text>}
         <FriendsHere venueId={venue.id} token={herePerson} onOpenUser={onOpenUser} reloadKey={venue} />
         <VenueRegular venueId={venue.id} token={herePerson} onOpenUser={onOpenUser} reloadKey={venue} />
-        <Text style={styles.text}>🕒 {venue.hours}</Text>
+        <Text style={styles.text}><InlineIcon name="clock" /> {venue.hours}</Text>
         {comparedToUsual(liveLevel(venue), typical?.usual_now) && (
           <Text style={styles.unusual}>{comparedToUsual(liveLevel(venue), typical?.usual_now)}</Text>
         )}
         {usually.map((line) => (
           <Text key={line} style={styles.text}>
-            📈 {line}
+            <InlineIcon name="chart-line" /> {line}
           </Text>
         ))}
         {watching ? (
-          <Text style={styles.watch}>🔔 Sakin olunca haber vereceğiz (6 saat açık kalır)</Text>
+          <Text style={styles.watch}><InlineIcon name="bell" /> Sakin olunca haber vereceğiz (6 saat açık kalır)</Text>
         ) : (
           canWatch(venue) && (
             <Text style={styles.muted}>Kalabalık mı? Üstteki zil simgesine bas, sakinleşince haber verelim.</Text>
@@ -257,12 +261,12 @@ export function VenueDetailScreen({
       {program && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Sadakat programı</Text>
-          <Text style={styles.text}>⭐ {describeProgram(program)}</Text>
+          <Text style={styles.text}><InlineIcon name="star" /> {describeProgram(program)}</Text>
           {program.member ? (
             <>
               <Text style={styles.text}>
                 {program.kind === 'stamps'
-                  ? `✓ Katıldın · kartında ${program.member.stamps}/${program.stampsRequired} damga${program.member.rewards ? ` · 🎁 ${program.member.rewards} ödül` : ''}`
+                  ? `✓ Katıldın · kartında ${program.member.stamps}/${program.stampsRequired} damga${program.member.rewards ? ` · <InlineIcon name="gift" /> ${program.member.rewards} ödül` : ''}`
                   : '✓ Üyesin'}
               </Text>
               <Text style={styles.muted}>Kasada QR'ını göster: Kampanyalar → Sadakat</Text>
@@ -286,7 +290,7 @@ export function VenueDetailScreen({
         <View style={styles.wrap}>
           {amenitiesFor(venue).map((a) => (
             <Text key={a.label} style={styles.chip}>
-              {a.icon} {a.label}
+              <InlineIcon name={a.icon} /> {a.label}
             </Text>
           ))}
         </View>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import { Text, TextInput } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { BackButton } from '../components/BackButton';

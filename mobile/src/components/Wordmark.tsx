@@ -1,4 +1,5 @@
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { Text } from './Text';
 
 import { colors, themed } from '../theme';
 
@@ -19,6 +20,6 @@ export function Wordmark({ size = 40, color = colors.primary }: Props) {
 }
 
 const styles = themed(() => StyleSheet.create({
-  // flex-start: as wide as the word itself, even inside a stretched column
-  text: { fontFamily: WORDMARK_FONT, includeFontPadding: false, alignSelf: 'flex-start' },
+  // Placed by the parent: left in the headers, centered on the welcome and loading screens
+  text: { fontFamily: WORDMARK_FONT, includeFontPadding: false },
 }));

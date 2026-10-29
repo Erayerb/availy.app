@@ -166,5 +166,14 @@ def profile(conn: psycopg.Connection, me: dict, username: str, now: datetime) ->
         "venues": venues,
         "weekly_streak": weekly_streak(conn, other["id"], now) if stats else None,
         "stats_hidden": stats is None,
+        "level": stats["level"] if stats else _level(conn, other["id"]),
         "photo_at": photo_time(conn, other["id"]),
     }
+
+
+def _level(conn: psycopg.Connection, user_id: int) -> dict:
+    """The level without the rest of the statistics (they may be hidden; the level is a status)."""
+    from app.levels import user_level
+
+    level = user_level(conn, user_id)
+    return {**level, "next": None}

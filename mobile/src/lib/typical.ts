@@ -20,7 +20,16 @@ const RANK: Record<Level, number> = { low: 0, medium: 1, high: 2 };
 export function comparedToUsual(live: Level | null, usual: Level | null | undefined): string | null {
   if (!live || !usual || live === usual) return null;
   const quieter = RANK[live] < RANK[usual];
-  return `${quieter ? '✨ Şu an normalden daha sakin' : '⚠️ Şu an normalden daha kalabalık'} (bu saatte genelde ${LEVEL_NAMES[usual]})`;
+  return `${quieter ? 'Şu an normalden daha sakin' : 'Şu an normalden daha kalabalık'} (bu saatte genelde ${LEVEL_NAMES[usual]})`;
+}
+
+/**
+ * No live report right now: "Genelde bu saatte sakin (tahmini)", from this venue's own past check-ins at
+ * this hour. Null with a live level (that one is shown) or without enough past check-ins.
+ */
+export function usualNowText(live: Level | null, usual: Level | null | undefined): string | null {
+  if (live || !usual) return null;
+  return `Genelde bu saatte ${LEVEL_NAMES[usual].toLocaleLowerCase('tr-TR')} (tahmini)`;
 }
 
 const DAYS = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];

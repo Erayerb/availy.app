@@ -23,6 +23,8 @@ CHECKIN_COLUMNS = "id, venue_id, level, queue, seats, is_first, created_at"
 # availy points (for now): every check-in, plus a bonus for a venue's very first one
 CHECKIN_POINTS = 10
 FIRST_CHECKIN_POINTS = 50
+# "Bugünün ilk bilgisini sen ver": the day's first check-in at a venue (not its discovery) earns double
+FIRST_TODAY_FACTOR = 2
 # Against point farming (cafes side by side): no points within 30 minutes of a check-in at another
 # venue, and at most 8 check-ins with points a day; the check-in still counts for the occupancy
 POINTS_GAP = timedelta(minutes=30)
@@ -41,16 +43,29 @@ TRUST_PENALTY = 0.1
 TRUST_REWARD = 0.02
 TRUST_FLOOR = 0.2
 
-# Badge catalog: (id, name, icon, how to earn, stat it counts, target)
+# Badge catalog: (id, name, icon (a Tabler icon name), how to earn, stat it counts, target)
 BADGES = [
-    ("first_step", "İlk Adım", "👣", "İlk check-in'ini yap", "checkins", 1),
-    ("explorer", "Kâşif", "✨", "Bir mekanın ilk check-in'ini yap", "discoveries", 1),
-    ("great_explorer", "Büyük Kâşif", "🧭", "5 mekanın ilk check-in'ini yap", "discoveries", 5),
-    ("traveller", "Gezgin", "🗺️", "5 farklı mekanda check-in yap", "venues", 5),
-    ("regular", "Müdavim", "☕", "Aynı mekana 5 kez check-in yap", "max_same_venue", 5),
-    ("night_owl", "Gece Kuşu", "🦉", "22:00'den sonra check-in yap", "night", 1),
-    ("helper", "Yardımsever", "🤝", "25 check-in yap", "checkins", 25),
+    ("profile", "Tam Profil", "user-check", "Profilini tamamla: fotoğraf, e-posta, check-in, arkadaş, yorum", "profile_complete", 1),
+    ("first_step", "İlk Adım", "shoe", "İlk check-in'ini yap", "checkins", 1),
+    ("explorer", "Kâşif", "sparkles", "Bir mekanın ilk check-in'ini yap", "discoveries", 1),
+    ("great_explorer", "Büyük Kâşif", "compass", "5 mekanın ilk check-in'ini yap", "discoveries", 5),
+    ("traveller", "Gezgin", "map", "5 farklı mekanda check-in yap", "venues", 5),
+    ("regular", "Müdavim", "coffee", "Aynı mekana 5 kez check-in yap", "max_same_venue", 5),
+    ("night_owl", "Gece Kuşu", "moon", "22:00'den sonra check-in yap", "night", 1),
+    ("helper", "Yardımsever", "heart-handshake", "25 check-in yap", "checkins", 25),
 ]
+# Points for a new badge, once, by how hard it is (the easiest 5)
+BADGE_POINTS = 5
+BADGE_POINTS_BY_ID = {
+    "first_step": 5,  # the first check-in
+    "night_owl": 10,  # one late check-in
+    "explorer": 15,  # one discovery
+    "profile": 20,  # photo, e-mail, check-in, friend and review
+    "traveller": 20,  # 5 different venues
+    "regular": 25,  # 5 times at one venue
+    "great_explorer": 40,  # 5 discoveries
+    "helper": 50,  # 25 check-ins
+}
 
 
 @dataclass
@@ -153,15 +168,18 @@ def create_checkin(
 
     after_checkin(conn, venue_id, now)  # a quiet venue tells its business (and may send its campaign)
 
+    first_today = not checkin["is_first"] and is_first_today(conn, venue_id, checkin["id"], now)
     return {
         **checkin,
-        "points_earned": award_points(conn, user, checkin, now),
+        "first_today": first_today,
+        "points_earned": award_points(conn, user, checkin, now, first_today),
         "points_note": points_blocked(conn, user["id"], checkin["id"], now),
         "coupons": coupons_for_checkin(conn, user, venue_id, now),
         # "Burayı keşfeden 12. kişisin" on the first visit; later the visit count
         "visitor_rank": visits["people"] if visits["mine"] == 1 else None,
         "my_visits": visits["mine"],
         "weekly_streak": weekly_streak(conn, user["id"], now),  # "🔥 3. hafta üst üste"
+        "new_badges": reward_badges(conn, user["id"], now),  # celebrated with the check-in
     }
 
 
@@ -221,11 +239,22 @@ def points_blocked(conn: psycopg.Connection, user_id: int, checkin_id: int, now:
     return None
 
 
-def award_points(conn: psycopg.Connection, user: dict, checkin: dict, now: datetime) -> int:
+def is_first_today(conn: psycopg.Connection, venue_id: int, checkin_id: int, now: datetime) -> bool:
+    """No other check-in at this venue since midnight (Istanbul)."""
+    from app.typical import ISTANBUL
+
+    midnight = now.astimezone(ISTANBUL).replace(hour=0, minute=0, second=0, microsecond=0)
+    return conn.execute(
+        "SELECT NOT EXISTS (SELECT 1 FROM checkins WHERE venue_id = %s AND id <> %s AND created_at >= %s) AS f",
+        (venue_id, checkin_id, midnight),
+    ).fetchone()["f"]
+
+
+def award_points(conn: psycopg.Connection, user: dict, checkin: dict, now: datetime, first_today: bool = False) -> int:
     if points_blocked(conn, user["id"], checkin["id"], now):
         return 0
     factor = GUEST_POINT_FACTOR if user.get("is_guest") else 1
-    awards = [(int(CHECKIN_POINTS * factor), "checkin")]
+    awards = [(int(CHECKIN_POINTS * factor * (FIRST_TODAY_FACTOR if first_today else 1)), "checkin")]
     if checkin["is_first"]:
         awards.append((int(FIRST_CHECKIN_POINTS * factor), "first_checkin"))
     user_id = user["id"]
@@ -253,6 +282,8 @@ def user_stats(conn: psycopg.Connection, user_id: int) -> dict:
         """,
         {"id": user_id},
     ).fetchone()
+    profile = profile_steps(conn, user_id)
+    row = {**row, "profile_complete": int(all(s["done"] for s in profile))}
     badges = [
         {
             "id": badge_id,
@@ -265,12 +296,63 @@ def user_stats(conn: psycopg.Connection, user_id: int) -> dict:
         }
         for badge_id, name, icon, description, stat, target in BADGES
     ]
+    from app.levels import user_level
+
     return {
         "points": row["points"],
         "checkins": row["checkins"],
         "discoveries": row["discoveries"],
         "badges": badges,
+        "level": user_level(conn, user_id),
+        "profile": profile,
     }
+
+
+def profile_steps(conn: psycopg.Connection, user_id: int) -> list[dict]:
+    """"Profilin %60 dolu": what a complete personal profile has (100% earns the Tam Profil badge)."""
+    row = conn.execute(
+        """
+        SELECT
+            EXISTS (SELECT 1 FROM user_photos WHERE user_id = %(id)s) AS photo,
+            (SELECT email_verified FROM users WHERE id = %(id)s) AS email,
+            EXISTS (SELECT 1 FROM checkins WHERE user_id = %(id)s) AS checkin,
+            EXISTS (SELECT 1 FROM friendships WHERE status = 'accepted' AND %(id)s IN (requester_id, addressee_id)) AS friend,
+            EXISTS (SELECT 1 FROM reviews WHERE user_id = %(id)s) AS review
+        """,
+        {"id": user_id},
+    ).fetchone()
+    labels = [("photo", "Profil fotoğrafı"), ("email", "E-posta doğrulama"), ("checkin", "İlk check-in"), ("friend", "İlk arkadaş"), ("review", "İlk yorum")]
+    return [{"key": key, "label": label, "done": bool(row[key])} for key, label in labels]
+
+
+def reward_badges(conn: psycopg.Connection, user_id: int, now: datetime) -> list[dict]:
+    """Badges earned since the last look: each written down once with its points; returned so the app
+    celebrates them. The first time, what was earned before is written down without points."""
+    stats = user_stats(conn, user_id)
+    earned = [b for b in stats["badges"] if b["earned"]]
+    known = {r["badge_id"] for r in conn.execute("SELECT badge_id FROM user_badges WHERE user_id = %s", (user_id,))}
+    person = conn.execute("SELECT badges_synced_at IS NULL AS f, is_guest FROM users WHERE id = %s", (user_id,)).fetchone()
+    first_look = person["f"]
+    # Guests get half of everything, badges too
+    factor = GUEST_POINT_FACTOR if person["is_guest"] else 1
+    new = []
+    for badge in earned:
+        if badge["id"] in known:
+            continue
+        conn.execute(
+            "INSERT INTO user_badges (user_id, badge_id, earned_at) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING",
+            (user_id, badge["id"], now),
+        )
+        if first_look:
+            continue
+        points = int(BADGE_POINTS_BY_ID.get(badge["id"], BADGE_POINTS) * factor)
+        conn.execute(
+            "INSERT INTO points (user_id, amount, reason, created_at) VALUES (%s, %s, 'badge', %s)", (user_id, points, now)
+        )
+        new.append({"id": badge["id"], "name": badge["name"], "icon": badge["icon"], "points": points})
+    if first_look:
+        conn.execute("UPDATE users SET badges_synced_at = %s WHERE id = %s", (now, user_id))
+    return new
 
 
 def user_visits(conn: psycopg.Connection, user_id: int) -> list[dict]:

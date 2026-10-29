@@ -157,12 +157,26 @@ def test_points_and_badges(client, conn, clock):
     second = checkin(client, second_user, kafe).json()
     assert not second["is_first"] and second["points_earned"] == 10
     stats = me(client, first_user)
-    assert stats["points"] == 60 and stats["checkins"] == 1 and stats["discoveries"] == 1
+    # 60 for the check-in, 5 + 15 for its two badges (İlk Adım, Kâşif)
+    assert stats["points"] == 80 and stats["checkins"] == 1 and stats["discoveries"] == 1
     earned = {b["id"] for b in stats["badges"] if b["earned"]}
     assert earned == {"first_step", "explorer"}
     great = next(b for b in stats["badges"] if b["id"] == "great_explorer")
     assert (great["progress"], great["target"], great["earned"]) == (1, 5, False)
     assert {b["id"] for b in me(client, second_user)["badges"] if b["earned"]} == {"first_step"}
+
+
+def test_the_days_first_checkin_earns_double(client, conn, clock):
+    from datetime import timedelta
+
+    kafe = venue_id(conn, "Test Kafe A")
+    a, b, c = (user_token(client, f"{n}@example.test") for n in ("gun1", "gun2", "gun3"))
+    assert checkin(client, a, kafe).json()["points_earned"] == 60  # the discovery, not doubled
+    clock.now += timedelta(days=1)
+    tomorrow = checkin(client, b, kafe).json()
+    assert tomorrow["first_today"] and tomorrow["points_earned"] == 20  # nobody here yet today
+    later = checkin(client, c, kafe).json()
+    assert not later["first_today"] and later["points_earned"] == 10
 
 
 def test_guests_get_half_points_and_keep_them_after_sign_up(client, conn, clock):
@@ -171,7 +185,7 @@ def test_guests_get_half_points_and_keep_them_after_sign_up(client, conn, clock)
     body = {"name": "Ayşe", "email": "ayse.kasif@example.test", "password": "gizli123", "username": "ayse.kasif"}
     client.post("/v1/auth/upgrade", json=body, headers={"Authorization": f"Bearer {token}"})
     stats = me(client, token)
-    assert not stats["is_guest"] and stats["points"] == 30
+    assert not stats["is_guest"] and stats["points"] == 30 + 2 + 7  # and half of the two badges' points (5, 15)
     assert any(b["id"] == "explorer" and b["earned"] for b in stats["badges"])
     # From now on full points (half an hour later: points need 30 minutes between check-ins)
     clock.now = NOON + timedelta(minutes=30)
@@ -306,3 +320,51 @@ def test_no_point_farming_next_door(client, conn, clock):
     assert checkin(client, token, venue_id(conn, "Test Kafe A"), lat=40.9845, lon=29.0260).status_code == 429  # 90 min
     clock.now = NOON + timedelta(minutes=95)
     assert checkin(client, token, kafe).json()["points_earned"] > 0
+
+
+def test_levels_from_points_discoveries_and_places(client, conn, clock):
+    from datetime import timedelta
+
+    token = user_token(client, "seviye@example.test")
+    level = lambda: me(client, token)["level"]  # noqa: E731
+    assert (level()["name"], level()["next"]["name"]) == ("Yeni Gelen", "Kâşif")
+    # One discovery makes a Kâşif
+    checkin(client, token, venue_id(conn, "Test Kafe A"))
+    now = level()
+    assert now["name"] == "Kâşif" and now["next"]["name"] == "Mahalleli"
+    assert now["next"]["missing"][0] == "420 puan"  # 60 for the check-in, 20 for its two badges
+    # Mahalleli: 500 points and 3 check-ins at 3 venues
+    uid = conn.execute("SELECT id FROM users WHERE email = 'seviye@example.test'").fetchone()["id"]
+    conn.execute("INSERT INTO points (user_id, amount, reason, created_at) VALUES (%s, 500, 'checkin', now())", (uid,))
+    for name in ("Test Kafe A", "Test Cowork B", "Test Bar Uzak"):
+        for d in range(3):
+            conn.execute(
+                "INSERT INTO checkins (venue_id, user_id, level, created_at) VALUES (%s, %s, 'low', %s)",
+                (venue_id(conn, name), uid, clock.now - timedelta(days=d + 1)),
+            )
+    assert (level()["name"], level()["next"]["name"]) == ("Mahalleli", "Semt Elçisi")
+
+
+def test_badges_earn_points_once_and_the_full_profile_earns_more(client, conn, clock):
+    token = user_token(client, "rozet@example.test")
+    first = checkin(client, token, venue_id(conn, "Test Kafe A")).json()
+    # İlk Adım and Kâşif with the first check-in: 60 for the check-in, 5 + 15 for the badges
+    assert sorted(b["id"] for b in first["new_badges"]) == ["explorer", "first_step"]
+    stats = me(client, token)
+    assert stats["points"] == 60 + 5 + 15 and stats["new_badges"] == []
+    steps = {s["key"]: s["done"] for s in stats["profile"]}
+    assert steps == {"photo": False, "email": False, "checkin": True, "friend": False, "review": False}
+    # Everything else done (written straight into the database here): Tam Profil, +20, celebrated once
+    uid = conn.execute("SELECT id FROM users WHERE email = 'rozet@example.test'").fetchone()["id"]
+    other = user_token(client, "arkadas@example.test")
+    oid = conn.execute("SELECT id FROM users WHERE email = 'arkadas@example.test'").fetchone()["id"]
+    conn.execute("UPDATE users SET email_verified = true WHERE id = %s", (uid,))
+    conn.execute("INSERT INTO user_photos (user_id, photo) VALUES (%s, 'data:image/jpeg;base64,AA')", (uid,))
+    conn.execute("INSERT INTO friendships (requester_id, addressee_id, status) VALUES (%s, %s, 'accepted')", (uid, oid))
+    conn.execute(
+        "INSERT INTO reviews (venue_id, user_id, rating, body) VALUES (%s, %s, 5, 'Güzel')", (venue_id(conn, "Test Kafe A"), uid)
+    )
+    full = me(client, token)
+    assert [(b["id"], b["points"]) for b in full["new_badges"]] == [("profile", 20)]
+    assert full["points"] == 100 and me(client, token)["new_badges"] == []
+    assert other  # the friend's account

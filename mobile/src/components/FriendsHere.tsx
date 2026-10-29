@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { Text } from './Text';
 
 import { timeAgo } from '../lib/crowd';
 import { friendsApi } from '../lib/friends';
 import { colors, themed } from '../theme';
+import { InlineIcon } from './Icon';
 
 type Props = {
   venueId: number;
@@ -24,7 +26,7 @@ export function VenueRegular({ venueId, token, onOpenUser, reloadKey }: Props) {
   if (!regular) return null;
   return (
     <Text style={styles.line}>
-      👑{' '}
+      <InlineIcon name="crown" />{' '}
       {regular.me ? (
         'Buranın müdavimi sensin'
       ) : (
@@ -53,7 +55,7 @@ export function FriendsHere({ venueId, token, onOpenUser, reloadKey }: Props) {
   if (friends.length === 0) return null;
   return (
     <Text style={styles.line}>
-      👥{' '}
+      <InlineIcon name="users" />{' '}
       {friends.map((f, i) => (
         <Text key={f.username}>
           {i > 0 ? (i === friends.length - 1 ? ' ve ' : ', ') : ''}

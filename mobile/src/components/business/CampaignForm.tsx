@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { View } from 'react-native';
+import { Text, TextInput } from '../Text';
 import { Pressable } from '../Pressable';
 
 import { useCampaigns } from '../../context/CampaignsContext';
@@ -110,7 +111,7 @@ export function CampaignForm({ venue, plan }: { venue: Venue; plan: PlanId }) {
       <Text style={panel.label}>Kupon kimlere?</Text>
       <View style={panel.wrap}>
         <Chip label="Herkes alabilir" active={!checkinOnly} onPress={() => setCheckinOnly(false)} />
-        <Chip label="📍 Yalnızca check-in yapanlar" active={checkinOnly} onPress={() => setCheckinOnly(true)} />
+        <Chip label="Yalnızca check-in yapanlar" active={checkinOnly} onPress={() => setCheckinOnly(true)} />
       </View>
       {checkinOnly && (
         <Text style={panel.muted}>Müşteri mekanında check-in yapınca kupon kendiliğinden verilir; hem gelir hem doluluğu bildirir.</Text>

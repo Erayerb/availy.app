@@ -1,5 +1,5 @@
 /** v2: accounts on the server (sign up, sign in, guest, profile). `send` is shared by other v2 calls. */
-import type { Badge, Role, User } from './auth.ts';
+import type { Badge, Role, User, ProfileStep } from './auth.ts';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -11,6 +11,8 @@ export class ApiError extends Error {
     this.status = status;
   }
 }
+
+import type { NewBadge } from './badgeEvents';
 
 export type ServerUser = {
   id: number;
@@ -29,6 +31,8 @@ export type ServerUser = {
   checkins?: number;
   discoveries?: number;
   badges?: Badge[];
+  profile?: ProfileStep[]; // "Profilin %60 dolu"
+  new_badges?: NewBadge[]; // earned since the last look (points already added): celebrated
 };
 
 type Session = { token: string; user: ServerUser };
@@ -64,6 +68,7 @@ export function toUser(server: ServerUser, token: string, local: LocalBusiness =
     checkins: server.checkins,
     discoveries: server.discoveries,
     badges: server.badges,
+    profile: server.profile,
   };
 }
 

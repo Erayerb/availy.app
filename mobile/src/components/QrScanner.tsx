@@ -1,6 +1,7 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRef } from 'react';
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { Modal, StyleSheet, View } from 'react-native';
+import { Text } from './Text';
 import { Pressable } from './Pressable';
 
 import { colors, themed } from '../theme';

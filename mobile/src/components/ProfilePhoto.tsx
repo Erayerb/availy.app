@@ -1,6 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useRef, useState } from 'react';
-import { Modal, Platform, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, StyleSheet, View } from 'react-native';
+import { Text } from './Text';
 
 import { userPhotoApi } from '../lib/userPhoto';
 import { colors, themed } from '../theme';
@@ -81,7 +82,7 @@ export function ProfilePhoto({ username, token, size = 72 }: { username: string;
       <Pressable onPress={() => setMenu(true)} disabled={busy} accessibilityLabel="Profil fotoğrafını düzenle">
         <Avatar key={version ?? 'start'} username={username} size={size} version={version} />
         <View style={styles.badge}>
-          <Icon name={busy ? 'hourglass-outline' : 'pencil'} size={14} color={colors.onPrimary} />
+          <Icon name={busy ? 'hourglass' : 'pencil'} size={14} color={colors.onPrimary} />
         </View>
       </Pressable>
       {note && <Text style={styles.error}>{note}</Text>}
@@ -90,10 +91,10 @@ export function ProfilePhoto({ username, token, size = 72 }: { username: string;
         <Pressable style={styles.backdrop} onPress={() => setMenu(false)} />
         <View style={styles.sheet}>
           <Text style={styles.title}>Profil fotoğrafı</Text>
-          <Option icon="images-outline" label="Fotoğraf seç" onPress={() => after(choose)} />
+          <Option icon="photo" label="Fotoğraf seç" onPress={() => after(choose)} />
           {/* The web version has no camera here */}
-          {Platform.OS !== 'web' && <Option icon="camera-outline" label="Fotoğraf çek" onPress={() => after(takePhoto)} />}
-          <Option icon="trash-outline" label="Fotoğrafı sil" danger onPress={() => after(remove)} />
+          {Platform.OS !== 'web' && <Option icon="camera" label="Fotoğraf çek" onPress={() => after(takePhoto)} />}
+          <Option icon="trash" label="Fotoğrafı sil" danger onPress={() => after(remove)} />
           <Pressable style={styles.cancel} onPress={() => setMenu(false)}>
             <Text style={styles.cancelText}>Vazgeç</Text>
           </Pressable>
@@ -103,7 +104,7 @@ export function ProfilePhoto({ username, token, size = 72 }: { username: string;
   );
 }
 
-function Option({ icon, label, onPress, danger }: { icon: 'images-outline' | 'camera-outline' | 'trash-outline'; label: string; onPress: () => void; danger?: boolean }) {
+function Option({ icon, label, onPress, danger }: { icon: 'photo' | 'camera' | 'trash'; label: string; onPress: () => void; danger?: boolean }) {
   return (
     <Pressable style={styles.option} onPress={onPress}>
       <Icon name={icon} size={22} color={danger ? colors.danger : colors.text} />

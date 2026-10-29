@@ -1,9 +1,11 @@
-import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import type { Screen } from '../components/TabBar';
 import { HeaderButtons } from '../components/HeaderButtons';
 import { Wordmark } from '../components/Wordmark';
+import { ProfileCompletion } from '../components/ProfileCompletion';
 import { isBusiness, type User } from '../lib/auth';
 import { SUPPORT_SITE_URL } from '../lib/share';
 import { colors, themed } from '../theme';
@@ -22,10 +24,10 @@ const CUSTOMER_ITEMS: Item[] = [
 ];
 
 const BUSINESS_ITEMS: Item[] = [
-  { screen: 'profile', label: 'İşletme Profili', hint: 'Kapak fotoğrafı, adres, Instagram, telefon' },
+  { screen: 'profile', label: 'İşletme Profili', hint: 'Kapak fotoğrafı, ad, saatler, özellikler, adres ve konum, iletişim' },
   { screen: 'verification', label: 'İşletme doğrulama', hint: 'Mekan sahipliğini kanıtla', badge: 'Yakında' },
   { screen: 'subscription', label: 'Abonelik', hint: 'Kampanya başı ödeme ya da aylık paket' },
-  { screen: 'settings', label: 'Ayarlar', hint: 'Hesap, mekan bilgileri, ölü saat bildirimi, otomatik kampanya' },
+  { screen: 'settings', label: 'Ayarlar', hint: 'Hesap, ölü saat bildirimi, otomatik kampanya' },
   { screen: 'appearance', label: 'Görünüm', hint: 'Açık ya da koyu tema, renk körlüğü dostu mod' },
   { screen: 'permissions', label: 'İzinler', hint: 'Kamera ve bildirim izinleri ne için kullanılıyor' },
 ];
@@ -41,7 +43,7 @@ const COMMON_ITEMS: Item[] = [
     disabled: !SUPPORT_SITE_URL,
   },
   { screen: 'support', label: 'Hata bildir ve iletişim', hint: 'Sorun bildir ya da bize yaz' },
-  { screen: 'about', label: 'Hakkında', hint: 'Nasıl kullanılır: renkler, bildirimler, kampanyalar' },
+  { screen: 'about', label: 'Hakkında', hint: 'Nasıl kullanılır, web sitemiz' },
   { screen: 'legal', label: 'Kullanım koşulları', hint: 'Kullanım koşulları ve gizlilik politikası (KVKK)' },
 ];
 
@@ -71,6 +73,9 @@ export function MoreScreen({ user, onSelect, onLogin, onLogout }: Props) {
           ? `Merhaba, ${user.username ? `@${user.username}` : user.name}${isBusiness(user) ? ' (İşletme)' : ''}`
           : `Misafir olarak geziyorsun${user ? ` (${user.name})` : ''}`}
       </Text>
+
+      {/* Personal accounts: until the profile is complete (Tam Profil badge) */}
+      {user && !user.isGuest && !isBusiness(user) && user.profile && <ProfileCompletion steps={user.profile} onOpen={onSelect} />}
 
       <View style={styles.card}>
         {items.map((item, i) => (

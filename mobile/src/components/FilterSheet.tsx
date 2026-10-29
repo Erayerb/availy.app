@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from './Text';
 
 import { Icon } from './Icon';
 import { Pressable } from './Pressable';
@@ -20,31 +21,37 @@ type Props = {
 };
 
 /**
- * Ana sayfa, under "Mekan ara": a "Filtrele" button (with how many filters are on) and the chosen ones
- * as small chips; the sheet holds "Ne arıyorsun?", "Sırala" and "Kapalıları gizle". Changes apply at once.
+ * Ana sayfa, under "Mekan ara": a "Filtrele" button (with how many filters are on) next to the sort
+ * chips (Önerilen / En yakın / En sakin), and the chosen filters as small chips below; the sheet holds
+ * "Ne arıyorsun?" and "Kapalıları gizle". Changes apply at once.
  */
 export function FilterBar(props: Props) {
   const { tags, onTagsChange, sortMode, onSortChange, hideClosed, onHideClosedChange } = props;
   const [open, setOpen] = useState(false);
-  const active = tags.length + (sortMode !== 'recommended' ? 1 : 0) + (hideClosed ? 1 : 0);
-  const sortLabel = SORT_OPTIONS.find((o) => o.mode === sortMode)?.label;
+  const active = tags.length + (hideClosed ? 1 : 0);
 
   return (
     <>
       <View style={styles.row}>
         <Pressable onPress={() => setOpen(true)} style={[styles.button, active > 0 && styles.buttonOn]} accessibilityLabel="Filtrele">
-          <Icon name="options-outline" size={17} color={active > 0 ? colors.onPrimary : colors.text} />
+          <Icon name="adjustments-horizontal" size={17} color={active > 0 ? colors.onPrimary : colors.text} />
           <Text style={[styles.buttonText, active > 0 && styles.buttonTextOn]}>Filtrele{active > 0 ? ` · ${active}` : ''}</Text>
         </Pressable>
-        {/* What is on, each removable with one tap */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bar}>
-          {sortMode !== 'recommended' && <Applied label={sortLabel ?? ''} onRemove={() => onSortChange('recommended')} />}
+          {SORT_OPTIONS.map(({ mode, label }) => (
+            <Chip key={mode} label={label} active={sortMode === mode} onPress={() => onSortChange(mode)} />
+          ))}
+        </ScrollView>
+      </View>
+      {/* What is on, each removable with one tap */}
+      {active > 0 && (
+        <View style={styles.appliedRow}>
           {tags.map((tag) => (
             <Applied key={tag} label={TAG_OPTIONS.find((t) => t.tag === tag)?.label ?? tag} onRemove={() => onTagsChange(toggleTag(tags, tag))} />
           ))}
           {hideClosed && <Applied label="Açık olanlar" onRemove={() => onHideClosedChange(false)} />}
-        </ScrollView>
-      </View>
+        </View>
+      )}
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)} accessibilityLabel="Kapat" />
@@ -53,19 +60,12 @@ export function FilterBar(props: Props) {
           <View style={styles.sheetTop}>
             <Text style={styles.title}>Filtrele</Text>
             <Pressable onPress={() => setOpen(false)} hitSlop={10} accessibilityLabel="Kapat">
-              <Icon name="close" size={24} color={colors.text} />
+              <Icon name="x" size={24} color={colors.text} />
             </Pressable>
           </View>
           <ScrollView contentContainerStyle={styles.sheetBody}>
             <Text style={styles.heading}>Ne arıyorsun?</Text>
             <TagChips selected={tags} onToggle={(tag) => onTagsChange(toggleTag(tags, tag))} />
-
-            <Text style={styles.heading}>Sırala</Text>
-            <View style={styles.chips}>
-              {SORT_OPTIONS.map(({ mode, label }) => (
-                <Chip key={mode} label={label} active={sortMode === mode} onPress={() => onSortChange(mode)} />
-              ))}
-            </View>
 
             <View style={styles.switchRow}>
               <View style={styles.flex}>
@@ -79,7 +79,6 @@ export function FilterBar(props: Props) {
             <Pressable
               onPress={() => {
                 onTagsChange([]);
-                onSortChange('recommended');
                 onHideClosedChange(false);
               }}
               style={styles.reset}
@@ -100,7 +99,7 @@ function Applied({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
     <Pressable onPress={onRemove} style={styles.applied} accessibilityLabel={`${label} filtresini kaldır`}>
       <Text style={styles.appliedText}>{label}</Text>
-      <Icon name="close" size={14} color={colors.textMuted} />
+      <Icon name="x" size={14} color={colors.textMuted} />
     </Pressable>
   );
 }
@@ -108,6 +107,7 @@ function Applied({ label, onRemove }: { label: string; onRemove: () => void }) {
 const styles = themed(() => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   bar: { gap: 8, alignItems: 'center' },
+  appliedRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -148,7 +148,6 @@ const styles = themed(() => StyleSheet.create({
   title: { fontSize: 20, fontWeight: '700', color: colors.text },
   sheetBody: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 12, gap: 10 },
   heading: { fontSize: 15, fontWeight: '700', color: colors.text, marginTop: 10 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',

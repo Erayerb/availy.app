@@ -6,7 +6,7 @@ import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
 
-from app.auth_api import BadgeOut, current_user
+from app.auth_api import BadgeOut, current_user, LevelOut
 from app.checkins_api import get_clock
 from app.db import get_conn
 from app.safety import SafetyError, block, blocked_people, mute, profile, report, unblock
@@ -37,6 +37,7 @@ class ProfileOut(BaseModel):
     venues: list[ProfileVenue] | None  # None: not visible (not a friend, or they do not share check-ins)
     weekly_streak: int | None = 0  # "🔥 4 haftalık seri"
     stats_hidden: bool = False
+    level: LevelOut | None = None  # shown even when the statistics are hidden (a status, like a badge)
     photo_at: datetime | None = None  # profile photo: GET /v1/users/{username}/photo?v=<photo_at>
 
 

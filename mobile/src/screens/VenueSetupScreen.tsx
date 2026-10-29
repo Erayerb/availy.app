@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { NewVenueForm } from '../components/NewVenueForm';
@@ -67,7 +68,7 @@ export function VenueSetupScreen({ token, onDone, onLogout }: Props) {
             <TextInput
               value={query}
               onChangeText={setQuery}
-              placeholder="🔍  Mekan ara"
+              placeholder="Mekan ara"
               placeholderTextColor={colors.placeholder}
               style={styles.input}
               autoCorrect={false}

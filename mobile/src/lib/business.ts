@@ -41,3 +41,18 @@ export function quietestWeekday(weekday: number[]): number | null {
   const min = Math.min(...weekday);
   return weekday.filter((n) => n === min).length === 1 ? weekday.indexOf(min) : null;
 }
+
+export type ProfileStep = { key: 'photo' | 'address' | 'instagram' | 'phone' | 'amenities'; label: string; done: boolean };
+
+/** "Profilin %60 dolu": what a venue page needs to look complete (İşletme Profili). */
+export function profileSteps(
+  venue: { photo_at?: string | null; address?: string; instagram?: string | null; phone?: string | null; amenity_keys?: string[] | null },
+): ProfileStep[] {
+  return [
+    { key: 'photo', label: 'Kapak fotoğrafı', done: !!venue.photo_at },
+    { key: 'address', label: 'Adres', done: !!venue.address?.trim() },
+    { key: 'instagram', label: 'Instagram', done: !!venue.instagram?.trim() },
+    { key: 'phone', label: 'Telefon', done: !!venue.phone?.trim() },
+    { key: 'amenities', label: 'Özellikler', done: !!venue.amenity_keys?.length },
+  ];
+}

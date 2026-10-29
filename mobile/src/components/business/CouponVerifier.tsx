@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { View } from 'react-native';
+import { Text, TextInput } from '../Text';
 import { Pressable } from '../Pressable';
 
 import { useCampaigns } from '../../context/CampaignsContext';
@@ -7,6 +8,7 @@ import { parseCouponQr } from '../../lib/coupons';
 import { colors } from '../../theme';
 import { QrScanner } from '../QrScanner';
 import { panel } from './panelStyles';
+import { InlineIcon } from '../Icon';
 
 /** The cashier scans the customer's coupon QR (or types the code) to mark it used. */
 export function CouponVerifier() {
@@ -29,7 +31,7 @@ export function CouponVerifier() {
       <Text style={panel.sectionTitle}>Kupon doğrula</Text>
       <Text style={panel.muted}>Müşterinin telefonundaki kupon QR'ını okut.</Text>
       <Pressable style={panel.primary} onPress={() => setScanning(true)}>
-        <Text style={panel.primaryText}>📷 Kupon QR'ı okut</Text>
+        <Text style={panel.primaryText}><InlineIcon name="camera" /> Kupon QR'ı okut</Text>
       </Pressable>
       <Pressable onPress={() => setManual((m) => !m)}>
         <Text style={panel.muted}>{manual ? 'Elle girişi gizle' : 'Kamera yok mu? Kodu elle yaz'}</Text>

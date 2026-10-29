@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text, TextInput } from './Text';
 import { Pressable } from './Pressable';
 
 import { isRegistered, type User } from '../lib/auth';
@@ -51,8 +52,8 @@ export function ReviewsSection({ venueId, user, reviews, onChange, reload, onReg
     }
   };
 
-  // Stars without words count in the average only; my own stays listed (to change or delete it)
-  const written = reviews.items.filter((r) => r.body?.trim() || r.mine);
+  // Stars without words count in the average only, mine too; only reviews with words are listed
+  const written = reviews.items.filter((r) => r.body?.trim());
   const shown = showAll ? written : written.slice(0, FIRST_REVIEWS);
 
   return (
@@ -69,13 +70,9 @@ export function ReviewsSection({ venueId, user, reviews, onChange, reload, onReg
         </Text>
       ) : registered && allowance && allowance.checkins === 0 ? (
         <Text style={styles.muted}>Yorum yazmak için önce buraya check-in yap. Her check-in {MAX_REVIEWS_PER_CHECKIN} yorum hakkı verir.</Text>
-      ) : registered && allowance && allowance.left <= 0 ? (
-        <Text style={styles.muted}>
-          Bu check-in'lerin için yorum hakkını kullandın. Tekrar check-in yapınca {MAX_REVIEWS_PER_CHECKIN} yorum daha yazabilirsin.
-        </Text>
       ) : registered ? (
+        // No counter: past the limit (2 per check-in) the server's message shows when sending
         <View style={styles.form}>
-          {allowance && <Text style={styles.muted}>{allowance.left} yorum hakkın var (her check-in {MAX_REVIEWS_PER_CHECKIN} yorum).</Text>}
           <View style={styles.starsRow}>
             {[1, 2, 3, 4, 5].map((n) => (
               <Pressable key={n} onPress={() => setRating(n)} hitSlop={6} accessibilityLabel={`${n} yıldız`}>

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { BackButton } from '../components/BackButton';
@@ -22,16 +23,16 @@ type Props = {
 };
 
 const ICONS: Record<AppNotification['kind'], IconName> = {
-  friend_request: 'person-add',
-  friend_accepted: 'people',
-  reply: 'chatbubble-ellipses',
+  friend_request: 'user-plus',
+  friend_accepted: 'users',
+  reply: 'message-dots',
   reward: 'gift',
   loyalty: 'star',
   checkin_like: 'heart',
-  checkin_comment: 'chatbubble',
-  group_invite: 'people-circle',
+  checkin_comment: 'message-circle',
+  group_invite: 'users-group',
   dead_hour: 'moon',
-  auto_campaign: 'megaphone',
+  auto_campaign: 'speakerphone',
 };
 
 /** v2 🔔 list: friend requests, accepted requests and replies to my reviews (last 30 days); kept until deleted. */
@@ -93,7 +94,7 @@ export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue,
                 <Text style={styles.muted}>{sentence(timeAgo(n.at, new Date()))}</Text>
               </View>
               <Pressable onPress={() => dismiss(n.key)} hitSlop={10} style={styles.delete} accessibilityLabel="Bildirimi sil">
-                <Icon name="trash-outline" size={20} color={colors.textMuted} />
+                <Icon name="trash" size={20} color={colors.textMuted} />
               </Pressable>
             </Pressable>
           ))}

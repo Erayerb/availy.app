@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from './Text';
 import { Pressable } from './Pressable';
 
 import { venueApi, type BusinessRequest as Status } from '../lib/venueApi';
 import { colors, themed } from '../theme';
+import { InlineIcon } from './Icon';
 
 type Props = { venueId: number; token: string | null; onLogin: () => void };
 
@@ -29,7 +31,7 @@ export function BusinessRequest({ venueId, token, onLogin }: Props) {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>🏪 İşletmesi henüz availy'ye katılmadı</Text>
+      <Text style={styles.title}><InlineIcon name="building-store" /> İşletmesi henüz availy'ye katılmadı</Text>
       <Text style={styles.muted}>
         Doluluğunu yine görür, check-in yapabilirsin. İşletme katılınca kampanyalarını ve sadakat programını da burada
         görürsün. Yeterince kişi isteyince işletmeye haber veririz; kimin istediğini söylemeyiz.

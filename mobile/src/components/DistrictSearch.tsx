@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text, TextInput } from './Text';
 import { Pressable } from './Pressable';
 
 import { useDistricts } from '../hooks/useDistricts';
@@ -28,7 +29,7 @@ export function DistrictSearch({ value, onChange }: Props) {
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
-        placeholder="🔍 Semt ara (ör. Kadıköy)"
+        placeholder="Semt ara (ör. Kadıköy)"
         placeholderTextColor={colors.placeholder}
         autoCorrect={false}
         style={styles.input}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { View } from 'react-native';
+import { Text, TextInput } from '../Text';
 import { Pressable } from '../Pressable';
 
 import type { Venue } from '../../lib/api';
@@ -7,11 +8,11 @@ import { venueApi } from '../../lib/venueApi';
 import { colors } from '../../theme';
 import { panel } from './panelStyles';
 import { AddressSection } from './AddressSection';
-import { PhotoSection } from './PhotoSection';
+import { VenueEditSection } from './VenueEditSection';
 
 type Props = { venue: Venue; token: string; onSaved: () => void };
 
-/** The business edits its venue page: cover photo, Instagram and phone (saved on the server, seen by everyone). */
+/** The business edits its venue page (the cover photo is next to the name above): name, hours and features, address and location, Instagram and phone (saved on the server, seen by everyone). */
 export function ProfileEditor({ venue, token, onSaved }: Props) {
   const [instagram, setInstagram] = useState(venue.instagram ?? '');
   const [phone, setPhone] = useState(venue.phone ?? '');
@@ -31,7 +32,7 @@ export function ProfileEditor({ venue, token, onSaved }: Props) {
 
   return (
     <>
-      <PhotoSection venue={venue} token={token} onSaved={onSaved} />
+      <VenueEditSection key={venue.id} venue={venue} token={token} onSaved={onSaved} />
       <AddressSection key={`${venue.lat},${venue.lon}`} venue={venue} token={token} onSaved={onSaved} />
       <View style={panel.card}>
         <Text style={panel.sectionTitle}>İletişim</Text>

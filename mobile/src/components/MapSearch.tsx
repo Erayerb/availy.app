@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from './Text';
 import { Pressable } from './Pressable';
 
 import { useLocation } from '../context/LocationContext';
@@ -45,7 +46,7 @@ export function MapSearch({ onClose, onChoose }: Props) {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="🔍 Mekan, mahalle ya da semt ara"
+          placeholder="Mekan, mahalle ya da semt ara"
           placeholderTextColor={colors.placeholder}
           autoFocus
           autoCorrect={false}

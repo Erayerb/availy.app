@@ -1,9 +1,11 @@
 import type { ReactElement } from 'react';
-import { FlatList, Platform, RefreshControl, StyleSheet, Text, useWindowDimensions } from 'react-native';
+import { FlatList, Platform, RefreshControl, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Text } from './Text';
 
 import { useLocation } from '../context/LocationContext';
 import type { Venue } from '../lib/api';
 import { distanceKm, formatDistance } from '../lib/geo';
+import { TileSkeleton } from './Skeleton';
 import { VenueTile } from './VenueTile';
 import { colors, themed } from '../theme';
 
@@ -14,6 +16,7 @@ type Props = {
   venues: Venue[];
   header: ReactElement;
   emptyText: string;
+  loading?: boolean; // first load: placeholder tiles instead of the empty text
   error?: string | null;
   onOpenVenue: (venue: Venue) => void;
   // Pull-to-refresh
@@ -22,7 +25,7 @@ type Props = {
 };
 
 /** Two-column grid of square venue tiles with a scrolling header above it. */
-export function VenueGrid({ venues, header, emptyText, error, onOpenVenue, refreshing = false, onRefresh }: Props) {
+export function VenueGrid({ venues, header, emptyText, loading = false, error, onOpenVenue, refreshing = false, onRefresh }: Props) {
   const { width } = useWindowDimensions();
   const tileSize = (width - PADDING * 2 - GAP) / 2;
   const { point } = useLocation();
@@ -36,7 +39,17 @@ export function VenueGrid({ venues, header, emptyText, error, onOpenVenue, refre
       numColumns={2}
       columnWrapperStyle={styles.columns}
       ListHeaderComponent={header}
-      ListEmptyComponent={<Text style={error ? styles.error : styles.empty}>{error ?? emptyText}</Text>}
+      ListEmptyComponent={
+        loading && !error ? (
+          <View style={styles.skeletons}>
+            {Array.from({ length: 6 }, (_, i) => (
+              <TileSkeleton key={i} size={tileSize} />
+            ))}
+          </View>
+        ) : (
+          <Text style={error ? styles.error : styles.empty}>{error ?? emptyText}</Text>
+        )
+      }
       renderItem={({ item }) => (
         <VenueTile
           venue={item}
@@ -60,6 +73,7 @@ const styles = themed(() => StyleSheet.create({
   container: { flex: 1, marginTop: 50, backgroundColor: colors.background },
   content: { paddingHorizontal: PADDING, paddingTop: 10, paddingBottom: 40, gap: 16 },
   columns: { gap: GAP },
+  skeletons: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP, rowGap: 16 },
   empty: { textAlign: 'center', color: colors.textMuted, marginTop: 24 },
   error: { textAlign: 'center', color: colors.danger, marginTop: 24 },
 }));

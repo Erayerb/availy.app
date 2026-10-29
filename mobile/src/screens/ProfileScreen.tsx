@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { ProfilePhoto } from '../components/ProfilePhoto';
 import { Collapsible } from '../components/Collapsible';
 import { ProfileEditor } from '../components/business/ProfileEditor';
+import { CoverPhoto } from '../components/business/CoverPhoto';
 import { BadgeGrid } from '../components/BadgeGrid';
 import { BackButton } from '../components/BackButton';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
@@ -102,10 +104,24 @@ export function ProfileScreen({
         {!business && user.username && user.token ? (
           <ProfilePhoto username={user.username} token={user.token} />
         ) : null}
-        <Text style={styles.name}>{user.username ? `@${user.username}` : user.name}</Text>
-        <Text style={styles.muted}>
-          {user.email} · {user.role === 'business' ? 'İşletme hesabı' : 'Bireysel hesap'}
-        </Text>
+        {business && venue && user.token ? (
+          // The venue's name with its cover photo beside it (a tap changes the photo)
+          <View style={styles.venueHead}>
+            <CoverPhoto venue={venue} token={user.token} onSaved={refreshVenue} />
+            <View style={styles.flex}>
+              <Text style={styles.name}>{venue.name}</Text>
+              <Text style={styles.muted}>@{user.username ?? user.name} · {user.email}</Text>
+              <Text style={styles.muted}>Kapak fotoğrafı mekan sayfasında ve ana sayfada görünür.</Text>
+            </View>
+          </View>
+        ) : (
+          <>
+            <Text style={styles.name}>{user.username ? `@${user.username}` : user.name}</Text>
+            <Text style={styles.muted}>
+              {user.email} · {user.role === 'business' ? 'İşletme hesabı' : 'Bireysel hesap'}
+            </Text>
+          </>
+        )}
         {!business && user.customerCode && (
           <Text style={styles.text}>
             Müşteri kodun: <Text style={styles.code}>{user.customerCode}</Text>
@@ -538,6 +554,7 @@ function TypedConfirm({ word, action, question, onConfirm }: { word: string; act
 }
 
 const styles = themed(() => StyleSheet.create({
+  venueHead: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   confirm: { gap: 10, padding: 12, borderRadius: 12, backgroundColor: colors.cream },
   confirmQuestion: { fontSize: 15, fontWeight: '700', color: colors.text },
   confirmInput: {

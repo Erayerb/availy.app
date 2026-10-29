@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { BackButton } from '../components/BackButton';
 import { Avatar } from '../components/Avatar';
 import { BadgeGrid } from '../components/BadgeGrid';
+import { LevelCard } from '../components/LevelCard';
 import { listsApi, type VenueList as VenueListType } from '../lib/lists';
 import { shortDate, timeAgo } from '../lib/crowd';
 import { categoryLabel } from '../lib/filters';
 import { friendsApi } from '../lib/friends';
-import { safetyApi, splitVenues, type Profile, type ProfileVenue } from '../lib/safety';
+import { safetyApi, splitVenues, type Profile, type ProfileVenue, type Level } from '../lib/safety';
 import { categoryVisual } from '../lib/visuals';
-import { Icon } from '../components/Icon';
+import { Icon, InlineIcon } from '../components/Icon';
 import { confirmAction } from '../lib/confirm';
 import { colors, themed } from '../theme';
 
@@ -26,10 +28,11 @@ type Props = {
   onOpenVenue: (venue: { id: number }) => void;
   onOpenSettings: () => void; // own profile: "Profil ayarları"
   onOpenList: (id: number) => void; // one of their lists
+  onOpenLevels: (level: Level) => void; // Seviyeler page
 };
 
 /** v2: a person's profile (also mine, from the top-right icon): points, badges, venues and friend actions. */
-export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpenSettings, onOpenList }: Props) {
+export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpenSettings, onOpenList, onOpenLevels }: Props) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -116,12 +119,12 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
         </View>
         <Text style={styles.muted}>@{profile.username}</Text>
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>✨ Keşfettiği mekanlar · {venues.discovered.length}</Text>
+          <Text style={styles.sectionTitle}><InlineIcon name="sparkles" /> Keşfettiği mekanlar · {venues.discovered.length}</Text>
           {venues.discovered.length === 0 && <Text style={styles.muted}>Henüz keşfettiği mekan yok.</Text>}
           {venues.discovered.map(row)}
         </View>
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>📍 Check-in yaptığı mekanlar · {venues.visited.length}</Text>
+          <Text style={styles.sectionTitle}><InlineIcon name="map-pin" /> Check-in yaptığı mekanlar · {venues.visited.length}</Text>
           {venues.visited.length === 0 && <Text style={styles.muted}>Henüz check-in yok.</Text>}
           {venues.visited.map(row)}
         </View>
@@ -149,15 +152,16 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
             </Text>
           </View>
         </View>
+        {profile.level && <LevelCard level={profile.level} onOpen={() => onOpenLevels(profile.level!)} />}
         {profile.stats_hidden ? (
-          <Text style={styles.muted}>🔒 @{profile.username} istatistiklerini yalnızca {profile.relation === 'friend' ? 'kendisine' : 'arkadaşlarına'} gösteriyor.</Text>
+          <Text style={styles.muted}><InlineIcon name="lock" /> @{profile.username} istatistiklerini yalnızca {profile.relation === 'friend' ? 'kendisine' : 'arkadaşlarına'} gösteriyor.</Text>
         ) : (
           <View style={styles.stats}>
             <Stat value={profile.points ?? 0} label="puan" />
             <Stat value={profile.checkins ?? 0} label="check-in" />
             <Stat value={profile.discoveries ?? 0} label="keşif" />
             {/* Weeks in a row with a check-in */}
-            <Stat value={profile.weekly_streak ?? 0} label="🔥 haftalık seri" />
+            <Stat value={profile.weekly_streak ?? 0} label="haftalık seri" />
           </View>
         )}
 
@@ -204,7 +208,7 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
       {!me && profile.venues && profile.venues.length > 0 && (
         <Pressable style={styles.latest} onPress={() => onOpenVenue({ id: profile.venues![0].venue_id })}>
           <Text style={styles.latestText}>
-            📍 {profile.venues[0].venue_name}'de check-in yaptı · {timeAgo(profile.venues[0].last_at, new Date())} · {shortDate(profile.venues[0].last_at, new Date())}
+            <InlineIcon name="map-pin" /> {profile.venues[0].venue_name}'de check-in yaptı · {timeAgo(profile.venues[0].last_at, new Date())} · {shortDate(profile.venues[0].last_at, new Date())}
           </Text>
           <Text style={styles.chevronSmall}>›</Text>
         </Pressable>
@@ -219,14 +223,14 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
       ) : (
         <>
           <VenueList
-            title={`✨ Keşfettiği mekanlar · ${venues.discovered.length}`}
+            title={`Keşfettiği mekanlar · ${venues.discovered.length}`}
             venues={venues.discovered}
             empty="Henüz keşfettiği mekan yok."
             onOpenVenue={onOpenVenue}
             onShowAll={() => setFullList(true)}
           />
           <VenueList
-            title={`📍 Check-in yaptığı mekanlar · ${venues.visited.length}`}
+            title={`Check-in yaptığı mekanlar · ${venues.visited.length}`}
             venues={venues.visited}
             empty="Henüz check-in yok."
             onOpenVenue={onOpenVenue}
@@ -237,7 +241,7 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
 
       {lists.length > 0 && (
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>📋 Listeleri · {lists.length}</Text>
+          <Text style={styles.sectionTitle}><InlineIcon name="list" /> Listeleri · {lists.length}</Text>
           {lists.map((l) => (
             <Pressable key={l.id} onPress={() => onOpenList(l.id)} style={styles.listRow}>
               <Text style={[styles.listName, styles.flex]} numberOfLines={1}>

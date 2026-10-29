@@ -1,7 +1,9 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from './Text';
 import { Pressable } from './Pressable';
 
 import { TAG_OPTIONS, type Tag } from '../lib/filters';
+import { haptics } from '../lib/haptics';
 import { colors, themed } from '../theme';
 
 type Props = {
@@ -24,7 +26,10 @@ type ChipProps = { label: string; active: boolean; onPress: () => void; disabled
 export function Chip({ label, active, onPress, disabled = false }: ChipProps) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        haptics.tap();
+        onPress();
+      }}
       disabled={disabled}
       accessibilityState={{ disabled, selected: active }}
       style={[styles.chip, active && styles.chipActive, disabled && styles.chipDisabled]}

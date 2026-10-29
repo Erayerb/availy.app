@@ -57,3 +57,34 @@ export async function geocodeAddress(address: string, district: string, signal?:
   }
 }
 
+export type Place = { label: string; detail: string; lat: number; lon: number };
+
+/**
+ * Places for the map's search box (street, neighbourhood, district, landmark) in Istanbul, best first:
+ * "Moda Caddesi" with "Caferağa, Kadıköy" under it.
+ */
+export async function searchPlaces(query: string, signal?: AbortSignal): Promise<Place[]> {
+  const params = new URLSearchParams({
+    format: 'jsonv2',
+    q: `${query}, İstanbul`,
+    limit: '10',
+    countrycodes: 'tr',
+    addressdetails: '1',
+    'accept-language': 'tr',
+  });
+  try {
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, { signal });
+    if (!response.ok) return [];
+    const hits: { lat: string; lon: string; name?: string; display_name: string; address?: NominatimAddress }[] = await response.json();
+    const places = hits.map((hit) => {
+      const place = parseNominatimAddress(hit.address);
+      const label = hit.name || hit.display_name.split(',')[0];
+      const detail = [place?.neighborhood, place?.district].filter((x) => x && x !== label).join(', ');
+      return { label, detail, lat: Number(hit.lat), lon: Number(hit.lon) };
+    });
+    // A long street comes in pieces: one row per name and neighbourhood
+    return places.filter((p, i) => places.findIndex((q) => q.label === p.label && q.detail === p.detail) === i);
+  } catch {
+    return [];
+  }
+}

@@ -83,11 +83,40 @@ class PrivacyOut(BaseModel):
     stats_visibility: Literal["friends", "me"] = "friends"  # who sees the profile's statistics
 
 
+class ProfileStepOut(BaseModel):
+    key: str
+    label: str
+    done: bool
+
+
+class NewBadgeOut(BaseModel):
+    id: str
+    name: str
+    icon: str
+    points: int
+
+
+class NextLevelOut(BaseModel):
+    name: str
+    missing: list[str]  # "120 puan", "2 mekanda daha 3. check-in"
+    progress: float  # 0–1
+
+
+class LevelOut(BaseModel):
+    id: Literal["newcomer", "explorer", "local", "ambassador"]
+    name: str
+    rank: int  # 0–3
+    next: NextLevelOut | None  # None at the top
+
+
 class MeOut(UserOut, PrivacyOut):
     points: int
     checkins: int
     discoveries: int  # venues where this user made the first check-in
     badges: list[BadgeOut]  # the whole catalog; locked ones have earned = false
+    profile: list[ProfileStepOut]  # "Profilin %60 dolu"; all done earns the Tam Profil badge
+    new_badges: list[NewBadgeOut] = []  # earned since the last look, points already added: celebrate them
+    level: LevelOut  # Yeni Gelen → Kâşif → Mahalleli → Semt Elçisi, with what is left for the next
     customer_code: str | None = None  # "M-123456" for loyalty stamps (not for businesses)
 
 
@@ -179,12 +208,14 @@ def logout(authorization: str | None = Header(None), conn: psycopg.Connection = 
 
 @router.get("/me", response_model=MeOut)
 def me(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
-    from app.checkins import user_stats
+    from app.checkins import reward_badges, user_stats
 
     from app.loyalty import customer_code
 
     code = customer_code(conn, user["id"]) if user.get("role") != "business" else None
-    return {**user, **user_stats(conn, user["id"]), "customer_code": code}
+    # Badges earned away from a check-in (a photo, a friend, the e-mail): their points first, then the totals
+    new = reward_badges(conn, user["id"], datetime.now(timezone.utc)) if user.get("role") != "business" else []
+    return {**user, **user_stats(conn, user["id"]), "customer_code": code, "new_badges": new}
 
 
 class RenameIn(BaseModel):

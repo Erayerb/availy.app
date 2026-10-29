@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from './Text';
 import { Pressable } from './Pressable';
 
 import { useLocation } from '../context/LocationContext';
-import { reverseGeocode } from '../lib/reverseGeocode';
+import { geocodeAddress, reverseGeocode } from '../lib/reverseGeocode';
 import { VENUE_CATEGORIES, venueApi } from '../lib/venueApi';
 import { colors, themed } from '../theme';
 import { BackButton } from './BackButton';
 import { DistrictSearch } from './DistrictSearch';
 import { LocationPicker } from './LocationPicker';
 import { Chip } from './TagChips';
+import { InlineIcon } from './Icon';
 
 type Point = { lat: number; lon: number };
 
@@ -50,9 +52,23 @@ export function NewVenueForm({ token, business, title, intro, onBack, onAdded }:
     const place = await reverseGeocode(next).catch(() => null);
     setFinding(false);
     if (!place) return setError('Bu noktanın adresi bulunamadı; semti ve adresi elle yaz.');
-    setDistrict(place.district);
-    setNeighborhood(place.neighborhood);
-    if (place.line) setAddress(place.line);
+    // What the user typed stays; only empty fields are filled from the map point
+    setDistrict((d) => d || place.district);
+    setNeighborhood((n) => n || place.neighborhood);
+    if (place.line) setAddress((a) => a || place.line!);
+  };
+
+  // "Adresi haritada bul": the typed address on the map, to put the pin right on the door there
+  const findOnMap = async () => {
+    const line = [address.trim(), neighborhood.trim()].filter(Boolean).join(', ');
+    if (line.length < 4) return setError('Önce açık adresi yaz (sokak, numara).');
+    setError(null);
+    setFinding(true);
+    const found = await geocodeAddress(line, district);
+    setFinding(false);
+    if (!found) return setError('Bu adres haritada bulunamadı; haritadan seçebilirsin.');
+    setPoint(found);
+    setStep('map');
   };
 
   const useMyLocation = async () => {
@@ -120,7 +136,7 @@ export function NewVenueForm({ token, business, title, intro, onBack, onAdded }:
         <View style={styles.card}>
           <Text style={styles.name}>{name.trim()}</Text>
           <Text style={styles.muted}>{kind}</Text>
-          <Text style={styles.text}>📍 {[address.trim(), neighborhood.trim(), district.trim()].filter(Boolean).join(', ')}</Text>
+          <Text style={styles.text}><InlineIcon name="map-pin" /> {[address.trim(), neighborhood.trim(), district.trim()].filter(Boolean).join(', ')}</Text>
           <Text style={styles.muted}>
             Konum: {point!.lat.toFixed(5)}, {point!.lon.toFixed(5)} · yol tarifi buraya gider
           </Text>
@@ -170,10 +186,10 @@ export function NewVenueForm({ token, business, title, intro, onBack, onAdded }:
         <Text style={styles.label}>Konum seç</Text>
         <View style={styles.row}>
           <Pressable style={[styles.secondary, styles.flex]} onPress={useMyLocation}>
-            <Text style={styles.secondaryText}>📍 Şu anki konumum</Text>
+            <Text style={styles.secondaryText}><InlineIcon name="map-pin" /> Şu anki konumum</Text>
           </Pressable>
           <Pressable style={[styles.secondary, styles.flex]} onPress={() => setStep('map')}>
-            <Text style={styles.secondaryText}>🗺️ Haritadan seç</Text>
+            <Text style={styles.secondaryText}><InlineIcon name="map" /> Haritadan seç</Text>
           </Pressable>
         </View>
         <Text style={point ? styles.text : styles.muted}>
@@ -201,7 +217,12 @@ export function NewVenueForm({ token, business, title, intro, onBack, onAdded }:
           placeholder="Sokak / cadde, numara"
           placeholderTextColor={colors.placeholder}
           style={styles.input}
+          returnKeyType="search"
+          onSubmitEditing={findOnMap}
         />
+        <Pressable style={styles.secondary} onPress={findOnMap}>
+          <Text style={styles.secondaryText}><InlineIcon name="map-search" /> Adresi haritada bul</Text>
+        </Pressable>
 
         {error && <Text style={styles.error}>{error}</Text>}
         <Pressable style={styles.primary} onPress={check}>

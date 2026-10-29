@@ -1,24 +1,25 @@
 import { useEffect, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '../components/Text';
 
 import { BackButton } from '../components/BackButton';
-import { VenueEditSection } from '../components/business/VenueEditSection';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
 import { useSettings } from '../context/SettingsContext';
 import { automationApi, type Automation } from '../lib/schedules';
 import { colors, themed } from '../theme';
 import { ThemedSwitch } from '../components/ThemedSwitch';
 import { AccountSettings } from './ProfileScreen';
+import { InlineIcon } from '../components/Icon';
 
 type Props = {
   onBack: () => void;
   isBusiness: boolean;
-  venueId: number | null; // business: its venue, edited here
+  venueId: number | null; // business: its venue (for the automation settings)
   // Business: user name, e-mail, password, freeze and delete are here (customers: Profil ayarları)
   account: Parameters<typeof AccountSettings>[0] | null;
 };
 
-/** Customers: Bildirim ayarları. Businesses: Ayarlar (account, venue, dead-hour alerts). */
+/** Customers: Bildirim ayarları. Businesses: Ayarlar (account, dead-hour alerts; the venue is edited in İşletme Profili). */
 export function SettingsScreen({ onBack, isBusiness, venueId, account }: Props) {
   const { venues } = useVenuesByIds(venueId ? [venueId] : []);
   const venue = venues[0];
@@ -51,13 +52,12 @@ export function SettingsScreen({ onBack, isBusiness, venueId, account }: Props) 
         </>
       )}
 
-      {isBusiness && venue && token && <VenueEditSection key={venue.id} venue={venue} token={token} onSaved={() => {}} />}
 
       {isBusiness ? (
         <View style={styles.card}>
           <Row
             title="Ölü saat bildirimi"
-            subtitle="Mekanın açıkken en az 2 müşteri Sakin bildirince 🔔 listene haber düşer (en fazla 2 saatte bir). Uygulaman kapalı olsa da çalışır."
+            subtitle="Mekanın açıkken en az 2 müşteri Sakin bildirince bildirim listene haber düşer (en fazla 2 saatte bir). Uygulaman kapalı olsa da çalışır."
             value={automation?.dead_hour_alerts ?? true}
             onChange={(v) => changeAutomation({ dead_hour_alerts: v })}
             disabled={!automation}
@@ -72,7 +72,7 @@ export function SettingsScreen({ onBack, isBusiness, venueId, account }: Props) 
         </View>
       ) : (
         <>
-          <Text style={styles.muted}>Hangi durumlarda telefonuna bildirim gelsin? Kapattıkların yine de 🔔 listesinde görünür.</Text>
+          <Text style={styles.muted}>Hangi durumlarda telefonuna bildirim gelsin? Kapattıkların yine de <InlineIcon name="bell" /> listesinde görünür.</Text>
           <Text style={styles.heading}>Mekanlar</Text>
           <View style={styles.card}>
             <Row
@@ -86,7 +86,7 @@ export function SettingsScreen({ onBack, isBusiness, venueId, account }: Props) 
               subtitle={
                 Platform.OS === 'web'
                   ? 'Tarayıcıda bildirim yerine uygulama içinde uyarı gösterilir.'
-                  : '🔕 ile takip ettiğin mekan sakinleşince telefonuna bildirim gelir.'
+                  : 'Zil simgesiyle takip ettiğin mekan sakinleşince telefonuna bildirim gelir.'
               }
               value={watchNotifications}
               onChange={(v) => update({ watchNotifications: v })}

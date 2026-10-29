@@ -1,4 +1,5 @@
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
+import { Text } from './Text';
 import { Pressable } from './Pressable';
 
 import { colors, themed } from '../theme';
@@ -19,6 +20,7 @@ export type Screen =
   | 'friends'
   | 'verification'
   | 'about'
+  | 'levels'
   | 'checkin'
   | 'addVenue'
   | 'permissions'

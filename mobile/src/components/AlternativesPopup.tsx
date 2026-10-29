@@ -1,4 +1,5 @@
-import { ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { Text } from './Text';
 import { Pressable } from './Pressable';
 
 import type { Venue } from '../lib/api';
@@ -8,6 +9,7 @@ import { CrowdDot } from './CrowdDot';
 import { useSettings } from '../context/SettingsContext';
 import { crowdRatioText } from '../lib/crowd';
 import { colors, themed } from '../theme';
+import { InlineIcon } from './Icon';
 
 // Every row has the same height so exactly 4 fit; more alternatives scroll
 const ROW_HEIGHT = 50;
@@ -70,7 +72,7 @@ export function AlternativesPopup({
                 </Text>
                 {campaign && (
                   <Text style={styles.campaign} numberOfLines={1}>
-                    🏷️ {campaign.discount !== null ? `%${campaign.discount} indirim` : 'Kampanya'}
+                    <InlineIcon name="tag" /> {campaign.discount !== null ? `%${campaign.discount} indirim` : 'Kampanya'}
                   </Text>
                 )}
               </View>

@@ -34,6 +34,13 @@ class CheckinCoupon(BaseModel):
     discount: int | None
 
 
+class NewBadge(BaseModel):
+    id: str
+    name: str
+    icon: str  # a Tabler icon name
+    points: int
+
+
 class CheckinOut(BaseModel):
     id: int
     venue_id: int
@@ -44,6 +51,8 @@ class CheckinOut(BaseModel):
     created_at: datetime
     is_private: bool
     points_earned: int
+    first_today: bool = False  # the day's first check-in here (not its discovery): double points
+    new_badges: list[NewBadge] = []  # earned with this check-in (points already added): celebrated
     points_note: str | None = None  # no points: "too_soon" (30 min since the last) or "daily_limit"
     visitor_rank: int | None  # "Burayı keşfeden 12. kişisin" (first visit only)
     my_visits: int

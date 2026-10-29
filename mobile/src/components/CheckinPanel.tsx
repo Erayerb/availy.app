@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Linking, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from './Text';
 import { Pressable } from './Pressable';
 
 import { useLocation } from '../context/LocationContext';
@@ -7,7 +8,7 @@ import { useSettings } from '../context/SettingsContext';
 import type { Venue } from '../lib/api';
 import type { User } from '../lib/auth';
 import { useCampaigns } from '../context/CampaignsContext';
-import { checkinBody, checkinMessage, followUpQuestion, sendCheckin, type CheckinResult } from '../lib/checkinApi';
+import { checkinBody, checkinMessage, followUpQuestion, sendCheckin, type CheckinResult, firstOfDayOpen } from '../lib/checkinApi';
 import { isRegistered } from '../lib/auth';
 import { confirmAction } from '../lib/confirm';
 import { stars } from '../lib/feedback';
@@ -15,8 +16,12 @@ import { MAX_REVIEW, newestMine, reviewsApi, type Reviews } from '../lib/reviews
 import { checkinShareMessage } from '../lib/share';
 import { shareText } from '../lib/shareVenue';
 import { LEVELS, type Level } from '../lib/occupancy';
+import { Celebration } from './Celebration';
+import { haptics } from '../lib/haptics';
+import { celebrateBadges } from '../lib/badgeEvents';
 import { colors, themed } from '../theme';
 import { ThemedSwitch } from './ThemedSwitch';
+import { InlineIcon } from './Icon';
 
 type Props = {
   venue: Venue;
@@ -90,7 +95,7 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
   if (!venue.open_now) {
     return (
       <View style={styles.card}>
-        <Text style={styles.title}>🔒 Şu an kapalı</Text>
+        <Text style={styles.title}><InlineIcon name="lock" /> Şu an kapalı</Text>
         <View style={[styles.primary, styles.disabled]}>
           <Text style={styles.primaryText}>Kapalı · {venue.opens_at}'de açılır</Text>
         </View>
@@ -121,6 +126,9 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
     }
     try {
       const done = await sendCheckin(user.token, venue.id, checkinBody(level, answer, position.coords, isPrivate));
+      haptics.success();
+      // Badges this check-in earned: their pop-up a moment after the check-in's own celebration
+      if (done.new_badges?.length) setTimeout(() => celebrateBadges(done.new_badges), 1400);
       setResult({ ok: true, text: checkinMessage(done) });
       setShared({ id: done.id, label: look(level).label, first: done.is_first, streak: done.weekly_streak ?? 0, note: null, coupons: done.coupons ?? [] });
       setRating(0);
@@ -134,6 +142,7 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
       setAnswer(null);
       onDone();
     } catch (e) {
+      haptics.warning();
       setResult({ ok: false, text: e instanceof Error ? e.message : 'Check-in yapılamadı.' });
     } finally {
       setSending(false);
@@ -175,13 +184,13 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
         {result?.ok && shared ? (
           // A short celebration right after the check-in
           <View style={styles.party}>
-            <Text style={styles.partyIcon}>{shared.first ? '✨' : '🎉'}</Text>
+            <Celebration icon={shared.first ? 'sparkles' : 'confetti'} first={shared.first} />
             <Text style={styles.partyTitle}>{shared.first ? 'Burayı sen keşfettin!' : 'Check-in yapıldı!'}</Text>
             <Text style={styles.success}>{result.text}</Text>
-            {shared.streak >= 2 && <Text style={styles.streak}>🔥 {shared.streak}. hafta üst üste check-in!</Text>}
+            {shared.streak >= 2 && <Text style={styles.streak}><InlineIcon name="flame" /> {shared.streak}. hafta üst üste check-in!</Text>}
             {shared.coupons.map((c) => (
               <View key={c.code} style={styles.coupon}>
-                <Text style={styles.couponTitle}>🎟 Kupon kazandın: {c.code}</Text>
+                <Text style={styles.couponTitle}><InlineIcon name="ticket" /> Kupon kazandın: {c.code}</Text>
                 <Text style={styles.muted}>{c.message} · Kasada göster (Kampanyalar → Kuponlarım)</Text>
               </View>
             ))}
@@ -217,7 +226,7 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
               </View>
             ) : (
               <View style={styles.words}>
-                <Text style={styles.text}>💬 Burası nasıl?</Text>
+                <Text style={styles.text}><InlineIcon name="message-circle" /> Burası nasıl?</Text>
                 <View style={styles.starsRow}>
                   {[1, 2, 3, 4, 5].map((n) => (
                     <Pressable key={n} onPress={() => setRating(n)} hitSlop={6} accessibilityLabel={`${n} yıldız`}>
@@ -254,7 +263,7 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
                 setShared({ ...shared, note });
               }}
             >
-              <Text style={styles.shareText}>📣 Arkadaşlarına paylaş</Text>
+              <Text style={styles.shareText}><InlineIcon name="speakerphone" /> Arkadaşlarına paylaş</Text>
             </Pressable>
             {shared.note && <Text style={styles.muted}>{shared.note}</Text>}
           </View>
@@ -266,7 +275,7 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
         )}
         <Text style={styles.text}>Tekrar check-in: {clock(nextAt)}</Text>
         <View style={[styles.primary, styles.disabled]}>
-          <Text style={styles.primaryText}>📍 Check-in yap</Text>
+          <Text style={styles.primaryText}><InlineIcon name="map-pin" /> Check-in yap</Text>
         </View>
         <Text style={styles.muted}>Aynı mekana 90 dakikada bir check-in yapılabilir.</Text>
       </View>
@@ -276,6 +285,7 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
   return (
     <View style={styles.card}>
       <Text style={styles.title}>Şu an burası nasıl?</Text>
+      {firstOfDayOpen(venue) && <Text style={styles.firstToday}>Bugünün ilk bilgisini sen ver: 2 kat puan</Text>}
       <View style={styles.row}>
         {LEVELS.map((l) => {
           const { color, label } = look(l);
@@ -313,7 +323,7 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
 
       <View style={styles.privateRow}>
         <View style={styles.privateText}>
-          <Text style={styles.text}>🔒 Gizli check-in</Text>
+          <Text style={styles.text}><InlineIcon name="lock" /> Gizli check-in</Text>
           <Text style={styles.muted}>Doluluğa sayılır ama adın kimseye gösterilmez.</Text>
         </View>
         <ThemedSwitch value={isPrivate} onValueChange={setIsPrivate} />
@@ -324,7 +334,7 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
         disabled={!level || sending}
         style={[styles.primary, (!level || sending) && styles.disabled]}
       >
-        <Text style={styles.primaryText}>{sending ? 'Gönderiliyor…' : '📍 Check-in yap'}</Text>
+        <Text style={styles.primaryText}>{sending ? 'Gönderiliyor…' : <><InlineIcon name="map-pin" /> Check-in yap</>}</Text>
       </Pressable>
       {!level && <Text style={styles.muted}>Check-in için önce doluluğu seç.</Text>}
 
@@ -371,6 +381,7 @@ const styles = themed(() => StyleSheet.create({
   error: { color: colors.danger, fontSize: 14 },
   link: { color: colors.primary, fontWeight: '700' },
   privateRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  firstToday: { fontSize: 13, fontWeight: '700', color: colors.gold },
   party: { alignItems: 'center', gap: 6, paddingVertical: 6 },
   words: { alignSelf: 'stretch', gap: 6 },
   input: {
@@ -394,7 +405,6 @@ const styles = themed(() => StyleSheet.create({
   deleteText: { color: colors.danger, fontWeight: '700' },
   coupon: { alignSelf: 'stretch', padding: 10, borderRadius: 12, backgroundColor: colors.cream, gap: 2, alignItems: 'center' },
   couponTitle: { fontSize: 15, fontWeight: '800', color: colors.primary },
-  partyIcon: { fontSize: 44 },
   partyTitle: { fontSize: 20, fontWeight: '800', color: colors.text },
   share: { marginTop: 4, paddingVertical: 11, paddingHorizontal: 20, borderRadius: 12, backgroundColor: colors.primary },
   shareText: { color: colors.onPrimary, fontWeight: '700', fontSize: 15 },

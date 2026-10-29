@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { HeaderButtons } from '../components/HeaderButtons';
@@ -9,6 +10,7 @@ import { useReviews } from '../hooks/useReviews';
 import type { User } from '../lib/auth';
 import { businessApi, type VenueStats } from '../lib/business';
 import { colors, themed } from '../theme';
+import { InlineIcon } from '../components/Icon';
 
 type Props = {
   venueId: number;
@@ -76,7 +78,7 @@ export function CustomersScreen({ venueId, user, onOpenUser, onRegister, onOpenL
       </View>
 
       <Text style={styles.sectionTitle}>
-        {waiting > 0 ? `💬 ${waiting} yorum yanıt bekliyor` : reviews.count > 0 ? '✓ Tüm yorumları yanıtladın' : 'Yorumlar'}
+        {waiting > 0 ? <><InlineIcon name="message-circle" /> {waiting} yorum yanıt bekliyor</> : reviews.count > 0 ? '✓ Tüm yorumları yanıtladın' : 'Yorumlar'}
       </Text>
       <ReviewsSection
         venueId={venueId}

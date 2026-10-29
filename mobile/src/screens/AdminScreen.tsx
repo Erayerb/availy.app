@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from '../components/Text';
 
 import { BackButton } from '../components/BackButton';
 import { Pressable } from '../components/Pressable';
@@ -24,7 +25,10 @@ type Reported = {
   from_business: boolean;
 };
 
+type SignUp = { kind: 'user' | 'business'; contact: string; district: string | null; venue_name: string | null; created_at: string };
+
 const adminApi = {
+  waitlist: (token: string) => send<SignUp[]>('GET', '/v1/admin/waitlist', undefined, token),
   reports: (token: string) => send<Reported[]>('GET', '/v1/admin/reports', undefined, token),
   remove: (token: string, kind: Reported['kind'], id: number) => send<void>('POST', `/v1/admin/${kind}/${id}/remove`, undefined, token),
   dismiss: (token: string, kind: Reported['kind'], id: number) => send<void>('POST', `/v1/admin/${kind}/${id}/dismiss`, undefined, token),
@@ -37,10 +41,13 @@ const reasonLabel = (reason: string) => REPORT_REASONS.find((r) => r.reason === 
 export function AdminScreen({ token, onBack, onOpenVenue }: { token: string; onBack: () => void; onOpenVenue: (venue: { id: number }) => void }) {
   const [items, setItems] = useState<Reported[] | null>(null);
   const [issues, setIssues] = useState<VenueIssue[]>([]);
+  const [signUps, setSignUps] = useState<SignUp[]>([]);
+  const [allSignUps, setAllSignUps] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     venueIssuesApi.open(token).then(setIssues).catch(() => {});
+    adminApi.waitlist(token).then(setSignUps).catch(() => {});
     adminApi
       .reports(token)
       .then((list) => {
@@ -62,6 +69,24 @@ export function AdminScreen({ token, onBack, onOpenVenue }: { token: string; onB
         <BackButton onPress={onBack} />
         <Text style={styles.title}>Yönetici</Text>
       </View>
+      {/* Tanıtım sayfası sign-ups (mobile/public/tanitim) */}
+      <Text style={styles.heading}>Bekleme listesi</Text>
+      <Text style={styles.muted}>
+        {signUps.filter((s) => s.kind === 'user').length} kişi · {signUps.filter((s) => s.kind === 'business').length} işletme
+      </Text>
+      {(allSignUps ? signUps : signUps.slice(0, 5)).map((s) => (
+        <Text key={`${s.kind}-${s.contact}`} style={styles.body}>
+          {s.kind === 'business' ? `${s.venue_name} · ` : ''}
+          {s.contact}
+          {s.district ? ` · ${s.district}` : ''}
+        </Text>
+      ))}
+      {!allSignUps && signUps.length > 5 && (
+        <Pressable onPress={() => setAllSignUps(true)}>
+          <Text style={styles.venue}>Tümünü gör ({signUps.length})</Text>
+        </Pressable>
+      )}
+
       <Text style={styles.heading}>Kontrol edilecek mekanlar</Text>
       <Text style={styles.muted}>"Bilgi yanlış mı?" ile aynı şeyi en az 3 kişi bildirdi.</Text>
       {issues.length === 0 && <Text style={styles.muted}>Kontrol edilecek mekan yok.</Text>}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { BackButton } from '../components/BackButton';
@@ -12,6 +13,7 @@ import { distanceKm, formatDistance, sortByDistance } from '../lib/geo';
 import { shortLocation } from '../lib/location';
 import { bboxAround, CHECKIN_RADIUS_KM } from '../lib/nearby';
 import { colors, themed } from '../theme';
+import { InlineIcon } from '../components/Icon';
 
 // Nearest venues: about 1.5 km around the user, at most this many
 const NEARBY_DELTA = 0.015;
@@ -76,13 +78,13 @@ export function CheckinScreen({ onBack, onOpenVenue, onAddVenue }: Props) {
         <Text style={[styles.title, styles.flex]}>Check-in yap</Text>
         {/* The venue is not in the list */}
         <Pressable onPress={onAddVenue} style={styles.add} hitSlop={6} accessibilityLabel="Mekan ekle">
-          <Text style={styles.addText}>➕ Mekan ekle</Text>
+          <Text style={styles.addText}><InlineIcon name="plus" /> Mekan ekle</Text>
         </Pressable>
       </View>
       <TextInput
         value={query}
         onChangeText={setQuery}
-        placeholder="🔍 Mekan ara"
+        placeholder="Mekan ara"
         placeholderTextColor={colors.placeholder}
         style={styles.input}
         autoCorrect={false}
@@ -132,7 +134,7 @@ export function CheckinScreen({ onBack, onOpenVenue, onAddVenue }: Props) {
                 {km !== null ? ` · ${formatDistance(km)}` : ''}
               </Text>
               <Text style={reachable ? styles.reachable : styles.muted}>
-                {!item.open_now ? 'Kapalı' : reachable ? '📍 Check-in yapabilirsin' : crowdLook(item).label}
+                {!item.open_now ? 'Kapalı' : reachable ? <><InlineIcon name="map-pin" /> Check-in yapabilirsin</> : crowdLook(item).label}
               </Text>
             </View>
             <Text style={styles.chevron}>›</Text>

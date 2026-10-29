@@ -1,13 +1,15 @@
 import { useCallback, useState } from 'react';
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { AlternativesPopup } from '../components/AlternativesPopup';
 import { FilterBar } from '../components/FilterBar';
 import { MapSearch } from '../components/MapSearch';
 import { BackButton } from '../components/BackButton';
+import { TabIcon } from '../components/TabIcon';
 import { CARD_WIDTH, VenueCard } from '../components/VenueCard';
-import { Icon } from '../components/Icon';
+import { Icon, InlineIcon } from '../components/Icon';
 import { VenueMap } from '../components/VenueMap';
 import { SELECTED_DOT_SIZE } from '../components/VenueMap.types';
 import { useVenues } from '../hooks/useVenues';
@@ -50,6 +52,7 @@ type Props = {
   visitedIds: ReadonlySet<number>;
   // v2: the "+" button: nearest venues and search, to check in
   onOpenCheckin: () => void;
+  ownVenueId?: number | null; // a business: its own venue stands out on the map
 };
 
 export function MapScreen({
@@ -68,6 +71,7 @@ export function MapScreen({
   onOpenDetails,
   visitedIds,
   onOpenCheckin,
+  ownVenueId = null,
 }: Props) {
   const [onlyVisited, setOnlyVisited] = useState(false);
   // 🔍 at the top: search a venue and move the map to it
@@ -156,6 +160,7 @@ export function MapScreen({
         onSelectedPointChange={handlePointChange}
         focus={focus}
         userPoint={point}
+        ownVenueId={ownVenueId}
       />
 
       {/* Jump to the user's own position; asks for permission again if it was not given */}
@@ -164,7 +169,7 @@ export function MapScreen({
         onPress={goToMyLocation}
         accessibilityLabel="Konumuma git"
       >
-        <Icon name="locate" size={24} color="#1A73E8" />
+        <Icon name="current-location" size={24} color="#1A73E8" />
       </Pressable>
       {/* Check in: nearest venues and a search */}
       <Pressable
@@ -215,7 +220,7 @@ export function MapScreen({
           <View style={styles.modeRow}>
             {[
               { visited: false, label: 'Tümü' },
-              { visited: true, label: `📍 Ziyaret ettiklerim${visitedIds.size ? ` (${visitedIds.size})` : ''}` },
+              { visited: true, label: `Ziyaret ettiklerim${visitedIds.size ? ` (${visitedIds.size})` : ''}` },
             ].map(({ visited, label }) => (
               <Pressable
                 key={label}
@@ -268,7 +273,8 @@ export function MapScreen({
         <View style={styles.topBar} pointerEvents="box-none">
           <BackButton onPress={onBack} />
           <Pressable style={styles.search} onPress={() => setSearching(true)} accessibilityLabel="Mekan ara">
-            <Text style={styles.searchText}>🔍 Mekan ara</Text>
+            <TabIcon name="search" color={colors.textMuted} active={false} size={18} />
+            <Text style={styles.searchText}>Mekan ara</Text>
           </Pressable>
           {anyFilter && (
             <Pressable style={styles.clear} onPress={clearFilters} accessibilityLabel="Filtreleri temizle">
@@ -313,6 +319,9 @@ const styles = themed(() => StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, gap: 10 },
   search: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     paddingVertical: 11,
     paddingHorizontal: 14,
     borderRadius: 20,

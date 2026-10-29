@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from './Text';
 import MapView, { Marker, type MapPressEvent } from 'react-native-maps';
 
 import type { Venue } from '../lib/api';
@@ -10,6 +11,7 @@ import { UNEXPLORED_STYLE } from '../lib/occupancy';
 import { LABEL_LINE_HEIGHT, LABEL_MAX_WIDTH as LABEL_WIDTH, labelPriority, visibleLabels } from '../lib/labels';
 import { colors, getScheme, themed } from '../theme';
 import { clusterSize, DOT_SIZE, LABEL_MIN_ZOOM, SELECTED_DOT_SIZE, zoomForDelta, type VenueMapProps } from './VenueMap.types';
+import { InlineIcon } from './Icon';
 
 // Invisible tap area around each dot: a little larger than the dot, but small
 // enough that neighbouring dots' areas don't cover each other
@@ -24,14 +26,16 @@ const VenueMarker = memo(function VenueMarker({
   venue,
   selected,
   label,
+  own = false,
   onSelect,
 }: {
   venue: Venue;
   selected: boolean;
   label: boolean;
+  own?: boolean; // the business's own venue
   onSelect: (id: number) => void;
 }) {
-  const size = selected ? SELECTED_DOT_SIZE : DOT_SIZE;
+  const size = selected || own ? SELECTED_DOT_SIZE : DOT_SIZE;
   const { crowdLook } = useSettings();
   const { color, glyph } = crowdLook(venue);
   return (
@@ -40,7 +44,7 @@ const VenueMarker = memo(function VenueMarker({
       // With a name to its right the marker is wider; keep the dot itself on the venue's spot
       anchor={{ x: label ? TOUCH_SIZE / 2 / (TOUCH_SIZE + LABEL_WIDTH) : 0.5, y: 0.5 }}
       onPress={() => onSelect(venue.id)}
-      zIndex={selected ? 10 : 1}
+      zIndex={selected ? 10 : own ? 5 : 1}
       tracksViewChanges={false}
     >
       {/* collapsable={false}: a view with only layout styles would otherwise be
@@ -56,15 +60,16 @@ const VenueMarker = memo(function VenueMarker({
                 borderRadius: size / 2,
                 backgroundColor: color,
               },
+              own && styles.markerOwn,
               selected && styles.markerSelected,
             ]}
           >
-            {glyph && <Text style={[styles.glyph, { fontSize: size * 0.55 }]}>{glyph}</Text>}
+            {glyph && <Text style={[styles.glyph, { fontSize: size * 0.55 }]}>{glyph === '✨' ? <InlineIcon name="sparkles" /> : glyph}</Text>}
           </View>
         </View>
-        {label && (
-          <Text style={[styles.label, { color }]} numberOfLines={2}>
-            {venue.name}
+        {(label || own) && (
+          <Text style={[styles.label, { color: own ? colors.primary : color }]} numberOfLines={2}>
+            {own ? `Mekanın · ${venue.name}` : venue.name}
           </Text>
         )}
       </View>
@@ -113,6 +118,7 @@ export function VenueMap({
   onSelectedPointChange,
   focus,
   userPoint,
+  ownVenueId = null,
 }: VenueMapProps) {
   const mapRef = useRef<MapView>(null);
   // Names under the dots once zoomed in to street level. The area is only updated when the
@@ -144,8 +150,13 @@ export function VenueMap({
   }, [focus?.key]);
   const items = useMemo(
     // Zoom in 256 px tiles for this map's width, so the radius is in screen points
-    () => clusterVenues(venues, Math.log2(((360 / labelRegion.longitudeDelta) * (size.width || 256)) / 256), selectedId),
-    [venues, labelRegion, selectedId, size.width],
+    () =>
+      clusterVenues(
+        venues.filter((v) => v.id !== ownVenueId),
+        Math.log2(((360 / labelRegion.longitudeDelta) * (size.width || 256)) / 256),
+        selectedId,
+      ),
+    [venues, labelRegion, selectedId, size.width, ownVenueId],
   );
   // Zoom towards the cluster: all of it in view, but at most 2 levels closer at a time
   const zoomInto = useCallback(
@@ -248,6 +259,19 @@ export function VenueMap({
           />
         );
       })}
+      {/* The business's own venue, always on its own */}
+      {venues
+        .filter((v) => v.id === ownVenueId)
+        .map((venue) => (
+          <VenueMarker
+            key={`own-${venue.id}-${venue.crowd?.state}-${venue.crowd?.level}-${venue.open_now}-${venue.id === selectedId}-${colorBlind}-${scheme}`}
+            venue={venue}
+            selected={venue.id === selectedId}
+            label
+            own
+            onSelect={onMarkerPress}
+          />
+        ))}
     </MapView>
   );
 }
@@ -273,6 +297,7 @@ const styles = themed(() => StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
   },
   markerSelected: { borderColor: colors.text, borderWidth: 4 },
+  markerOwn: { borderColor: colors.primary, borderWidth: 5 },
   labelled: { width: TOUCH_SIZE + LABEL_WIDTH, flexDirection: 'row', alignItems: 'center' },
   label: {
     width: LABEL_WIDTH,

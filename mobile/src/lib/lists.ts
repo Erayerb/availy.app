@@ -17,9 +17,9 @@ export type VenueList = {
 };
 
 export const VISIBILITY_OPTIONS: { id: Visibility; label: string; hint: string }[] = [
-  { id: 'private', label: '🔒 Gizli', hint: 'Yalnızca sen görürsün.' },
-  { id: 'friends', label: '👥 Arkadaşlar', hint: 'Arkadaşların profilinde görür.' },
-  { id: 'link', label: '🔗 Bağlantıyla herkes', hint: 'Arkadaşların görür; bağlantıyı gönderdiğin herkes de açabilir.' },
+  { id: 'private', label: 'Gizli', hint: 'Yalnızca sen görürsün.' },
+  { id: 'friends', label: 'Arkadaşlar', hint: 'Arkadaşların profilinde görür.' },
+  { id: 'link', label: 'Bağlantıyla herkes', hint: 'Arkadaşların görür; bağlantıyı gönderdiğin herkes de açabilir.' },
 ];
 
 export const listsApi = {

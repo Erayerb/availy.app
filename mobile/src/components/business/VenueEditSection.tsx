@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { View } from 'react-native';
+import { Text, TextInput } from '../Text';
 import { Pressable } from '../Pressable';
 
 import { ALL_AMENITIES, type AmenityKey } from '../../lib/amenities';
@@ -16,7 +17,7 @@ const parseHours = (label: string): [string, string] => {
   return m ? [String(Number(m[1])), String(Number(m[2]) || 24)] : ['0', '24'];
 };
 
-/** Business edits its name, opening hours, purposes and features; saved on the server, so every customer sees them. */
+/** Business edits its name, opening hours, purposes and features (İşletme Profili); saved on the server, so every customer sees them. */
 export function VenueEditSection({ venue, token, onSaved }: { venue: Venue; token: string; onSaved: () => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(venue.name);
@@ -28,8 +29,6 @@ export function VenueEditSection({ venue, token, onSaved }: { venue: Venue; toke
     .map(([k]) => k as AmenityKey);
   const [amenities, setAmenities] = useState<AmenityKey[]>(currentAmenities);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
-
-  const [description, setDescription] = useState(venue.description ?? '');
 
   const save = async () => {
     const open = Number(openHour);
@@ -43,7 +42,7 @@ export function VenueEditSection({ venue, token, onSaved }: { venue: Venue; toke
         close_hour: close,
         tags,
         amenities,
-        description: description.trim(),
+        description: venue.description ?? '', // no "Hakkımızda" in the app; an older text is kept as it is
       });
       setMessage({ ok: true, text: 'Kaydedildi. Müşteriler mekan sayfanda yeni bilgileri görür.' });
       onSaved();
@@ -82,7 +81,7 @@ export function VenueEditSection({ venue, token, onSaved }: { venue: Venue; toke
             {(Object.keys(ALL_AMENITIES) as AmenityKey[]).map((key) => (
               <Chip
                 key={key}
-                label={`${ALL_AMENITIES[key].icon} ${ALL_AMENITIES[key].label}`}
+                label={ALL_AMENITIES[key].label}
                 active={amenities.includes(key)}
                 onPress={() =>
                   setAmenities((current) => (current.includes(key) ? current.filter((k) => k !== key) : [...current, key]))
@@ -90,16 +89,6 @@ export function VenueEditSection({ venue, token, onSaved }: { venue: Venue; toke
               />
             ))}
           </View>
-          <Text style={panel.label}>Kısa açıklama (isteğe bağlı)</Text>
-          <TextInput
-            value={description}
-            onChangeText={setDescription}
-            placeholder="ör. Bahçeli, sessiz bir kahve dükkanı"
-            placeholderTextColor={colors.placeholder}
-            maxLength={200}
-            multiline
-            style={[panel.input, { minHeight: 56 }]}
-          />
           {message && <Text style={message.ok ? panel.success : panel.error}>{message.text}</Text>}
           <Pressable style={panel.primary} onPress={save}>
             <Text style={panel.primaryText}>Kaydet</Text>

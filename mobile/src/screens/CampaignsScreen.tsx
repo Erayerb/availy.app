@@ -1,7 +1,8 @@
 import { BackButton } from '../components/BackButton';
 import { HeaderButtons } from '../components/HeaderButtons';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { CampaignBox } from '../components/CampaignBox';
@@ -23,6 +24,7 @@ import QRCode from 'react-native-qrcode-svg';
 
 import { availyPoints, customerQrPayload, describeProgram } from '../lib/loyalty';
 import { colors, themed } from '../theme';
+import { InlineIcon } from '../components/Icon';
 
 export type Tab = 'campaigns' | 'coupons' | 'loyalty' | 'myCampaigns' | 'myPrograms' | 'venueCoupons' | 'rivals';
 
@@ -132,7 +134,7 @@ function CampaignList({ onOpenVenue }: Pick<Props, 'onOpenVenue'>) {
           <CampaignBox campaign={campaign} />
           <Pressable onPress={() => onOpenVenue(campaign)}>
             <Text style={styles.muted}>
-              {distanceKm !== null ? `📍 ${formatDistance(distanceKm)} · ` : ''}Haritada gör ›
+              {distanceKm !== null ? <><InlineIcon name="map-pin" /> {formatDistance(distanceKm)} · </> : ''}Haritada gör ›
             </Text>
           </Pressable>
         </View>
@@ -237,18 +239,18 @@ function Loyalty({
         return (
           <View key={program.venueId} style={styles.card}>
             <Text style={styles.venue}>{program.venueName}</Text>
-            <Text style={styles.text}>⭐ {describeProgram(program)}</Text>
+            <Text style={styles.text}><InlineIcon name="star" /> {describeProgram(program)}</Text>
             {member && program.kind === 'stamps' && (
               <>
                 <View style={styles.stamps}>
                   {Array.from({ length: program.stampsRequired }, (_, i) => (
                     <View key={i} style={[styles.stamp, i < member.stamps && styles.stampFull]}>
-                      {i < member.stamps && <Text style={styles.stampMark}>☕</Text>}
+                      {i < member.stamps && <Text style={styles.stampMark}><InlineIcon name="coffee" /></Text>}
                     </View>
                   ))}
                 </View>
                 {member.rewards > 0 && (
-                  <Text style={styles.reward}>🎁 Kullanılabilir ödül: {member.rewards} · kasada QR'ını okut</Text>
+                  <Text style={styles.reward}><InlineIcon name="gift" /> Kullanılabilir ödül: {member.rewards} · kasada QR'ını okut</Text>
                 )}
               </>
             )}
@@ -287,7 +289,7 @@ function MyCampaigns({ business }: { business: BusinessInfo }) {
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Son 7 gün kampanya sonuçları</Text>
         <Text style={styles.text}>
-          📣 {totals.campaigns} kampanya · 👁 {totals.views} gösterim · 🎟 {totals.claims} kupon · ✅ {totals.redemptions} kullanım
+          <InlineIcon name="speakerphone" /> {totals.campaigns} kampanya · <InlineIcon name="eye" /> {totals.views} gösterim · <InlineIcon name="ticket" /> {totals.claims} kupon · <InlineIcon name="circle-check" /> {totals.redemptions} kullanım
         </Text>
       </View>
       {venue && (
@@ -316,8 +318,8 @@ function MyCampaigns({ business }: { business: BusinessInfo }) {
           <View key={c.id} style={styles.card}>
             <Text style={[styles.text, !live && styles.faded]}>{c.message}</Text>
             <Text style={[styles.muted, !live && styles.faded]}>
-              {live ? `Aktif · ${timeLeft(c, now)}` : 'Bitti'} · {c.radiusKm} km{c.checkinOnly ? ' · 📍 check-in yapana' : ''} · 👁 {stats.views} gösterim ·
-              🎟 {stats.claims} kupon · ✅ {stats.redemptions} kullanım
+              {live ? `Aktif · ${timeLeft(c, now)}` : 'Bitti'} · {c.radiusKm} km{c.checkinOnly ? <> · <InlineIcon name="map-pin" /> check-in yapana</> : ''} · <InlineIcon name="eye" /> {stats.views} gösterim ·
+              <InlineIcon name="ticket" /> {stats.claims} kupon · <InlineIcon name="circle-check" /> {stats.redemptions} kullanım
             </Text>
             {live ? (
               <Pressable onPress={() => end(c.id)} hitSlop={8}>
@@ -329,7 +331,7 @@ function MyCampaigns({ business }: { business: BusinessInfo }) {
                   <Text style={styles.repeatText}>↻ Tekrar gönder</Text>
                 </Pressable>
                 <Pressable onPress={() => remove([c.id])} hitSlop={8}>
-                  <Text style={styles.endText}>🗑 Sil</Text>
+                  <Text style={styles.endText}><InlineIcon name="trash" /> Sil</Text>
                 </Pressable>
               </View>
             )}
@@ -366,7 +368,7 @@ function Rivals({ venueId }: { venueId: number }) {
           </View>
           <Text style={styles.text}>{campaign.message}</Text>
           <Text style={styles.muted}>
-            📍 {formatDistance(km)} · {timeLeft(campaign, now)} · {campaign.radiusKm} km'ye gönderildi
+            <InlineIcon name="map-pin" /> {formatDistance(km)} · {timeLeft(campaign, now)} · {campaign.radiusKm} km'ye gönderildi
           </Text>
         </View>
       ))}

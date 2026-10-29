@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from '../components/Text';
 
 import { BackButton } from '../components/BackButton';
 import { Pressable } from '../components/Pressable';
@@ -11,6 +12,7 @@ import { liveLevel } from '../lib/crowd';
 import { listsApi, listShareMessage, MAX_LIST_NAME, VISIBILITY_OPTIONS, type VenueList, type Visibility } from '../lib/lists';
 import { shareText } from '../lib/shareVenue';
 import { colors, themed } from '../theme';
+import { InlineIcon } from '../components/Icon';
 
 type Props = {
   token: string;
@@ -119,7 +121,7 @@ export function ListScreen({ token, target, onBack, onOpenVenue, onOpenList }: P
                   style={styles.primary}
                   onPress={async () => setNote(await shareText(listShareMessage(list.name, list.share_code!)))}
                 >
-                  <Text style={styles.primaryText}>🔗 Bağlantıyı paylaş</Text>
+                  <Text style={styles.primaryText}><InlineIcon name="link" /> Bağlantıyı paylaş</Text>
                 </Pressable>
               )}
 

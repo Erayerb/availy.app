@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { BackButton } from '../components/BackButton';
@@ -39,7 +40,7 @@ export function AddVenueScreen({ user, onBack, onRegister, onAdded }: Props) {
       business={false}
       title="Mekan ekle"
       intro={
-        'Listede olmayan bir mekanın yakınındaysan ekle. Önce "⏳ Onay bekliyor" görünür; farklı günlerde 3 farklı kişi ' +
+        'Listede olmayan bir mekanın yakınındaysan ekle. Önce "Onay bekliyor" görünür; farklı günlerde 3 farklı kişi ' +
         'orada check-in yapınca onaylanır ve sen 50 puan kazanırsın. 30 günde onaylanmazsa kaldırılır.'
       }
       onBack={onBack}

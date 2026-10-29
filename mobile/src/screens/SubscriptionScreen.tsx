@@ -1,4 +1,5 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { BackButton } from '../components/BackButton';
@@ -7,6 +8,7 @@ import { useSettings } from '../context/SettingsContext';
 import type { PlanId } from '../lib/plans';
 import { FREE_FEATURES, PREMIUM_FEATURES, PREMIUM_PRICE } from '../lib/premium';
 import { colors, themed } from '../theme';
+import { InlineIcon } from '../components/Icon';
 
 type Props = {
   signedIn: boolean;
@@ -65,7 +67,7 @@ function Plan(props: { name: string; price: string; features: string[]; current:
     <View style={[styles.card, props.current && styles.current]}>
       <View style={styles.header}>
         <Text style={styles.name}>
-          {props.highlight ? '⭐ ' : ''}
+          {props.highlight ? <><InlineIcon name="star" />{' '}</> : ''}
           {props.name}
         </Text>
         <Text style={styles.price}>{props.price}</Text>

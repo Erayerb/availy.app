@@ -3,18 +3,19 @@ import * as Contacts from 'expo-contacts/legacy';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import { useCallback, useEffect, useState } from 'react';
-import { AppState, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppState, Linking, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { Collapsible } from '../components/Collapsible';
 import { BackButton } from '../components/BackButton';
 import { LocationAccess } from '../components/LocationAccess';
 import { colors, themed } from '../theme';
+import { InlineIcon } from '../components/Icon';
 
 type Status = 'granted' | 'denied' | 'undetermined' | 'unknown' | 'inApp';
 
 type Permission = {
-  icon: string;
   title: string;
   summary: string; // shown while the section is closed
   to: string; // "Konuma", "Kameraya": for "… izin vermezsen"
@@ -102,8 +103,7 @@ export function PermissionsScreen({
 
   const all: (Permission | false)[] = [
     !business && {
-      icon: '📍',
-      title: 'Konum',
+        title: 'Konum',
       to: 'Konuma',
       summary: "Check-in'de mekanda olduğunu doğrulamak ve yakındaki mekanlar; kaydedilmez",
       status: location,
@@ -119,8 +119,7 @@ export function PermissionsScreen({
     // Only for "Rehberden bul" (Sosyal > Arkadaşlar), and only in the phone app
     !business &&
       !isWeb && {
-        icon: '👥',
-        title: 'Rehber',
+            title: 'Rehber',
         to: 'Rehbere',
         summary: 'Yalnızca "Rehberden bul" dersen; rehberin saklanmaz',
         status: contacts,
@@ -132,8 +131,7 @@ export function PermissionsScreen({
         onAsk: () => ask(Contacts.requestPermissionsAsync),
       },
     {
-      icon: '📷',
-      title: 'Kamera',
+        title: 'Kamera',
       to: 'Kameraya',
       summary: business ? 'Müşterinin kupon ve sadakat QR kodunu okutmak için' : 'QR okutmak ve profil fotoğrafı çekmek için',
       status: asStatus(camera?.status),
@@ -147,8 +145,7 @@ export function PermissionsScreen({
       blockedHint: "Tarayıcın bu izni engellemiş. Adres çubuğundaki ⓘ / kilit simgesinden kameraya izin ver; iPhone'da Ayarlar > Safari > Kamera > Sor.",
     },
     {
-      icon: '🔔',
-      title: 'Bildirimler',
+        title: 'Bildirimler',
       to: 'Bildirimlere',
       summary: business ? 'Ölü saat ve otomatik kampanya; reklam yok' : 'Check-in önerileri, arkadaşların ve yanıtlar; reklam yok',
       status: isWeb ? 'inApp' : notifications,
@@ -160,7 +157,7 @@ export function PermissionsScreen({
             "Check-in'lerine gelen beğeni ve yorumlar",
             '"Sakin olunca haber ver"',
           ],
-      withoutIt: 'Bildirimler yine uygulamadaki 🔔 listesinde görünür. Şimdilik telefon bildirimi yalnızca uygulama açıkken gelir.',
+      withoutIt: 'Bildirimler yine uygulamadaki bildirim listesinde görünür. Şimdilik telefon bildirimi yalnızca uygulama açıkken gelir.',
       // The web version has no phone notifications; the 🔔 list is all there is
       onAsk: isWeb ? undefined : () => ask(Notifications.requestPermissionsAsync),
     },
@@ -181,7 +178,7 @@ export function PermissionsScreen({
       {permissions.map((p) => (
         <Collapsible
           key={p.title}
-          title={`${p.icon} ${p.title}`}
+          title={p.title}
           summary={p.summary}
           badge={<Text style={[styles.status, p.status === 'granted' ? styles.on : styles.off]}>{STATUS_TEXT[p.status]}</Text>}
         >
@@ -217,12 +214,12 @@ export function PermissionsScreen({
           )}
           {isWeb && p.status === 'denied' && p.blockedHint && <Text style={styles.muted}>{p.blockedHint}</Text>}
           {isWeb && !p.onAsk && (
-            <Text style={styles.muted}>Web sürümünde telefon bildirimi yok; bildirimlerin 🔔 listesinde görünür.</Text>
+            <Text style={styles.muted}>Web sürümünde telefon bildirimi yok; bildirimlerin <InlineIcon name="bell" /> listesinde görünür.</Text>
           )}
         </Collapsible>
       ))}
 
-      <Collapsible title="🗂️ Verilerin" summary="Sunucuda neler tutuluyor, hesabını silince ne olur">
+      <Collapsible title="Verilerin" summary="Sunucuda neler tutuluyor, hesabını silince ne olur">
         <Text style={styles.text}>
           {business
             ? 'Sunucuda tutulanlar: kullanıcı adın, e-postan, şifrenin özeti (şifrenin kendisi değil), mekanın ve yorumlara verdiğin yanıtlar. İstatistikler adsızdır; yalnızca mekanını keşfeden kişinin adını görürsün (gizli check-in değilse).'

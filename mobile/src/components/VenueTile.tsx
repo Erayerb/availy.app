@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from './Text';
 import { Pressable } from './Pressable';
 
 import { useCampaigns } from '../context/CampaignsContext';
@@ -7,6 +8,7 @@ import { colors, themed } from '../theme';
 import { FavoriteButton } from './FavoriteButton';
 import { CrowdDot } from './CrowdDot';
 import { VenuePhoto } from './VenuePhoto';
+import { InlineIcon } from './Icon';
 
 type Props = {
   venue: Venue;
@@ -15,20 +17,23 @@ type Props = {
   onPress: () => void;
 };
 
+// The photo is a little shorter than it is wide, so more venues fit on the screen
+export const TILE_RATIO = 0.78;
+
 export function VenueTile({ venue, size, distance, onPress }: Props) {
   const campaign = useCampaigns().activeFor(venue.id);
 
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [{ width: size }, pressed && styles.pressed]}>
       <View>
-        <VenuePhoto venueId={venue.id} category={venue.category} photoAt={venue.photo_at} size={size} height={size} />
+        <VenuePhoto venueId={venue.id} category={venue.category} photoAt={venue.photo_at} size={size} height={Math.round(size * TILE_RATIO)} />
         {!venue.open_now && <View style={[styles.closedShade, { borderRadius: 16 }]} />}
         <View style={styles.badge}>
           <CrowdDot venue={venue} size={14} />
         </View>
         {!venue.open_now && <Text style={styles.closed}>Kapalı · {venue.opens_at}</Text>}
         {campaign && venue.open_now && (
-          <Text style={styles.campaign}>🏷️ {campaign.discount !== null ? `%${campaign.discount}` : 'Kampanya'}</Text>
+          <Text style={styles.campaign}><InlineIcon name="tag" /> {campaign.discount !== null ? `%${campaign.discount}` : 'Kampanya'}</Text>
         )}
         <View style={styles.favorite}>
           <FavoriteButton venueId={venue.id} size={16} floating />
@@ -37,7 +42,7 @@ export function VenueTile({ venue, size, distance, onPress }: Props) {
       <Text style={styles.name} numberOfLines={2}>
         {venue.name}
       </Text>
-      {distance && <Text style={styles.distance}>📍 {distance}</Text>}
+      {distance && <Text style={styles.distance}><InlineIcon name="map-pin" /> {distance}</Text>}
     </Pressable>
   );
 }

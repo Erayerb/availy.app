@@ -1,9 +1,11 @@
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useState } from 'react';
-import { AppState, Linking, Platform, StyleSheet, Text, View } from 'react-native';
+import { AppState, Linking, Platform, StyleSheet, View } from 'react-native';
+import { Text } from './Text';
 import { Pressable } from './Pressable';
 
 import { colors, themed } from '../theme';
+import { InlineIcon, type IconName } from './Icon';
 
 type Access = 'unknown' | 'none' | 'ask' | 'inUse' | 'always';
 
@@ -16,11 +18,11 @@ const ACCESS: Record<Access, { title: string; hint: string }> = {
 };
 
 // What each feature needs: "inUse" works with "Uygulamayı kullanırken", "always" needs "Daima"
-const FEATURES: { icon: string; title: string; text: string; needs: 'inUse' | 'always'; soon?: boolean }[] = [
-  { icon: '📍', title: 'Check-in yap', text: 'Mekanda olduğunu bir kez doğrular', needs: 'inUse' },
-  { icon: '🗺️', title: 'Haritada konumum', text: 'Haritada mavi nokta ve mesafeler', needs: 'inUse' },
-  { icon: '👋', title: 'Check-in önerisi', text: 'Uygulama açıkken bir mekanın yanında kalınca sorar', needs: 'inUse' },
-  { icon: '🔔', title: 'Kapalıyken check-in önerisi', text: 'Yakında; "Daima" izni ister', needs: 'always', soon: true },
+const FEATURES: { icon: IconName; title: string; text: string; needs: 'inUse' | 'always'; soon?: boolean }[] = [
+  { icon: 'map-pin', title: 'Check-in yap', text: 'Mekanda olduğunu bir kez doğrular', needs: 'inUse' },
+  { icon: 'map', title: 'Haritada konumum', text: 'Haritada mavi nokta ve mesafeler', needs: 'inUse' },
+  { icon: 'hand-click', title: 'Check-in önerisi', text: 'Uygulama açıkken bir mekanın yanında kalınca sorar', needs: 'inUse' },
+  { icon: 'bell', title: 'Kapalıyken check-in önerisi', text: 'Yakında; "Daima" izni ister', needs: 'always', soon: true },
 ];
 
 const enough = (access: Access, needs: 'inUse' | 'always') =>
@@ -96,7 +98,7 @@ export function LocationAccess({ onChange }: { onChange?: () => void }) {
           return (
             <View key={f.title} style={[styles.row, i > 0 && styles.divider]}>
               <View style={styles.icon}>
-                <Text style={styles.iconText}>{f.icon}</Text>
+                <Text style={styles.iconText}><InlineIcon name={f.icon} /></Text>
               </View>
               <View style={styles.flex}>
                 <Text style={styles.featureTitle}>{f.title}</Text>
@@ -136,7 +138,7 @@ const styles = themed(() => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9, paddingHorizontal: 12 },
   divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   icon: { width: 32, height: 32, borderRadius: 10, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
-  iconText: { fontSize: 16 },
+  iconText: { fontSize: 18, color: colors.primary },
   featureTitle: { fontSize: 14, fontWeight: '700', color: colors.text },
   small: { fontSize: 12, color: colors.textMuted, lineHeight: 16 },
   mark: { fontSize: 18, fontWeight: '800', width: 22, textAlign: 'center' },

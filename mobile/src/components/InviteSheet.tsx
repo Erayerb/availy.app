@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
+import { Text } from './Text';
 import { Pressable } from './Pressable';
 
 import { inviteMessage } from '../lib/friends';
 import { shareText } from '../lib/shareVenue';
 import { colors, themed } from '../theme';
+import { InlineIcon } from './Icon';
 
 type Props = {
   username: string;
@@ -24,7 +26,7 @@ export function InviteSheet({ username, onFindContacts, onDone }: Props) {
       <View style={styles.sheet}>
         <View style={styles.handle} />
         <Text style={styles.title}>Arkadaşlarını davet et</Text>
-        <Text style={styles.art}>👋🤝</Text>
+        <Text style={styles.art}><InlineIcon name="user-plus" /><InlineIcon name="heart-handshake" /></Text>
         <Text style={styles.text}>
           availy arkadaşlarla daha eğlenceli: nerede olduklarını, nereyi sevdiklerini görürsün. Bağlantınla kayıt olan
           arkadaşın otomatik eklenir, sen de 50 puan kazanırsın.

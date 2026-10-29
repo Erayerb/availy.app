@@ -1,10 +1,11 @@
-import { createContext, useCallback, useContext, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, type ReactNode } from 'react';
 
 import { usePersistentState } from '../hooks/usePersistentState';
 import { isTentative, liveLevel, type Crowd } from '../lib/crowd';
 import { CLOSED_STYLE, fadeColor, levelColorFor, levelStyle, STALE_STYLE, UNEXPLORED_STYLE, type LevelLook } from '../lib/occupancy';
 import { isDarkScheme } from '../theme';
 import { KEYS } from '../lib/storage';
+import { userSyncApi } from '../lib/userSync';
 
 export type Settings = {
   colorBlind: boolean; // colour-blind friendly palette + symbols
@@ -20,12 +21,12 @@ export type Settings = {
   checkinLikeNotifications: boolean; // likes on my check-ins
   // v2 privacy kept on the phone (the rest is on the server)
   privateByDefault: boolean; // the check-in screen starts with "Gizli check-in" on
-  // Görünüm: follow the phone, or always light / dark / petrol / graphite (on trial)
+  // Görünüm: follow the phone, or always light / dark
   appearance: Appearance;
 };
 
-export type Appearance = 'system' | 'light' | 'dark' | 'petrol' | 'graphite';
-const APPEARANCES: Appearance[] = ['system', 'light', 'dark', 'petrol', 'graphite'];
+export type Appearance = 'system' | 'light' | 'dark';
+const APPEARANCES: Appearance[] = ['system', 'light', 'dark'];
 
 const DEFAULTS: Settings = {
   colorBlind: false,
@@ -53,7 +54,7 @@ const SettingsContext = createContext<SettingsValue | null>(null);
 
 const parse = (raw: unknown): Settings => {
   const settings = { ...DEFAULTS, ...(raw && typeof raw === 'object' ? raw : {}) };
-  // A theme that was removed (e.g. the trial "Koyu mavi") falls back to the phone's setting
+  // A theme that was removed (the trial Koyu mavi / Petrol / Grafit) falls back to the phone's setting
   return APPEARANCES.includes(settings.appearance) ? settings : { ...settings, appearance: 'system' };
 };
 
@@ -90,6 +91,55 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   return (
     <SettingsContext.Provider value={{ ...settings, update, look, crowdLook }}>{children}</SettingsContext.Provider>
   );
+}
+
+/**
+ * Registered users: the settings follow the account. The server's copy wins when signing in; with none
+ * yet, this phone's settings are saved; later changes are saved a moment after they are made.
+ */
+export function SettingsSync({ token }: { token: string | null }) {
+  const value = useSettings();
+  const current = Object.fromEntries((Object.keys(DEFAULTS) as (keyof Settings)[]).map((k) => [k, value[k]])) as Settings;
+  const json = JSON.stringify(current);
+  // What the server has for this account (null: not known yet, nothing is saved until it is)
+  const synced = useRef<string | null>(null);
+  const latest = useRef(current);
+  latest.current = current;
+  const { update } = value;
+
+  useEffect(() => {
+    synced.current = null;
+    if (!token) return;
+    let stale = false;
+    userSyncApi
+      .settings(token)
+      .then((server) => {
+        if (stale) return;
+        if (server) {
+          const next = parse(server);
+          synced.current = JSON.stringify(next);
+          update(next);
+        } else {
+          synced.current = JSON.stringify(latest.current);
+          userSyncApi.saveSettings(token, latest.current).catch(() => {});
+        }
+      })
+      .catch(() => {});
+    return () => {
+      stale = true;
+    };
+  }, [token, update]);
+
+  useEffect(() => {
+    if (!token || synced.current === null || synced.current === json) return;
+    const timer = setTimeout(() => {
+      synced.current = json;
+      userSyncApi.saveSettings(token, JSON.parse(json)).catch(() => {});
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [token, json]);
+
+  return null;
 }
 
 export function useSettings(): SettingsValue {

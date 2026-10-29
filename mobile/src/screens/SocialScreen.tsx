@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 import QRCode from 'react-native-qrcode-svg';
 
 import { Avatar } from '../components/Avatar';
 import { ContactsFinder } from '../components/ContactsFinder';
 import { HeaderButtons } from '../components/HeaderButtons';
-import { Icon } from '../components/Icon';
+import { Icon, InlineIcon, type IconName } from '../components/Icon';
+import { PostSkeleton } from '../components/Skeleton';
 import { useLocation } from '../context/LocationContext';
 import { formatDistance } from '../lib/geo';
 import { socialApi, type Suggestions } from '../lib/social';
@@ -19,6 +21,7 @@ import { confirmAction } from '../lib/confirm';
 import { Leaderboard } from '../components/Leaderboard';
 import { stars } from '../lib/feedback';
 import { shareText } from '../lib/shareVenue';
+import { haptics } from '../lib/haptics';
 import { colors, themed } from '../theme';
 
 type Props = {
@@ -63,6 +66,8 @@ export function SocialScreen({
   const mine = tab === 'feed';
 
   const [feed, setFeed] = useState<FeedItem[]>([]);
+  // First load of a tab: placeholder posts instead of the empty-feed suggestions
+  const [feedLoading, setFeedLoading] = useState(true);
   // Mine: the last 7 days ("Daha eski" up to 30); friends: 3 (up to 7)
   const recentDays = (t: SocialTab) => (t === 'feed' ? 7 : 3);
   const [days, setDays] = useState(recentDays(initialTab));
@@ -71,6 +76,7 @@ export function SocialScreen({
     setTabState(next);
     onTabChange?.(next);
     setFeed([]);
+    setFeedLoading(true);
     setDays(recentDays(next));
   };
   // Shown while Akış is empty: "Önerilen kişiler" and "Yakında yeni keşfedilen mekanlar"
@@ -80,7 +86,12 @@ export function SocialScreen({
   const reload = useCallback(() => {
     if (!token) return;
     friendsApi.list(token).then(setLists).catch(() => {});
-    if (tab === 'feed' || tab === 'friendsFeed') reviewsApi.feed(token, days, mine ? 'me' : 'friends').then(setFeed).catch(() => {});
+    if (tab === 'feed' || tab === 'friendsFeed')
+      reviewsApi
+        .feed(token, days, mine ? 'me' : 'friends')
+        .then(setFeed)
+        .catch(() => {})
+        .finally(() => setFeedLoading(false));
   }, [token, days, tab]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(reload, [reload]);
 
@@ -175,7 +186,7 @@ export function SocialScreen({
           hitSlop={6}
           accessibilityLabel={`Arkadaş ekle${lists.incoming.length ? `, ${lists.incoming.length} istek` : ''}`}
         >
-          <Icon name="person-add" size={19} color={tab === 'friends' ? colors.onPrimary : colors.text} />
+          <Icon name="user-plus" size={19} color={tab === 'friends' ? colors.onPrimary : colors.text} />
           {lists.incoming.length > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{lists.incoming.length > 9 ? '9+' : lists.incoming.length}</Text>
@@ -184,15 +195,23 @@ export function SocialScreen({
         </Pressable>
       </View>
 
-      {mine && feed.length === 0 && (
+      {(tab === 'feed' || tab === 'friendsFeed') && feedLoading && feed.length === 0 && (
+        <View>
+          <PostSkeleton />
+          <PostSkeleton />
+          <PostSkeleton />
+        </View>
+      )}
+
+      {mine && !feedLoading && feed.length === 0 && (
         <>
           <Text style={styles.muted}>Son günlerde check-in'in ya da yorumun yok. Yaptıkların, arkadaşlarının beğeni ve yorumlarıyla burada görünür.</Text>
           {[
-            { icon: '📍', title: 'Check-in yap', text: 'Bulunduğun mekanın doluluğunu bildir, puan kazan.', onPress: onOpenCheckin },
-            { icon: '🧭', title: 'Mekan keşfet', text: 'Haritada yakınındaki mekanlara bak; bir mekana ilk check-in yapan ✨ keşfeder.', onPress: onOpenMap },
+            { icon: 'map-pin' as IconName, title: 'Check-in yap', text: 'Bulunduğun mekanın doluluğunu bildir, puan kazan.', onPress: onOpenCheckin },
+            { icon: 'compass' as IconName, title: 'Mekan keşfet', text: 'Haritada yakınındaki mekanlara bak; bir mekana ilk check-in yapan orayı keşfeder.', onPress: onOpenMap },
           ].map((c) => (
             <Pressable key={c.title} onPress={c.onPress} style={({ pressed }) => [styles.card, styles.startRow, pressed && styles.pressed]}>
-              <Text style={styles.startIcon}>{c.icon}</Text>
+              <Text style={styles.startIcon}><InlineIcon name={c.icon} color={colors.primary} /></Text>
               <View style={styles.flex}>
                 <Text style={styles.bold}>{c.title}</Text>
                 <Text style={styles.muted}>{c.text}</Text>
@@ -205,7 +224,7 @@ export function SocialScreen({
 
       {(tab === 'feed' || tab === 'friendsFeed') && (
         <>
-          {!mine && feed.length === 0 && (
+          {!mine && !feedLoading && feed.length === 0 && (
             <>
               <Text style={styles.muted}>
                 {lists.friends.length === 0
@@ -217,7 +236,7 @@ export function SocialScreen({
                 ...(lists.friends.length === 0
                   ? [
                       {
-                        icon: '📨',
+                        icon: 'mail-forward' as IconName,
                         title: 'Arkadaşlarını davet et',
                         text: 'Bağlantınla kayıt olan arkadaşın otomatik eklenir, sen 50 puan kazanırsın.',
                         onPress: async () => setNote(await shareInvite()),
@@ -225,19 +244,19 @@ export function SocialScreen({
                     ]
                   : []),
                 {
-                  icon: '👋',
+                  icon: 'user-plus' as IconName,
                   title: 'Arkadaş ekle',
                   text: 'Kullanıcı adıyla ara, QR kodunu okut ya da davet bağlantısı gönder.',
                   onPress: () => setTab('friends'),
                 },
                 {
-                  icon: '🧭',
+                  icon: 'compass' as IconName,
                   title: 'Mekan keşfet',
-                  text: 'Haritada yakınındaki mekanlara bak; bir mekana ilk check-in yapan ✨ keşfeder.',
+                  text: 'Haritada yakınındaki mekanlara bak; bir mekana ilk check-in yapan orayı keşfeder.',
                   onPress: onOpenMap,
                 },
                 {
-                  icon: '📍',
+                  icon: 'map-pin' as IconName,
                   title: "Check-in yap",
                   text: 'Bulunduğun mekanın doluluğunu bildir, puan kazan.',
                   onPress: onOpenCheckin,
@@ -248,7 +267,7 @@ export function SocialScreen({
                   onPress={c.onPress}
                   style={({ pressed }) => [styles.card, styles.startRow, pressed && styles.pressed]}
                 >
-                  <Text style={styles.startIcon}>{c.icon}</Text>
+                  <Text style={styles.startIcon}><InlineIcon name={c.icon} color={colors.primary} /></Text>
                   <View style={styles.flex}>
                     <Text style={styles.bold}>{c.title}</Text>
                     <Text style={styles.muted}>{c.text}</Text>
@@ -286,7 +305,7 @@ export function SocialScreen({
               )}
               {!!suggestions?.venues.length && (
                 <View style={styles.card}>
-                  <Text style={styles.bold}>✨ Yakında yeni keşfedilen mekanlar</Text>
+                  <Text style={styles.bold}><InlineIcon name="sparkles" /> Yakında yeni keşfedilen mekanlar</Text>
                   {suggestions.venues.map((v) => (
                     <Pressable key={v.id} style={styles.suggestRow} onPress={() => onOpenVenue({ id: v.id })}>
                       <View style={styles.flex}>
@@ -443,7 +462,7 @@ export function SocialScreen({
                 <Text style={styles.secondaryText}>Davet bağlantısını paylaş</Text>
               </Pressable>
               <Pressable style={[styles.primary, styles.flex]} onPress={() => setScanning(true)}>
-                <Text style={styles.primaryText}>📷 QR okut</Text>
+                <Text style={styles.primaryText}><InlineIcon name="camera" /> QR okut</Text>
               </Pressable>
             </View>
             <Text style={styles.muted}>Bağlantıyı WhatsApp'tan ya da Instagram hikayesinden paylaşabilirsin.</Text>
@@ -602,7 +621,7 @@ function Post({
   onOpenUser: (username: string) => void;
   onChanged: () => void;
 }) {
-  const icon = item.kind === 'review' ? 'star' : item.kind === 'reply' ? 'chatbubble' : item.is_first ? 'sparkles' : 'location';
+  const icon: IconName = item.kind === 'review' ? 'star' : item.kind === 'reply' ? 'message-circle' : item.is_first ? 'sparkles' : 'map-pin';
   const what =
     item.kind === 'review'
       ? mine ? 'Yorum yaptın' : 'yorum yaptı'
@@ -690,7 +709,7 @@ function Thread({
       )}
       {shown.map((c) => (
         <View key={`${c.id}-${c.at}`} style={styles.threadRow}>
-          <Icon name="return-down-forward" size={16} color={colors.textMuted} />
+          <Icon name="corner-down-right" size={16} color={colors.textMuted} />
           <Avatar username={c.username} size={22} />
           <View style={styles.flex}>
             <Text style={styles.threadText}>
@@ -713,7 +732,7 @@ function Thread({
       ))}
       {likes > 0 && (
         <View style={styles.threadRow}>
-          <Icon name="return-down-forward" size={16} color={colors.textMuted} />
+          <Icon name="corner-down-right" size={16} color={colors.textMuted} />
           <Text style={[styles.threadText, styles.flex]}>
             <Text style={styles.likedText}>♥ </Text>
             {likers.length ? likers.map((u) => `@${u}`).join(', ') : `${likes} kişi`}
@@ -745,6 +764,7 @@ function CheckinActions({
   const id = item.checkin_id!;
 
   const toggleLike = async () => {
+    haptics.tap();
     const next = !liked;
     setLiked(next);
     setLikes((n) => n + (next ? 1 : -1));
@@ -779,7 +799,7 @@ function CheckinActions({
         )}
         {!open && (
           <Pressable onPress={() => setOpen(true)} hitSlop={6}>
-            <Text style={styles.replyLink}>💬 Yorum yap</Text>
+            <Text style={styles.replyLink}><InlineIcon name="message-circle" /> Yorum yap</Text>
           </Pressable>
         )}
       </View>
@@ -832,7 +852,7 @@ function FeedReply({ token, reviewId, to, onSent }: { token: string; reviewId: n
     return (
       <View style={styles.replyBar}>
         <Pressable onPress={() => setOpen(true)} hitSlop={6}>
-          <Text style={styles.replyLink}>💬 Yanıtla</Text>
+          <Text style={styles.replyLink}><InlineIcon name="message-circle" /> Yanıtla</Text>
         </Pressable>
         {note && <Text style={note.ok ? styles.success : styles.error}>{note.text}</Text>}
       </View>

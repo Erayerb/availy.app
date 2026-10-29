@@ -3,6 +3,7 @@ import { Icon } from './Icon';
 import { Pressable } from './Pressable';
 
 import { useFavorites } from '../context/FavoritesContext';
+import { haptics } from '../lib/haptics';
 import { colors, themed } from '../theme';
 
 type Props = {
@@ -17,12 +18,16 @@ export function FavoriteButton({ venueId, size = 20, floating = false }: Props) 
 
   return (
     <Pressable
-      onPress={() => toggle(venueId)}
+      onPress={() => {
+        haptics.tap();
+        toggle(venueId);
+      }}
       hitSlop={10}
       accessibilityLabel={active ? 'Favorilerden çıkar' : 'Favorilere ekle'}
       style={floating && [styles.floating, { width: size + 16, height: size + 16, borderRadius: (size + 16) / 2 }]}
     >
-      <Icon name={active ? 'heart' : 'heart-outline'} size={size} color={active ? colors.primary : colors.textMuted} />
+      <Icon name="heart"
+        filled={active} size={size} color={active ? colors.primary : colors.textMuted} />
     </Pressable>
   );
 }

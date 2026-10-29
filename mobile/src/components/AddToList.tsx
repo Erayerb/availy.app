@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from './Text';
 import { Pressable } from './Pressable';
 
 import { listsApi, MAX_LIST_NAME, type VenueList } from '../lib/lists';

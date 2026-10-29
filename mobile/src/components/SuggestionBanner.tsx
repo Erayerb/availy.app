@@ -1,10 +1,12 @@
 import { useRef } from 'react';
-import { Animated, PanResponder, StyleSheet, Text, View } from 'react-native';
+import { Animated, PanResponder, StyleSheet, View } from 'react-native';
+import { Text } from './Text';
 import { Pressable } from './Pressable';
 
 import type { Suggestion } from '../hooks/useCheckinSuggestion';
 import { suggestionText } from '../lib/suggestion';
 import { colors, themed } from '../theme';
+import { InlineIcon } from './Icon';
 
 type Props = { suggestion: Suggestion; onCheckin: () => void; onClose: () => void };
 
@@ -31,7 +33,7 @@ export function SuggestionBanner({ suggestion, onCheckin, onClose }: Props) {
 
   return (
     <Animated.View style={[styles.banner, { transform: [{ translateY: offset }] }]} {...swipe.panHandlers}>
-      <Text style={styles.icon}>📍</Text>
+      <Text style={styles.icon}><InlineIcon name="map-pin" /></Text>
       <View style={styles.flex}>
         <Text style={styles.title} numberOfLines={1}>
           {title}

@@ -24,7 +24,16 @@ export type Profile = {
   venues: ProfileVenue[] | null; // null: only friends see them
   weekly_streak?: number | null; // "🔥 4 haftalık seri"
   stats_hidden?: boolean;
+  level?: Level | null; // shown even when the statistics are hidden
   photo_at?: string | null; // profile photo (userPhotoUrl)
+};
+
+/** Yeni Gelen → Kâşif → Mahalleli → Semt Elçisi; `next` (what is left) only on my own profile. */
+export type Level = {
+  id: 'newcomer' | 'explorer' | 'local' | 'ambassador';
+  name: string;
+  rank: number;
+  next: { name: string; missing: string[]; progress: number } | null;
 };
 
 export type ReportReason = 'insult' | 'spam' | 'false' | 'other';

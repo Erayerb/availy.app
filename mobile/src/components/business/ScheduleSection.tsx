@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { View } from 'react-native';
+import { Text, TextInput } from '../Text';
 import { Pressable } from '../Pressable';
 
 import { useCampaigns } from '../../context/CampaignsContext';
@@ -11,6 +12,7 @@ import { colors } from '../../theme';
 import { Chip } from '../TagChips';
 import { panel } from './panelStyles';
 import { ThemedSwitch } from '../ThemedSwitch';
+import { InlineIcon } from '../Icon';
 
 /** Weekly recurring campaigns (Aylık Paket); the server starts them on time, the app need not be open. */
 export function ScheduleSection({
@@ -34,7 +36,7 @@ export function ScheduleSection({
   if (plan !== 'saas') {
     return (
       <View style={panel.card}>
-        <Text style={panel.sectionTitle}>Zamanlanmış kampanyalar 🔒</Text>
+        <Text style={panel.sectionTitle}>Zamanlanmış kampanyalar <InlineIcon name="lock" /></Text>
         <Text style={panel.muted}>Örn. "her salı 13–16 arası %20". Aylık Paket'e özeldir.</Text>
         <Pressable style={panel.secondary} onPress={onUpgrade}>
           <Text style={panel.secondaryText}>Aylık Paket'e geç</Text>

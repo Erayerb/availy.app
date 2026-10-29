@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { comparedToUsual, hourRanges, typicalLines } from '../src/lib/typical.ts';
+import { comparedToUsual, hourRanges, typicalLines, usualNowText } from '../src/lib/typical.ts';
 
 test('hours become ranges', () => {
   assert.equal(hourRanges([19, 18]), '18:00–20:00');
@@ -18,9 +18,16 @@ test('usual busy and quiet hours in Turkish', () => {
 });
 
 test('"Şu an normalden daha sakin": the live level against this hour\'s usual one', () => {
-  assert.equal(comparedToUsual('low', 'high'), '✨ Şu an normalden daha sakin (bu saatte genelde Kalabalık)');
-  assert.equal(comparedToUsual('high', 'low'), '⚠️ Şu an normalden daha kalabalık (bu saatte genelde Sakin)');
+  assert.equal(comparedToUsual('low', 'high'), 'Şu an normalden daha sakin (bu saatte genelde Kalabalık)');
+  assert.equal(comparedToUsual('high', 'low'), 'Şu an normalden daha kalabalık (bu saatte genelde Sakin)');
   assert.equal(comparedToUsual('medium', 'medium'), null);
   assert.equal(comparedToUsual(null, 'high'), null);
   assert.equal(comparedToUsual('low', null), null);
+});
+
+test('no live report: the usual level at this hour, marked as an estimate', () => {
+  assert.equal(usualNowText(null, 'low'), 'Genelde bu saatte sakin (tahmini)');
+  assert.equal(usualNowText(null, 'high'), 'Genelde bu saatte kalabalık (tahmini)');
+  assert.equal(usualNowText('medium', 'low'), null); // the live level is shown instead
+  assert.equal(usualNowText(null, null), null);
 });

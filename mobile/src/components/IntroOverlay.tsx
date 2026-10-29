@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
-import { PanResponder, StyleSheet, Text, View } from 'react-native';
+import { PanResponder, StyleSheet, View } from 'react-native';
+import { Text } from './Text';
 import { Pressable } from './Pressable';
 
 import { useSettings } from '../context/SettingsContext';
@@ -8,6 +9,7 @@ import { BUSINESS_SLIDES, CUSTOMER_SLIDES } from '../lib/intro';
 import { LEVELS } from '../lib/occupancy';
 import { colors, themed } from '../theme';
 import { LevelDot } from './LevelDot';
+import { InlineIcon } from './Icon';
 
 const SWIPE = 50;
 
@@ -41,7 +43,7 @@ export function IntroOverlay({ role, onDone }: { role: Role; onDone: () => void 
       </Pressable>
 
       <View style={styles.body} {...swipe.panHandlers}>
-        <Text style={styles.icon}>{slide.icon}</Text>
+        <Text style={styles.icon}><InlineIcon name={slide.icon} color={colors.primary} /></Text>
         <Text style={styles.title}>{slide.title}</Text>
         {slide.lines.map((line) => (
           <Text key={line} style={styles.line}>

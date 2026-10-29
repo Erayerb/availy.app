@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from './Text';
 import { Pressable } from './Pressable';
 
 import { useCampaigns } from '../context/CampaignsContext';
 import { timeLeft, type Campaign } from '../lib/campaigns';
 import { remainingCoupons } from '../lib/coupons';
 import { colors, themed } from '../theme';
+import { InlineIcon } from './Icon';
 
 /** Campaign line with "Kuponu al"; after claiming, the code to show at the counter. */
 export function CampaignBox({ campaign }: { campaign: Campaign }) {
@@ -17,7 +19,7 @@ export function CampaignBox({ campaign }: { campaign: Campaign }) {
 
   return (
     <View style={styles.box}>
-      <Text style={styles.message}>🏷️ {campaign.message}</Text>
+      <Text style={styles.message}><InlineIcon name="tag" /> {campaign.message}</Text>
       <Text style={styles.time}>
         {timeLeft(campaign, now)}
         {remaining !== null ? ` · ${remaining} kupon kaldı` : ''}
@@ -32,7 +34,7 @@ export function CampaignBox({ campaign }: { campaign: Campaign }) {
       ) : remaining === 0 ? (
         <Text style={styles.full}>Kuponlar tükendi</Text>
       ) : campaign.checkinOnly ? (
-        <Text style={styles.checkin}>📍 Check-in yap, kuponu kap</Text>
+        <Text style={styles.checkin}><InlineIcon name="map-pin" /> Check-in yap, kuponu kap</Text>
       ) : (
         <Pressable
           style={({ pressed }) => [styles.button, (pressed || taking) && styles.pressed]}

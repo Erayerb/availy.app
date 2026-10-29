@@ -4,6 +4,7 @@ import { Pressable } from './Pressable';
 import { useEngagement } from '../context/EngagementContext';
 import type { Venue } from '../lib/api';
 import { canWatch } from '../lib/watch';
+import { haptics } from '../lib/haptics';
 import { colors } from '../theme';
 
 /** "Sakin olunca haber ver" bell — shown for busy venues (or ones already watched). */
@@ -13,11 +14,15 @@ export function WatchButton({ venue, size = 18 }: { venue: Venue; size?: number 
   if (!watching && !canWatch(venue)) return null;
   return (
     <Pressable
-      onPress={() => toggleWatchFor(venue)}
+      onPress={() => {
+        haptics.tap();
+        toggleWatchFor(venue);
+      }}
       hitSlop={10}
       accessibilityLabel={watching ? 'Haber vermeyi kapat' : 'Sakin olunca haber ver'}
     >
-      <Icon name={watching ? 'notifications' : 'notifications-off-outline'} size={size} color={watching ? colors.primary : colors.textMuted} />
+      <Icon name={watching ? 'bell-ringing' : 'bell'}
+        filled={watching} size={size} color={watching ? colors.primary : colors.textMuted} />
     </Pressable>
   );
 }

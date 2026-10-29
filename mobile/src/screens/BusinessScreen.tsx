@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { HeaderButtons } from '../components/HeaderButtons';
@@ -17,6 +18,8 @@ import { shortLocation } from '../lib/location';
 import { bboxAround } from '../lib/nearby';
 import { formatHour, nearbyCompetitors } from '../lib/stats';
 import { colors, themed } from '../theme';
+import { InlineIcon } from '../components/Icon';
+import { ProfileProgress } from '../components/business/ProfileProgress';
 
 const REFRESH_MS = 30_000;
 const CHART_HEIGHT = 80;
@@ -27,10 +30,11 @@ type Props = {
   onShowOnMap: (venue: Venue) => void;
   onOpenUser: (username: string) => void;
   onRegister: () => void;
+  onEditProfile: () => void; // Daha fazla > İşletme Profili
 };
 
 /** v2 business panel: everything from customers' check-ins (no estimated occupancy). */
-export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegister }: Props) {
+export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegister, onEditProfile }: Props) {
   const [venue, setVenue] = useState<Venue | null>(null);
   const [nearby, setNearby] = useState<Venue[]>([]);
   const [stats, setStats] = useState<VenueStats | null>(null);
@@ -98,13 +102,24 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
         <HeaderButtons />
       </View>
 
+      {/* Until the venue page is complete: the cover photo first, then what else is missing */}
+      {user.token && <ProfileProgress venue={venue} token={user.token} onSaved={load} onEditProfile={onEditProfile} />}
+
       <View style={styles.card}>
-        <Pressable onPress={() => onShowOnMap(venue)}>
-          <Text style={styles.venueName}>{venue.name}</Text>
-          <Text style={styles.muted}>
-            {categoryLabel(venue.category)} · {shortLocation(venue.neighborhood, venue.district)} · Haritada gör ›
-          </Text>
-        </Pressable>
+        <View style={styles.nameRow}>
+          <Pressable style={styles.flex} onPress={() => onShowOnMap(venue)}>
+            <Text style={styles.venueName}>{venue.name}</Text>
+            <Text style={styles.muted}>
+              {categoryLabel(venue.category)} · {shortLocation(venue.neighborhood, venue.district)} · Haritada gör ›
+            </Text>
+          </Pressable>
+          {/* İşletme Profili: photo, name, hours, address, contact */}
+          <Pressable style={styles.editButton} onPress={onEditProfile} hitSlop={6} accessibilityLabel="Mekanı düzenle">
+            <Text style={styles.editText}>
+              <InlineIcon name="pencil" /> Düzenle
+            </Text>
+          </Pressable>
+        </View>
         {stats?.discovered_by && user.token && (
           <Discoverer
             discoverer={stats.discovered_by}
@@ -125,8 +140,8 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
           {crowdRatioText(venue.crowd) && <Text style={styles.nowRatio}>{crowdRatioText(venue.crowd)}</Text>}
         </View>
         <Text style={styles.text}>{venue.open_now ? crowdSummary(venue.crowd, new Date()) : `${venue.opens_at}'de açılır`}</Text>
-        {venue.open_now && crowdYesterday(venue.crowd) && <Text style={styles.text}>🕘 {crowdYesterday(venue.crowd)}</Text>}
-        <Text style={styles.muted}>🕒 {venue.hours} · Müşterilerin gördüğü durum, onların check-in'lerinden.</Text>
+        {venue.open_now && crowdYesterday(venue.crowd) && <Text style={styles.text}><InlineIcon name="history" /> {crowdYesterday(venue.crowd)}</Text>}
+        <Text style={styles.muted}><InlineIcon name="clock" /> {venue.hours} · Müşterilerin gördüğü durum, onların check-in'lerinden.</Text>
 
         {dead && !active && (
           <View style={styles.alert}>
@@ -138,7 +153,7 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
             </Pressable>
           </View>
         )}
-        {active && <Text style={styles.activeNote}>🏷️ Aktif kampanyan var · {timeLeft(active, now)}</Text>}
+        {active && <Text style={styles.activeNote}><InlineIcon name="tag" /> Aktif kampanyan var · {timeLeft(active, now)}</Text>}
         {sent && <Text style={sent.ok ? styles.success : styles.error}>{sent.text}</Text>}
       </View>
 
@@ -273,7 +288,7 @@ function Discoverer({
     <View style={styles.discoverer}>
       <View style={styles.levelRow}>
         <Text style={[styles.discovery, styles.flex]}>
-          ✨ Mekanını{' '}
+          <InlineIcon name="sparkles" /> Mekanını{' '}
           {name ? (
             <Text style={styles.discoveryName} onPress={() => onOpenUser(name)}>
               @{name}
@@ -285,11 +300,11 @@ function Discoverer({
         </Text>
         {discoverer.can_reward && !discoverer.reward && !writing && (
           <Pressable style={styles.rewardButton} onPress={() => setWriting(true)}>
-            <Text style={styles.rewardButtonText}>🎁 Ödül ver</Text>
+            <Text style={styles.rewardButtonText}><InlineIcon name="gift" /> Ödül ver</Text>
           </Pressable>
         )}
       </View>
-      {discoverer.reward && <Text style={styles.muted}>🎁 Ödül gönderildi: “{discoverer.reward}”</Text>}
+      {discoverer.reward && <Text style={styles.muted}><InlineIcon name="gift" /> Ödül gönderildi: “{discoverer.reward}”</Text>}
       {writing && (
         <>
           <Text style={styles.muted}>Keşfedene bildirim olarak gider; kasada gösterir. Bir kez gönderilebilir.</Text>
@@ -327,6 +342,9 @@ function Stat({ value, label }: { value: number; label: string }) {
 }
 
 const styles = themed(() => StyleSheet.create({
+  nameRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  editButton: { paddingVertical: 7, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary },
+  editText: { fontSize: 13, fontWeight: '700', color: colors.primary },
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 48, gap: 14 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },

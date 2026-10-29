@@ -1,7 +1,9 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from './Text';
 
 import { useSettings } from '../context/SettingsContext';
 import { colors, themed } from '../theme';
+import { InlineIcon } from './Icon';
 
 type Props = { level: string; open?: boolean; size?: number };
 
@@ -12,7 +14,7 @@ export function LevelDot({ level, open = true, size = 10 }: Props) {
   const dotSize = glyph ? Math.max(size, 16) : size;
   return (
     <View style={[styles.dot, { width: dotSize, height: dotSize, borderRadius: dotSize / 2, backgroundColor: color }]}>
-      {glyph && <Text style={[styles.glyph, { fontSize: dotSize * 0.65, lineHeight: dotSize }]}>{glyph}</Text>}
+      {glyph && <Text style={[styles.glyph, { fontSize: dotSize * 0.65, lineHeight: dotSize }]}>{glyph === '✨' ? <InlineIcon name="sparkles" /> : glyph}</Text>}
     </View>
   );
 }

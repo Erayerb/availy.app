@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from './Text';
 
 import { Pressable } from './Pressable';
 import { ISSUE_KINDS, venueIssuesApi, type IssueKind } from '../lib/venueIssues';

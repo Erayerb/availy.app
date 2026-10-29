@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Linking, Platform, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { Linking, Platform, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { Text } from './Text';
 import { Pressable } from './Pressable';
 
 import { useCampaigns } from '../context/CampaignsContext';
@@ -15,7 +16,7 @@ import { shareVenue } from '../lib/shareVenue';
 import { colors, themed } from '../theme';
 import { CampaignBox } from './CampaignBox';
 import { FavoriteButton } from './FavoriteButton';
-import { Icon } from './Icon';
+import { Icon, InlineIcon } from './Icon';
 import { CrowdDot } from './CrowdDot';
 import { FriendsHere } from './FriendsHere';
 import { WatchButton } from './WatchButton';
@@ -53,7 +54,7 @@ export function VenueCard({ venue, friendsToken = null, onClose, onDetails, onSh
         <View style={styles.actions}>
           <WatchButton venue={venue} />
           <Pressable onPress={async () => setNote(await shareVenue(venue))} hitSlop={10} accessibilityLabel="Paylaş">
-            <Icon name="share-outline" size={20} color={colors.text} />
+            <Icon name="share-3" size={20} color={colors.text} />
           </Pressable>
           <FavoriteButton venueId={venue.id} />
           <Pressable onPress={onClose} hitSlop={12}>
@@ -73,11 +74,11 @@ export function VenueCard({ venue, friendsToken = null, onClose, onDetails, onSh
       </View>
 
       {venue.open_now && <Text style={styles.secondary}>{crowdSummary(venue.crowd, new Date())}</Text>}
-      {venue.open_now && crowdYesterday(venue.crowd) && <Text style={styles.secondary}>🕘 {crowdYesterday(venue.crowd)}</Text>}
-      {watching && <Text style={styles.watching}>🔔 Sakin olunca haber vereceğiz</Text>}
+      {venue.open_now && crowdYesterday(venue.crowd) && <Text style={styles.secondary}><InlineIcon name="history" /> {crowdYesterday(venue.crowd)}</Text>}
+      {watching && <Text style={styles.watching}><InlineIcon name="bell" /> Sakin olunca haber vereceğiz</Text>}
       {campaign && <CampaignBox campaign={campaign} />}
       <Text style={styles.secondary}>
-        📍 {shortLocation(venue.neighborhood, venue.district)}
+        <InlineIcon name="map-pin" /> {shortLocation(venue.neighborhood, venue.district)}
         {point ? ` · ${formatDistance(distanceKm(point, venue))}` : ''}
       </Text>
       {note && <Text style={styles.note}>{note}</Text>}
@@ -90,7 +91,7 @@ export function VenueCard({ venue, friendsToken = null, onClose, onDetails, onSh
 
       <View style={styles.buttons}>
         <Pressable onPress={onDetails} style={({ pressed }) => [styles.detailsButton, pressed && styles.pressed]}>
-          <Text style={styles.detailsText}>{venue.open_now ? '📍 Check-in' : 'Detaylar'}</Text>
+          <Text style={styles.detailsText}>{venue.open_now ? <><InlineIcon name="map-pin" /> Check-in</> : 'Detaylar'}</Text>
         </Pressable>
         <Pressable
           onPress={() => Linking.openURL(directionsUrl(Platform.OS, venue.lat, venue.lon))}

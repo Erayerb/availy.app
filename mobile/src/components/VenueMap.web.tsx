@@ -9,6 +9,7 @@ import { UNEXPLORED_STYLE } from '../lib/occupancy';
 import { LABEL_LINE_HEIGHT, LABEL_MAX_WIDTH, labelPriority, visibleLabels } from '../lib/labels';
 import { colors, getScheme } from '../theme';
 import { clusterSize, DOT_SIZE, LABEL_MIN_ZOOM, SELECTED_DOT_SIZE, zoomForDelta, type VenueMapProps } from './VenueMap.types';
+import { ICON_FONT, iconChar } from './Icon';
 
 /** Web map (Leaflet + OpenStreetMap tiles); react-native-maps has no web support. */
 const USER_PANE = 'user';
@@ -26,6 +27,7 @@ export function VenueMap({
   onSelectedPointChange,
   focus,
   userPoint,
+  ownVenueId = null,
 }: VenueMapProps) {
   const { crowdLook, colorBlind } = useSettings();
   const scheme = getScheme();
@@ -122,7 +124,9 @@ export function VenueMap({
         ? visibleLabels(labelPriority(venues, selectedId), (v) => map.latLngToContainerPoint([v.lat, v.lon]))
         : new Set<number>();
     // Close dots as one circle with a count; a tap zooms in until they split
-    const items = clusterVenues(venues, zoom, selectedId);
+    // The business's own venue is never in a cluster
+    const own = venues.find((v) => v.id === ownVenueId);
+    const items = [...clusterVenues(venues.filter((v) => v !== own), zoom, selectedId), ...(own ? [{ kind: 'venue' as const, venue: own }] : [])];
     for (const item of items) {
       if (item.kind !== 'cluster') continue;
       const size = clusterSize(item.venues.length);
@@ -146,18 +150,19 @@ export function VenueMap({
     const ordered = single.sort((a, b) => Number(a.id === selectedId) - Number(b.id === selectedId));
     for (const venue of ordered) {
       const isSelected = venue.id === selectedId;
-      const size = isSelected ? SELECTED_DOT_SIZE : DOT_SIZE;
+      const isOwn = venue.id === ownVenueId;
+      const size = isSelected || isOwn ? SELECTED_DOT_SIZE : DOT_SIZE;
       const { color, glyph } = crowdLook(venue);
-      const border = isSelected ? `4px solid ${colors.text}` : `3px solid ${colors.white}`;
-      const label = labelled.has(venue.id)
-        ? `<div style="position:absolute;left:${size + 3}px;top:50%;transform:translateY(-50%);width:max-content;max-width:${LABEL_MAX_WIDTH}px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font:600 12px/${LABEL_LINE_HEIGHT}px -apple-system,system-ui,sans-serif;color:${color};text-shadow:0 0 2px ${halo},0 0 2px ${halo},0 0 3px ${halo};pointer-events:none">${escapeHtml(venue.name)}</div>`
+      const border = isSelected ? `4px solid ${colors.text}` : isOwn ? `5px solid ${colors.primary}` : `3px solid ${colors.white}`;
+      const label = labelled.has(venue.id) || isOwn
+        ? `<div style="position:absolute;left:${size + 3}px;top:50%;transform:translateY(-50%);width:max-content;max-width:${LABEL_MAX_WIDTH}px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font:600 12px/${LABEL_LINE_HEIGHT}px -apple-system,system-ui,sans-serif;color:${isOwn ? colors.primary : color};text-shadow:0 0 2px ${halo},0 0 2px ${halo},0 0 3px ${halo};pointer-events:none">${escapeHtml(isOwn ? `Mekanın · ${venue.name}` : venue.name)}</div>`
         : '';
       const icon = L.divIcon({
         className: '',
         iconSize: [size, size],
-        html: `<div style="position:relative;width:${size}px;height:${size}px;box-sizing:border-box;border-radius:50%;background:${color};border:${border};box-shadow:0 1px 2px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#fff;font:800 ${Math.round(size * 0.5)}px sans-serif">${glyph ?? ''}${label}</div>`,
+        html: `<div style="position:relative;width:${size}px;height:${size}px;box-sizing:border-box;border-radius:50%;background:${color};border:${border};box-shadow:0 1px 2px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#fff;font:800 ${Math.round(size * 0.5)}px sans-serif">${glyph === '✨' ? `<span style="font-family:${ICON_FONT};font-weight:normal">${iconChar('sparkles')}</span>` : (glyph ?? '')}${label}</div>`,
       });
-      L.marker([venue.lat, venue.lon], { icon, zIndexOffset: isSelected ? 1000 : 0 })
+      L.marker([venue.lat, venue.lon], { icon, zIndexOffset: isSelected ? 1000 : isOwn ? 500 : 0 })
         .on('click', (event) => {
           L.DomEvent.stopPropagation(event);
           latest.current.onMarkerPress(venue.id);
@@ -167,7 +172,7 @@ export function VenueMap({
     onSelectedPointChange(null);
     reportSelectedPoint();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [venues, selectedId, colorBlind, zoom, scheme]);
+  }, [venues, selectedId, colorBlind, zoom, scheme, ownVenueId]);
 
   useEffect(() => {
     const map = mapRef.current;
