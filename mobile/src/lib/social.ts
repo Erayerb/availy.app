@@ -3,7 +3,7 @@ import { send } from './accountApi.ts';
 
 export type Period = 'week' | 'all';
 export type Scope = 'friends' | 'everyone' | 'group';
-export type RankRow = { rank: number; username: string | null; points: number; me: boolean };
+export type RankRow = { rank: number; username: string | null; points: number; me: boolean; level?: string | null };
 export type Leaderboard = { rows: RankRow[]; me: { rank: number; points: number } | null };
 
 export type AppNotification = {
@@ -47,7 +47,7 @@ export type Privacy = {
   show_in_leaderboard: boolean;
   searchable: boolean;
   suggest_by_venues: boolean; // suggested to people who check in at the same venues
-  regular_public: boolean; // "👑 Buranın müdavimi" shown to everyone, not only to friends
+  regular_public: boolean; // "Buranın müdavimi" shown to everyone, not only to friends
   stats_visibility: 'friends' | 'me'; // who sees the statistics on my profile
 };
 

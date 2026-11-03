@@ -48,6 +48,7 @@ export type FeedItem = {
   likes?: number;
   liked?: boolean;
   likers?: string[]; // the last 3 who liked it
+  level?: string | null; // the author's level id, for its icon next to the name
   comments?: CheckinComment[];
   replies?: CheckinComment[]; // my own Akış: replies under my review
 };

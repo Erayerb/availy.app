@@ -7,12 +7,12 @@ export type PlanId = 'saas' | 'pay_per_use';
 
 export const PLANS: Record<PlanId, { name: string; price: string; features: string[] }> = {
   saas: {
-    name: 'Aylık Paket',
+    name: 'Aylık paket',
     price: '₺1.899 / ay',
     features: ['Anlık doluluk analizi', 'Rakip karşılaştırması', 'Sınırsız kampanya'],
   },
   pay_per_use: {
-    name: 'Kampanya Başı',
+    name: 'Kampanya başı',
     price: '₺150 / kampanya',
     features: ['Aylık ücret yok', 'Her kampanya için tek seferlik ödeme'],
   },

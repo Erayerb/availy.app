@@ -3,11 +3,12 @@ import { Animated, Easing, StyleSheet, View } from 'react-native';
 
 import { colors, themed } from '../theme';
 import { Icon, type IconName } from './Icon';
+import { Text } from './Text';
 
 const SPARKS = 10;
 
-/** Right after a check-in: the icon pops in and small dots burst out around it once. */
-export function Celebration({ icon, first }: { icon: IconName; first: boolean }) {
+/** Right after a check-in or a new badge: the icon (or the badge's emoji) pops in and small dots burst out around it once. */
+export function Celebration({ icon, emoji, first }: { icon?: IconName; emoji?: string; first: boolean }) {
   const pop = useRef(new Animated.Value(0)).current;
   const burst = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -42,7 +43,7 @@ export function Celebration({ icon, first }: { icon: IconName; first: boolean })
         );
       })}
       <Animated.View style={{ transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) }] }}>
-        <Icon name={icon} size={48} color={first ? colors.discovery : colors.primary} />
+        {emoji ? <Text style={styles.emoji}>{emoji}</Text> : icon && <Icon name={icon} size={48} color={first ? colors.discovery : colors.primary} />}
       </Animated.View>
     </View>
   );
@@ -50,5 +51,6 @@ export function Celebration({ icon, first }: { icon: IconName; first: boolean })
 
 const styles = themed(() => StyleSheet.create({
   box: { width: 120, height: 90, alignItems: 'center', justifyContent: 'center' },
+  emoji: { fontSize: 48, lineHeight: 58 },
   spark: { position: 'absolute', width: 8, height: 8, borderRadius: 4 },
 }));

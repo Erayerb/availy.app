@@ -43,16 +43,16 @@ TRUST_PENALTY = 0.1
 TRUST_REWARD = 0.02
 TRUST_FLOOR = 0.2
 
-# Badge catalog: (id, name, icon (a Tabler icon name), how to earn, stat it counts, target)
+# Badge catalog: (id, name, icon, how to earn, stat it counts, target)
 BADGES = [
-    ("profile", "Tam Profil", "user-check", "Profilini tamamla: fotoğraf, e-posta, check-in, arkadaş, yorum", "profile_complete", 1),
-    ("first_step", "İlk Adım", "shoe", "İlk check-in'ini yap", "checkins", 1),
-    ("explorer", "Kâşif", "sparkles", "Bir mekanın ilk check-in'ini yap", "discoveries", 1),
-    ("great_explorer", "Büyük Kâşif", "compass", "5 mekanın ilk check-in'ini yap", "discoveries", 5),
-    ("traveller", "Gezgin", "map", "5 farklı mekanda check-in yap", "venues", 5),
-    ("regular", "Müdavim", "coffee", "Aynı mekana 5 kez check-in yap", "max_same_venue", 5),
-    ("night_owl", "Gece Kuşu", "moon", "22:00'den sonra check-in yap", "night", 1),
-    ("helper", "Yardımsever", "heart-handshake", "25 check-in yap", "checkins", 25),
+    ("profile", "Tam profil", "🌟", "Profilini tamamla: fotoğraf, e-posta, check-in, arkadaş, yorum", "profile_complete", 1),
+    ("first_step", "İlk adım", "👣", "İlk check-in'ini yap", "checkins", 1),
+    ("explorer", "Kâşif", "✨", "Bir mekanın ilk check-in'ini yap", "discoveries", 1),
+    ("great_explorer", "Büyük kâşif", "🧭", "5 mekanın ilk check-in'ini yap", "discoveries", 5),
+    ("traveller", "Gezgin", "🗺️", "5 farklı mekanda check-in yap", "venues", 5),
+    ("regular", "Müdavim", "☕", "Aynı mekana 5 kez check-in yap", "max_same_venue", 5),
+    ("night_owl", "Gece kuşu", "🦉", "22:00'den sonra check-in yap", "night", 1),
+    ("helper", "Yardımsever", "🤝", "25 check-in yap", "checkins", 25),
 ]
 # Points for a new badge, once, by how hard it is (the easiest 5)
 BADGE_POINTS = 5
@@ -76,7 +76,7 @@ class CheckinError(Exception):
 
 def validate_report(level: str, queue: bool | None, seats: bool | None) -> str | None:
     if level not in LEVELS:
-        return "Doluluk Sakin, Orta ya da Kalabalık olmalı."
+        return "Doluluk sakin, orta ya da kalabalık olmalı."
     if queue is not None and level != "high":
         return '"Sıra var mı?" yalnızca Kalabalık için sorulur.'
     if seats is not None and level != "medium":
@@ -103,6 +103,11 @@ def create_checkin(
     # A business could make its own venue look empty: occupancy comes from customers only
     if user.get("role") == "business":
         raise CheckinError("İşletme hesapları check-in yapamaz.", 403)
+    from app.staff import staff_venue
+
+    # The same for its staff at their workplace
+    if staff_venue(conn, user["id"]) == venue_id:
+        raise CheckinError("Çalıştığın mekanda check-in yapamazsın: doluluk müşterilerden gelir.", 403)
     problem = validate_report(level, queue, seats)
     if problem:
         raise CheckinError(problem)
@@ -309,7 +314,7 @@ def user_stats(conn: psycopg.Connection, user_id: int) -> dict:
 
 
 def profile_steps(conn: psycopg.Connection, user_id: int) -> list[dict]:
-    """"Profilin %60 dolu": what a complete personal profile has (100% earns the Tam Profil badge)."""
+    """"Profilin %60 dolu": what a complete personal profile has (100% earns the Tam profil badge)."""
     row = conn.execute(
         """
         SELECT

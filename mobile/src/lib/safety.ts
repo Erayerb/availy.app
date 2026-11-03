@@ -28,7 +28,7 @@ export type Profile = {
   photo_at?: string | null; // profile photo (userPhotoUrl)
 };
 
-/** Yeni Gelen → Kâşif → Mahalleli → Semt Elçisi; `next` (what is left) only on my own profile. */
+/** Yeni gelen → Kâşif → Mahalleli → Semt elçisi; `next` (what is left) only on my own profile. */
 export type Level = {
   id: 'newcomer' | 'explorer' | 'local' | 'ambassador';
   name: string;

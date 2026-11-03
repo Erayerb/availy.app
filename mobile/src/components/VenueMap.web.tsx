@@ -13,6 +13,8 @@ import { ICON_FONT, iconChar } from './Icon';
 
 /** Web map (Leaflet + OpenStreetMap tiles); react-native-maps has no web support. */
 const USER_PANE = 'user';
+// The business's own venue: a little shop sign
+const OWN_SIZE = 28;
 
 const escapeHtml = (text: string) =>
   text.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
@@ -151,16 +153,18 @@ export function VenueMap({
     for (const venue of ordered) {
       const isSelected = venue.id === selectedId;
       const isOwn = venue.id === ownVenueId;
-      const size = isSelected || isOwn ? SELECTED_DOT_SIZE : DOT_SIZE;
+      const size = isOwn ? OWN_SIZE : isSelected ? SELECTED_DOT_SIZE : DOT_SIZE;
       const { color, glyph } = crowdLook(venue);
-      const border = isSelected ? `4px solid ${colors.text}` : isOwn ? `5px solid ${colors.primary}` : `3px solid ${colors.white}`;
+      const border = isSelected ? `4px solid ${colors.text}` : isOwn ? `2px solid ${colors.white}` : `3px solid ${colors.white}`;
+      // Dark purple is hard to read on the dark map: undiscovered names use the theme's discovery colour
+      const labelColor = isOwn ? colors.text : color === UNEXPLORED_STYLE.color ? colors.discovery : color;
       const label = labelled.has(venue.id) || isOwn
-        ? `<div style="position:absolute;left:${size + 3}px;top:50%;transform:translateY(-50%);width:max-content;max-width:${LABEL_MAX_WIDTH}px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font:600 12px/${LABEL_LINE_HEIGHT}px -apple-system,system-ui,sans-serif;color:${isOwn ? colors.primary : color};text-shadow:0 0 2px ${halo},0 0 2px ${halo},0 0 3px ${halo};pointer-events:none">${escapeHtml(isOwn ? `Mekanın · ${venue.name}` : venue.name)}</div>`
+        ? `<div style="position:absolute;left:${size + 3}px;top:50%;transform:translateY(-50%);width:max-content;max-width:${LABEL_MAX_WIDTH}px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font:600 12px/${LABEL_LINE_HEIGHT}px -apple-system,system-ui,sans-serif;color:${labelColor};text-shadow:0 0 2px ${halo},0 0 2px ${halo},0 0 3px ${halo};pointer-events:none">${escapeHtml(venue.name)}</div>`
         : '';
       const icon = L.divIcon({
         className: '',
         iconSize: [size, size],
-        html: `<div style="position:relative;width:${size}px;height:${size}px;box-sizing:border-box;border-radius:50%;background:${color};border:${border};box-shadow:0 1px 2px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#fff;font:800 ${Math.round(size * 0.5)}px sans-serif">${glyph === '✨' ? `<span style="font-family:${ICON_FONT};font-weight:normal">${iconChar('sparkles')}</span>` : (glyph ?? '')}${label}</div>`,
+        html: `<div style="position:relative;width:${size}px;height:${size}px;box-sizing:border-box;border-radius:${isOwn ? '9px' : '50%'};background:${isOwn ? colors.primary : color};border:${border};box-shadow:0 1px 2px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#fff;font:800 ${Math.round(size * 0.5)}px sans-serif">${isOwn ? `<span style="font:normal 16px ${ICON_FONT}">${iconChar('building-store')}</span><span style="position:absolute;top:-7px;right:-7px;width:13px;height:13px;box-sizing:border-box;border-radius:50%;background:${color};border:2px solid ${colors.white}"></span>` : (glyph ?? '')}${label}</div>`,
       });
       L.marker([venue.lat, venue.lon], { icon, zIndexOffset: isSelected ? 1000 : isOwn ? 500 : 0 })
         .on('click', (event) => {

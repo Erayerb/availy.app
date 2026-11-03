@@ -7,7 +7,7 @@ import { InlineIcon } from './Icon';
 import { Pressable } from './Pressable';
 import { Text } from './Text';
 
-/** Daha fazla, personal accounts: "Profilin %80 dolu" until the Tam Profil badge (+20 puan); opens the profile. */
+/** Daha fazla, personal accounts: "Profilin %80 dolu" until the Tam profil badge (+20 puan); opens the profile. */
 export function ProfileCompletion({ steps, onOpen }: { steps: ProfileStep[]; onOpen: (screen: Screen) => void }) {
   const done = steps.filter((s) => s.done).length;
   if (!steps.length || done === steps.length) return null;
@@ -24,7 +24,7 @@ export function ProfileCompletion({ steps, onOpen }: { steps: ProfileStep[]; onO
       </View>
       <Text style={styles.muted}>Eksik: {missing.join(', ')}</Text>
       <Text style={styles.muted}>
-        <InlineIcon name="award" color={colors.gold} /> Tamamlayınca Tam Profil rozeti ve +20 puan
+        <InlineIcon name="award" color={colors.gold} /> Tamamlayınca Tam profil rozeti ve +20 puan
       </Text>
     </Pressable>
   );

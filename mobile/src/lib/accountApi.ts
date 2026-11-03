@@ -32,6 +32,7 @@ export type ServerUser = {
   discoveries?: number;
   badges?: Badge[];
   profile?: ProfileStep[]; // "Profilin %60 dolu"
+  level?: User['level'];
   new_badges?: NewBadge[]; // earned since the last look (points already added): celebrated
 };
 
@@ -69,6 +70,7 @@ export function toUser(server: ServerUser, token: string, local: LocalBusiness =
     discoveries: server.discoveries,
     badges: server.badges,
     profile: server.profile,
+    level: server.level,
   };
 }
 

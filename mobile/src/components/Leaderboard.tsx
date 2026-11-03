@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from './Text';
 import { Pressable } from './Pressable';
+import { Avatar } from './Avatar';
+import { LevelMark } from './LevelCard';
 
 import { confirmAction } from '../lib/confirm';
 import { groupsApi, type Group } from '../lib/groups';
@@ -180,8 +182,11 @@ export function Leaderboard({ token, me, onOpenUser }: Props) {
           style={[styles.row, row.me && styles.meRow]}
         >
           <Text style={[styles.rank, row.me && styles.meText]}>{row.rank <= 3 && row.points > 0 ? <InlineIcon name="medal" color={MEDALS[row.rank - 1]} /> : `${row.rank}.`}</Text>
+          <Avatar username={row.username} size={28} framed={row.level === 'ambassador'} />
           <Text style={[styles.name, row.me && styles.meText]} numberOfLines={1}>
             {row.username ? `@${row.username}` : 'Misafir'}
+            {/* Before "(sen)": a long name is cut at the end of the line */}
+            <LevelMark level={row.level} plain={row.me} />
             {row.me ? ' (sen)' : ''}
           </Text>
           <Text style={[styles.points, row.me && styles.meText]}>{row.points} puan</Text>

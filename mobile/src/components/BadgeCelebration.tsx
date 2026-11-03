@@ -1,11 +1,9 @@
 import { Modal, StyleSheet, View } from 'react-native';
 
 import { useBadgeCelebration } from '../lib/badgeEvents';
-import { badgeIcon } from './BadgeGrid';
 import { Celebration } from './Celebration';
 import { haptics } from '../lib/haptics';
 import { colors, themed } from '../theme';
-import { InlineIcon } from './Icon';
 import { Pressable } from './Pressable';
 import { Text } from './Text';
 
@@ -18,11 +16,11 @@ export function BadgeCelebration() {
     <Modal visible={badges.length > 0} transparent animationType="fade" onRequestClose={close}>
       <Pressable style={styles.backdrop} onPress={close}>
         <Pressable style={styles.box} onPress={() => {}}>
-          <Celebration icon={badgeIcon(badges[0]?.id)} first={badges[0]?.id === 'explorer'} />
+          <Celebration emoji={badges[0]?.icon} first={badges[0]?.id === 'explorer'} />
           <Text style={styles.title}>{badges.length > 1 ? `${badges.length} yeni rozet!` : 'Yeni rozet!'}</Text>
           {badges.map((b) => (
             <Text key={b.id} style={styles.line}>
-              <InlineIcon name={badgeIcon(b.id)} color={colors.primary} /> {b.name} · +{b.points} puan
+              {b.icon} {b.name} · +{b.points} puan
             </Text>
           ))}
           {badges.length > 1 && <Text style={styles.total}>Toplam +{total} puan</Text>}

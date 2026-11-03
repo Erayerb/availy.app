@@ -227,7 +227,7 @@ export function PermissionsScreen({
         </Text>
         <Text style={styles.muted}>
           {business
-            ? "Hesabını İşletme Profili'nden silebilirsin: hesabın ve yanıtların silinir."
+            ? "Hesabını İşletme profili'nden silebilirsin: hesabın ve yanıtların silinir."
             : "Hepsini Profil ayarları > Verilerimi indir ile tek dosya olarak alabilirsin. Hesabını yine Profil ayarları'ndan silebilirsin: hesabın ve yorumların silinir, check-in'lerin yalnızca adsız doluluk bilgisi olarak kalır."}
         </Text>
       </Collapsible>

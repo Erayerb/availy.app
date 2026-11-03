@@ -6,7 +6,7 @@ export type LevelInfo = { id: Level['id']; name: string; needs: string; perks: s
 export const LEVELS: LevelInfo[] = [
   {
     id: 'newcomer',
-    name: 'Yeni Gelen',
+    name: 'Yeni gelen',
     needs: 'Kayıt olunca',
     perks: ["Check-in'lerden puan kazanırsın", 'Rozet toplamaya başlarsın'],
   },
@@ -24,8 +24,8 @@ export const LEVELS: LevelInfo[] = [
   },
   {
     id: 'ambassador',
-    name: 'Semt Elçisi',
+    name: 'Semt elçisi',
     needs: '2.000 puan ve bir semtte 10 farklı mekan',
-    perks: ['Yeni özelliklere erken erişim (yakında)', 'Her ay 1 ay Premium (yakında)', 'Profil fotoğrafında çerçeve'],
+    perks: ['Yeni özelliklere erken erişim (yakında)', '1 ay ücretsiz Premium (yakında)', 'Profil fotoğrafında çerçeve'],
   },
 ];

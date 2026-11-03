@@ -47,7 +47,7 @@ type Props = {
   onBack: () => void;
   onShowOnMap: (venue: Venue) => void;
   onOpenUser: (username: string) => void; // a reviewer's profile
-  onEditProfile: () => void; // the venue's own business: Daha fazla > İşletme Profili
+  onEditProfile: () => void; // the venue's own business: Daha fazla > İşletme profili
   lastCheckinAt?: string | null; // the user's last check-in here
 };
 
@@ -160,7 +160,14 @@ export function VenueDetailScreen({
         )}
         {venue.discovery && (
           <Text style={styles.discovery}>
-            <InlineIcon name="sparkles" /> Burayı {discoverer(venue.discovery)} keşfetti ·{' '}
+            <InlineIcon name="sparkles" /> Burayı{' '}
+            <Text
+              style={styles.discoveryName}
+              onPress={venue.discovery.username ? () => onOpenUser(venue.discovery!.username!) : undefined}
+            >
+              {discoverer(venue.discovery)}
+            </Text>{' '}
+            keşfetti ·{' '}
             {new Date(venue.discovery.at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}
           </Text>
         )}
@@ -319,6 +326,7 @@ export function VenueDetailScreen({
 
 const styles = themed(() => StyleSheet.create({
   discovery: { fontSize: 13, color: colors.discovery, fontWeight: '600', marginTop: 2 },
+  discoveryName: { fontSize: 15, fontWeight: '800', color: colors.text },
   ownerNote: { fontSize: 13, color: colors.textMuted, fontWeight: '600' },
   edit: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 14, backgroundColor: colors.primary },
   editText: { color: colors.onPrimary, fontWeight: '700', fontSize: 14 },

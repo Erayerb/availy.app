@@ -114,9 +114,9 @@ class MeOut(UserOut, PrivacyOut):
     checkins: int
     discoveries: int  # venues where this user made the first check-in
     badges: list[BadgeOut]  # the whole catalog; locked ones have earned = false
-    profile: list[ProfileStepOut]  # "Profilin %60 dolu"; all done earns the Tam Profil badge
+    profile: list[ProfileStepOut]  # "Profilin %60 dolu"; all done earns the Tam profil badge
     new_badges: list[NewBadgeOut] = []  # earned since the last look, points already added: celebrate them
-    level: LevelOut  # Yeni Gelen → Kâşif → Mahalleli → Semt Elçisi, with what is left for the next
+    level: LevelOut  # Yeni gelen → Kâşif → Mahalleli → Semt elçisi, with what is left for the next
     customer_code: str | None = None  # "M-123456" for loyalty stamps (not for businesses)
 
 

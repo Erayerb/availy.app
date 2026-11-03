@@ -14,7 +14,7 @@ type Props = {
   reloadKey?: unknown; // a new value loads again (e.g. after a refresh)
 };
 
-/** "👑 Buranın müdavimi @ayse · 30 günde 5 check-in" (me, a friend, or someone who shows it to everyone). */
+/** "Buranın müdavimi @ayse · 30 günde 5 check-in" (me, a friend, or someone who shows it to everyone). */
 export function VenueRegular({ venueId, token, onOpenUser, reloadKey }: Props) {
   const [regular, setRegular] = useState<{ username: string; visits: number; me: boolean; friend: boolean } | null>(null);
 
@@ -26,7 +26,7 @@ export function VenueRegular({ venueId, token, onOpenUser, reloadKey }: Props) {
   if (!regular) return null;
   return (
     <Text style={styles.line}>
-      <InlineIcon name="crown" />{' '}
+      <InlineIcon name="home-heart" />{' '}
       {regular.me ? (
         'Buranın müdavimi sensin'
       ) : (

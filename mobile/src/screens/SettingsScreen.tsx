@@ -19,7 +19,7 @@ type Props = {
   account: Parameters<typeof AccountSettings>[0] | null;
 };
 
-/** Customers: Bildirim ayarları. Businesses: Ayarlar (account, dead-hour alerts; the venue is edited in İşletme Profili). */
+/** Customers: Bildirim ayarları. Businesses: Ayarlar (account, dead-hour alerts; the venue is edited in İşletme profili). */
 export function SettingsScreen({ onBack, isBusiness, venueId, account }: Props) {
   const { venues } = useVenuesByIds(venueId ? [venueId] : []);
   const venue = venues[0];

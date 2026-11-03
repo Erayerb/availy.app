@@ -142,7 +142,7 @@ def regular(
     conn: psycopg.Connection = Depends(get_conn),
     now: datetime = Depends(get_clock),
 ):
-    """"👑 müdavim": the most check-ins here lately, among me, my friends and people who show it to everyone (none: null)."""
+    """"müdavim": the most check-ins here lately, among me, my friends and people who show it to everyone (none: null)."""
     from app.streaks import venue_regular
 
     return venue_regular(conn, user, venue_id, now)

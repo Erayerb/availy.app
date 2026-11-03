@@ -77,7 +77,7 @@ export function CampaignsScreen({ signedIn, serverPoints, customerCode, business
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
         {onBack && <BackButton onPress={onBack} />}
-        <Text style={[styles.title, styles.flex]}>Kampanyalar ve Sadakat</Text>
+        <Text style={[styles.title, styles.flex]}>Kampanyalar ve sadakat</Text>
         {!onBack && <HeaderButtons />}
       </View>
       <View style={styles.tabs}>

@@ -8,7 +8,7 @@ import { Text } from '../Text';
 import { VenuePhoto } from '../VenuePhoto';
 import { useCoverUpload } from './useCoverUpload';
 
-/** İşletme Profili, next to the venue's name: its cover photo with a pencil; a tap picks a new one. */
+/** İşletme profili, next to the venue's name: its cover photo with a pencil; a tap picks a new one. */
 export function CoverPhoto({ venue, token, onSaved }: { venue: Venue; token: string; onSaved: () => void }) {
   const { pick, busy, note } = useCoverUpload(venue, token, onSaved);
   return (

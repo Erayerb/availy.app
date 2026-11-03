@@ -4,7 +4,7 @@ Only the icons the app uses go in, each at its own Tabler number (a few above U+
 U+E000 + n), so a number never changes between builds: the original font is 1.8 MB, has a damaged
 "post" table characters above U+FFFF and the same internal name as the filled font, and iPhones refuse to load it
 (icons show as "?").
-Run after using a new icon name:  python3 scripts/build-icons.py  (needs: pip install fonttools)
+Run after using a new icon name:  python3 scripts/build-icons.py  (needs: pip install fonttools; npm install)
 """
 import json
 import pathlib
@@ -20,7 +20,20 @@ WORD = re.compile(r"""['"]([a-z0-9]+(?:-[a-z0-9]+)*)['"]""")
 code = "\n".join(p.read_text() for p in [*ROOT.glob("src/**/*.ts"), *ROOT.glob("src/**/*.tsx"), ROOT / "App.tsx"])
 words = set(WORD.findall(code))
 
-for name in ("tabler-icons", "tabler-icons-filled"):
+def drawings(style: str, names: set[str], out: str) -> None:
+    """The icons as drawings (node_modules/@tabler/icons, a dev dependency): a stand-alone icon is drawn
+    from these, so it sits exactly in the middle on every phone; the font is for icons inside a line of text."""
+    paths = {}
+    for icon in sorted(names):
+        svg = ROOT / "node_modules/@tabler/icons/icons" / style / f"{icon}.svg"
+        if svg.exists():
+            parts = re.findall(r'<path\s[^>]*?\bd="([^"]+)"', svg.read_text())
+            paths[icon] = " ".join(p for p in parts if p != "M0 0h24v24H0z")
+    (ROOT / "src/lib" / out).write_text(json.dumps(paths, separators=(",", ":"), sort_keys=True))
+    print(out, len(paths), "icons")
+
+
+for name in ("tabler-icons",):
     glyphs = json.loads((SOURCE / f"{name}.json").read_text())
     used = sorted(words & glyphs.keys())
     font = TTFont(SOURCE / f"{name}.ttf")
@@ -50,7 +63,9 @@ for name in ("tabler-icons", "tabler-icons-filled"):
         if record.nameID in (1, 3, 4, 6, 16):
             record.string = family
     font.save(ROOT / f"assets/fonts/{name}.ttf")
-    (ROOT / f"src/lib/{'tablerFilledGlyphs' if 'filled' in name else 'tablerGlyphs'}.json").write_text(
+    (ROOT / "src/lib/tablerGlyphs.json").write_text(
         json.dumps(numbers, separators=(",", ":"), sort_keys=True)
     )
     print(name, len(used), "icons")
+    drawings("outline", set(used), "tablerPaths.json")
+    drawings("filled", set(used), "tablerFilledPaths.json")

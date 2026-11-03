@@ -37,7 +37,7 @@ class CheckinCoupon(BaseModel):
 class NewBadge(BaseModel):
     id: str
     name: str
-    icon: str  # a Tabler icon name
+    icon: str
     points: int
 
 

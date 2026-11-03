@@ -14,7 +14,7 @@ import { panel } from './panelStyles';
 import { ThemedSwitch } from '../ThemedSwitch';
 import { InlineIcon } from '../Icon';
 
-/** Weekly recurring campaigns (Aylık Paket); the server starts them on time, the app need not be open. */
+/** Weekly recurring campaigns (Aylık paket); the server starts them on time, the app need not be open. */
 export function ScheduleSection({
   venue,
   plan,
@@ -37,9 +37,9 @@ export function ScheduleSection({
     return (
       <View style={panel.card}>
         <Text style={panel.sectionTitle}>Zamanlanmış kampanyalar <InlineIcon name="lock" /></Text>
-        <Text style={panel.muted}>Örn. "her salı 13–16 arası %20". Aylık Paket'e özeldir.</Text>
+        <Text style={panel.muted}>Örn. "her salı 13–16 arası %20". Aylık paket'e özeldir.</Text>
         <Pressable style={panel.secondary} onPress={onUpgrade}>
-          <Text style={panel.secondaryText}>Aylık Paket'e geç</Text>
+          <Text style={panel.secondaryText}>Aylık paket'e geç</Text>
         </Pressable>
       </View>
     );

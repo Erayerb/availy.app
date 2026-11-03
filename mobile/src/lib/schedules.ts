@@ -1,5 +1,5 @@
 /**
- * Scheduled / weekly recurring campaigns (Aylık Paket): e.g. every Tuesday 13:00 for 3 hours.
+ * Scheduled / weekly recurring campaigns (Aylık paket): e.g. every Tuesday 13:00 for 3 hours.
  * They live on the server, which starts the campaign when its time comes (the app need not be open).
  */
 import { send } from './accountApi.ts';

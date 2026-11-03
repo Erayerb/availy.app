@@ -4,7 +4,7 @@ import type { PlanId } from './plans.ts';
 export type Role = 'personal' | 'business';
 
 /** A badge from the server's catalog; locked ones have earned = false and show their progress. */
-/** One step of a full personal profile (all done: the Tam Profil badge, +100 points). */
+/** One step of a full personal profile (all done: the Tam profil badge, +100 points). */
 export type ProfileStep = { key: 'photo' | 'email' | 'checkin' | 'friend' | 'review'; label: string; done: boolean };
 
 export type Badge = {
@@ -28,6 +28,7 @@ export type User = {
   discoveries?: number;
   badges?: Badge[];
   profile?: ProfileStep[]; // "Profilin %60 dolu" (personal accounts)
+  level?: { id: 'newcomer' | 'explorer' | 'local' | 'ambassador'; name: string }; // for the Semt elçisi frame
   name: string;
   email: string | null;
   username?: string | null; // "@eray" (v2); guests have none

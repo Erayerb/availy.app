@@ -85,7 +85,7 @@ export function AuthScreen({ mode, initialRole = 'personal', onBack, onSwitchMod
 
         <View style={styles.brand}>
           <Logo size={64} />
-          <Text style={styles.title}>{isRegister ? 'Kayıt Ol' : 'Giriş Yap'}</Text>
+          <Text style={styles.title}>{isRegister ? 'Kayıt ol' : 'Giriş yap'}</Text>
         </View>
 
         <View style={styles.roles}>
@@ -165,7 +165,7 @@ export function AuthScreen({ mode, initialRole = 'personal', onBack, onSwitchMod
           disabled={busy}
           style={({ pressed }) => [styles.primary, (pressed || busy) && styles.pressed]}
         >
-          <Text style={styles.primaryText}>{isRegister ? 'Kayıt Ol' : 'Giriş Yap'}</Text>
+          <Text style={styles.primaryText}>{isRegister ? 'Kayıt ol' : 'Giriş yap'}</Text>
         </Pressable>
         {isRegister && (
           <Text style={styles.legal}>

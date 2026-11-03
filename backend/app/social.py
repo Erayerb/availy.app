@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 
 import psycopg
 
+from app.levels import level_ids
 from app.safety import BLOCKED, hidden_reply
 
 ISTANBUL = ZoneInfo("Europe/Istanbul")
@@ -50,8 +51,12 @@ def leaderboard(conn: psycopg.Connection, me: dict, period: str, scope: str, now
     ).fetchall()
     mine = next((r for r in rows if r["id"] == me["id"]), None)
     shown = [r for r in rows if r["id"] != me["id"] or r["points"] > 0 or scope in ("friends", "group")][:LEADERBOARD_LIMIT]
+    levels = level_ids(conn, [r["username"] for r in shown if r["username"]])
     return {
-        "rows": [{"rank": r["rank"], "username": r["username"], "points": r["points"], "me": r["id"] == me["id"]} for r in shown],
+        "rows": [
+            {"rank": r["rank"], "username": r["username"], "points": r["points"], "me": r["id"] == me["id"], "level": levels.get(r["username"])}
+            for r in shown
+        ],
         "me": {"rank": mine["rank"], "points": mine["points"]} if mine else None,
     }
 

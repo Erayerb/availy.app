@@ -1,5 +1,5 @@
 """v2: coming back. "🔥 4 haftalık seri" (weeks in a row with a check-in) and a venue's regular
-("👑 müdavim": the one with the most check-ins there lately, among the people I may see as one).
+("müdavim": the one with the most check-ins there lately, among the people I may see as one).
 """
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -9,8 +9,8 @@ import psycopg
 from app.safety import BLOCKED
 
 ISTANBUL = ZoneInfo("Europe/Istanbul")
-REGULAR_DAYS = 30  # check-ins this recent count for the crown
-REGULAR_MIN_VISITS = 2  # one visit does not make a regular
+REGULAR_DAYS = 30  # check-ins this recent count
+REGULAR_MIN_VISITS = 3  # as in the business statistics (Müdavim, 3+ kez)
 
 
 def _week_start(at: datetime) -> datetime:
@@ -40,7 +40,7 @@ def weekly_streak(conn: psycopg.Connection, user_id: int, now: datetime) -> int:
 
 
 def venue_regular(conn: psycopg.Connection, me: dict, venue_id: int, now: datetime) -> dict | None:
-    """"👑 Buranın müdavimi": most public check-ins here in the last 30 days (at least 2), among me,
+    """"Buranın müdavimi": most public check-ins here in the last 30 days (at least 3), among me,
     my friends (who share their check-ins) and people who show it to everyone (regular_public);
     on a tie, the one who was here last."""
     row = conn.execute(

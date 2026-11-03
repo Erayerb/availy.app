@@ -17,7 +17,7 @@ const parseHours = (label: string): [string, string] => {
   return m ? [String(Number(m[1])), String(Number(m[2]) || 24)] : ['0', '24'];
 };
 
-/** Business edits its name, opening hours, purposes and features (İşletme Profili); saved on the server, so every customer sees them. */
+/** Business edits its name, opening hours, purposes and features (İşletme profili); saved on the server, so every customer sees them. */
 export function VenueEditSection({ venue, token, onSaved }: { venue: Venue; token: string; onSaved: () => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(venue.name);

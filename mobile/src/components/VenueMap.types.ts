@@ -16,7 +16,7 @@ export type VenueMapProps = {
   focus?: { lat: number; lon: number; key: number; zoom?: number } | null;
   // Google Maps-style blue dot with a light halo (drawn by us on every platform)
   userPoint?: { lat: number; lon: number } | null;
-  // A business's own venue: never in a cluster, bigger, ringed in the brand colour, "Mekanın" under it
+  // A business's own venue: never in a cluster, a shop sign instead of a dot, its name always shown
   ownVenueId?: number | null;
 };
 

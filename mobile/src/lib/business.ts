@@ -44,7 +44,7 @@ export function quietestWeekday(weekday: number[]): number | null {
 
 export type ProfileStep = { key: 'photo' | 'address' | 'instagram' | 'phone' | 'amenities'; label: string; done: boolean };
 
-/** "Profilin %60 dolu": what a venue page needs to look complete (İşletme Profili). */
+/** "Profilin %60 dolu": what a venue page needs to look complete (İşletme profili). */
 export function profileSteps(
   venue: { photo_at?: string | null; address?: string; instagram?: string | null; phone?: string | null; amenity_keys?: string[] | null },
 ): ProfileStep[] {

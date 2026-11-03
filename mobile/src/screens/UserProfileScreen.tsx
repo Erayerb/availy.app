@@ -143,7 +143,7 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
 
       <View style={styles.card}>
         <View style={styles.head}>
-          <Avatar username={profile.username} size={56} version={profile.photo_at} />
+          <Avatar username={profile.username} size={56} version={profile.photo_at} framed={profile.level?.id === 'ambassador'} />
           <View style={styles.flex}>
             <Text style={styles.name}>@{profile.username}</Text>
             <Text style={styles.muted}>
@@ -157,11 +157,11 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
           <Text style={styles.muted}><InlineIcon name="lock" /> @{profile.username} istatistiklerini yalnızca {profile.relation === 'friend' ? 'kendisine' : 'arkadaşlarına'} gösteriyor.</Text>
         ) : (
           <View style={styles.stats}>
-            <Stat value={profile.points ?? 0} label="puan" />
-            <Stat value={profile.checkins ?? 0} label="check-in" />
-            <Stat value={profile.discoveries ?? 0} label="keşif" />
+            <Stat value={profile.points ?? 0} label="Puan" />
+            <Stat value={profile.checkins ?? 0} label="Check-in" />
+            <Stat value={profile.discoveries ?? 0} label="Keşif" />
             {/* Weeks in a row with a check-in */}
-            <Stat value={profile.weekly_streak ?? 0} label="haftalık seri" />
+            <Stat value={profile.weekly_streak ?? 0} label="Haftalık seri" />
           </View>
         )}
 

@@ -42,17 +42,19 @@ def test_venue_regular(client, conn):
     ali, ayse, stranger = user(conn, "t_ali"), user(conn, "t_ayse"), user(conn, "t_yabanci")
     kafe = venue_id(conn, "Test Kafe A")
     add_checkin(conn, ali["id"], kafe, NOW - timedelta(days=1))
-    assert venue_regular(conn, ali, kafe, NOW) is None  # one visit is not enough
     add_checkin(conn, ali["id"], kafe, NOW - timedelta(days=2))
-    assert venue_regular(conn, ali, kafe, NOW) == {"username": "t_ali", "visits": 2, "me": True, "friend": False}
+    assert venue_regular(conn, ali, kafe, NOW) is None  # two visits are not enough
+    add_checkin(conn, ali["id"], kafe, NOW - timedelta(days=5))
+    assert venue_regular(conn, ali, kafe, NOW) == {"username": "t_ali", "visits": 3, "me": True, "friend": False}
     # A stranger with more visits does not count; a friend does, private check-ins do not
     for days in (1, 2, 3):
         add_checkin(conn, stranger["id"], kafe, NOW - timedelta(days=days))
         add_checkin(conn, ayse["id"], kafe, NOW - timedelta(days=days))
+    add_checkin(conn, ayse["id"], kafe, NOW - timedelta(days=6))
     add_checkin(conn, ayse["id"], kafe, NOW - timedelta(days=4), private=True)
     assert venue_regular(conn, ali, kafe, NOW)["username"] == "t_ali"
     befriend(client, ali_token, ayse_token, "t_ali", "t_ayse")
-    assert venue_regular(conn, ali, kafe, NOW) == {"username": "t_ayse", "visits": 3, "me": False, "friend": True}
+    assert venue_regular(conn, ali, kafe, NOW) == {"username": "t_ayse", "visits": 4, "me": False, "friend": True}
     # Someone who shows it to everyone counts too, friend or not
     for days in (1, 2, 3, 4):
         add_checkin(conn, stranger["id"], kafe, NOW - timedelta(hours=days))

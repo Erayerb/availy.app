@@ -83,7 +83,7 @@ def test_feed_has_friends_checkins_reviews_and_replies(client, conn, visit):
     client.post("/v1/friends", json={"username": "t_ali"}, headers=auth(ayse))
     ayse_id = client.get("/v1/me", headers=auth(ayse)).json()["id"]
     conn.execute(
-        "INSERT INTO checkins (venue_id, user_id, level, is_first, created_at) VALUES (%s, %s, 'low', true, now() - interval '3 hours')",
+        "INSERT INTO checkins (venue_id, user_id, level, is_first, created_at) VALUES (%s, %s, 'low', true, now() - interval '30 hours')",
         (kafe, ayse_id),
     )
     visit("t_yabanci", kafe)
@@ -101,6 +101,25 @@ def test_feed_has_friends_checkins_reviews_and_replies(client, conn, visit):
     assert review["id"]
     # Not friends: nothing from Ayşe
     assert client.get("/v1/feed", headers=auth(other)).json() == []
+
+
+def test_a_review_from_the_venue_page_shows_under_the_check_in(client, conn):
+    kafe, ali, ayse = venue(conn), account(client, "t_ali"), account(client, "t_ayse")
+    client.post("/v1/friends", json={"username": "t_ayse"}, headers=auth(ali))
+    client.post("/v1/friends", json={"username": "t_ali"}, headers=auth(ayse))
+    ayse_id = client.get("/v1/me", headers=auth(ayse)).json()["id"]
+    conn.execute(
+        "INSERT INTO checkins (venue_id, user_id, level, created_at) VALUES (%s, %s, 'low', now() - interval '3 hours')",
+        (kafe, ayse_id),
+    )
+    client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 5}, headers=auth(ayse))
+    [post] = client.get("/v1/feed", headers=auth(ali)).json()
+    assert (post["kind"], post["rating"]) == ("checkin", 5)
+    [mine] = client.get("/v1/feed?who=me", headers=auth(ayse)).json()
+    assert (mine["kind"], mine["rating"]) == ("checkin", 5)
+    # The check-in already has one: the second review stands on its own
+    client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 3, "body": "Yine geldim"}, headers=auth(ayse))
+    assert [(f["kind"], f["rating"]) for f in client.get("/v1/feed", headers=auth(ali)).json()] == [("review", 3), ("checkin", 5)]
 
 
 def test_two_replies_per_person_and_review(client, conn, visit):

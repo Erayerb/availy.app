@@ -9,8 +9,9 @@ from typing import Literal
 from app.occupancy import classify
 
 WINDOW = timedelta(minutes=90)  # only check-ins this recent count
+SOLO_WINDOW = timedelta(minutes=60)  # one person alone is believed for less: the place may have changed since
 # How much a report weighs by its age (minutes, weight); in between, on a straight line
-AGE_WEIGHTS = [(0, 1.0), (30, 0.65), (60, 0.35), (90, 0.10)]
+AGE_WEIGHTS = [(0, 1.0), (30, 0.65), (60, 0.35), (90, 0.15)]
 MIN_REPORTERS_FOR_RATIO = 5  # below this only the level is shown, no "~%60"
 LEVEL_SCORE = {"low": 0.2, "medium": 0.55, "high": 0.9}
 # The follow-up answer moves a report within (and sometimes across) its level:
@@ -91,6 +92,8 @@ def crowd_from_checkins(reports: list[Report], last_report_at: datetime | None, 
     if last_report_at is None:
         return Crowd(state="unexplored")
     recent = latest_per_person([r for r in reports if now - WINDOW < r.created_at <= now])
+    if len(recent) == 1 and now - recent[0].created_at > SOLO_WINDOW:
+        recent = []
     if not recent:
         return Crowd(state="stale", last_report_at=last_report_at)
 

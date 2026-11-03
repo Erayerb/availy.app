@@ -18,6 +18,7 @@ MAX_FEED_DAYS = 7
 MAX_MY_FEED_DAYS = 30
 PLAIN_CHECKIN_DAYS = 2  # a check-in with no words, likes or comments leaves Akış after this
 FEED_LIMIT = 50
+REVIEW_JOINS_CHECKIN = timedelta(hours=24)  # a review this soon after a check-in shows under it in Akış
 
 
 @dataclass
@@ -48,7 +49,8 @@ def save_review(
     now: datetime,
     checkin_id: int | None = None,
 ) -> dict:
-    """`checkin_id`: written right after that check-in ("Burası nasıl?"); it shows with the check-in in Akış."""
+    """`checkin_id`: written right after that check-in ("Burası nasıl?"); it shows with the check-in in Akış.
+    Written on the venue page instead: it joins my latest check-in there of the last day, if that has no review yet."""
     _require_registered(user, "Yorum yazmak")
     if user.get("role") == "business":
         raise ReviewError("İşletme hesapları yorum yazamaz; yorumlara yanıt verebilir.", 403)
@@ -68,6 +70,17 @@ def save_review(
         "SELECT 1 FROM checkins WHERE id = %s AND user_id = %s AND venue_id = %s", (checkin_id, user["id"], venue_id)
     ).fetchone() is None:
         raise ReviewError("Check-in bulunamadı.", 404)
+    if checkin_id is None:
+        latest = conn.execute(
+            """
+            SELECT c.id FROM checkins c
+            WHERE c.user_id = %s AND c.venue_id = %s AND NOT c.is_demo AND c.created_at > %s
+              AND NOT EXISTS (SELECT 1 FROM reviews r WHERE r.checkin_id = c.id)
+            ORDER BY c.created_at DESC LIMIT 1
+            """,
+            (user["id"], venue_id, now - REVIEW_JOINS_CHECKIN),
+        ).fetchone()
+        checkin_id = latest["id"] if latest else None
     return conn.execute(
         """
         INSERT INTO reviews (venue_id, user_id, rating, body, allow_replies, created_at, checkin_id)

@@ -13,3 +13,4 @@ build/
 pgdata/
 *.log
 .pytest_cache/
+overture-places.geojsonseq

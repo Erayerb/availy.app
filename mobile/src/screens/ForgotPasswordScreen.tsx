@@ -11,7 +11,7 @@ import { colors, themed } from '../theme';
 type Props = {
   initialEmail: string;
   onBack: () => void;
-  onDone: (email: string) => void; // back to "Giriş Yap" with the e-mail filled in
+  onDone: (email: string) => void; // back to "Giriş yap" with the e-mail filled in
 };
 
 const asMessage = (e: unknown) => (e instanceof Error ? e.message : 'Bir sorun oldu, tekrar dene.');

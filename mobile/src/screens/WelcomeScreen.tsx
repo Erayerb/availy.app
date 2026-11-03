@@ -59,10 +59,10 @@ export function WelcomeScreen({ onLogin, onRegister, onGuest }: Props) {
               </Text>
             </Pressable>
             <Pressable onPress={() => onLogin(role)} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
-              <Text style={styles.primaryText}>Giriş Yap</Text>
+              <Text style={styles.primaryText}>Giriş yap</Text>
             </Pressable>
             <Pressable onPress={() => onRegister(role)} style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}>
-              <Text style={styles.secondaryText}>Kayıt Ol</Text>
+              <Text style={styles.secondaryText}>Kayıt ol</Text>
             </Pressable>
           </>
         )}

@@ -21,6 +21,7 @@ export type Screen =
   | 'verification'
   | 'about'
   | 'levels'
+  | 'counter'
   | 'checkin'
   | 'addVenue'
   | 'permissions'
@@ -36,7 +37,7 @@ export type Screen =
 
 type Tab = { screen: Screen; label: string; icon: IconName };
 
-const HOME: Tab = { screen: 'home', label: 'Ana Sayfa', icon: 'home' };
+const HOME: Tab = { screen: 'home', label: 'Ana sayfa', icon: 'home' };
 const MAP: Tab = { screen: 'map', label: 'Harita', icon: 'map' };
 const CAMPAIGNS: Tab = { screen: 'campaigns', label: 'Kampanyalar', icon: 'tag' };
 const MORE: Tab = { screen: 'more', label: 'Daha fazla', icon: 'menu' };
@@ -59,7 +60,7 @@ export const BUSINESS_TABS: Tab[] = [
 ];
 
 // Pages opened from the "Daha fazla" list keep that tab highlighted
-const MORE_PAGES: Screen[] = ['more', 'campaigns', 'appearance', 'permissions', 'location', 'privacy', 'legal', 'subscription', 'profile', 'settings', 'support', 'verification', 'about'];
+const MORE_PAGES: Screen[] = ['more', 'campaigns', 'appearance', 'permissions', 'location', 'privacy', 'legal', 'subscription', 'profile', 'settings', 'support', 'verification', 'about', 'counter'];
 
 type Props = {
   tabs: Tab[];

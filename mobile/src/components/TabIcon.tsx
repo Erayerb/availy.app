@@ -1,6 +1,6 @@
 import Svg, { Circle, Path, Polygon } from 'react-native-svg';
 
-export type IconName = 'home' | 'map' | 'heart' | 'tag' | 'star' | 'chart' | 'menu' | 'people' | 'person' | 'bell' | 'search' | 'back';
+export type IconName = 'home' | 'map' | 'heart' | 'tag' | 'star' | 'chart' | 'menu' | 'people' | 'person' | 'bell' | 'search' | 'back' | 'seedling' | 'compass' | 'community' | 'crown';
 
 /** The app's own line icons for its frame: the bottom tab bar, the header buttons, the back button and search. */
 export function TabIcon({ name, color, active, size = 24 }: { name: IconName; color: string; active: boolean; size?: number }) {
@@ -37,6 +37,11 @@ export function TabIcon({ name, color, active, size = 24 }: { name: IconName; co
         </>
       )}
       {name === 'back' && <Path d="M14.5 5 7.5 12l7 7" {...stroke} />}
+      {/* Levels (Tabler's shapes, drawn: they sit exactly in the middle of their circles on every phone) */}
+      {name === 'seedling' && <Path d="M12 10a6 6 0 0 0 -6 -6h-3v2a6 6 0 0 0 6 6h3M12 14a6 6 0 0 1 6 -6h3v1a6 6 0 0 1 -6 6h-3M12 20l0 -10" {...stroke} />}
+      {name === 'compass' && <Path d="M8 16l2 -6l6 -2l-2 6l-6 2M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0M12 3l0 2M12 19l0 2M3 12l2 0M19 12l2 0" {...stroke} />}
+      {name === 'community' && <Path d="M8 9l5 5v7h-5v-4m0 4h-5v-7l5 -5m1 1v-6a1 1 0 0 1 1 -1h10a1 1 0 0 1 1 1v17h-8M13 7l0 .01M17 7l0 .01M17 11l0 .01M17 15l0 .01" {...stroke} />}
+      {name === 'crown' && <Path d="M12 6l4 6l5 -4l-2 10h-14l-2 -10l5 4z" {...stroke} />}
       {name === 'menu' && <Path d="M4 7h16M4 12h16M4 17h16" {...stroke} />}
       {name === 'bell' && (
         <>

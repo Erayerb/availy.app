@@ -157,7 +157,7 @@ def test_points_and_badges(client, conn, clock):
     second = checkin(client, second_user, kafe).json()
     assert not second["is_first"] and second["points_earned"] == 10
     stats = me(client, first_user)
-    # 60 for the check-in, 5 + 15 for its two badges (İlk Adım, Kâşif)
+    # 60 for the check-in, 5 + 15 for its two badges (İlk adım, Kâşif)
     assert stats["points"] == 80 and stats["checkins"] == 1 and stats["discoveries"] == 1
     earned = {b["id"] for b in stats["badges"] if b["earned"]}
     assert earned == {"first_step", "explorer"}
@@ -327,7 +327,7 @@ def test_levels_from_points_discoveries_and_places(client, conn, clock):
 
     token = user_token(client, "seviye@example.test")
     level = lambda: me(client, token)["level"]  # noqa: E731
-    assert (level()["name"], level()["next"]["name"]) == ("Yeni Gelen", "Kâşif")
+    assert (level()["name"], level()["next"]["name"]) == ("Yeni gelen", "Kâşif")
     # One discovery makes a Kâşif
     checkin(client, token, venue_id(conn, "Test Kafe A"))
     now = level()
@@ -342,19 +342,19 @@ def test_levels_from_points_discoveries_and_places(client, conn, clock):
                 "INSERT INTO checkins (venue_id, user_id, level, created_at) VALUES (%s, %s, 'low', %s)",
                 (venue_id(conn, name), uid, clock.now - timedelta(days=d + 1)),
             )
-    assert (level()["name"], level()["next"]["name"]) == ("Mahalleli", "Semt Elçisi")
+    assert (level()["name"], level()["next"]["name"]) == ("Mahalleli", "Semt elçisi")
 
 
 def test_badges_earn_points_once_and_the_full_profile_earns_more(client, conn, clock):
     token = user_token(client, "rozet@example.test")
     first = checkin(client, token, venue_id(conn, "Test Kafe A")).json()
-    # İlk Adım and Kâşif with the first check-in: 60 for the check-in, 5 + 15 for the badges
+    # İlk adım and Kâşif with the first check-in: 60 for the check-in, 5 + 15 for the badges
     assert sorted(b["id"] for b in first["new_badges"]) == ["explorer", "first_step"]
     stats = me(client, token)
     assert stats["points"] == 60 + 5 + 15 and stats["new_badges"] == []
     steps = {s["key"]: s["done"] for s in stats["profile"]}
     assert steps == {"photo": False, "email": False, "checkin": True, "friend": False, "review": False}
-    # Everything else done (written straight into the database here): Tam Profil, +20, celebrated once
+    # Everything else done (written straight into the database here): Tam profil, +20, celebrated once
     uid = conn.execute("SELECT id FROM users WHERE email = 'rozet@example.test'").fetchone()["id"]
     other = user_token(client, "arkadas@example.test")
     oid = conn.execute("SELECT id FROM users WHERE email = 'arkadas@example.test'").fetchone()["id"]
@@ -368,3 +368,12 @@ def test_badges_earn_points_once_and_the_full_profile_earns_more(client, conn, c
     assert [(b["id"], b["points"]) for b in full["new_badges"]] == [("profile", 20)]
     assert full["points"] == 100 and me(client, token)["new_badges"] == []
     assert other  # the friend's account
+
+
+def test_the_ranking_and_akis_show_the_level(client, conn, clock):
+    token = user_token(client, "kasif@example.test")
+    checkin(client, token, venue_id(conn, "Test Kafe A"))  # a discovery: Kâşif
+    headers = {"Authorization": f"Bearer {token}"}
+    rows = client.get("/v1/leaderboard", params={"period": "all", "scope": "friends"}, headers=headers).json()["rows"]
+    assert [(r["username"], r["level"]) for r in rows] == [("kasif", "explorer")]
+    assert client.get("/v1/feed?who=me", headers=headers).json()[0]["level"] == "explorer"

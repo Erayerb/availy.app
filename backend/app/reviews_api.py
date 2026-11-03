@@ -11,6 +11,7 @@ from app.auth_api import bearer_token, current_user
 from app.checkins_api import get_clock
 from app.checkin_social import SocialError, comment, delete_comment, like, social_for
 from app.db import get_conn
+from app.levels import level_ids
 from app.reviews import (
     MAX_BODY,
     ReviewError,
@@ -110,6 +111,7 @@ class FeedItem(BaseModel):
     comments: list[CheckinCommentOut] = []
     # Replies under the review, shown attached to it
     replies: list[CheckinCommentOut] = []
+    level: str | None = None  # the author's level id, for its icon next to the name
 
 
 def _fail(error: ReviewError) -> HTTPException:
@@ -186,8 +188,14 @@ def feed(
     items = friend_feed(conn, user, now, days, who)
     social = social_for(conn, user, [i["checkin_id"] for i in items if i["checkin_id"]])
     replies = replies_for(conn, user, [i["review_id"] for i in items if i["review_id"] and i["kind"] != "reply"])
+    levels = level_ids(conn, sorted({i["username"] for i in items if i["username"]}))
     return [
-        {**i, **social.get(i["checkin_id"], {}), "replies": replies.get(i["review_id"], []) if i["kind"] != "reply" else []}
+        {
+            **i,
+            **social.get(i["checkin_id"], {}),
+            "replies": replies.get(i["review_id"], []) if i["kind"] != "reply" else [],
+            "level": levels.get(i["username"]),
+        }
         for i in items
     ]
 

@@ -21,6 +21,7 @@ class RankRow(BaseModel):
     username: str | None
     points: int
     me: bool
+    level: str | None = None  # the level's id, for its icon next to the name
 
 
 class MyRank(BaseModel):

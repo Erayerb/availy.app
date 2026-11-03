@@ -30,7 +30,7 @@ type Props = {
   onShowOnMap: (venue: Venue) => void;
   onOpenUser: (username: string) => void;
   onRegister: () => void;
-  onEditProfile: () => void; // Daha fazla > İşletme Profili
+  onEditProfile: () => void; // Daha fazla > İşletme profili
 };
 
 /** v2 business panel: everything from customers' check-ins (no estimated occupancy). */
@@ -98,7 +98,7 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
-        <Text style={styles.pageTitle}>İşletme Paneli</Text>
+        <Text style={styles.pageTitle}>İşletme paneli</Text>
         <HeaderButtons />
       </View>
 
@@ -113,7 +113,7 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
               {categoryLabel(venue.category)} · {shortLocation(venue.neighborhood, venue.district)} · Haritada gör ›
             </Text>
           </Pressable>
-          {/* İşletme Profili: photo, name, hours, address, contact */}
+          {/* İşletme profili: photo, name, hours, address, contact */}
           <Pressable style={styles.editButton} onPress={onEditProfile} hitSlop={6} accessibilityLabel="Mekanı düzenle">
             <Text style={styles.editText}>
               <InlineIcon name="pencil" /> Düzenle
@@ -198,9 +198,9 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Son 7 gün</Text>
         <View style={styles.stats}>
-          <Stat value={stats?.week_checkins ?? 0} label="check-in" />
-          <Stat value={stats?.week_people ?? 0} label="kişi" />
-          <Stat value={stats?.week_returning ?? 0} label="tekrar gelen" />
+          <Stat value={stats?.week_checkins ?? 0} label="Check-in" />
+          <Stat value={stats?.week_people ?? 0} label="Kişi" />
+          <Stat value={stats?.week_returning ?? 0} label="Tekrar gelen" />
         </View>
         <Text style={styles.muted}>Toplam {stats?.total_checkins ?? 0} check-in.</Text>
       </View>

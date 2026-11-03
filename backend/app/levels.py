@@ -1,32 +1,34 @@
-"""v2 levels: Yeni Gelen → Kâşif → Mahalleli → Semt Elçisi, from points, discoveries and where the person
+"""v2 levels: Yeni gelen → Kâşif → Mahalleli → Semt elçisi, from points, discoveries and where the person
 goes (never stored: worked out from check-ins and points, so they cannot be lost or drift)."""
 import psycopg
 
 REGULAR_VISITS = 3  # check-ins at one venue that make it "my place" for Mahalleli
 # (id, name, points, discoveries, regular venues, venues in one district); Kâşif: points OR a discovery
 LEVELS = [
-    ("newcomer", "Yeni Gelen", 0, 0, 0, 0),
+    ("newcomer", "Yeni gelen", 0, 0, 0, 0),
     ("explorer", "Kâşif", 100, 1, 0, 0),
     ("local", "Mahalleli", 500, 0, 3, 0),
-    ("ambassador", "Semt Elçisi", 2000, 0, 0, 10),
+    ("ambassador", "Semt elçisi", 2000, 0, 0, 10),
 ]
 
 
+FACTS = """
+    SELECT
+        u.username,
+        (SELECT COALESCE(sum(amount), 0) FROM points WHERE user_id = u.id)::int AS points,
+        (SELECT count(*) FROM checkins WHERE user_id = u.id AND is_first)::int AS discoveries,
+        (SELECT count(*) FROM (
+            SELECT venue_id FROM checkins WHERE user_id = u.id AND NOT is_demo
+            GROUP BY venue_id HAVING count(*) >= %(regular)s) r)::int AS regular_venues,
+        (SELECT COALESCE(max(n), 0) FROM (
+            SELECT count(DISTINCT c.venue_id) AS n FROM checkins c JOIN venues v ON v.id = c.venue_id
+            WHERE c.user_id = u.id AND NOT c.is_demo AND v.district <> '' GROUP BY v.district) d)::int AS district_venues
+    FROM users u
+"""
+
+
 def _facts(conn: psycopg.Connection, user_id: int) -> dict:
-    return conn.execute(
-        """
-        SELECT
-            (SELECT COALESCE(sum(amount), 0) FROM points WHERE user_id = %(id)s)::int AS points,
-            (SELECT count(*) FROM checkins WHERE user_id = %(id)s AND is_first)::int AS discoveries,
-            (SELECT count(*) FROM (
-                SELECT venue_id FROM checkins WHERE user_id = %(id)s AND NOT is_demo
-                GROUP BY venue_id HAVING count(*) >= %(regular)s) r)::int AS regular_venues,
-            (SELECT COALESCE(max(n), 0) FROM (
-                SELECT count(DISTINCT c.venue_id) AS n FROM checkins c JOIN venues v ON v.id = c.venue_id
-                WHERE c.user_id = %(id)s AND NOT c.is_demo AND v.district <> '' GROUP BY v.district) d)::int AS district_venues
-        """,
-        {"id": user_id, "regular": REGULAR_VISITS},
-    ).fetchone()
+    return conn.execute(f"{FACTS} WHERE u.id = %(id)s", {"id": user_id, "regular": REGULAR_VISITS}).fetchone()
 
 
 def _reached(level: tuple, f: dict) -> bool:
@@ -58,14 +60,29 @@ def _missing(level: tuple, f: dict) -> tuple[list[str], float]:
     return parts, sum(shares) / len(shares)
 
 
-def user_level(conn: psycopg.Connection, user_id: int) -> dict:
-    """{"id", "name", "rank" (0–3), "next": {"name", "missing": [...], "progress"} or None at the top}."""
-    f = _facts(conn, user_id)
+def _rank(f: dict) -> int:
     rank = 0
     for i, level in enumerate(LEVELS[1:], start=1):
         if not _reached(level, f):
             break
         rank = i
+    return rank
+
+
+def level_ids(conn: psycopg.Connection, usernames: list[str]) -> dict[str, str]:
+    """Username → level id, for lists of people (the ranking, Akış)."""
+    if not usernames:
+        return {}
+    rows = conn.execute(
+        f"{FACTS} WHERE u.username = ANY(%(names)s)", {"names": usernames, "regular": REGULAR_VISITS}
+    ).fetchall()
+    return {f["username"]: LEVELS[_rank(f)][0] for f in rows}
+
+
+def user_level(conn: psycopg.Connection, user_id: int) -> dict:
+    """{"id", "name", "rank" (0–3), "next": {"name", "missing": [...], "progress"} or None at the top}."""
+    f = _facts(conn, user_id)
+    rank = _rank(f)
     current = LEVELS[rank]
     upcoming = None
     if rank + 1 < len(LEVELS):

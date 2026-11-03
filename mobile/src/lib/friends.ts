@@ -58,7 +58,7 @@ export const friendsApi = {
   // "👥 @ayse burada": friends who checked in at the venue in the last 90 minutes
   here: (token: string, venueId: number) =>
     send<{ username: string; at: string }[]>('GET', `/v1/venues/${venueId}/friends-here`, undefined, token),
-  // "👑 müdavim": the most check-ins here in the last 30 days (2+), among me, my friends and
+  // "müdavim": the most check-ins here in the last 30 days (3+), among me, my friends and
   // people who show it to everyone
   regular: (token: string, venueId: number) =>
     send<{ username: string; visits: number; me: boolean; friend: boolean } | null>(

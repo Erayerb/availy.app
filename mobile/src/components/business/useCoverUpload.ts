@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { Venue } from '../../lib/api';
 import { venueApi } from '../../lib/venueApi';
 
-/** Pick a photo from the phone and save it as the venue's cover (İşletme Profili and the panel's card). */
+/** Pick a photo from the phone and save it as the venue's cover (İşletme profili and the panel's card). */
 export function useCoverUpload(venue: Venue, token: string, onSaved: () => void) {
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);

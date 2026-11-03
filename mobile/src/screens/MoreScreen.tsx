@@ -21,10 +21,11 @@ const CUSTOMER_ITEMS: Item[] = [
   { screen: 'appearance', label: 'Görünüm', hint: 'Açık ya da koyu tema, renk körlüğü dostu mod' },
   { screen: 'privacy', label: 'Gizlilik ayarları', hint: "Check-in'lerimi kim görür, sıralama, aranabilirlik, engellenenler" },
   { screen: 'permissions', label: 'Konum ve izinler', hint: 'Konum, kamera ve bildirim izinleri ne için kullanılıyor' },
+  { screen: 'counter', label: 'Çalışan girişi', hint: 'Çalıştığın mekanın kasası: kupon ve damga' },
 ];
 
 const BUSINESS_ITEMS: Item[] = [
-  { screen: 'profile', label: 'İşletme Profili', hint: 'Kapak fotoğrafı, ad, saatler, özellikler, adres ve konum, iletişim' },
+  { screen: 'profile', label: 'İşletme profili', hint: 'Kapak fotoğrafı, ad, saatler, özellikler, adres ve konum, iletişim' },
   { screen: 'verification', label: 'İşletme doğrulama', hint: 'Mekan sahipliğini kanıtla', badge: 'Yakında' },
   { screen: 'subscription', label: 'Abonelik', hint: 'Kampanya başı ödeme ya da aylık paket' },
   { screen: 'settings', label: 'Ayarlar', hint: 'Hesap, ölü saat bildirimi, otomatik kampanya' },
@@ -74,7 +75,7 @@ export function MoreScreen({ user, onSelect, onLogin, onLogout }: Props) {
           : `Misafir olarak geziyorsun${user ? ` (${user.name})` : ''}`}
       </Text>
 
-      {/* Personal accounts: until the profile is complete (Tam Profil badge) */}
+      {/* Personal accounts: until the profile is complete (Tam profil badge) */}
       {user && !user.isGuest && !isBusiness(user) && user.profile && <ProfileCompletion steps={user.profile} onOpen={onSelect} />}
 
       <View style={styles.card}>
@@ -97,11 +98,11 @@ export function MoreScreen({ user, onSelect, onLogin, onLogout }: Props) {
 
       {user && !user.isGuest ? (
         <Pressable onPress={onLogout} style={styles.logout}>
-          <Text style={styles.logoutText}>Çıkış Yap</Text>
+          <Text style={styles.logoutText}>Çıkış yap</Text>
         </Pressable>
       ) : (
         <Pressable onPress={onLogin} style={styles.login}>
-          <Text style={styles.loginText}>Kayıt Ol / Giriş Yap</Text>
+          <Text style={styles.loginText}>Kayıt ol / Giriş yap</Text>
         </Pressable>
       )}
     </ScrollView>

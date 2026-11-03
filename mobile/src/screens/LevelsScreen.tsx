@@ -1,8 +1,8 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { BackButton } from '../components/BackButton';
-import { Icon, InlineIcon } from '../components/Icon';
-import { LEVEL_ICONS } from '../components/LevelCard';
+import { InlineIcon } from '../components/Icon';
+import { LevelIcon } from '../components/LevelCard';
 import { Text } from '../components/Text';
 import { LEVELS } from '../lib/levels';
 import type { Level } from '../lib/safety';
@@ -35,7 +35,7 @@ export function LevelsScreen({ current, next, onBack }: { current: Level['id'] |
           <View key={level.id} style={[styles.card, mine && styles.cardMine]}>
             <View style={styles.head}>
               <View style={[styles.badge, reached && styles.badgeOn]}>
-                <Icon name={LEVEL_ICONS[level.id]} size={20} color={reached ? colors.onPrimary : colors.textMuted} />
+                <LevelIcon id={level.id} size={22} color={reached ? colors.onPrimary : colors.textMuted} />
               </View>
               <View style={styles.flex}>
                 <Text style={styles.name}>{level.name}</Text>
@@ -62,8 +62,8 @@ const styles = themed(() => StyleSheet.create({
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },
-  card: { padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 6 },
-  cardMine: { borderColor: colors.primary, borderWidth: 2 },
+  card: { padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.border, gap: 6 },
+  cardMine: { borderColor: colors.primary },
   head: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   badge: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
   badgeOn: { backgroundColor: colors.primary },

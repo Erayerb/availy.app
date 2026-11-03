@@ -11,7 +11,7 @@ import { UNEXPLORED_STYLE } from '../lib/occupancy';
 import { LABEL_LINE_HEIGHT, LABEL_MAX_WIDTH as LABEL_WIDTH, labelPriority, visibleLabels } from '../lib/labels';
 import { colors, getScheme, themed } from '../theme';
 import { clusterSize, DOT_SIZE, LABEL_MIN_ZOOM, SELECTED_DOT_SIZE, zoomForDelta, type VenueMapProps } from './VenueMap.types';
-import { InlineIcon } from './Icon';
+import { Icon } from './Icon';
 
 // Invisible tap area around each dot: a little larger than the dot, but small
 // enough that neighbouring dots' areas don't cover each other
@@ -35,7 +35,7 @@ const VenueMarker = memo(function VenueMarker({
   own?: boolean; // the business's own venue
   onSelect: (id: number) => void;
 }) {
-  const size = selected || own ? SELECTED_DOT_SIZE : DOT_SIZE;
+  const size = selected ? SELECTED_DOT_SIZE : DOT_SIZE;
   const { crowdLook } = useSettings();
   const { color, glyph } = crowdLook(venue);
   return (
@@ -51,25 +51,33 @@ const VenueMarker = memo(function VenueMarker({
           flattened away by React Native, shrinking the marker's touch area */}
       <View style={label ? styles.labelled : undefined} collapsable={false}>
         <View style={styles.touchArea} collapsable={false}>
-          <View
-            style={[
-              styles.marker,
-              {
-                width: size,
-                height: size,
-                borderRadius: size / 2,
-                backgroundColor: color,
-              },
-              own && styles.markerOwn,
-              selected && styles.markerSelected,
-            ]}
-          >
-            {glyph && <Text style={[styles.glyph, { fontSize: size * 0.55 }]}>{glyph === '✨' ? <InlineIcon name="sparkles" /> : glyph}</Text>}
-          </View>
+          {own ? (
+            // The business's own venue: a little shop sign; the small dot still tells how full it is
+            <View style={[styles.ownMarker, selected && styles.markerSelected]} collapsable={false}>
+              <Icon name="building-store" size={16} color={colors.white} />
+              <View style={[styles.ownDot, { backgroundColor: color }]} />
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.marker,
+                {
+                  width: size,
+                  height: size,
+                  borderRadius: size / 2,
+                  backgroundColor: color,
+                },
+                selected && styles.markerSelected,
+              ]}
+            >
+              {glyph && <Text style={[styles.glyph, { fontSize: size * 0.55 }]}>{glyph}</Text>}
+            </View>
+          )}
         </View>
         {(label || own) && (
-          <Text style={[styles.label, { color: own ? colors.primary : color }]} numberOfLines={2}>
-            {own ? `Mekanın · ${venue.name}` : venue.name}
+          // Dark purple is hard to read on the dark map: undiscovered names use the theme's discovery colour
+          <Text style={[styles.label, { color: own ? colors.text : color === UNEXPLORED_STYLE.color ? colors.discovery : color }]} numberOfLines={2}>
+            {venue.name}
           </Text>
         )}
       </View>
@@ -297,7 +305,18 @@ const styles = themed(() => StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
   },
   markerSelected: { borderColor: colors.text, borderWidth: 4 },
-  markerOwn: { borderColor: colors.primary, borderWidth: 5 },
+  // Small enough that the corner dot stays inside the marker's area (a marker cuts off what is outside it)
+  ownMarker: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ownDot: { position: 'absolute', top: -4, right: -4, width: 13, height: 13, borderRadius: 7, borderWidth: 2, borderColor: colors.white },
   labelled: { width: TOUCH_SIZE + LABEL_WIDTH, flexDirection: 'row', alignItems: 'center' },
   label: {
     width: LABEL_WIDTH,

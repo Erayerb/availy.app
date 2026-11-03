@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Text, TextInput } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 import QRCode from 'react-native-qrcode-svg';
 
 import { Avatar } from '../components/Avatar';
+import { LevelMark } from '../components/LevelCard';
 import { ContactsFinder } from '../components/ContactsFinder';
 import { HeaderButtons } from '../components/HeaderButtons';
 import { Icon, InlineIcon, type IconName } from '../components/Icon';
@@ -71,6 +72,7 @@ export function SocialScreen({
   // Mine: the last 7 days ("Daha eski" up to 30); friends: 3 (up to 7)
   const recentDays = (t: SocialTab) => (t === 'feed' ? 7 : 3);
   const [days, setDays] = useState(recentDays(initialTab));
+  const feedRequest = useRef(0);
   const setTab = (next: SocialTab) => {
     if (next === tab) return;
     setTabState(next);
@@ -86,12 +88,19 @@ export function SocialScreen({
   const reload = useCallback(() => {
     if (!token) return;
     friendsApi.list(token).then(setLists).catch(() => {});
-    if (tab === 'feed' || tab === 'friendsFeed')
+    if (tab === 'feed' || tab === 'friendsFeed') {
+      // A slow answer for the tab just left must not land in this one
+      const request = ++feedRequest.current;
       reviewsApi
         .feed(token, days, mine ? 'me' : 'friends')
-        .then(setFeed)
+        .then((items) => {
+          if (request === feedRequest.current) setFeed(items);
+        })
         .catch(() => {})
-        .finally(() => setFeedLoading(false));
+        .finally(() => {
+          if (request === feedRequest.current) setFeedLoading(false);
+        });
+    }
   }, [token, days, tab]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(reload, [reload]);
 
@@ -250,12 +259,6 @@ export function SocialScreen({
                   onPress: () => setTab('friends'),
                 },
                 {
-                  icon: 'compass' as IconName,
-                  title: 'Mekan keşfet',
-                  text: 'Haritada yakınındaki mekanlara bak; bir mekana ilk check-in yapan orayı keşfeder.',
-                  onPress: onOpenMap,
-                },
-                {
                   icon: 'map-pin' as IconName,
                   title: "Check-in yap",
                   text: 'Bulunduğun mekanın doluluğunu bildir, puan kazan.',
@@ -349,7 +352,8 @@ export function SocialScreen({
             </View>
           ))}
           {/* Older posts on request (friends' bare check-ins leave after 2 days anyway) */}
-          {days === recentDays(tab) && feed.length > 0 && (
+          {/* Also with nothing recent: older posts may still be there */}
+          {days === recentDays(tab) && !feedLoading && (
             <Pressable onPress={() => setDays(mine ? 30 : 7)} style={styles.older}>
               <Text style={styles.olderText}>Daha eski gönderileri göster</Text>
             </Pressable>
@@ -640,7 +644,7 @@ function Post({
           </View>
         ) : (
           <Pressable onPress={() => item.username && onOpenUser(item.username)} hitSlop={6} accessibilityLabel={`${author(item.username)} profili`}>
-            <Avatar username={item.username} size={30} />
+            <Avatar username={item.username} size={30} framed={item.level === 'ambassador'} />
           </Pressable>
         )}
         {!last && <View style={styles.railLine} />}
@@ -649,7 +653,8 @@ function Post({
         <Text style={styles.muted}>
           {!mine && (
             <Text style={styles.bold} onPress={() => item.username && onOpenUser(item.username)}>
-              {author(item.username)}{' '}
+              {author(item.username)}
+              <LevelMark level={item.level} />{' '}
             </Text>
           )}
           {what} · {time}

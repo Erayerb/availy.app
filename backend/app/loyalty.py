@@ -5,7 +5,7 @@ customer code from their QR and marks a full card's reward used. Customers who c
 venue get a notification when it starts a program (app/social.py).
 """
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 
 import psycopg
 
@@ -140,12 +140,30 @@ def remove_program(conn: psycopg.Connection, user: dict) -> None:
     conn.execute("DELETE FROM loyalty_programs WHERE venue_id = %s", (_business_venue(user),))
 
 
-def _member_by_code(conn: psycopg.Connection, venue_id: int, code: str) -> dict:
+def _counter_venue(conn: psycopg.Connection, user: dict) -> int:
+    """The counter: the venue's business, or its staff (Çalışan hesapları)."""
+    from app.staff import counter_venue
+
+    venue_id = counter_venue(conn, user)
+    if venue_id is None:
+        raise LoyaltyError("Damga ve ödül yalnızca mekanın işletmesi ve çalışanları içindir.", 403)
+    return venue_id
+
+
+def _log(conn: psycopg.Connection, venue_id: int, user: dict, kind: str) -> None:
+    from app.staff import log_counter
+
+    log_counter(conn, venue_id, user, kind, datetime.now(timezone.utc))
+
+
+def _member_by_code(conn: psycopg.Connection, venue_id: int, code: str, worker: dict) -> dict:
     customer = conn.execute(
         "SELECT id FROM users WHERE customer_code = %s", ("".join(code.split()).upper(),)
     ).fetchone()
     if customer is None:
         raise LoyaltyError("Bu müşteri kodu bulunamadı.", 404)
+    if customer["id"] == worker["id"]:
+        raise LoyaltyError("Kendi kartına işlem yapamazsın; başka bir çalışan yapmalı.", 403)
     member = conn.execute(
         "SELECT stamps, rewards FROM loyalty_members WHERE venue_id = %s AND user_id = %s FOR UPDATE",
         (venue_id, customer["id"]),
@@ -156,13 +174,13 @@ def _member_by_code(conn: psycopg.Connection, venue_id: int, code: str) -> dict:
 
 
 def give_stamp(conn: psycopg.Connection, user: dict, code: str) -> str:
-    venue_id = _business_venue(user)
+    venue_id = _counter_venue(conn, user)
     program = conn.execute(
         "SELECT kind, stamps_required, reward FROM loyalty_programs WHERE venue_id = %s AND active", (venue_id,)
     ).fetchone()
     if program is None or program["kind"] != "stamps":
         raise LoyaltyError("Önce aktif bir damga kartı programı oluştur.", 409)
-    member = _member_by_code(conn, venue_id, code)
+    member = _member_by_code(conn, venue_id, code, user)
     stamps = member["stamps"] + 1
     full = stamps >= program["stamps_required"]
     conn.execute(
@@ -172,18 +190,20 @@ def give_stamp(conn: psycopg.Connection, user: dict, code: str) -> str:
         """,
         (0 if full else stamps, 1 if full else 0, venue_id, member["user_id"]),
     )
+    _log(conn, venue_id, user, "stamp")
     if full:
         return f"Kart doldu! Müşteri ödül kazandı: {program['reward']}."
     return f"Damga verildi ({stamps}/{program['stamps_required']})."
 
 
 def use_reward(conn: psycopg.Connection, user: dict, code: str) -> str:
-    venue_id = _business_venue(user)
-    member = _member_by_code(conn, venue_id, code)
+    venue_id = _counter_venue(conn, user)
+    member = _member_by_code(conn, venue_id, code, user)
     if member["rewards"] <= 0:
         raise LoyaltyError("Kullanılacak ödül yok.", 409)
     conn.execute(
         "UPDATE loyalty_members SET rewards = rewards - 1 WHERE venue_id = %s AND user_id = %s",
         (venue_id, member["user_id"]),
     )
+    _log(conn, venue_id, user, "reward")
     return "Ödül kullanıldı."

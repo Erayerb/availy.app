@@ -25,7 +25,7 @@ def test_newer_reports_weigh_more():
     assert abs(age_weight(NOW - timedelta(minutes=30), NOW) - 0.65) < 1e-9
     assert abs(age_weight(NOW - timedelta(minutes=60), NOW) - 0.35) < 1e-9
     assert abs(age_weight(NOW - timedelta(minutes=45), NOW) - 0.50) < 1e-9
-    assert abs(age_weight(NOW - timedelta(minutes=90), NOW) - 0.10) < 1e-9
+    assert abs(age_weight(NOW - timedelta(minutes=90), NOW) - 0.15) < 1e-9
     # Kalabalık 60 min ago vs Sakin just now: the fresh report wins
     reports = [report(1, "high", 60), report(2, "low", 0)]
     crowd = crowd_from_checkins(reports, NOW, NOW)
@@ -64,10 +64,11 @@ def test_queue_and_seats_answers():
 
 
 def test_window_is_ninety_minutes():
-    inside = report(1, "high", 89)
+    # Two people inside (one alone would count for 60 minutes only), one outside
+    inside = [report(1, "high", 89), report(3, "high", 80)]
     outside = report(2, "low", 91)
-    crowd = crowd_from_checkins([inside, outside], inside.created_at, NOW)
-    assert crowd.reporters == 1 and crowd.level == "high"
+    crowd = crowd_from_checkins([*inside, outside], inside[1].created_at, NOW)
+    assert crowd.reporters == 2 and crowd.level == "high"
 
 
 def test_venues_endpoint_includes_the_crowd(client, conn):
@@ -103,3 +104,17 @@ def test_follow_up_answers_move_the_score():
     # Orta "seats free" + Kalabalık "no queue": Orta
     easy = [Report(1, "medium", None, True, NOW), Report(2, "high", False, None, NOW)]
     assert crowd_from_checkins(easy, NOW, NOW).level == "medium"
+
+
+def test_one_report_alone_lasts_60_minutes_two_people_90():
+    def report(user, minutes, level="high"):
+        return Report(user, level, None, None, NOW - timedelta(minutes=minutes))
+
+    def crowd(*reports):
+        return crowd_from_checkins(list(reports), max(r.created_at for r in reports), NOW)
+
+    assert crowd(report(1, 55)).state == "live"
+    assert crowd(report(1, 65)).state == "stale"
+    assert crowd(report(1, 80), report(2, 70)).level == "high"
+    # A new report outweighs the old one
+    assert crowd(report(1, 80), report(2, 0, "low")).level == "low"

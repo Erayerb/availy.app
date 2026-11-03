@@ -42,8 +42,8 @@ export function CustomersScreen({ venueId, user, onOpenUser, onRegister, onOpenL
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Son 30 gün</Text>
         <View style={styles.stats}>
-          <Stat value={stats?.month_people ?? 0} label="farklı kişi" />
-          <Stat value={stats?.regulars ?? 0} label="müdavim (3+ kez)" />
+          <Stat value={stats?.month_people ?? 0} label="Farklı kişi" />
+          <Stat value={stats?.regulars ?? 0} label="Müdavim (3+ kez)" />
         </View>
         {stats && stats.top_visits.length > 0 ? (
           <Text style={styles.text}>

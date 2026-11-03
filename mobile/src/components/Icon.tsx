@@ -1,33 +1,34 @@
-import createIconSet from '@expo/vector-icons/createIconSet';
 import { Text } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
-import filledGlyphs from '../lib/tablerFilledGlyphs.json';
+import filledPaths from '../lib/tablerFilledPaths.json';
 import glyphs from '../lib/tablerGlyphs.json';
+import outlinePaths from '../lib/tablerPaths.json';
 
 /**
  * One icon set for the whole app: Tabler (MIT, tabler.io/icons), outline, plus filled versions for a
- * few "on" states (♡ → heart filled). The same on every phone, unlike emoji. The fonts hold only the
- * icons the app uses: after using a new name, run `python3 scripts/build-icons.py` (tsc reports a name
- * that is not in the font yet).
+ * few "on" states (♡ → heart filled). The same on every phone, unlike emoji. Only the icons the app uses
+ * are in: after using a new name, run `python3 scripts/build-icons.py` (tsc reports a name not in yet).
  */
-// The fonts' names (scripts/build-icons.py); a new name makes phones load the font afresh
+// The font's name (scripts/build-icons.py), for icons inside a line of text; a new name makes phones load it afresh
 export const ICON_FONT = 'availy-icons';
-export const ICON_FONT_FILLED = 'availy-icons-filled';
-
-const Outline = createIconSet(glyphs, ICON_FONT, require('../../assets/fonts/tabler-icons.ttf'));
-const Filled = createIconSet(filledGlyphs, ICON_FONT_FILLED, require('../../assets/fonts/tabler-icons-filled.ttf'));
 
 export type IconName = keyof typeof glyphs;
 
-const hasFilled = (name: IconName): name is IconName & keyof typeof filledGlyphs => name in filledGlyphs;
+const OUTLINE: Record<string, string> = outlinePaths;
+const FILLED: Record<string, string> = filledPaths;
 
+/** A stand-alone icon, drawn: exactly in the middle of its box on every phone. */
 export function Icon({ name, size = 22, color, filled = false }: { name: IconName; size?: number; color: string; filled?: boolean }) {
-  // A line exactly as tall as the icon, so it sits in the middle of round buttons and dots
-  const style = { lineHeight: size, includeFontPadding: false, textAlign: 'center' as const };
-  return filled && hasFilled(name) ? (
-    <Filled name={name} size={size} color={color} style={style} />
-  ) : (
-    <Outline name={name} size={size} color={color} style={style} />
+  const solid = filled && FILLED[name];
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      {solid ? (
+        <Path d={FILLED[name]} fill={color} />
+      ) : (
+        <Path d={OUTLINE[name]} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      )}
+    </Svg>
   );
 }
 

@@ -97,12 +97,12 @@ export function ProfileScreen({
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
         <BackButton onPress={onBack} />
-        <Text style={styles.title}>{business ? 'İşletme Profili' : 'Profil ayarları'}</Text>
+        <Text style={styles.title}>{business ? 'İşletme profili' : 'Profil ayarları'}</Text>
       </View>
 
       <View style={styles.card}>
         {!business && user.username && user.token ? (
-          <ProfilePhoto username={user.username} token={user.token} />
+          <ProfilePhoto username={user.username} token={user.token} framed={user.level?.id === 'ambassador'} />
         ) : null}
         {business && venue && user.token ? (
           // The venue's name with its cover photo beside it (a tap changes the photo)
@@ -216,7 +216,7 @@ function MyData({ token }: { token: string | null | undefined }) {
   );
 }
 
-/** User name, e-mail, password, freeze and delete: Profil ayarları (customers) or Ayarlar (businesses); Çıkış Yap is in Daha fazla. */
+/** User name, e-mail, password, freeze and delete: Profil ayarları (customers) or Ayarlar (businesses); Çıkış yap is in Daha fazla. */
 export function AccountSettings({
   user,
   onChangeUsername,
