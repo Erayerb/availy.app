@@ -8,7 +8,6 @@ import { venueApi } from '../../lib/venueApi';
 import { colors } from '../../theme';
 import { panel } from './panelStyles';
 import { AddressSection } from './AddressSection';
-import { StaffSection } from './StaffSection';
 import { VenueEditSection } from './VenueEditSection';
 
 type Props = { venue: Venue; token: string; onSaved: () => void };
@@ -34,7 +33,6 @@ export function ProfileEditor({ venue, token, onSaved }: Props) {
   return (
     <>
       <VenueEditSection key={venue.id} venue={venue} token={token} onSaved={onSaved} />
-      <StaffSection venue={venue} token={token} />
       <AddressSection key={`${venue.lat},${venue.lon}`} venue={venue} token={token} onSaved={onSaved} />
       <View style={panel.card}>
         <Text style={panel.sectionTitle}>İletişim</Text>

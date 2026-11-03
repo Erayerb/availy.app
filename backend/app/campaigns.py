@@ -194,12 +194,8 @@ def normalize_code(code: str) -> str:
 
 
 def redeem_coupon(conn: psycopg.Connection, user: dict, raw_code: str, now: datetime) -> dict:
-    """The business or its staff marks a customer's coupon used at the counter."""
-    from app.staff import counter_venue, log_counter
-
-    venue_id = counter_venue(conn, user)
-    if venue_id is None:
-        raise CampaignError("Kuponu yalnızca mekanın işletmesi ve çalışanları kullandırır.", 403)
+    """The business marks a customer's coupon used at the counter."""
+    venue_id = _business_venue(user)
     code = normalize_code(raw_code)
     coupon = conn.execute(COUPON_SELECT + " WHERE k.code = %s FOR UPDATE OF k", (code,)).fetchone()
     if coupon is None:
@@ -211,11 +207,7 @@ def redeem_coupon(conn: psycopg.Connection, user: dict, raw_code: str, now: date
     # The customer's app says "Süresi doldu" then too
     if coupon["ends_at"] <= now:
         raise CampaignError("Bu kuponun kampanyası bitti.", 409)
-    owner = conn.execute("SELECT user_id FROM coupons WHERE code = %s", (code,)).fetchone()
-    if owner["user_id"] == user["id"]:
-        raise CampaignError("Kendi kuponunu kullandıramazsın; başka bir çalışan yapmalı.", 403)
     conn.execute("UPDATE coupons SET redeemed_at = %s WHERE code = %s", (now, code))
-    log_counter(conn, venue_id, user, "coupon", now)
     return {**coupon, "redeemed_at": now}
 
 

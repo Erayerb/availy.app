@@ -103,11 +103,6 @@ def create_checkin(
     # A business could make its own venue look empty: occupancy comes from customers only
     if user.get("role") == "business":
         raise CheckinError("İşletme hesapları check-in yapamaz.", 403)
-    from app.staff import staff_venue
-
-    # The same for its staff at their workplace
-    if staff_venue(conn, user["id"]) == venue_id:
-        raise CheckinError("Çalıştığın mekanda check-in yapamazsın: doluluk müşterilerden gelir.", 403)
     problem = validate_report(level, queue, seats)
     if problem:
         raise CheckinError(problem)

@@ -21,7 +21,6 @@ const CUSTOMER_ITEMS: Item[] = [
   { screen: 'appearance', label: 'Görünüm', hint: 'Açık ya da koyu tema, renk körlüğü dostu mod' },
   { screen: 'privacy', label: 'Gizlilik ayarları', hint: "Check-in'lerimi kim görür, sıralama, aranabilirlik, engellenenler" },
   { screen: 'permissions', label: 'Konum ve izinler', hint: 'Konum, kamera ve bildirim izinleri ne için kullanılıyor' },
-  { screen: 'counter', label: 'Çalışan girişi', hint: 'Çalıştığın mekanın kasası: kupon ve damga' },
 ];
 
 const BUSINESS_ITEMS: Item[] = [

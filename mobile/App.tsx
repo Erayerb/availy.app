@@ -31,7 +31,6 @@ import { PrivacyScreen } from './src/screens/PrivacyScreen';
 import { LegalScreen } from './src/screens/LegalScreen';
 import { UserProfileScreen } from './src/screens/UserProfileScreen';
 import { LevelsScreen } from './src/screens/LevelsScreen';
-import { CounterScreen } from './src/screens/CounterScreen';
 import type { Level } from './src/lib/safety';
 import { NotificationsScreen } from './src/screens/NotificationsScreen';
 import { NotificationsProvider } from './src/context/NotificationsContext';
@@ -601,7 +600,6 @@ function Main() {
             />
           )}
           {screen === 'legal' && <LegalScreen initial="terms" onBack={goBack} />}
-          {screen === 'counter' && auth.user?.token && <CounterScreen token={auth.user.token} onBack={goBack} />}
           {screen === 'levels' && <LevelsScreen current={levelsFor?.id ?? null} next={levelsFor?.next} onBack={goBack} />}
           {screen === 'admin' && auth.user?.token && <AdminScreen token={auth.user.token} onBack={goBack} onOpenVenue={openDetails} />}
           {screen === 'venueList' && openedList && auth.user?.token && (

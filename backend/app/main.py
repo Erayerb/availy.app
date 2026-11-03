@@ -22,7 +22,6 @@ from app.groups_api import router as groups_router
 from app.lists_api import router as lists_router
 from app.moderation_api import router as moderation_router
 from app.moderation_api import venue_router as venue_issues_router
-from app.staff_api import router as staff_router
 from app.user_sync_api import router as user_sync_router
 from app.waitlist_api import router as waitlist_router
 from app.loyalty_api import router as loyalty_router
@@ -76,7 +75,6 @@ app.include_router(lists_router)
 app.include_router(automation_router)
 app.include_router(moderation_router)
 app.include_router(venue_issues_router)
-app.include_router(staff_router)
 app.include_router(user_sync_router)
 app.include_router(waitlist_router)
 

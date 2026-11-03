@@ -56,14 +56,6 @@ def export_my_data(conn: psycopg.Connection, me: dict, now: datetime) -> dict:
         "checkin_comments": _rows(
             conn, "SELECT created_at, body FROM checkin_comments WHERE user_id = %(me)s ORDER BY created_at", uid
         ),
-        "workplace": _rows(
-            conn,
-            "SELECT s.joined_at, v.name AS venue FROM venue_staff s JOIN venues v ON v.id = s.venue_id WHERE s.user_id = %(me)s",
-            uid,
-        ),
-        "counter_actions": _rows(
-            conn, "SELECT a.created_at, a.kind, v.name AS venue FROM counter_actions a JOIN venues v ON v.id = a.venue_id WHERE a.user_id = %(me)s ORDER BY a.created_at", uid
-        ),
         "favorites": _rows(
             conn,
             "SELECT f.created_at, v.name AS venue FROM favorites f JOIN venues v ON v.id = f.venue_id WHERE f.user_id = %(me)s ORDER BY f.created_at",

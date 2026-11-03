@@ -21,7 +21,6 @@ export type Screen =
   | 'verification'
   | 'about'
   | 'levels'
-  | 'counter'
   | 'checkin'
   | 'addVenue'
   | 'permissions'
@@ -60,7 +59,7 @@ export const BUSINESS_TABS: Tab[] = [
 ];
 
 // Pages opened from the "Daha fazla" list keep that tab highlighted
-const MORE_PAGES: Screen[] = ['more', 'campaigns', 'appearance', 'permissions', 'location', 'privacy', 'legal', 'subscription', 'profile', 'settings', 'support', 'verification', 'about', 'counter'];
+const MORE_PAGES: Screen[] = ['more', 'campaigns', 'appearance', 'permissions', 'location', 'privacy', 'legal', 'subscription', 'profile', 'settings', 'support', 'verification', 'about'];
 
 type Props = {
   tabs: Tab[];
