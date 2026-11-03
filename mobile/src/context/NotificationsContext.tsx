@@ -73,7 +73,7 @@ export function NotificationsProvider({ token, accountKey, children }: Props) {
         const since = announced.current;
         if (since !== null && Platform.OS !== 'web') {
           for (const n of list.filter((n) => !since || isAfter(n.at, since))) {
-            if (wanted.current[n.kind] ?? true) Notifications.scheduleNotificationAsync({ content: { title: 'availy', body: phoneNotificationText(n) }, trigger: null }).catch(() => {});
+            if (wanted.current[n.kind] ?? true) Notifications.scheduleNotificationAsync({ content: { title: 'availy', body: phoneNotificationText(n), data: { list: true } }, trigger: null }).catch(() => {});
           }
         }
         if (newest && (!announced.current || isAfter(newest, announced.current))) announced.current = newest;

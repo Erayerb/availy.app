@@ -59,7 +59,13 @@ export function ReviewsSection({ venueId, user, reviews, onChange, reload, onReg
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>
-        Yorumlar{reviews.count > 0 ? ` · ${stars(Math.round(reviews.average ?? 0))} ${reviews.average} (${reviews.count})` : ''}
+        Yorumlar
+        {reviews.count > 0 && (
+          <>
+            {' · '}
+            <Text style={styles.stars}>{stars(Math.round(reviews.average ?? 0))}</Text> {reviews.average} ({reviews.count})
+          </>
+        )}
       </Text>
 
       {business ? (

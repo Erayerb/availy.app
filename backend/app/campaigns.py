@@ -189,6 +189,9 @@ def venue_coupons(conn: psycopg.Connection, user: dict) -> list[dict]:
     return conn.execute(COUPON_SELECT + " WHERE c.venue_id = %s ORDER BY k.claimed_at DESC LIMIT 200", (venue_id,)).fetchall()
 
 
+POINTS_PER_COUPON = 10
+
+
 def normalize_code(code: str) -> str:
     return "".join(code.split()).upper()
 
@@ -208,6 +211,15 @@ def redeem_coupon(conn: psycopg.Connection, user: dict, raw_code: str, now: date
     if coupon["ends_at"] <= now:
         raise CampaignError("Bu kuponun kampanyası bitti.", 409)
     conn.execute("UPDATE coupons SET redeemed_at = %s WHERE code = %s", (now, code))
+    # The customer's points: 10 per used coupon, guests half
+    conn.execute(
+        """
+        INSERT INTO points (user_id, amount, reason, created_at)
+        SELECT user_id, (%s * (CASE WHEN (SELECT is_guest FROM users u WHERE u.id = k.user_id) THEN 0.5 ELSE 1 END))::int, 'coupon', %s
+        FROM coupons k WHERE code = %s
+        """,
+        (POINTS_PER_COUPON, now, code),
+    )
     return {**coupon, "redeemed_at": now}
 
 

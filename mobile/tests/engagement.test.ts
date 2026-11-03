@@ -5,7 +5,6 @@ import { amenitiesFor } from '../src/lib/amenities.ts';
 import { toCampaign, toCoupon } from '../src/lib/campaignApi.ts';
 import { couponValid, normalizeCode, parseCouponQr, remainingCoupons } from '../src/lib/coupons.ts';
 import {
-  availyPoints,
   customerQrPayload,
   parseCustomerQr,
   describeProgram,
@@ -66,7 +65,6 @@ test('loyalty programs: validation, description, codes and points', () => {
   assert.equal(validateProgram({ ...membership, price: 0 }), 'Aylık ücreti yaz.');
   assert.equal(describeProgram(stampProgram), '5 damga = 1 kahve bedava');
   assert.equal(describeProgram(membership), '₺149/ay · her kahvede %15 indirim');
-  assert.equal(availyPoints(3, 2), 35);
 });
 
 const live = (level: string, ratio: number | null = null) => ({

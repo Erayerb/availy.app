@@ -53,6 +53,7 @@ BADGES = [
     ("regular", "Müdavim", "☕", "Aynı mekana 5 kez check-in yap", "max_same_venue", 5),
     ("night_owl", "Gece kuşu", "🦉", "22:00'den sonra check-in yap", "night", 1),
     ("helper", "Yardımsever", "🤝", "25 check-in yap", "checkins", 25),
+    ("weekly_winner", "Haftanın 1.si", "🏆", "Bir haftayı genel sıralamada 1. bitir", "weeks_won", 1),
 ]
 # Points for a new badge, once, by how hard it is (the easiest 5)
 BADGE_POINTS = 5
@@ -65,6 +66,7 @@ BADGE_POINTS_BY_ID = {
     "regular": 25,  # 5 times at one venue
     "great_explorer": 40,  # 5 discoveries
     "helper": 50,  # 25 check-ins
+    "weekly_winner": 50,  # first of a whole week
 }
 
 
@@ -275,6 +277,7 @@ def user_stats(conn: psycopg.Connection, user_id: int) -> dict:
             (SELECT count(*) FROM checkins WHERE user_id = %(id)s) AS checkins,
             (SELECT count(*) FROM checkins WHERE user_id = %(id)s AND is_first) AS discoveries,
             (SELECT count(DISTINCT venue_id) FROM checkins WHERE user_id = %(id)s) AS venues,
+            (SELECT count(*) FROM weekly_winners WHERE user_id = %(id)s) AS weeks_won,
             (SELECT COALESCE(max(n), 0) FROM (
                 SELECT count(*) AS n FROM checkins WHERE user_id = %(id)s GROUP BY venue_id) t) AS max_same_venue,
             (SELECT count(*) FROM checkins WHERE user_id = %(id)s
@@ -327,14 +330,20 @@ def profile_steps(conn: psycopg.Connection, user_id: int) -> list[dict]:
 
 def reward_badges(conn: psycopg.Connection, user_id: int, now: datetime) -> list[dict]:
     """Badges earned since the last look: each written down once with its points; returned so the app
-    celebrates them. The first time, what was earned before is written down without points."""
+    celebrates them. The first time, what was earned before is written down without points.
+    Guests have no badges: what they earned counts (and is celebrated) once they sign up."""
+    from app.social import last_week_winners
+
+    person = conn.execute("SELECT badges_synced_at IS NULL AS f, is_guest FROM users WHERE id = %s", (user_id,)).fetchone()
+    if person["is_guest"]:
+        if person["f"]:
+            conn.execute("UPDATE users SET badges_synced_at = %s WHERE id = %s", (now, user_id))
+        return []
+    last_week_winners(conn, now)
     stats = user_stats(conn, user_id)
     earned = [b for b in stats["badges"] if b["earned"]]
     known = {r["badge_id"] for r in conn.execute("SELECT badge_id FROM user_badges WHERE user_id = %s", (user_id,))}
-    person = conn.execute("SELECT badges_synced_at IS NULL AS f, is_guest FROM users WHERE id = %s", (user_id,)).fetchone()
     first_look = person["f"]
-    # Guests get half of everything, badges too
-    factor = GUEST_POINT_FACTOR if person["is_guest"] else 1
     new = []
     for badge in earned:
         if badge["id"] in known:
@@ -345,7 +354,7 @@ def reward_badges(conn: psycopg.Connection, user_id: int, now: datetime) -> list
         )
         if first_look:
             continue
-        points = int(BADGE_POINTS_BY_ID.get(badge["id"], BADGE_POINTS) * factor)
+        points = BADGE_POINTS_BY_ID.get(badge["id"], BADGE_POINTS)
         conn.execute(
             "INSERT INTO points (user_id, amount, reason, created_at) VALUES (%s, %s, 'badge', %s)", (user_id, points, now)
         )

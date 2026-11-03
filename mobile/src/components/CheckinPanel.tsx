@@ -178,6 +178,19 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
   };
 
   // Checked in here less than 90 minutes ago: the button stays, closed, with the time it opens above it
+  // Next to the review's own button
+  const shareButton = shared && (
+    <Pressable
+      style={styles.share}
+      onPress={async () => {
+        const note = await shareText(checkinShareMessage(venue.name, shared.label, shared.first, review?.body ?? words));
+        setShared({ ...shared, note });
+      }}
+    >
+      <Text style={styles.shareText}><InlineIcon name="speakerphone" /> Arkadaşlarına paylaş</Text>
+    </Pressable>
+  );
+
   if (coolingDown) {
     return (
       <View style={styles.card}>
@@ -195,13 +208,16 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
               </View>
             ))}
             {!isRegistered(user) ? (
-              <Text style={styles.muted}>
-                Burası hakkında yorum yazmak için{' '}
-                <Text style={styles.link} onPress={onRegister}>
-                  kayıt ol
+              <>
+                <Text style={styles.muted}>
+                  Burası hakkında yorum yazmak için{' '}
+                  <Text style={styles.link} onPress={onRegister}>
+                    kayıt ol
+                  </Text>
+                  .
                 </Text>
-                .
-              </Text>
+                <View style={styles.reviewActions}>{shareButton}</View>
+              </>
             ) : review && !editing ? (
               <View style={styles.words}>
                 <Text style={styles.quote}>
@@ -222,6 +238,7 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
                   <Pressable hitSlop={10} onPress={removeReview}>
                     <Text style={styles.deleteText}>Sil</Text>
                   </Pressable>
+                  {shareButton}
                 </View>
               </View>
             ) : (
@@ -253,18 +270,10 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
                   <Pressable style={[styles.saveWords, rating < 1 && styles.disabled]} onPress={saveReview} disabled={rating < 1}>
                     <Text style={styles.saveWordsText}>{editing ? 'Kaydet' : 'Paylaş'}</Text>
                   </Pressable>
+                  {!editing && shareButton}
                 </View>
               </View>
             )}
-            <Pressable
-              style={styles.share}
-              onPress={async () => {
-                const note = await shareText(checkinShareMessage(venue.name, shared.label, shared.first, review?.body ?? words));
-                setShared({ ...shared, note });
-              }}
-            >
-              <Text style={styles.shareText}><InlineIcon name="speakerphone" /> Arkadaşlarına paylaş</Text>
-            </Pressable>
             {shared.note && <Text style={styles.muted}>{shared.note}</Text>}
           </View>
         ) : (
@@ -281,6 +290,8 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
       </View>
     );
   }
+
+
 
   return (
     <View style={styles.card}>
@@ -401,12 +412,12 @@ const styles = themed(() => StyleSheet.create({
   starsRow: { flexDirection: 'row', gap: 6, justifyContent: 'center' },
   star: { fontSize: 28, color: colors.textMuted },
   starOn: { color: '#E0A800' },
-  reviewActions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 16 },
+  reviewActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: 12 },
   deleteText: { color: colors.danger, fontWeight: '700' },
   coupon: { alignSelf: 'stretch', padding: 10, borderRadius: 12, backgroundColor: colors.cream, gap: 2, alignItems: 'center' },
   couponTitle: { fontSize: 15, fontWeight: '800', color: colors.primary },
   partyTitle: { fontSize: 20, fontWeight: '800', color: colors.text },
-  share: { marginTop: 4, paddingVertical: 11, paddingHorizontal: 20, borderRadius: 12, backgroundColor: colors.primary },
-  shareText: { color: colors.onPrimary, fontWeight: '700', fontSize: 15 },
+  share: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 12, backgroundColor: colors.primary },
+  shareText: { color: colors.onPrimary, fontWeight: '700' },
   privateText: { flex: 1, gap: 2 },
 }));

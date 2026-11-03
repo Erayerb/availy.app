@@ -23,6 +23,15 @@ const CUSTOMER_ITEMS: Item[] = [
   { screen: 'permissions', label: 'Konum ve izinler', hint: 'Konum, kamera ve bildirim izinleri ne için kullanılıyor' },
 ];
 
+// A guest has no account to set up, nothing to subscribe to and no friends to hide from: signing up is the card on top
+const GUEST_ITEMS: Item[] = [
+  { screen: 'profile', label: 'Puanın', hint: 'Misafir olarak topladıkların' },
+  { screen: 'campaigns', label: 'Kampanyalar', hint: 'Yakındaki kampanyalar ve kuponlar' },
+  { screen: 'settings', label: 'Bildirim ayarları', hint: 'Check-in önerileri, sakinleşince haber ver' },
+  { screen: 'appearance', label: 'Görünüm', hint: 'Açık ya da koyu tema, renk körlüğü dostu mod' },
+  { screen: 'permissions', label: 'Konum ve izinler', hint: 'Konum, kamera ve bildirim izinleri ne için kullanılıyor' },
+];
+
 const BUSINESS_ITEMS: Item[] = [
   { screen: 'profile', label: 'İşletme profili', hint: 'Kapak fotoğrafı, ad, saatler, özellikler, adres ve konum, iletişim' },
   { screen: 'verification', label: 'İşletme doğrulama', hint: 'Mekan sahipliğini kanıtla', badge: 'Yakında' },
@@ -51,14 +60,17 @@ type Props = {
   user: User | null;
   onSelect: (screen: Screen) => void;
   onLogin: () => void;
+  onRegister: () => void;
   onLogout: () => void;
 };
 
 /** Last bottom tab ("☰"): everything that is not a tab of its own. */
-export function MoreScreen({ user, onSelect, onLogin, onLogout }: Props) {
+export function MoreScreen({ user, onSelect, onLogin, onRegister, onLogout }: Props) {
+  const guest = !user || user.isGuest;
   const items = [
-    ...(isBusiness(user) ? BUSINESS_ITEMS : CUSTOMER_ITEMS),
-    ...COMMON_ITEMS,
+    ...(guest ? GUEST_ITEMS : isBusiness(user) ? BUSINESS_ITEMS : CUSTOMER_ITEMS),
+    // A guest sees no row that cannot be opened yet
+    ...COMMON_ITEMS.filter((item) => !(guest && item.disabled)),
     ...(user?.isAdmin ? [{ screen: 'admin' as Screen, label: 'Yönetici', hint: 'Şikâyet edilen yorum ve yanıtlar' }] : []),
   ];
 
@@ -68,11 +80,23 @@ export function MoreScreen({ user, onSelect, onLogin, onLogout }: Props) {
         <Wordmark size={34} />
         <HeaderButtons />
       </View>
-      <Text style={styles.greeting}>
-        {user && !user.isGuest
-          ? `Merhaba, ${user.username ? `@${user.username}` : user.name}${isBusiness(user) ? ' (İşletme)' : ''}`
-          : `Misafir olarak geziyorsun${user ? ` (${user.name})` : ''}`}
-      </Text>
+      {guest ? (
+        <View style={styles.guestCard}>
+          <Text style={styles.label}>Misafir olarak geziyorsun</Text>
+          <Text style={styles.hint}>Check-in'lerin daha az sayılır, puanın yarım gelir. Kayıt olursan tam sayılır ve puanların korunur.</Text>
+          <Pressable onPress={onRegister} style={styles.login}>
+            <Text style={styles.loginText}>Kayıt ol</Text>
+          </Pressable>
+          <Pressable onPress={onLogin} hitSlop={8} style={styles.guestLogin}>
+            <Text style={styles.guestLoginText}>Hesabım var, giriş yap</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <Text style={styles.greeting}>
+          Merhaba, {user.username ? `@${user.username}` : user.name}
+          {isBusiness(user) ? ' (İşletme)' : ''}
+        </Text>
+      )}
 
       {/* Personal accounts: until the profile is complete (Tam profil badge) */}
       {user && !user.isGuest && !isBusiness(user) && user.profile && <ProfileCompletion steps={user.profile} onOpen={onSelect} />}
@@ -95,13 +119,9 @@ export function MoreScreen({ user, onSelect, onLogin, onLogout }: Props) {
         ))}
       </View>
 
-      {user && !user.isGuest ? (
+      {!guest && (
         <Pressable onPress={onLogout} style={styles.logout}>
           <Text style={styles.logoutText}>Çıkış yap</Text>
-        </Pressable>
-      ) : (
-        <Pressable onPress={onLogin} style={styles.login}>
-          <Text style={styles.loginText}>Kayıt ol / Giriş yap</Text>
         </Pressable>
       )}
     </ScrollView>
@@ -113,6 +133,9 @@ const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 32, gap: 14 },
   greeting: { fontSize: 14, color: colors.textMuted, marginTop: -6 },
+  guestCard: { backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 10 },
+  guestLogin: { alignSelf: 'center', paddingVertical: 2 },
+  guestLoginText: { color: colors.primary, fontSize: 14, fontWeight: '600' },
   card: {
     borderRadius: 16,
     backgroundColor: colors.surface,

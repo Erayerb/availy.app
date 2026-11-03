@@ -106,7 +106,7 @@ export const TERMS: LegalDoc = {
     {
       title: 'Puanlar ve ödüller',
       paragraphs: [
-        'Puanların ve rozetlerin parasal değeri yoktur, başkasına devredilemez. Haftalık ödüllerin kuralları ayrıca duyurulur; kurallara aykırı kazanılan puanlar silinebilir.',
+        'Puanların ve rozetlerin parasal değeri yoktur, başkasına devredilemez. Kurallara aykırı kazanılan puanlar silinebilir.',
       ],
     },
     {

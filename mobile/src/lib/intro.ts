@@ -42,6 +42,6 @@ export const BUSINESS_SLIDES: IntroSection[] = [
   {
     icon: 'pencil',
     title: 'Mekanını güncel tut',
-    lines: ['Ayarlar: saatler ve özellikler. Abonelik: paketin.'],
+    lines: ['İşletme profili: saatler ve özellikler. Abonelik: paketin.'],
   },
 ];

@@ -25,8 +25,9 @@ export function CustomersScreen({ venueId, user, onOpenUser, onRegister, onOpenL
   const [stats, setStats] = useState<VenueStats | null>(null);
   const { mine } = useLoyalty();
   const { reviews, setReviews, reload } = useReviews(venueId, user.token);
-  // Reviews the business has not answered yet
-  const waiting = reviews.items.filter((r) => !r.replies.some((p) => p.is_business)).length;
+  // Reviews with words the business has not answered yet (stars alone have nothing to answer)
+  const written = reviews.items.filter((r) => r.body?.trim());
+  const waiting = written.filter((r) => !r.replies.some((p) => p.is_business)).length;
 
   useEffect(() => {
     if (user.token) businessApi.stats(user.token, venueId).then(setStats).catch(() => setStats(null));
@@ -78,7 +79,7 @@ export function CustomersScreen({ venueId, user, onOpenUser, onRegister, onOpenL
       </View>
 
       <Text style={styles.sectionTitle}>
-        {waiting > 0 ? <><InlineIcon name="message-circle" /> {waiting} yorum yanıt bekliyor</> : reviews.count > 0 ? '✓ Tüm yorumları yanıtladın' : 'Yorumlar'}
+        {waiting > 0 ? <><InlineIcon name="message-circle" /> {waiting} yorum yanıt bekliyor</> : written.length > 0 ? '✓ Tüm yorumları yanıtladın' : 'Yorumlar'}
       </Text>
       <ReviewsSection
         venueId={venueId}

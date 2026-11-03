@@ -18,6 +18,35 @@ def week_start(now: datetime) -> datetime:
     return (local - timedelta(days=local.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
 
 
+def last_week_winners(conn: psycopg.Connection, now: datetime) -> list[dict]:
+    """"Haftanın 1.si": who finished last week first in the public ranking (a tie: all of them). No clock needed:
+    the first request of the week writes it down (once), from the points of that closed week."""
+    end = week_start(now)
+    start = end - timedelta(days=7)
+    query = """
+        SELECT w.user_id, u.username FROM weekly_winners w JOIN users u ON u.id = w.user_id
+        WHERE w.week_start = %s ORDER BY lower(u.username)
+    """
+    rows = conn.execute(query, (start.date(),)).fetchall()
+    if rows:
+        return rows
+    conn.execute(
+        """
+        INSERT INTO weekly_winners (week_start, user_id, points)
+        SELECT %(week)s, id, points FROM (
+            SELECT u.id, sum(p.amount)::int AS points, RANK() OVER (ORDER BY sum(p.amount) DESC) AS place
+            FROM users u JOIN points p ON p.user_id = u.id AND p.created_at >= %(start)s AND p.created_at < %(end)s
+            WHERE u.show_in_leaderboard AND NOT u.is_guest AND u.role = 'personal' AND u.username IS NOT NULL AND NOT u.frozen
+            GROUP BY u.id
+        ) ranked
+        WHERE place = 1 AND points > 0
+        ON CONFLICT DO NOTHING
+        """,
+        {"week": start.date(), "start": start, "end": end},
+    )
+    return conn.execute(query, (start.date(),)).fetchall()
+
+
 def leaderboard(conn: psycopg.Connection, me: dict, period: str, scope: str, now: datetime, group_id: int | None = None) -> dict:
     """Ranked rows (same points, same rank) and my own place, also when I am not in the list.
     `scope` "group": the members of `group_id` (the caller checks that I am one)."""
@@ -58,6 +87,7 @@ def leaderboard(conn: psycopg.Connection, me: dict, period: str, scope: str, now
             for r in shown
         ],
         "me": {"rank": mine["rank"], "points": mine["points"]} if mine else None,
+        "last_week_winners": [w["username"] for w in last_week_winners(conn, now)],
     }
 
 

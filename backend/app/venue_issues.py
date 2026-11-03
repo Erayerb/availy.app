@@ -6,7 +6,7 @@ import psycopg
 
 from app.moderation import ModerationError, require_admin
 
-KINDS = ("closed", "hours", "location", "name")
+KINDS = ("closed", "hours", "location", "name", "offensive_name")
 NEEDED = 3  # different people reporting the same thing
 MAX_NOTE = 200
 
@@ -23,6 +23,23 @@ def report_issue(conn: psycopg.Connection, user: dict, venue_id: int, kind: str,
         ON CONFLICT (venue_id, user_id, kind) WHERE resolved_at IS NULL DO UPDATE SET note = COALESCE(EXCLUDED.note, venue_issues.note)
         """,
         (venue_id, user["id"], kind, note, now),
+    )
+    if kind == "offensive_name":
+        _hide_if_reported(conn, venue_id, now)
+
+
+def _hide_if_reported(conn: psycopg.Connection, venue_id: int, now: datetime) -> None:
+    """"Uygunsuz ad" from 3 registered people: a venue a user added stays hidden until an admin looks.
+    Not the imported venues: a rival with three accounts must not be able to take a real place off the map."""
+    conn.execute(
+        """
+        UPDATE venues SET hidden_at = %(now)s
+        WHERE id = %(venue)s AND source = 'user' AND hidden_at IS NULL AND (
+            SELECT count(*) FROM venue_issues i JOIN users u ON u.id = i.user_id
+            WHERE i.venue_id = %(venue)s AND i.kind = 'offensive_name' AND i.resolved_at IS NULL AND NOT u.is_guest
+        ) >= %(needed)s
+        """,
+        {"now": now, "venue": venue_id, "needed": NEEDED},
     )
 
 
@@ -70,7 +87,39 @@ def resolve_issue(
             conn.execute("UPDATE venues SET name = %s WHERE id = %s", (name.strip()[:80], venue_id))
         if open_hour is not None and close_hour is not None:
             conn.execute("UPDATE venues SET open_hour = %s, close_hour = %s WHERE id = %s", (open_hour, close_hour, venue_id))
+    if kind == "offensive_name":
+        conn.execute("UPDATE venues SET hidden_at = NULL WHERE id = %s", (venue_id,))
     conn.execute(
         "UPDATE venue_issues SET resolved_at = %s WHERE venue_id = %s AND kind = %s AND resolved_at IS NULL",
         (now, venue_id, kind),
     )
+
+
+def pending_venues(conn: psycopg.Connection, user: dict) -> list[dict]:
+    """Venues users added, waiting for approval: already visible to everyone, newest first."""
+    require_admin(user)
+    return conn.execute(
+        """
+        SELECT v.id, v.name, v.district, a.username AS added_by, v.created_at,
+               (SELECT count(*) FROM checkins c WHERE c.venue_id = v.id)::int AS checkins
+        FROM venues v LEFT JOIN users a ON a.id = v.added_by
+        WHERE v.source = 'user' AND v.approved_at IS NULL AND v.closed_at IS NULL
+          AND v.created_at > now() - interval '30 days'
+        ORDER BY v.created_at DESC LIMIT 200
+        """
+    ).fetchall()
+
+
+def moderate_pending(conn: psycopg.Connection, user: dict, venue_id: int, action: str, name: str | None, now: datetime) -> None:
+    """rename: the admin corrects the name. remove: off the map (the row and its check-ins stay)."""
+    require_admin(user)
+    clean = " ".join((name or "").split())
+    if action == "rename" and not clean:
+        raise ModerationError("Adı yaz.")
+    done = conn.execute(
+        "UPDATE venues SET name = %s WHERE id = %s AND source = 'user' RETURNING id" if action == "rename"
+        else "UPDATE venues SET closed_at = %s WHERE id = %s AND source = 'user' RETURNING id",
+        (clean if action == "rename" else now, venue_id),
+    ).fetchone()
+    if done is None:
+        raise ModerationError("Mekan bulunamadı.", 404)

@@ -14,13 +14,14 @@ import { InlineIcon } from '../components/Icon';
 type Props = {
   onBack: () => void;
   isBusiness: boolean;
+  guest: boolean; // no friends or reviews to be notified about
   venueId: number | null; // business: its venue (for the automation settings)
   // Business: user name, e-mail, password, freeze and delete are here (customers: Profil ayarları)
   account: Parameters<typeof AccountSettings>[0] | null;
 };
 
 /** Customers: Bildirim ayarları. Businesses: Ayarlar (account, dead-hour alerts; the venue is edited in İşletme profili). */
-export function SettingsScreen({ onBack, isBusiness, venueId, account }: Props) {
+export function SettingsScreen({ onBack, isBusiness, guest, venueId, account }: Props) {
   const { venues } = useVenuesByIds(venueId ? [venueId] : []);
   const venue = venues[0];
   const settings = useSettings();
@@ -77,7 +78,7 @@ export function SettingsScreen({ onBack, isBusiness, venueId, account }: Props) 
           <View style={styles.card}>
             <Row
               title="Check-in önerileri"
-              subtitle="Açık bir mekanın 250 m yakınında birkaç dakika kalınca check-in yapmak isteyip istemediğini sorarız."
+              subtitle="Açık bir mekanın yanında birkaç dakika kalınca check-in yapmak isteyip istemediğini sorarız; en fazla saatte bir, aynı mekan için günde iki kez."
               value={settings.checkinSuggestions}
               onChange={(v) => update({ checkinSuggestions: v })}
             />
@@ -97,33 +98,37 @@ export function SettingsScreen({ onBack, isBusiness, venueId, account }: Props) 
             </Text>
           </View>
 
-          <Text style={styles.heading}>Sosyal</Text>
-          <View style={styles.card}>
-            <Row
-              title="Arkadaşlık ve grup davetleri"
-              subtitle="Biri seni arkadaş olarak eklemek ya da bir gruba almak istediğinde, gönderdiğin istek kabul edildiğinde."
-              value={settings.friendNotifications}
-              onChange={(v) => update({ friendNotifications: v, friendAcceptedNotifications: v })}
-            />
-            <Row
-              title="Check-in yorumları"
-              subtitle="Arkadaşın check-in'ine yorum yaptığında."
-              value={settings.checkinCommentNotifications}
-              onChange={(v) => update({ checkinCommentNotifications: v })}
-            />
-            <Row
-              title="Check-in beğenileri"
-              subtitle="Arkadaşın check-in'ini beğendiğinde."
-              value={settings.checkinLikeNotifications}
-              onChange={(v) => update({ checkinLikeNotifications: v })}
-            />
-            <Row
-              title="Yorumlarıma yanıtlar"
-              subtitle="Biri mekan yorumunu yanıtladığında."
-              value={settings.replyNotifications}
-              onChange={(v) => update({ replyNotifications: v })}
-            />
-          </View>
+          {!guest && (
+            <>
+              <Text style={styles.heading}>Sosyal</Text>
+              <View style={styles.card}>
+                <Row
+                  title="Arkadaşlık ve grup davetleri"
+                  subtitle="Biri seni arkadaş olarak eklemek ya da bir gruba almak istediğinde, gönderdiğin istek kabul edildiğinde."
+                  value={settings.friendNotifications}
+                  onChange={(v) => update({ friendNotifications: v, friendAcceptedNotifications: v })}
+                />
+                <Row
+                  title="Check-in yorumları"
+                  subtitle="Arkadaşın check-in'ine yorum yaptığında."
+                  value={settings.checkinCommentNotifications}
+                  onChange={(v) => update({ checkinCommentNotifications: v })}
+                />
+                <Row
+                  title="Check-in beğenileri"
+                  subtitle="Arkadaşın check-in'ini beğendiğinde."
+                  value={settings.checkinLikeNotifications}
+                  onChange={(v) => update({ checkinLikeNotifications: v })}
+                />
+                <Row
+                  title="Yorumlarıma yanıtlar"
+                  subtitle="Biri mekan yorumunu yanıtladığında."
+                  value={settings.replyNotifications}
+                  onChange={(v) => update({ replyNotifications: v })}
+                />
+              </View>
+            </>
+          )}
 
         </>
       )}

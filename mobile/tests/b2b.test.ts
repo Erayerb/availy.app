@@ -5,6 +5,7 @@ import {
   activeCampaignForVenue,
   campaignsNear,
   createCampaign,
+  deadHour,
   deadHourSuggestion,
   endCampaign,
   isActive,
@@ -116,4 +117,25 @@ test('sortByDistance puts the nearest venue first', () => {
 
 test('venues added only on a phone in v1 are told apart by their ids', () => {
   assert.ok(isLocalVenueId(LOCAL_ID_START) && !isLocalVenueId(38));
+});
+
+test('dead hour: two people saying Sakin or a long silence; one person is only mentioned', () => {
+  const now = new Date('2026-11-03T12:00:00Z'); // 15:00 in Istanbul
+  const base = { open_now: true, hours: '08:00–23:00' };
+  const live = (level: 'low' | 'medium', reporters: number) => ({
+    ...base,
+    crowd: { state: 'live' as const, level, reporters, ratio: null, last_report_at: now.toISOString(), queue: null, seats: null },
+  });
+  const stale = (minutes: number) => ({
+    ...base,
+    crowd: { state: 'stale' as const, level: null, reporters: 0, ratio: null, queue: null, seats: null, last_report_at: new Date(now.getTime() - minutes * 60_000).toISOString() },
+  });
+  assert.equal(deadHour(live('low', 2), now), 'confirmed');
+  assert.equal(deadHour(live('low', 1), now), 'oneReport');
+  assert.equal(deadHour(live('medium', 3), now), null);
+  assert.equal(deadHour(stale(100), now), null);
+  assert.equal(deadHour(stale(121), now), 'noCheckins');
+  // Closed, or just opened: nothing to say
+  assert.equal(deadHour({ ...stale(600), open_now: false }, now), null);
+  assert.equal(deadHour({ ...stale(600), hours: '14:00–23:00' }, now), null);
 });

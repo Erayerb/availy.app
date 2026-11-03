@@ -9,6 +9,11 @@ from datetime import datetime
 
 import psycopg
 
+from app.checkins import GUEST_POINT_FACTOR
+
+POINTS_PER_STAMP = 5
+MAX_STAMP_POINTS_A_DAY = 4  # stamps a day that earn points
+
 
 class LoyaltyError(Exception):
     def __init__(self, message: str, status: int = 400):
@@ -155,6 +160,22 @@ def _member_by_code(conn: psycopg.Connection, venue_id: int, code: str) -> dict:
     return {**member, "user_id": customer["id"]}
 
 
+def _stamp_points(conn: psycopg.Connection, customer_id: int) -> None:
+    """Points for a stamp, up to a daily limit: a venue must not be able to push someone up the ranking."""
+    row = conn.execute(
+        """
+        SELECT u.is_guest, (SELECT count(*) FROM points p WHERE p.user_id = u.id AND p.reason = 'stamp'
+                            AND p.created_at > now() - interval '1 day')::int AS today
+        FROM users u WHERE u.id = %s
+        """,
+        (customer_id,),
+    ).fetchone()
+    if row["today"] >= MAX_STAMP_POINTS_A_DAY:
+        return
+    amount = int(POINTS_PER_STAMP * (GUEST_POINT_FACTOR if row["is_guest"] else 1))
+    conn.execute("INSERT INTO points (user_id, amount, reason) VALUES (%s, %s, 'stamp')", (customer_id, amount))
+
+
 def give_stamp(conn: psycopg.Connection, user: dict, code: str) -> str:
     venue_id = _business_venue(user)
     program = conn.execute(
@@ -172,6 +193,7 @@ def give_stamp(conn: psycopg.Connection, user: dict, code: str) -> str:
         """,
         (0 if full else stamps, 1 if full else 0, venue_id, member["user_id"]),
     )
+    _stamp_points(conn, member["user_id"])
     if full:
         return f"Kart doldu! Müşteri ödül kazandı: {program['reward']}."
     return f"Damga verildi ({stamps}/{program['stamps_required']})."

@@ -1,13 +1,14 @@
 /** v2 "Bilgi yanlış mı?" on the venue page, and the admin's "Kontrol edilecek mekanlar" (3 people, same thing). */
 import { send } from './accountApi';
 
-export type IssueKind = 'closed' | 'hours' | 'location' | 'name';
+export type IssueKind = 'closed' | 'hours' | 'location' | 'name' | 'offensive_name';
 
 export const ISSUE_KINDS: { kind: IssueKind; label: string }[] = [
   { kind: 'closed', label: 'Kapanmış' },
   { kind: 'hours', label: 'Saatler yanlış' },
   { kind: 'location', label: 'Konum yanlış' },
   { kind: 'name', label: 'Adı yanlış' },
+  { kind: 'offensive_name', label: 'Uygunsuz ad' },
 ];
 
 export const issueLabel = (kind: IssueKind) => ISSUE_KINDS.find((k) => k.kind === kind)?.label ?? kind;
@@ -26,7 +27,12 @@ export type VenueIssue = {
 
 export type Resolution = { action: 'close' | 'fixed' | 'dismiss'; name?: string; open_hour?: number; close_hour?: number };
 
+export type PendingVenue = { id: number; name: string; district: string; added_by: string | null; created_at: string; checkins: number };
+
 export const venueIssuesApi = {
+  pending: (token: string) => send<PendingVenue[]>('GET', '/v1/admin/pending-venues', undefined, token),
+  moderate: (token: string, id: number, action: 'rename' | 'remove', name?: string) =>
+    send<void>('POST', `/v1/admin/pending-venues/${id}`, { action, name: name ?? null }, token),
   report: (token: string, venueId: number, kind: IssueKind, note: string) =>
     send<void>('POST', `/v1/venues/${venueId}/issues`, { kind, note: note.trim() || null }, token),
   open: (token: string) => send<VenueIssue[]>('GET', '/v1/admin/venue-issues', undefined, token),

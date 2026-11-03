@@ -4,7 +4,7 @@ import { send } from './accountApi.ts';
 export type Period = 'week' | 'all';
 export type Scope = 'friends' | 'everyone' | 'group';
 export type RankRow = { rank: number; username: string | null; points: number; me: boolean; level?: string | null };
-export type Leaderboard = { rows: RankRow[]; me: { rank: number; points: number } | null };
+export type Leaderboard = { rows: RankRow[]; me: { rank: number; points: number } | null; last_week_winners?: string[] };
 
 export type AppNotification = {
   kind:

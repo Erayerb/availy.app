@@ -107,7 +107,16 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Daha fazla: Profil ayarları (çıkış yok; Çıkış yap Daha fazla'nın altında), Bildirim ayarları, Görünüm (tema + renk körlüğü), Gizlilik ayarları; her satırda içinde ne olduğu yazar. Ana sayfada reklam yeri yok
 - Check-in sonrası kısa kutlama (🎉 "Check-in yapıldı!" / ✨ "Burayı sen keşfettin!" + "+10 puan · Buraya 3. check-in'in") ve "📣 Arkadaşlarına paylaş" (mekan, doluluk ve web bağlantısı); buton kapalı kalır, üstünde "Tekrar check-in: 17:47"
 - Haritada sağ altta "+" → Check-in yap: en yakın mekanlar ve arama; sağ üstte "➕ Mekan ekle"
-- Check-in önerisi: açık bir mekanın 250 m yakınında 3 dk kalınca (uygulama açıkken) şerit + telefon bildirimi; son 90 dakikada orada check-in yaptıysan sormaz
+- Yazısız puanlar yalnızca ortalamaya girer: mekan sayfasında "N yorum" yazılı yorumları sayar (hiç yoksa "N puan"), işletmenin "yanıt bekliyor" sayısına girmez
+- Harita: konum biliniyorsa kullanıcının yanından, işletmede kendi mekanından açılır; ikisi de yoksa İstanbul
+- Misafirin Daha fazla menüsü: üstte Kayıt ol kartı; Abonelik, Gizlilik, Destek (Yakında) ve Profil ayarları yok (Puanın ve rozetlerin var); Bildirim ayarlarında Sosyal bölümü yok
+- Haftanın 1.si: geçen haftayı genel sıralamada 1. bitiren (eşitlikte hepsi; migration 015, ilk istekte bir kez yazılır, zamanlayıcı yok): profilde etiket (o hafta), sıralamada satır, kalıcı rozet (+50)
+- Damga (5 puan, günde en fazla 4 damga puanlı) ve kullanılan kupon (10 puan) sunucuda `points`'e yazılır; sıralamaya ve seviyeye girer (migration 014 eskileri de yazdı)
+- Misafirin rozeti yok: kazandıkları kayıt olunca rozet ve tam puan olarak gelir
+- Panel "Ölü saat": en az 2 kişi Sakin ya da açıldıktan sonra 2 saattir check-in yok → kampanya düğmesi; 1 kişi Sakin → yalnızca bilgi satırı. "Check-in yok" durumu telefona bildirim göndermez (olay yok, zamanlanmış bildirim yapılmaz)
+- Profil: tek liste "Gittiği mekanlar", keşfedilenlerde ✨, Tümü / Keşfettikleri seçimi
+- Mekan adı kontrolü: eklerken ve işletme adı değiştirirken app/name_check.py (bağlantı, telefon, 5+ harf tamamı büyük, küfür listesi); "Bilgi yanlış mı?" > Uygunsuz ad: 3 kayıtlı kişi bildirince kullanıcının eklediği mekan yönetici bakana dek gizlenir (hidden_at, migration 016; içe aktarılan mekanlar gizlenmez, yalnızca listeye düşer); Yönetici > Onay bekleyen mekanlar: adı düzelt ya da kaldır (kayıtlar kalır)
+- Check-in önerisi: açık bir mekanın 150 m yakınında 5 dk kalınca; uygulama önündeyse şerit, arka plandaysa telefon bildirimi (dokununca mekan sayfası); en fazla saatte bir, aynı mekan için günde iki kez (telefonda saklanır); son 90 dakikada orada check-in yaptıysan sormaz
 - Kayıt sonrası kısa tanıtım (müşteri 4, işletme 3 slayt; sağa / sola kaydırılır) ve "İlk check-in'in" (yakındaki en yakın açık mekan)
 
 **Puan, rozet, keşif**
@@ -162,7 +171,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Akış: mekan sayfasından verilen puan ya da yorum, son 24 saatteki check-in'in altında görünür (o check-in'de başka yorum yoksa; migration 013 eskileri de bağlar)
 - Seviye simgesi: sıralamada ve Arkadaşlarım akışında kullanıcı adının yanında (LevelMark; Yeni gelen'de yok); Semt elçisi'nin fotoğrafında altın çerçeve (Avatar framed: sıralama, akış, profil)
 - Kişisel profil doluluğu (Daha fazla'da ProfileCompletion): profil fotoğrafı, e-posta doğrulama, ilk check-in, ilk arkadaş, ilk yorum; hepsi tamamlanınca Tam profil rozeti (+20 puan); karta basınca Profil ayarları açılır
-- Rozetler puan kazandırır, zorluğa göre (İlk adım 5, Gece kuşu 10, Kâşif 15, Tam profil 20, Gezgin 20, Müdavim 25, Büyük kâşif 40, Yardımsever 50; misafire yarısı), bir kez (user_badges, migration 010; eski hesapların önceden kazandıkları puansız yazıldı); check-in yanıtında ve /v1/me'de new_badges → uygulamada "Yeni rozet!" penceresi (components/BadgeCelebration); rozet simgeleri Tabler (BadgeGrid)
+- Rozetler puan kazandırır, zorluğa göre (İlk adım 5, Gece kuşu 10, Kâşif 15, Tam profil 20, Gezgin 20, Müdavim 25, Büyük kâşif 40, Yardımsever 50, Haftanın 1.si 50), bir kez (user_badges, migration 010; eski hesapların önceden kazandıkları puansız yazıldı); check-in yanıtında ve /v1/me'de new_badges → uygulamada "Yeni rozet!" penceresi (components/BadgeCelebration); rozet simgeleri Tabler (BadgeGrid)
 - Haritada işletmenin kendi mekanı (ownVenueId): nokta yerine kırmızı dükkan tabelası, köşesinde doluluk noktası, adı hep yazılı, gruplamaya girmez; Keşfedilmedi mekan adları temanın discovery renginde (koyu haritada okunur)
 - İşletme profili: kapak fotoğrafı en üstte mekan adının yanında (kalemli; components/business/CoverPhoto); "Mekan bilgilerini düzenle" ve "Adres ve konum" açılıp kapanır; panelde mekan adının yanında "Düzenle" (İşletme profili'ni açar)
 - Mekan iletişim bilgileri (migration 011: contact_phone, contact_website, contact_source; contact_email zaten vardı): Overture Maps'ten app/import_contacts.py ile (ad + 80 m eşleşme; semt adları yok sayılır); yalnızca işletme doğrulaması için, uygulamada gösterilmez. Yerelde 286 mekanın 191'i: 175 telefon, 96 e-posta, 124 web. Neon'da da yapıldı (285 mekanın 195'i: 179 telefon, 97 e-posta, 128 web); yeni mekanlar için yeniden çalıştırılabilir: backend/scripts/import-contacts-live.sh (adresi sorar, bağlantıyı dener, dosyayı indirir, ekler, siler)
@@ -213,7 +222,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Render + Neon + GitHub Pages /v2/ (bkz. Ortamlar); şema Neon'da `CREATE EXTENSION postgis` ile başlar; bağlantı havuzu kopan bağlantıyı yeniler; CORS: localhost:8081, localhost:8765, erayerb.github.io
 
 ### Yapılacaklar (v2)
-**Yayından önce** (özet: 150 m, push bildirimleri, migration, Sentry, hukukçu kontrolü)
+**Yayından önce** (özet: Kullanım koşulları ve gizlilik metnindeki `[iletişim e-postası]` boşluğunu doldur (mobile/src/lib/legal.ts `CONTACT`), 150 m, push bildirimleri, migration, Sentry, hukukçu kontrolü)
 - Render ayarları (availy-api → Environment): `PHONE_PEPPER` = uzun, rastgele bir metin (girilmezse "Rehberden bul" güvensiz varsayılan metinle çalışır; ayrıntı: Tanıdıkları bulmak) ve isteğe bağlı `SUPPORT_EMAIL` = hata bildirimleri ve iletişim mesajlarının e-postayla da geleceği adres (Resend alan adı doğrulanana kadar yalnızca Resend hesabının adresine gider)
 - Check-in mesafesini 1 km'den 150 m'ye geri al
 - Push bildirimleri (bkz. Bildirimler)
@@ -257,6 +266,8 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Kısıt: iPhone'da Expo Go ile çalışmaz; EAS Build ve Apple Developer hesabı (yıllık 99 $) gerekir. Android'de Expo Go ile de denenebilir
 - Uygulama kapalıyken check-in önerisi: geofencing (expo-location + TaskManager, "Her zaman" konum izni, en fazla ~20 bölge); Konum ve izinler metni o zaman güncellenmeli
 - Haftalık sıralama ödülleri: ne verileceği ve nasıl dağıtılacağı
+- Yakındaki kampanya bildirimi: push ile birlikte, isteğe bağlı. Son konum yaklaşık 1 km'ye yuvarlanıp tutulur, 24 saatte silinir; gizlilik metni değişir, ayrı izin alınır. Favori ve gidilen mekanların kampanyası izinsiz gelir
+- "Mekanın yakınındasın" (uygulama kapalıyken): son konumla olmaz (kişinin şu anki yerini göstermez), "Daima" konum izni ister; sonraya
 - Olaya bağlı toplu bildirim: "Moda'da 3 kafe şu an sakinleşti" (favori semt / favori mekanlar sakinleşince; push gerekir)
 - iPhone ana ekran widget'ı: favori mekanın şu anki doluluğu (EAS Build + iOS widget eklentisi; Android widget'ı da düşünülebilir)
 
@@ -267,6 +278,8 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Aynı telefondan açılan birden çok bireysel hesap aynı mekanda tek kişi sayılsın (sahte hesapla doluluk şişirme)
 
 **İşletme**
+- Kurucu mekan avantajı: işletme isterse "Mahalleli'ye çift damga" açar (bedelini kafe seçer)
+- Aylık paketin sattığı "Rakip karşılaştırması" (Panel'de yakındaki benzer mekanlar, Kampanyalar > Rakipler) bedava pakette de açık: pakete bağla ya da paketin açıklamasından çıkar
 - Birden fazla mekan: tek hesapta mekan seçici ("Moda Şube ▾"; şimdi users.venue_id tek mekan), doğrulama ve Aylık paket şube başına
 - Çalışan hesapları (bir kez yapılıp kaldırıldı; kod git geçmişinde: `v2: seviye simgesi...` commit'i, app/staff.py, CounterScreen, StaffSection, migration 012): işletme kısa kodla davet eder, çalışan kendi hesabıyla kasada kupon ve sadakat QR'ı okutur, sahip kimin ne yaptığını görür ve çıkarır. Üstüne iki yetki düşünüldü: Kasa (yalnızca QR) ve Yönetici (panel, kampanya, yorum yanıtı; ödeme, doğrulama ve yönetici ekleme yalnızca sahipte; kampanyayı kimin oluşturduğu kayıtlı). Geri eklerken: DELETE /v1/staff/me yolu /{staff_id}'den önce tanımlanmalı; yeni migration numarası 014
 - Mekan sahipliği doğrulaması (✓ rozeti; şimdi ekran "Yakında", `venue_profiles.verified` elle): OSM'den telefon / e-posta içe aktar (pilot: 282 mekanın 32'sinde telefon, 7'sinde e-posta) → e-postası varsa kod, telefonu varsa SMS (ücretli) ya da arama → yoksa vergi levhası / ruhsat + mekandayken konum + yönetici onayı → ✓, kampanya ve sadakat açılır; başkasına bağlı mekan için "Bu mekan benim" aynı yolla

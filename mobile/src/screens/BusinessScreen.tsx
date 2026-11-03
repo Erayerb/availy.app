@@ -10,8 +10,8 @@ import { useSettings } from '../context/SettingsContext';
 import { fetchVenues, fetchVenuesByIds, type Venue } from '../lib/api';
 import type { User } from '../lib/auth';
 import { busiestHour, businessApi, MAX_REWARD, quietestWeekday, WEEKDAY_NAMES, type VenueStats } from '../lib/business';
-import { deadHourSuggestion, timeLeft } from '../lib/campaigns';
-import { crowdRatioText, crowdSummary, crowdYesterday, liveLevel } from '../lib/crowd';
+import { deadHour, deadHourSuggestion, QUIET_HOURS, timeLeft } from '../lib/campaigns';
+import { crowdRatioText, crowdSummary, crowdYesterday } from '../lib/crowd';
 import { categoryLabel } from '../lib/filters';
 import { formatDistance } from '../lib/geo';
 import { shortLocation } from '../lib/location';
@@ -72,8 +72,7 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
 
   const active = activeFor(venue.id);
   const look = crowdLook(venue);
-  // Dead hour: open, and customers' fresh check-ins say Sakin
-  const dead = liveLevel(venue) === 'low';
+  const dead = deadHour(venue, now);
   const competitors = nearbyCompetitors(venue, nearby, 2, 5);
   const busiest = stats ? busiestHour(stats.today) : null;
   const quietDay = stats && stats.weekday.some((n) => n > 0) ? quietestWeekday(stats.weekday) : null;
@@ -143,10 +142,17 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
         {venue.open_now && crowdYesterday(venue.crowd) && <Text style={styles.text}><InlineIcon name="history" /> {crowdYesterday(venue.crowd)}</Text>}
         <Text style={styles.muted}><InlineIcon name="clock" /> {venue.hours} · Müşterilerin gördüğü durum, onların check-in'lerinden.</Text>
 
-        {dead && !active && (
+        {dead === 'oneReport' && !active && <Text style={styles.text}>1 müşteri Sakin bildirdi.</Text>}
+        {(dead === 'confirmed' || dead === 'noCheckins') && !active && (
           <View style={styles.alert}>
-            <Text style={styles.alertTitle}>Ölü saat: müşteriler mekanını Sakin bildiriyor</Text>
-            <Text style={styles.text}>Boş masaları doldurmak için yakındaki kullanıcılara tek dokunuşla kampanya gönder.</Text>
+            <Text style={styles.alertTitle}>
+              {dead === 'confirmed' ? 'Ölü saat: müşteriler mekanını Sakin bildiriyor' : 'Bir süredir check-in yok'}
+            </Text>
+            <Text style={styles.text}>
+              {dead === 'confirmed'
+                ? 'Boş masaları doldurmak için yakındaki kullanıcılara tek dokunuşla kampanya gönder.'
+                : `Son ${QUIET_HOURS} saatte kimse bildirmedi; mekanın sakin olabilir. İstersen yakındaki kullanıcılara kampanya gönder.`}
+            </Text>
             <Text style={styles.quote}>“{deadHourSuggestion(venue.category)}”</Text>
             <Pressable style={styles.primary} onPress={sendReady}>
               <Text style={styles.primaryText}>Hazır kampanyayı gönder (2 saat · 2 km)</Text>

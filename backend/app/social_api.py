@@ -32,6 +32,7 @@ class MyRank(BaseModel):
 class LeaderboardOut(BaseModel):
     rows: list[RankRow]
     me: MyRank | None
+    last_week_winners: list[str] = []  # "Haftanın 1.si"
 
 
 class NotificationOut(BaseModel):

@@ -18,8 +18,6 @@ export type LoyaltyProgram = {
 
 export const isProgramActive = (p: LoyaltyProgram) => p.active !== false;
 
-export const POINTS_PER_STAMP = 5;
-export const POINTS_PER_COUPON = 10;
 
 export function validateProgram(p: Omit<LoyaltyProgram, 'venueId' | 'venueName'>): string | null {
   if (p.kind === 'stamps') {
@@ -35,11 +33,6 @@ export function validateProgram(p: Omit<LoyaltyProgram, 'venueId' | 'venueName'>
 
 export function describeProgram(p: LoyaltyProgram): string {
   return p.kind === 'stamps' ? `${p.stampsRequired} damga = ${p.reward}` : `₺${p.price}/ay · ${p.perk}`;
-}
-
-/** App-wide points from stamps collected and coupons used. */
-export function availyPoints(totalStamps: number, couponsUsed: number): number {
-  return totalStamps * POINTS_PER_STAMP + couponsUsed * POINTS_PER_COUPON;
 }
 
 const QR_PREFIX = 'availy:customer:';

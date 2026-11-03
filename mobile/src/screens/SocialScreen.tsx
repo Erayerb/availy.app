@@ -520,6 +520,7 @@ const styles = themed(() => StyleSheet.create({
   points: { color: colors.primary, fontWeight: '700' },
   discovered: { color: colors.discovery },
   quote: { fontSize: 14, color: colors.text, fontWeight: '400', marginTop: 2 },
+  ratingStars: { fontSize: 14, color: '#E0A800', marginTop: 2 },
   tabs: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   addFriend: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
   badge: {
@@ -666,7 +667,7 @@ function Post({
           </Text>
           <Text style={styles.chevronSmall}>›</Text>
         </Pressable>
-        {item.rating ? <Text style={styles.quote}>{stars(item.rating)}</Text> : null}
+        {item.rating ? <Text style={styles.ratingStars}>{stars(item.rating)}</Text> : null}
         {item.body ? <Text style={styles.postText}>{item.body}</Text> : null}
         <Thread token={token} item={item} owner={mine} onOpenUser={onOpenUser} onChanged={onChanged} />
         {item.kind === 'checkin' && item.checkin_id ? (

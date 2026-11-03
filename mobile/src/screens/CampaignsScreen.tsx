@@ -22,7 +22,7 @@ import { distanceKm, formatDistance } from '../lib/geo';
 import type { PlanId } from '../lib/plans';
 import QRCode from 'react-native-qrcode-svg';
 
-import { availyPoints, customerQrPayload, describeProgram } from '../lib/loyalty';
+import { customerQrPayload, describeProgram } from '../lib/loyalty';
 import { colors, themed } from '../theme';
 import { InlineIcon } from '../components/Icon';
 
@@ -77,7 +77,7 @@ export function CampaignsScreen({ signedIn, serverPoints, customerCode, business
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
         {onBack && <BackButton onPress={onBack} />}
-        <Text style={[styles.title, styles.flex]}>Kampanyalar ve sadakat</Text>
+        <Text style={[styles.title, styles.flex]}>Kampanyalar</Text>
         {!onBack && <HeaderButtons />}
       </View>
       <View style={styles.tabs}>
@@ -204,8 +204,6 @@ function Loyalty({
     );
   }
 
-  const stampsCollected = programs.reduce((sum, p) => sum + (p.member?.totalStamps ?? 0), 0);
-  const couponsUsed = coupons.filter((c) => c.redeemedAt).length;
   // The ones I joined first
   const sorted = [...programs].sort((a, b) => Number(!!b.member) - Number(!!a.member));
 
@@ -213,7 +211,7 @@ function Loyalty({
     <View style={styles.list}>
       <View style={styles.pointsCard}>
         <Text style={styles.pointsLabel}>availy puanın</Text>
-        <Text style={styles.points}>{serverPoints + availyPoints(stampsCollected, couponsUsed)}</Text>
+        <Text style={styles.points}>{serverPoints}</Text>
         <Text style={styles.muted}>
           Her check-in 10, bir mekanın ilk check-in'i +50; her damga 5, kullandığın her kupon 10 puan.
         </Text>
@@ -395,10 +393,10 @@ function VenueCoupons({ venueId }: { venueId: number }) {
       <Text style={styles.sectionTitle}>Alınan kuponlar</Text>
       {mine.length === 0 && <Text style={styles.muted}>Henüz kupon alınmadı.</Text>}
       {mine.map((c) => (
-        <View key={c.code} style={[styles.card, c.redeemedAt !== null && styles.faded]}>
+        <View key={c.code} style={[styles.card, !couponValid(c, new Date()) && styles.faded]}>
           <View style={styles.codeRow}>
             <Text style={styles.code}>{c.code}</Text>
-            <Text style={styles.muted}>{c.redeemedAt ? 'Kullanıldı' : 'Bekliyor'}</Text>
+            <Text style={styles.muted}>{c.redeemedAt ? 'Kullanıldı' : couponValid(c, new Date()) ? 'Bekliyor' : 'Süresi doldu'}</Text>
           </View>
           <Text style={styles.muted} numberOfLines={1}>
             {c.message}

@@ -10,7 +10,7 @@ from app.auth_api import current_user
 from app.checkins_api import get_clock
 from app.db import get_conn
 from app.moderation import ModerationError, dismiss_reports, remove_item, reported_items
-from app.venue_issues import open_issues, report_issue, resolve_issue
+from app.venue_issues import moderate_pending, open_issues, pending_venues, report_issue, resolve_issue
 
 router = APIRouter(prefix="/v1/admin")
 # "Bilgi yanlış mı?" from the venue page (any signed-in user)
@@ -65,7 +65,7 @@ def dismiss(kind: Kind, item_id: int, user: dict = Depends(current_user), conn: 
     return Response(status_code=204)
 
 
-IssueKind = Literal["closed", "hours", "location", "name"]
+IssueKind = Literal["closed", "hours", "location", "name", "offensive_name"]
 
 
 class IssueIn(BaseModel):
@@ -102,6 +102,44 @@ def issues(user: dict = Depends(current_user), conn: psycopg.Connection = Depend
         return open_issues(conn, user)
     except ModerationError as e:
         raise _fail(e) from None
+
+
+class PendingOut(BaseModel):
+    id: int
+    name: str
+    district: str
+    added_by: str | None
+    created_at: datetime
+    checkins: int
+
+
+@router.get("/pending-venues", response_model=list[PendingOut])
+def pending(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    """Onay bekleyen mekanlar: everyone already sees them, so their names get a look."""
+    try:
+        return pending_venues(conn, user)
+    except ModerationError as e:
+        raise _fail(e) from None
+
+
+class PendingIn(BaseModel):
+    action: Literal["rename", "remove"]
+    name: str | None = Field(None, max_length=80)
+
+
+@router.post("/pending-venues/{venue_id}", status_code=204)
+def moderate(
+    venue_id: int,
+    body: PendingIn,
+    user: dict = Depends(current_user),
+    conn: psycopg.Connection = Depends(get_conn),
+    now: datetime = Depends(get_clock),
+):
+    try:
+        moderate_pending(conn, user, venue_id, body.action, body.name, now)
+    except ModerationError as e:
+        raise _fail(e) from None
+    return Response(status_code=204)
 
 
 class ResolveIn(BaseModel):

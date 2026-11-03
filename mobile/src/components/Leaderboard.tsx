@@ -40,6 +40,7 @@ export function Leaderboard({ token, me, onOpenUser }: Props) {
   const [period, setPeriod] = useState<Period>(last.period);
   const [scope, setScope] = useState<Scope>(last.scope);
   const [board, setBoard] = useState<Board | null>(null);
+  const winners = board?.last_week_winners ?? [];
   const [error, setError] = useState<string | null>(null);
   // Gruplar: mine and the invitations; the one shown; the form (new group, or inviting to the shown one)
   const [groups, setGroups] = useState<Group[] | null>(null);
@@ -220,7 +221,12 @@ export function Leaderboard({ token, me, onOpenUser }: Props) {
         </View>
       )}
 
-      <Text style={styles.prize}><InlineIcon name="trophy" /> Haftalık ödüller kazanabilirsin! Her pazartesi haftalık sıralama sıfırlanır.</Text>
+      {winners.length > 0 && (
+        <Text style={styles.prize}>
+          <InlineIcon name="trophy" /> Haftanın 1.si: {winners.map((u) => `@${u}`).join(', ')}
+        </Text>
+      )}
+      <Text style={styles.muted}>Sıralama her pazartesi sıfırlanır. Haftayı genel sıralamada 1. bitiren "Haftanın 1.si" rozetini alır.</Text>
       <Text style={styles.muted}>Check-in 10 puan, bir mekanın ilk check-in'i +50 puan.</Text>
     </View>
   );

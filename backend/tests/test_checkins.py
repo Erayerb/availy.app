@@ -181,11 +181,13 @@ def test_the_days_first_checkin_earns_double(client, conn, clock):
 
 def test_guests_get_half_points_and_keep_them_after_sign_up(client, conn, clock):
     token = guest_token(client)
-    assert checkin(client, token, venue_id(conn, "Test Kafe A")).json()["points_earned"] == 30  # (10 + 50) / 2
+    first = checkin(client, token, venue_id(conn, "Test Kafe A")).json()
+    assert first["points_earned"] == 30  # (10 + 50) / 2
+    assert first["new_badges"] == []  # no "Yeni rozet!" for a guest
     body = {"name": "Ayşe", "email": "ayse.kasif@example.test", "password": "gizli123", "username": "ayse.kasif"}
     client.post("/v1/auth/upgrade", json=body, headers={"Authorization": f"Bearer {token}"})
     stats = me(client, token)
-    assert not stats["is_guest"] and stats["points"] == 30 + 2 + 7  # and half of the two badges' points (5, 15)
+    assert not stats["is_guest"] and stats["points"] == 30 + 5 + 15  # and the two badges' points, full: guests have no badges
     assert any(b["id"] == "explorer" and b["earned"] for b in stats["badges"])
     # From now on full points (half an hour later: points need 30 minutes between check-ins)
     clock.now = NOON + timedelta(minutes=30)

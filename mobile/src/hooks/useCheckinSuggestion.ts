@@ -1,12 +1,13 @@
 import * as Notifications from 'expo-notifications';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 import { fetchVenues, type Venue } from '../lib/api';
 import type { Visit } from '../lib/checkinApi';
 import { distanceKm, type LatLon } from '../lib/geo';
 import { bboxAround, nearestOpenVenue } from '../lib/nearby';
-import { nextStay, shouldSuggest, SUGGEST_RADIUS_KM, suggestionText, type Stay } from '../lib/suggestion';
+import { KEYS, loadJson, saveJson } from '../lib/storage';
+import { mayAsk, nextStay, rememberAsked, shouldSuggest, SUGGEST_RADIUS_KM, suggestionText, type Asked, type Stay } from '../lib/suggestion';
 
 // Venues around the user are fetched again after walking this far
 const REFETCH_KM = 0.15;
@@ -16,14 +17,22 @@ const TICK_MS = 30_000;
 export type Suggestion = { venue: Venue; visits: number };
 
 /**
- * v2: "Mado yakınındasın, burası şu an nasıl?" after a few minutes within 250 m of
- * an open venue, while the app is open. Shown in the app and as a phone notification.
+ * v2: "Mado yakınındasın, burası şu an nasıl?" after a few minutes within 150 m of an open venue.
+ * In the app a banner; a phone notification only when the app is in the background. At most every
+ * hour, and twice a day for the same venue (lib/suggestion).
  */
 export function useCheckinSuggestion(point: LatLon | null, visits: Visit[], enabled: boolean) {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const fetchedAt = useRef<LatLon | null>(null);
   const stay = useRef<Stay | null>(null);
+  // null: not read yet, so nothing is asked
+  const asked = useRef<Asked | null>(null);
+  useEffect(() => {
+    loadJson<Asked>(KEYS.suggestionsAsked).then((saved) => {
+      asked.current = saved ?? {};
+    });
+  }, []);
   const latest = useRef({ point, visits, venues, enabled });
   latest.current = { point, visits, venues, enabled };
 
@@ -48,10 +57,16 @@ export function useCheckinSuggestion(point: LatLon | null, visits: Visit[], enab
     if (!venue) return setSuggestion(null);
     const visit = visits.find((v) => v.venue_id === venue.id);
     if (!shouldSuggest(stay.current, now, visit ? new Date(visit.last_at).getTime() : null)) return;
+    if (!asked.current || !mayAsk(asked.current, venue.id, now)) return;
     stay.current = { ...stay.current!, suggested: true };
+    asked.current = rememberAsked(asked.current, venue.id, now);
+    saveJson(KEYS.suggestionsAsked, asked.current);
     setSuggestion({ venue, visits: visit?.visits ?? 0 });
-    if (Platform.OS !== 'web') {
-      Notifications.scheduleNotificationAsync({ content: suggestionText(venue.name, visit?.visits ?? 0), trigger: null }).catch(() => {});
+    if (Platform.OS !== 'web' && AppState.currentState !== 'active') {
+      Notifications.scheduleNotificationAsync({
+        content: { ...suggestionText(venue.name, visit?.visits ?? 0), data: { venueId: venue.id } },
+        trigger: null,
+      }).catch(() => {});
     }
   }, []);
 

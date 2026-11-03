@@ -23,6 +23,7 @@ export type Profile = {
   badges: Badge[];
   venues: ProfileVenue[] | null; // null: only friends see them
   weekly_streak?: number | null; // "🔥 4 haftalık seri"
+  weekly_winner?: boolean; // first of last week: "Haftanın 1.si"
   stats_hidden?: boolean;
   level?: Level | null; // shown even when the statistics are hidden
   photo_at?: string | null; // profile photo (userPhotoUrl)
@@ -60,6 +61,3 @@ export const safetyApi = {
 };
 
 /** Venues a person made the first check-in at, and all venues they checked in at. */
-export function splitVenues(venues: ProfileVenue[]): { discovered: ProfileVenue[]; visited: ProfileVenue[] } {
-  return { discovered: venues.filter((v) => v.discovered), visited: venues };
-}

@@ -1,3 +1,4 @@
+import * as Notifications from 'expo-notifications';
 import {
   Figtree_300Light,
   Figtree_400Regular,
@@ -62,7 +63,7 @@ import type { Region } from './src/lib/bbox';
 import { toggleSingle, type Tag } from './src/lib/filters';
 import type { Side } from './src/lib/istanbul';
 import { back, push, type History } from './src/lib/navigation';
-import { searchVenues } from './src/lib/api';
+import { fetchVenuesByIds, searchVenues } from './src/lib/api';
 import { venueFromQuery } from './src/lib/share';
 import type { SortMode } from './src/lib/sort';
 import { AuthScreen } from './src/screens/AuthScreen';
@@ -87,6 +88,9 @@ const DEFAULT_REGION: Region = {
   latitudeDelta: 0.12,
   longitudeDelta: 0.12,
 };
+
+// The map starts here around the user (or a business's own venue)
+const NEAR_ZOOM = 0.03;
 
 // Zoom level used when opening a single venue on the map
 const VENUE_ZOOM = 0.02;
@@ -287,6 +291,43 @@ function Main() {
     setDetailId(venue.id);
     goTo('detail');
   };
+
+  // The map starts nearby, not on the whole city; once it has been opened it keeps its own place
+  const ownVenueId = isBusiness(auth.user) ? (auth.user?.venueId ?? null) : null;
+  useEffect(() => {
+    if (mapRegion !== DEFAULT_REGION || screen === 'map') return;
+    const startAt = (latitude: number, longitude: number) =>
+      setMapRegion((region) => (region === DEFAULT_REGION ? { latitude, longitude, latitudeDelta: NEAR_ZOOM, longitudeDelta: NEAR_ZOOM } : region));
+    if (ownVenueId) {
+      fetchVenuesByIds([ownVenueId]).then(([venue]) => venue && startAt(venue.lat, venue.lon)).catch(() => {});
+    } else if (point) startAt(point.lat, point.lon);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [point?.lat, point?.lon, ownVenueId, mapRegion]);
+
+  // Tapping a phone notification: its venue, or the list of notifications
+  const [tapped, setTapped] = useState<{ venueId?: number; list?: boolean } | null>(null);
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const take = (response: Notifications.NotificationResponse | null) => {
+      if (response) setTapped(response.notification.request.content.data as { venueId?: number; list?: boolean });
+    };
+    // The tap that started the app, then the ones while it runs
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      take(response);
+      Notifications.clearLastNotificationResponseAsync().catch(() => {});
+    }).catch(() => {});
+    const subscription = Notifications.addNotificationResponseReceivedListener(take);
+    return () => subscription.remove();
+  }, []);
+  useEffect(() => {
+    if (!tapped || gate !== null) return;
+    setTapped(null);
+    if (typeof tapped.venueId === 'number') {
+      openDetails({ id: tapped.venueId });
+      dismissSuggestion();
+    } else if (tapped.list) goTo('notifications');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tapped, gate]);
 
   useEffect(() => {
     if (!sharedVenue || gate !== null) return;
@@ -561,6 +602,7 @@ function Main() {
             <SettingsScreen
               onBack={goBack}
               isBusiness={isBusiness(auth.user)}
+              guest={!auth.user || auth.user.isGuest === true}
               venueId={isBusiness(auth.user) ? (auth.user?.venueId ?? null) : null}
               account={auth.user && isBusiness(auth.user) ? { user: auth.user, ...accountActions } : null}
             />
@@ -701,6 +743,7 @@ function Main() {
               user={auth.user}
               onSelect={goTo}
               onLogin={() => setAuthForm('login')}
+              onRegister={() => setAuthForm('register')}
               onLogout={logout}
             />
           )}

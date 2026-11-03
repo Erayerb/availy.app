@@ -117,6 +117,11 @@ def save_details(
 
     _own_venue(user, venue_id)
     clean = " ".join(name.split())
+    from app.name_check import name_problem
+
+    problem = name_problem(clean)
+    if problem:
+        raise ProfileError(problem)
     if not 2 <= len(clean) <= 60:
         raise ProfileError("İşletme adı 2 ile 60 karakter arasında olmalı.")
     if not (0 <= open_hour <= 24 and 0 <= close_hour <= 24) or open_hour == close_hour:

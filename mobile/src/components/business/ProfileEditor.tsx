@@ -66,7 +66,6 @@ export function ProfileEditor({ venue, token, onSaved }: Props) {
         </Pressable>
         {note && <Text style={note.ok ? panel.success : panel.error}>{note.text}</Text>}
       </View>
-      <Text style={panel.muted}>Çalışma saatleri ve özellikler: Daha fazla → Ayarlar.</Text>
     </>
   );
 }

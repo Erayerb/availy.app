@@ -84,6 +84,7 @@ export function VenueDetailScreen({
   const [listing, setListing] = useState(false);
   // v2: reviews and replies live on the server
   const { reviews, setReviews, reload: reloadReviews } = useReviews(venueId, user?.token);
+  const writtenCount = reviews.items.filter((r) => r.body?.trim()).length;
   const { point } = useLocation();
   const [note, setNote] = useState<string | null>(null);
 
@@ -173,7 +174,7 @@ export function VenueDetailScreen({
         )}
         {reviews.average !== null && (
           <Text style={styles.rating}>
-            {stars(Math.round(reviews.average))} {reviews.average} · {reviews.count} yorum
+            <Text style={styles.ratingStars}>{stars(Math.round(reviews.average))}</Text> {reviews.average} · {writtenCount > 0 ? `${writtenCount} yorum` : `${reviews.count} puan`}
           </Text>
         )}
         <Text style={styles.muted}>
@@ -407,7 +408,8 @@ const styles = themed(() => StyleSheet.create({
   },
   secondaryText: { color: colors.primary, fontWeight: '700' },
   demo: { textAlign: 'center', fontSize: 12, color: colors.placeholder },
-  rating: { fontSize: 14, color: colors.primary, marginTop: 2 },
+  rating: { fontSize: 14, color: colors.textMuted, marginTop: 2 },
+  ratingStars: { color: '#E0A800' },
   error: { fontSize: 13, color: colors.danger },
 }));
 

@@ -8,7 +8,7 @@ import { send } from '../lib/accountApi';
 import { confirmAction } from '../lib/confirm';
 import { stars } from '../lib/feedback';
 import { REPORT_REASONS } from '../lib/safety';
-import { issueLabel, venueIssuesApi, type Resolution, type VenueIssue } from '../lib/venueIssues';
+import { issueLabel, venueIssuesApi, type Resolution, type PendingVenue, type VenueIssue } from '../lib/venueIssues';
 import { colors, themed } from '../theme';
 
 type Reported = {
@@ -41,12 +41,14 @@ const reasonLabel = (reason: string) => REPORT_REASONS.find((r) => r.reason === 
 export function AdminScreen({ token, onBack, onOpenVenue }: { token: string; onBack: () => void; onOpenVenue: (venue: { id: number }) => void }) {
   const [items, setItems] = useState<Reported[] | null>(null);
   const [issues, setIssues] = useState<VenueIssue[]>([]);
+  const [pending, setPending] = useState<PendingVenue[]>([]);
   const [signUps, setSignUps] = useState<SignUp[]>([]);
   const [allSignUps, setAllSignUps] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     venueIssuesApi.open(token).then(setIssues).catch(() => {});
+    venueIssuesApi.pending(token).then(setPending).catch(() => {});
     adminApi.waitlist(token).then(setSignUps).catch(() => {});
     adminApi
       .reports(token)
@@ -86,6 +88,22 @@ export function AdminScreen({ token, onBack, onOpenVenue }: { token: string; onB
           <Text style={styles.venue}>Tümünü gör ({signUps.length})</Text>
         </Pressable>
       )}
+
+      <Text style={styles.heading}>Onay bekleyen mekanlar</Text>
+      <Text style={styles.muted}>Kullanıcıların eklediği mekanlar; herkese görünüyorlar. Adı uygunsuzsa düzelt ya da kaldır.</Text>
+      {pending.length === 0 && <Text style={styles.muted}>Onay bekleyen mekan yok.</Text>}
+      {pending.map((venue) => (
+        <PendingCard
+          key={venue.id}
+          venue={venue}
+          onOpenVenue={() => onOpenVenue({ id: venue.id })}
+          onRename={(name) => venueIssuesApi.moderate(token, venue.id, 'rename', name).then(load).catch(load)}
+          onRemove={() => {
+            setPending((list) => list.filter((v) => v.id !== venue.id));
+            venueIssuesApi.moderate(token, venue.id, 'remove').catch(load);
+          }}
+        />
+      ))}
 
       <Text style={styles.heading}>Kontrol edilecek mekanlar</Text>
       <Text style={styles.muted}>"Bilgi yanlış mı?" ile aynı şeyi en az 3 kişi bildirdi.</Text>
@@ -148,8 +166,38 @@ export function AdminScreen({ token, onBack, onOpenVenue }: { token: string; onB
 }
 
 /** One venue to check: close it (off the map), save the right name / hours, or dismiss the reports. */
+function PendingCard({ venue, onOpenVenue, onRename, onRemove }: { venue: PendingVenue; onOpenVenue: () => void; onRename: (name: string) => void; onRemove: () => void }) {
+  const [name, setName] = useState(venue.name);
+  const changed = name.trim().length > 0 && name.trim() !== venue.name;
+  return (
+    <View style={styles.card}>
+      <Pressable onPress={onOpenVenue}>
+        <Text style={styles.venue}>
+          {venue.name}
+          {venue.district ? ` · ${venue.district}` : ''}
+        </Text>
+      </Pressable>
+      <Text style={styles.muted}>
+        {venue.added_by ? `@${venue.added_by}` : 'Silinmiş hesap'} · {venue.checkins} check-in
+      </Text>
+      <TextInput value={name} onChangeText={setName} maxLength={80} placeholder="Doğru adı" placeholderTextColor={colors.placeholder} style={styles.input} />
+      <View style={styles.row}>
+        <Pressable style={[styles.keep, !changed && styles.disabled]} disabled={!changed} onPress={() => onRename(name.trim())}>
+          <Text style={styles.keepText}>Adı kaydet</Text>
+        </Pressable>
+        <Pressable
+          style={styles.remove}
+          onPress={() => confirmAction(`${venue.name} kaldırılsın mı?`, 'Haritadan ve listelerden çıkar; check-in kayıtları kalır.', 'Kaldır', onRemove)}
+        >
+          <Text style={styles.removeText}>Kaldır</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 function IssueCard({ issue, onOpenVenue, onResolve }: { issue: VenueIssue; onOpenVenue: () => void; onResolve: (r: Resolution) => void }) {
-  const [name, setName] = useState(issue.kind === 'name' ? (issue.notes[0] ?? issue.venue_name) : '');
+  const [name, setName] = useState(issue.kind === 'name' ? (issue.notes[0] ?? issue.venue_name) : issue.kind === 'offensive_name' ? issue.venue_name : '');
   const [hours, setHours] = useState({ open: String(issue.open_hour ?? ''), close: String(issue.close_hour ?? '') });
   const hour = (text: string) => (/^\d{1,2}$/.test(text) && Number(text) <= 24 ? Number(text) : null);
   const open = hour(hours.open);
@@ -170,7 +218,7 @@ function IssueCard({ issue, onOpenVenue, onResolve }: { issue: VenueIssue; onOpe
           “{n}”
         </Text>
       ))}
-      {issue.kind === 'name' && (
+      {(issue.kind === 'name' || issue.kind === 'offensive_name') && (
         <TextInput value={name} onChangeText={setName} maxLength={80} placeholder="Doğru adı" placeholderTextColor={colors.placeholder} style={styles.input} />
       )}
       {issue.kind === 'hours' && (
@@ -197,7 +245,7 @@ function IssueCard({ issue, onOpenVenue, onResolve }: { issue: VenueIssue; onOpe
             disabled={issue.kind === 'hours' && (open === null || close === null)}
             onPress={() =>
               onResolve(
-                issue.kind === 'name'
+                issue.kind === 'name' || issue.kind === 'offensive_name'
                   ? { action: 'fixed', name }
                   : issue.kind === 'hours'
                     ? { action: 'fixed', open_hour: open!, close_hour: close! }

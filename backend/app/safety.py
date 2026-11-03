@@ -128,6 +128,7 @@ def profile(conn: psycopg.Connection, me: dict, username: str, now: datetime) ->
         raise SafetyError("Bu kullanıcı adıyla kimse yok.", 404)
     is_me = other["id"] == me["id"]
     from app.friends import relation
+    from app.social import last_week_winners
     from app.streaks import weekly_streak
     from app.user_photos import photo_time
 
@@ -165,6 +166,7 @@ def profile(conn: psycopg.Connection, me: dict, username: str, now: datetime) ->
         "badges": stats["badges"] if stats else [],
         "venues": venues,
         "weekly_streak": weekly_streak(conn, other["id"], now) if stats else None,
+        "weekly_winner": any(w["user_id"] == other["id"] for w in last_week_winners(conn, now)),
         "stats_hidden": stats is None,
         "level": stats["level"] if stats else _level(conn, other["id"]),
         "photo_at": photo_time(conn, other["id"]),

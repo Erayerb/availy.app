@@ -2,6 +2,7 @@
  * Business campaigns ("next 2 hours, all coffees 20% off"), kept on the server (lib/campaignApi.ts);
  * users see active ones within the chosen radius.
  */
+import type { Crowd } from './crowd.ts';
 import { distanceKm, type LatLon } from './geo.ts';
 
 export const RADIUS_OPTIONS_KM = [1, 2, 5] as const;
@@ -135,4 +136,28 @@ export function campaignTotals(
   const recent = campaigns.filter((c) => c.venueId === venueId && new Date(c.startsAt).getTime() >= since);
   const sum = (key: 'views' | 'claims' | 'redemptions') => recent.reduce((n, c) => n + (c.stats?.[key] ?? 0), 0);
   return { campaigns: recent.length, views: sum('views'), claims: sum('claims'), redemptions: sum('redemptions') };
+}
+
+// No check-in for this long while open: the panel suggests a campaign too
+export const QUIET_HOURS = 2;
+
+export type DeadHour = 'confirmed' | 'oneReport' | 'noCheckins' | null;
+
+/**
+ * The panel's "Ölü saat": at least 2 people say Sakin (the same as the server's alert) or nobody has
+ * checked in for a while since opening: campaign button. One person's Sakin is only mentioned.
+ */
+export function deadHour(venue: { open_now: boolean; hours: string; crowd?: Crowd | null }, now: Date): DeadHour {
+  if (!venue.open_now) return null;
+  const crowd = venue.crowd;
+  if (crowd?.state === 'live') {
+    if (crowd.level !== 'low') return null;
+    return crowd.reporters >= 2 ? 'confirmed' : 'oneReport';
+  }
+  const hourNow = (now.getUTCHours() + 3) % 24; // Istanbul
+  const opened = Number(venue.hours.split(':')[0]);
+  // Just opened: nobody could have come yet
+  if (Number.isNaN(opened) || (hourNow - opened + 24) % 24 < QUIET_HOURS) return null;
+  const last = crowd?.last_report_at ? new Date(crowd.last_report_at).getTime() : null;
+  return last === null || now.getTime() - last >= QUIET_HOURS * 3_600_000 ? 'noCheckins' : null;
 }

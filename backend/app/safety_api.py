@@ -36,6 +36,7 @@ class ProfileOut(BaseModel):
     badges: list[BadgeOut]  # the whole catalog with progress (empty when hidden)
     venues: list[ProfileVenue] | None  # None: not visible (not a friend, or they do not share check-ins)
     weekly_streak: int | None = 0  # "🔥 4 haftalık seri"
+    weekly_winner: bool = False  # first of last week: "Haftanın 1.si"
     stats_hidden: bool = False
     level: LevelOut | None = None  # shown even when the statistics are hidden (a status, like a badge)
     photo_at: datetime | None = None  # profile photo: GET /v1/users/{username}/photo?v=<photo_at>

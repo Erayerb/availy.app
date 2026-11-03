@@ -10,11 +10,8 @@ import { CoverPhoto } from '../components/business/CoverPhoto';
 import { BadgeGrid } from '../components/BadgeGrid';
 import { BackButton } from '../components/BackButton';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
-import { useCampaigns } from '../context/CampaignsContext';
-import { useLoyalty } from '../context/LoyaltyContext';
 import { accountKey, MIN_PASSWORD_LENGTH, normalizeUsername, type User } from '../lib/auth';
 import { downloadMyData } from '../lib/dataExport';
-import { availyPoints } from '../lib/loyalty';
 import { colors, themed } from '../theme';
 
 type Props = {
@@ -52,8 +49,6 @@ export function ProfileScreen({
   // Business: its venue, edited from here
   const { venues, refresh: refreshVenue } = useVenuesByIds(business && user?.venueId ? [user.venueId] : []);
   const venue = venues[0];
-  const { programs } = useLoyalty();
-  const { coupons } = useCampaigns();
 
   if (!user || user.isGuest) {
     return (
@@ -65,8 +60,8 @@ export function ProfileScreen({
         <View style={styles.guest}>
           {user && <Text style={styles.name}>{user.name}</Text>}
           <Text style={styles.muted}>
-            Misafir olarak geziyorsun. Misafir check-in'leri daha az sayılır. Kayıt olursan tam sayılır ve
-            puanların korunur.
+            Misafir olarak geziyorsun. Misafir check-in'leri daha az sayılır. Kayıt olursan tam sayılır,
+            puanların korunur ve rozet kazanmaya başlarsın.
           </Text>
           <Pressable style={styles.primary} onPress={onRegister}>
             <Text style={styles.primaryText}>Kayıt ol</Text>
@@ -84,14 +79,11 @@ export function ProfileScreen({
               Misafir puanın: {user.points ?? 0} (misafirler her şeyden yarım puan alır)
             </Text>
           )}
-          {user?.badges && <BadgeGrid badges={user.badges} />}
         </View>
       </ScrollView>
     );
   }
 
-  const stamps = programs.reduce((sum, p) => sum + (p.member?.totalStamps ?? 0), 0);
-  const used = business ? 0 : coupons.filter((c) => c.redeemedAt).length;
 
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
@@ -131,7 +123,7 @@ export function ProfileScreen({
         {!business && (
           <Pressable style={styles.secondary} onPress={onOpenMyProfile}>
             <Text style={styles.secondaryText}>
-              Profilimi gör · {(user.points ?? 0) + availyPoints(stamps, used)} puan, rozetler, mekanlar
+              Profilimi gör · {user.points ?? 0} puan, rozetler, mekanlar
             </Text>
           </Pressable>
         )}

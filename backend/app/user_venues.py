@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 
 import psycopg
 
+from app.name_check import name_problem
 from app.venues import fold_tr
 
 MAX_NAME = 60
@@ -60,6 +61,9 @@ def add_venue(
     text = " ".join(name.split())
     if not 2 <= len(text) <= MAX_NAME:
         raise VenueError(f"Mekanın adını yaz (en fazla {MAX_NAME} karakter).")
+    problem = name_problem(text)
+    if problem:
+        raise VenueError(problem)
     if category not in CATEGORIES:
         raise VenueError("Mekan türünü seç.")
     if not (-90 <= lat <= 90 and -180 <= lon <= 180):

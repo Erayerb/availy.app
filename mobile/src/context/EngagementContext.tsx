@@ -43,7 +43,7 @@ type Engagement = {
   photos: Record<string, string>;
   setPhoto: (venueId: number, uri: string) => void;
   // Shows the in-app banner and, on phones, a local notification
-  notify: (title: string, body: string, phone: boolean) => void;
+  notify: (title: string, body: string, phone: boolean, venueId: number) => void;
 };
 
 const EngagementContext = createContext<Engagement | null>(null);
@@ -77,10 +77,10 @@ export function EngagementProvider({ userKey, token, children }: { userKey: stri
     };
   }, [token, userKey, setWatches]);
 
-  const notify = useCallback((title: string, body: string, phone: boolean) => {
+  const notify = useCallback((title: string, body: string, phone: boolean, venueId: number) => {
     setAlert(`${title} · ${body}`);
     if (phone && Platform.OS !== 'web') {
-      Notifications.scheduleNotificationAsync({ content: { title, body }, trigger: null }).catch(() => {});
+      Notifications.scheduleNotificationAsync({ content: { title, body, data: { venueId } }, trigger: null }).catch(() => {});
     }
   }, []);
 
@@ -114,7 +114,7 @@ export function EngagementProvider({ userKey, token, children }: { userKey: stri
         if (token) emptied.forEach((v) => userSyncApi.removeWatch(token, v.id).catch(() => {}));
         for (const venue of emptied) {
           const { title, body } = notificationText(venue);
-          notify(title, body, watchNotifications);
+          notify(title, body, watchNotifications, venue.id);
         }
       } catch {
         // Try again on the next check

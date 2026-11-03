@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
@@ -11,15 +11,14 @@ import { listsApi, type VenueList as VenueListType } from '../lib/lists';
 import { shortDate, timeAgo } from '../lib/crowd';
 import { categoryLabel } from '../lib/filters';
 import { friendsApi } from '../lib/friends';
-import { safetyApi, splitVenues, type Profile, type ProfileVenue, type Level } from '../lib/safety';
+import { safetyApi, type Profile, type ProfileVenue, type Level } from '../lib/safety';
 import { categoryVisual } from '../lib/visuals';
 import { Icon, InlineIcon } from '../components/Icon';
 import { confirmAction } from '../lib/confirm';
 import { colors, themed } from '../theme';
 
-// Venue lists show this many rows, the rest scroll
-const VISIBLE_VENUES = 3;
-const VENUE_ROW = 52;
+// Venue lists show this many rows; the rest open on their own page
+const VISIBLE_VENUES = 5;
 
 type Props = {
   token: string;
@@ -37,6 +36,7 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [fullList, setFullList] = useState(false);
+  const [onlyDiscovered, setOnlyDiscovered] = useState(false);
   // Their lists I may see (mine: all of them)
   const [lists, setLists] = useState<VenueListType[]>([]);
   useEffect(() => {
@@ -93,22 +93,18 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
   }
 
   const me = profile.relation === 'self';
-  const venues = profile.venues ? splitVenues(profile.venues) : null;
+  const venues = profile.venues ?? null;
+  const discovered = venues ? venues.filter((v) => v.discovered) : [];
+  const shownVenues = venues ? (onlyDiscovered ? discovered : venues) : [];
+  const venueChips = venues && discovered.length > 0 && (
+    <View style={styles.venueChips}>
+      <Chip label={`Tümü · ${venues.length}`} active={!onlyDiscovered} onPress={() => setOnlyDiscovered(false)} />
+      <Chip label={`${me ? 'Keşfettiklerin' : 'Keşfettikleri'} · ${discovered.length}`} active={onlyDiscovered} onPress={() => setOnlyDiscovered(true)} />
+    </View>
+  );
 
-  // "Tümü": both lists in full on one page
+  // "Tümü": the whole list on its own page
   if (fullList && venues) {
-    const row = (v: ProfileVenue) => (
-      <Pressable key={v.venue_id} onPress={() => onOpenVenue({ id: v.venue_id })} style={styles.venue}>
-        <Icon name={categoryVisual(v.category).icon} size={22} color={categoryVisual(v.category).color} />
-        <View style={styles.flex}>
-          <Text style={styles.text}>{v.venue_name}</Text>
-          <Text style={styles.muted}>
-            {categoryLabel(v.category)} · {v.visits} kez · son {timeAgo(v.last_at, new Date())}
-          </Text>
-        </View>
-        <Text style={styles.chevron}>›</Text>
-      </Pressable>
-    );
     return (
       <ScrollView style={styles.page} contentContainerStyle={styles.content}>
         <View style={styles.topRow}>
@@ -118,15 +114,11 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
           </Text>
         </View>
         <Text style={styles.muted}>@{profile.username}</Text>
+        {venueChips}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}><InlineIcon name="sparkles" /> Keşfettiği mekanlar · {venues.discovered.length}</Text>
-          {venues.discovered.length === 0 && <Text style={styles.muted}>Henüz keşfettiği mekan yok.</Text>}
-          {venues.discovered.map(row)}
-        </View>
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}><InlineIcon name="map-pin" /> Check-in yaptığı mekanlar · {venues.visited.length}</Text>
-          {venues.visited.length === 0 && <Text style={styles.muted}>Henüz check-in yok.</Text>}
-          {venues.visited.map(row)}
+          {shownVenues.map((v) => (
+            <VenueRow key={v.venue_id} venue={v} onOpenVenue={onOpenVenue} />
+          ))}
         </View>
       </ScrollView>
     );
@@ -152,6 +144,9 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
             </Text>
           </View>
         </View>
+        {profile.weekly_winner && (
+          <Text style={styles.winner}><InlineIcon name="trophy" /> Haftanın 1.si</Text>
+        )}
         {profile.level && <LevelCard level={profile.level} onOpen={() => onOpenLevels(profile.level!)} />}
         {profile.stats_hidden ? (
           <Text style={styles.muted}><InlineIcon name="lock" /> @{profile.username} istatistiklerini yalnızca {profile.relation === 'friend' ? 'kendisine' : 'arkadaşlarına'} gösteriyor.</Text>
@@ -218,20 +213,14 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
         <Text style={styles.muted}>
           {profile.relation === 'friend'
             ? `@${profile.username} check-in'lerini paylaşmıyor.`
-            : `Keşfettiği ve check-in yaptığı mekanları yalnızca arkadaşları görebilir.`}
+            : `Gittiği mekanları yalnızca arkadaşları görebilir.`}
         </Text>
       ) : (
         <>
           <VenueList
-            title={`Keşfettiği mekanlar · ${venues.discovered.length}`}
-            venues={venues.discovered}
-            empty="Henüz keşfettiği mekan yok."
-            onOpenVenue={onOpenVenue}
-            onShowAll={() => setFullList(true)}
-          />
-          <VenueList
-            title={`Check-in yaptığı mekanlar · ${venues.visited.length}`}
-            venues={venues.visited}
+            title={`${me ? 'Gittiğin' : 'Gittiği'} mekanlar · ${venues.length}`}
+            chips={venueChips}
+            venues={shownVenues}
             empty="Henüz check-in yok."
             onOpenVenue={onOpenVenue}
             onShowAll={() => setFullList(true)}
@@ -241,7 +230,7 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
 
       {lists.length > 0 && (
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}><InlineIcon name="list" /> Listeleri · {lists.length}</Text>
+          <Text style={styles.sectionTitle}><InlineIcon name="list" /> {me ? 'Listelerin' : 'Listeleri'} · {lists.length}</Text>
           {lists.map((l) => (
             <Pressable key={l.id} onPress={() => onOpenList(l.id)} style={styles.listRow}>
               <Text style={[styles.listName, styles.flex]} numberOfLines={1}>
@@ -258,14 +247,42 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
   );
 }
 
+function VenueRow({ venue, onOpenVenue }: { venue: ProfileVenue; onOpenVenue: (v: { id: number }) => void }) {
+  return (
+    <Pressable onPress={() => onOpenVenue({ id: venue.venue_id })} style={styles.venue}>
+      <Icon name={categoryVisual(venue.category).icon} size={22} color={categoryVisual(venue.category).color} />
+      <View style={styles.flex}>
+        <Text style={styles.text}>
+          {venue.venue_name}
+          {venue.discovered ? ' ✨' : ''}
+        </Text>
+        <Text style={styles.muted}>
+          {categoryLabel(venue.category)} · {venue.visits} kez · son {timeAgo(venue.last_at, new Date())}
+        </Text>
+      </View>
+      <Text style={styles.chevron}>›</Text>
+    </Pressable>
+  );
+}
+
+function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={[styles.chip, active && styles.chipActive]} accessibilityState={{ selected: active }}>
+      <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 function VenueList({
   title,
+  chips,
   venues,
   empty,
   onOpenVenue,
   onShowAll,
 }: {
   title: string;
+  chips: ReactNode;
   venues: ProfileVenue[];
   empty: string;
   onOpenVenue: (v: { id: number }) => void;
@@ -273,28 +290,17 @@ function VenueList({
 }) {
   return (
     <View style={styles.card}>
-      {/* The title opens the whole list on its own page */}
-      <Pressable onPress={onShowAll} style={styles.listHead} disabled={venues.length === 0}>
-        <Text style={[styles.sectionTitle, styles.flex]}>{title}</Text>
-        {venues.length > 0 && <Text style={styles.link}>Tümü ›</Text>}
-      </Pressable>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {chips}
       {venues.length === 0 && <Text style={styles.muted}>{empty}</Text>}
-      {/* Three rows are shown; the rest scroll inside the card */}
-      <ScrollView style={venues.length > VISIBLE_VENUES ? styles.venueScroll : undefined} nestedScrollEnabled>
-        {venues.map((v) => (
-          <Pressable key={v.venue_id} onPress={() => onOpenVenue({ id: v.venue_id })} style={styles.venue}>
-            <Icon name={categoryVisual(v.category).icon} size={22} color={categoryVisual(v.category).color} />
-            <View style={styles.flex}>
-              <Text style={styles.text}>{v.venue_name}</Text>
-              <Text style={styles.muted}>
-                {categoryLabel(v.category)} · {v.visits} kez · son {timeAgo(v.last_at, new Date())}
-              </Text>
-            </View>
-            <Text style={styles.chevron}>›</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-
+      {venues.slice(0, VISIBLE_VENUES).map((v) => (
+        <VenueRow key={v.venue_id} venue={v} onOpenVenue={onOpenVenue} />
+      ))}
+      {venues.length > VISIBLE_VENUES && (
+        <Pressable onPress={onShowAll} hitSlop={8}>
+          <Text style={styles.link}>{venues.length - VISIBLE_VENUES} mekan daha ›</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -318,6 +324,12 @@ function Action({ label, onPress, primary, danger }: { label: string; onPress: (
 
 const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
+  winner: { fontSize: 14, fontWeight: '700', color: colors.gold },
+  venueChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 14, backgroundColor: colors.background },
+  chipActive: { backgroundColor: colors.primary },
+  chipText: { fontSize: 13, fontWeight: '600', color: colors.text },
+  chipTextActive: { color: colors.onPrimary },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 48, gap: 14 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { flex: 1, fontSize: 26, fontWeight: '700', color: colors.text },
@@ -338,13 +350,12 @@ const styles = themed(() => StyleSheet.create({
   actionTextPrimary: { color: colors.onPrimary },
   actionTextDanger: { color: colors.danger },
   note: { fontSize: 13, color: colors.success, fontWeight: '600' },
-  listHead: { flexDirection: 'row', alignItems: 'center' },
   link: { color: colors.primary, fontWeight: '600', fontSize: 14 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
   listRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   listName: { fontSize: 15, fontWeight: '600', color: colors.text },
   listCount: { fontSize: 13, color: colors.textMuted },
-  venue: { flexDirection: 'row', alignItems: 'center', gap: 12, height: VENUE_ROW },
+  venue: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 52 },
   latest: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -357,7 +368,6 @@ const styles = themed(() => StyleSheet.create({
   },
   latestText: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.text },
   chevronSmall: { fontSize: 20, color: colors.textMuted },
-  venueScroll: { maxHeight: VENUE_ROW * VISIBLE_VENUES },
   emoji: { fontSize: 22 },
   text: { fontSize: 15, fontWeight: '600', color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },

@@ -84,7 +84,7 @@ export function LoyaltySetup() {
           {program.kind === 'stamps' ? (
             <>
               <Text style={panel.muted}>
-                İki durumda da müşterinin Kampanyalar ve sadakat → Sadakat sekmesindeki QR'ını okutursun.
+                İki durumda da müşterinin Kampanyalar → Sadakat sekmesindeki QR'ını okutursun.
               </Text>
               <Pressable style={panel.primary} onPress={() => setScan('stamp')}>
                 <Text style={panel.primaryText}><InlineIcon name="camera" /> Damga ver</Text>
