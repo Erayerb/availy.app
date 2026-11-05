@@ -12,8 +12,8 @@ import { Tinos_400Regular, Tinos_700Bold, useFonts } from '@expo-google-fonts/ti
 import { ICON_FONT, InlineIcon } from './src/components/Icon';
 import { BadgeCelebration } from './src/components/BadgeCelebration';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useState } from 'react';
-import { Alert, Platform, StyleSheet, View, useColorScheme } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, BackHandler, Linking, Platform, StyleSheet, View, useColorScheme } from 'react-native';
 import { Text } from './src/components/Text';
 import { Pressable } from './src/components/Pressable';
 
@@ -39,6 +39,7 @@ import { FirstCheckinSheet } from './src/components/FirstCheckinSheet';
 import { InviteSheet } from './src/components/InviteSheet';
 import { IntroOverlay } from './src/components/IntroOverlay';
 import { friendsApi, inviteFromQuery } from './src/lib/friends';
+import { venueIdFromDoorLink } from './src/lib/share';
 import { listCodeFromQuery } from './src/lib/lists';
 import { ListScreen } from './src/screens/ListScreen';
 import { AdminScreen } from './src/screens/AdminScreen';
@@ -62,7 +63,9 @@ import { isLocalVenueId } from './src/lib/localVenues';
 import type { Region } from './src/lib/bbox';
 import { toggleSingle, type Tag } from './src/lib/filters';
 import type { Side } from './src/lib/istanbul';
-import { back, push, type History } from './src/lib/navigation';
+import { back, push, type History, openPages } from './src/lib/navigation';
+import { OfflineBar } from './src/components/OfflineBar';
+import { ScreenStack } from './src/components/ScreenStack';
 import { fetchVenuesByIds, searchVenues } from './src/lib/api';
 import { venueFromQuery } from './src/lib/share';
 import type { SortMode } from './src/lib/sort';
@@ -99,6 +102,20 @@ const VENUE_ZOOM = 0.02;
 const SPLASH_MS = 1000;
 
 // First screen after entering: businesses start on their panel
+// A page in the history, with what it was opened for
+type Route = {
+  name: Screen;
+  id: number;
+  detailId?: number;
+  username?: string;
+  list?: { id: number } | { code: string };
+};
+const sameRoute = (route: Route, name: Screen, params: Omit<Route, 'name' | 'id'>) =>
+  route.name === name &&
+  route.detailId === params.detailId &&
+  route.username === params.username &&
+  JSON.stringify(route.list) === JSON.stringify(params.list);
+
 const landingFor = (role: Role): Screen => (role === 'business' ? 'business' : 'home');
 
 // Before the main app: welcome page, sign in / sign up forms, business venue setup
@@ -136,21 +153,18 @@ function Main() {
   // Account type chosen on the welcome page, preselected on the form
   const [authRole, setAuthRole] = useState<Role>('personal');
   // Screen history: the map's back button returns to wherever the user came from
-  const [nav, setNav] = useState<History<Screen>>({ current: 'home', stack: [] });
-  const screen = nav.current;
-  const goTo = (next: Screen) => setNav((h) => push(h, next));
+  const [nav, setNav] = useState<History<Route>>({ current: { name: 'home', id: 0 }, stack: [] });
+  const screen = nav.current.name;
+  const routeId = useRef(0);
+  const goTo = (next: Screen, params: Omit<Route, 'name' | 'id'> = {}) =>
+    setNav((h) => (sameRoute(h.current, next, params) ? h : push(h, { name: next, id: ++routeId.current, ...params })));
+  const visitedTabs = useRef(new Set<string>());
+  const visitedFor = useRef<unknown>(null);
+  const [topTick, setTopTick] = useState(0);
   // v2: a person's profile (mine from the top-right icon, others from names in Sosyal and reviews)
-  const [profileUsername, setProfileUsername] = useState<string | null>(null);
-  const openProfile = (username: string) => {
-    setProfileUsername(username);
-    goTo('user');
-  };
+  const openProfile = (username: string) => goTo('user', { username });
   // v2: a venue list (Favoriler > Listelerim, a friend's profile, or a shared link)
-  const [openedList, setOpenedList] = useState<{ id: number } | { code: string } | null>(null);
-  const openList = (id: number) => {
-    setOpenedList({ id });
-    goTo('venueList');
-  };
+  const openList = (id: number) => goTo('venueList', { list: { id } });
   // Guests have no public profile: they get the sign-up page instead
   const openMyProfile = () => {
     // A business's profile is its venue page, as customers see it
@@ -164,12 +178,10 @@ function Main() {
   const [favoritesTab, setFavoritesTab] = useState<FavoritesTab>('saved');
   // Kampanyalar opened on one of its tabs (Müşteriler > "Sadakat programı oluştur")
   const [campaignsTab, setCampaignsTab] = useState<CampaignsTab | null>(null);
-  // Tapping Sosyal / Kampanyalar in the tab bar starts them over (their first tab); back keeps the last tab
-  const [tabReset, setTabReset] = useState(0);
   // Seviyeler: whose level to mark (the profile it was opened from)
   const [levelsFor, setLevelsFor] = useState<Level | null>(null);
   const role: Role = isBusiness(auth.user) ? 'business' : 'personal';
-  const goBack = () => setNav((h) => back(h, landingFor(role)));
+  const goBack = () => setNav((h) => back(h, { name: landingFor(role), id: 0 }));
   // Daha fazla: fresh points, profile steps and badges (a new photo or friend may have earned one)
   const { refreshMe } = auth;
   useEffect(() => {
@@ -196,7 +208,6 @@ function Main() {
   const [query, setQuery] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('recommended');
   // Venue shown on the detail page
-  const [detailId, setDetailId] = useState<number | null>(null);
   // Web: a shared link (?venue=Name) opens that venue after entering the app
   const [sharedVenue, setSharedVenue] = useState(() =>
     Platform.OS === 'web' && typeof window !== 'undefined' ? venueFromQuery(window.location.search) : null,
@@ -217,7 +228,7 @@ function Main() {
   const enterApp = (as: Role = 'personal') => {
     setAuthForm(null);
     setEntered(true);
-    setNav({ current: landingFor(as), stack: [] });
+    setNav({ current: { name: landingFor(as), id: 0 }, stack: [] });
   };
 
   const showSplash = gate === 'welcome' && auth.ready && auth.user !== null;
@@ -262,10 +273,9 @@ function Main() {
   );
   useEffect(() => {
     if (!sharedList || gate !== null || !auth.user?.token) return;
-    setOpenedList({ code: sharedList });
     setSharedList(null);
     window.history.replaceState(null, '', window.location.pathname);
-    goTo('venueList');
+    goTo('venueList', { list: { code: sharedList } });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sharedList, gate, auth.user]);
 
@@ -288,8 +298,7 @@ function Main() {
   };
 
   const openDetails = (venue: { id: number }) => {
-    setDetailId(venue.id);
-    goTo('detail');
+    goTo('detail', { detailId: venue.id });
   };
 
   // The map starts nearby, not on the whole city; once it has been opened it keeps its own place
@@ -328,6 +337,40 @@ function Main() {
     } else if (tapped.list) goTo('notifications');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tapped, gate]);
+
+  // Android's back button goes through the same history as the arrows
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (nav.stack.length === 0) return false;
+      goBack();
+      return true;
+    });
+    return () => subscription.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nav]);
+
+  // The door QR (?kapi=123): on the web from the address; on the phone when the link opens the app
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const take = (url: string | null | undefined) => {
+      const id = url ? venueIdFromDoorLink(url) : null;
+      if (id !== null) setDoorVenue(id);
+    };
+    Linking.getInitialURL().then(take).catch(() => {});
+    const subscription = Linking.addEventListener('url', ({ url }) => take(url));
+    return () => subscription.remove();
+  }, []);
+  const [doorVenue, setDoorVenue] = useState(() =>
+    Platform.OS === 'web' && typeof window !== 'undefined' ? venueIdFromDoorLink(window.location.search) : null,
+  );
+  useEffect(() => {
+    if (doorVenue === null || gate !== null) return;
+    setDoorVenue(null);
+    window.history.replaceState(null, '', window.location.pathname);
+    openDetails({ id: doorVenue });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doorVenue, gate]);
 
   useEffect(() => {
     if (!sharedVenue || gate !== null) return;
@@ -428,7 +471,7 @@ function Main() {
           onDone={async (venueId) => {
             // A newly chosen venue has to be verified again
             await auth.updateProfile({ venueId, venueVerified: false });
-            setNav({ current: 'business', stack: [] });
+            setNav({ current: { name: 'business', id: 0 }, stack: [] });
           }}
           onLogout={async () => {
             setEntered(false);
@@ -460,30 +503,17 @@ function Main() {
     },
   };
 
-  return (
-    <EngagementProvider
-      // A new key (e.g. a changed e-mail) loads that account's data again
-      key={auth.user ? accountKey(auth.user) : 'guest'}
-      userKey={auth.user ? accountKey(auth.user) : 'guest'}
-      token={isRegistered(auth.user) ? (auth.user?.token ?? null) : null}
-    >
-      <SettingsSync token={isRegistered(auth.user) ? (auth.user?.token ?? null) : null} />
-      <CampaignsProvider token={auth.user?.token ?? null} business={isBusiness(auth.user)}>
-      <LoyaltyProvider token={auth.user?.token ?? null} business={isBusiness(auth.user)}>
-      <FavoritesProvider
-        accountKey={auth.user ? accountKey(auth.user) : null}
-        token={isRegistered(auth.user) ? (auth.user?.token ?? null) : null}
-        signedIn={isRegistered(auth.user)} onLoginRequired={() => setAuthForm('login')}>
-      <NotificationsProvider
-        token={isRegistered(auth.user) ? (auth.user?.token ?? null) : null}
-        accountKey={auth.user ? accountKey(auth.user) : null}
-      >
-      <HeaderActionsContext.Provider
-        value={{ onOpenProfile: openMyProfile, onOpenNotifications: () => goTo('notifications') }}
-      >
-        <View style={styles.container}>
-          {/* Screens fill the space above the bottom tab bar */}
-          <View style={styles.screen}>
+
+  const tabs = isBusiness(auth.user) ? BUSINESS_TABS : CUSTOMER_TABS;
+  const tabNames: string[] = tabs.map((t) => t.screen);
+  // Each page with what it was opened for: a page behind another keeps its own venue or person
+  const renderRoute = (route: Route) => {
+    const screen = route.name;
+    const detailId = route.detailId ?? null;
+    const profileUsername = route.username ?? null;
+    const openedList = route.list ?? null;
+    return (
+      <>
           {screen === 'home' && (
             <HomeScreen
               tags={tags}
@@ -535,6 +565,7 @@ function Main() {
               onOpenUser={openProfile}
               onRegister={() => setAuthForm('register')}
               onEditProfile={() => goTo('profile')}
+              onUpgrade={() => goTo('subscription')}
             />
           )}
           {screen === 'customers' && auth.user?.venueId && (
@@ -609,7 +640,6 @@ function Main() {
           )}
           {screen === 'campaigns' && (
             <CampaignsScreen
-              key={tabReset}
               initialTab={campaignsTab ?? undefined}
               onTabChange={setCampaignsTab}
               signedIn={isRegistered(auth.user)}
@@ -693,7 +723,7 @@ function Main() {
               onOpenSettings={() => goTo('settings')}
             />
           )}
-          {screen === 'checkin' && <CheckinScreen onBack={goBack} onOpenVenue={openDetails} onAddVenue={() => goTo('addVenue')} />}
+          {screen === 'checkin' && <CheckinScreen onBack={goBack} onOpenVenue={openDetails} onAddVenue={() => goTo('addVenue')} visits={visits} />}
           {screen === 'addVenue' && (
             <AddVenueScreen
               user={auth.user}
@@ -710,7 +740,6 @@ function Main() {
           {screen === 'verification' && <VerificationScreen onBack={goBack} />}
           {screen === 'friends' && (
             <SocialScreen
-              key={tabReset}
               initialTab={socialTab}
               onTabChange={setSocialTab}
               user={auth.user}
@@ -747,22 +776,69 @@ function Main() {
               onLogout={logout}
             />
           )}
-          </View>
+      </>
+    );
+  };
+  // Open pages belong to one account
+  if (visitedFor.current !== accountKey) {
+    visitedFor.current = accountKey;
+    visitedTabs.current = new Set();
+  }
+  visitedTabs.current.add(landingFor(role));
+  if (tabNames.includes(screen)) visitedTabs.current.add(screen);
+  const open = openPages(nav, tabNames, [...visitedTabs.current]);
+  const pages = open.map(({ key, route }) => ({ key, element: renderRoute(route) }));
+  const activeKey = open.find((p) => (p.route.id === nav.current.id && p.route.name === screen) || p.key === `tab:${screen}`)?.key ?? '';
+  const behind = nav.stack[nav.stack.length - 1] ?? { name: landingFor(role), id: 0 };
+  const backKey = tabNames.includes(behind.name) ? `tab:${behind.name}` : `page:${behind.id}`;
+
+  return (
+    <EngagementProvider
+      // A new key (e.g. a changed e-mail) loads that account's data again
+      key={auth.user ? accountKey(auth.user) : 'guest'}
+      userKey={auth.user ? accountKey(auth.user) : 'guest'}
+      token={isRegistered(auth.user) ? (auth.user?.token ?? null) : null}
+    >
+      <SettingsSync token={isRegistered(auth.user) ? (auth.user?.token ?? null) : null} />
+      <CampaignsProvider token={auth.user?.token ?? null} business={isBusiness(auth.user)}>
+      <LoyaltyProvider token={auth.user?.token ?? null} business={isBusiness(auth.user)}>
+      <FavoritesProvider
+        accountKey={auth.user ? accountKey(auth.user) : null}
+        token={isRegistered(auth.user) ? (auth.user?.token ?? null) : null}
+        signedIn={isRegistered(auth.user)} onLoginRequired={() => setAuthForm('login')}>
+      <NotificationsProvider
+        token={isRegistered(auth.user) ? (auth.user?.token ?? null) : null}
+        accountKey={auth.user ? accountKey(auth.user) : null}
+      >
+      <HeaderActionsContext.Provider
+        value={{ onOpenProfile: openMyProfile, onOpenNotifications: () => goTo('notifications') }}
+      >
+        <View style={styles.container}>
+          <OfflineBar />
+          {/* Screens fill the space above the bottom tab bar */}
+          <ScreenStack
+            pages={pages}
+            activeKey={activeKey}
+            backKey={backKey}
+            swipeEnabled={screen !== 'map' && !tabNames.includes(screen)}
+            depth={nav.stack.length}
+            topTick={topTick}
+            onBack={goBack}
+          />
 
           <TabBar
-            tabs={isBusiness(auth.user) ? BUSINESS_TABS : CUSTOMER_TABS}
+            tabs={tabs}
             current={screen}
             onSelect={(next) => {
-              if (next === 'friends') setSocialTab('feed');
-              if (next === 'campaigns') setCampaignsTab(null);
-              if (next === 'friends' || next === 'campaigns') setTabReset((n) => n + 1);
-              goTo(next);
+              // The tab already open: back to the top of its list
+              if (next === screen) setTopTick((n) => n + 1);
+              else goTo(next);
               setSelectedId(null);
             }}
           />
 
           <WatchAlert />
-          {suggestion && !(screen === 'detail' && detailId === suggestion.venue.id) && (
+          {suggestion && !(screen === 'detail' && nav.current.detailId === suggestion.venue.id) && (
             <SuggestionBanner
               suggestion={suggestion}
               onCheckin={() => {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Linking, StyleSheet, View } from 'react-native';
+import { Alert, Platform, Linking, StyleSheet, View } from 'react-native';
 import { Text, TextInput } from './Text';
 import { Pressable } from './Pressable';
 
@@ -14,6 +14,7 @@ import { confirmAction } from '../lib/confirm';
 import { stars } from '../lib/feedback';
 import { MAX_REVIEW, newestMine, reviewsApi, type Reviews } from '../lib/reviews';
 import { checkinShareMessage } from '../lib/share';
+import { socialApi } from '../lib/social';
 import { shareText } from '../lib/shareVenue';
 import { LEVELS, type Level } from '../lib/occupancy';
 import { Celebration } from './Celebration';
@@ -178,16 +179,38 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
   };
 
   // Checked in here less than 90 minutes ago: the button stays, closed, with the time it opens above it
+  // "Buradayım, gel": a notification to friends on availy (once per check-in, not for a hidden one), or the share sheet
+  const shareOut = async () => {
+    if (!shared) return;
+    const note = await shareText(checkinShareMessage(venue.name, shared.label, shared.first, review?.body ?? words));
+    setShared({ ...shared, note });
+  };
+  const notifyFriends = async () => {
+    if (!shared || !user?.token) return;
+    const note = await socialApi
+      .callFriends(user.token, shared.id)
+      .then(({ friends }) => `✓ ${friends} arkadaşına bildirim gitti.`)
+      .catch((e) => (e instanceof Error ? e.message : 'Olmadı, tekrar dene.'));
+    setShared({ ...shared, note });
+  };
+  const comeHere = () => {
+    if (!isRegistered(user) || isPrivate) return shareOut();
+    if (Platform.OS === 'web') {
+      if (window.confirm('Arkadaşlarına bildirim gönderilsin mi?')) notifyFriends();
+      else shareOut();
+      return;
+    }
+    Alert.alert('Buradayım, gel', 'Arkadaşlarına nasıl haber verelim?', [
+      { text: 'Arkadaşlarıma bildirim gönder', onPress: notifyFriends },
+      { text: 'Arkadaşlarınla paylaş', onPress: shareOut },
+      { text: 'Vazgeç', style: 'cancel' },
+    ]);
+  };
+
   // Next to the review's own button
   const shareButton = shared && (
-    <Pressable
-      style={styles.share}
-      onPress={async () => {
-        const note = await shareText(checkinShareMessage(venue.name, shared.label, shared.first, review?.body ?? words));
-        setShared({ ...shared, note });
-      }}
-    >
-      <Text style={styles.shareText}><InlineIcon name="speakerphone" /> Arkadaşlarına paylaş</Text>
+    <Pressable style={[styles.actionButton, styles.share]} onPress={comeHere}>
+      <Text style={styles.shareText}><InlineIcon name="map-pin" /> Buradayım, gel</Text>
     </Pressable>
   );
 
@@ -216,7 +239,7 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
                   </Text>
                   .
                 </Text>
-                <View style={styles.reviewActions}>{shareButton}</View>
+                <View style={styles.buttonRow}>{shareButton}</View>
               </>
             ) : review && !editing ? (
               <View style={styles.words}>
@@ -238,8 +261,8 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
                   <Pressable hitSlop={10} onPress={removeReview}>
                     <Text style={styles.deleteText}>Sil</Text>
                   </Pressable>
-                  {shareButton}
                 </View>
+                <View style={styles.buttonRow}>{shareButton}</View>
               </View>
             ) : (
               <View style={styles.words}>
@@ -261,19 +284,20 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
                   style={styles.input}
                 />
                 {reviewError && <Text style={styles.error}>{reviewError}</Text>}
-                <View style={styles.reviewActions}>
+                <View style={styles.buttonRow}>
                   {editing && (
-                    <Pressable style={styles.saveWords} onPress={() => setEditing(false)}>
+                    <Pressable style={[styles.actionButton, styles.saveWords]} onPress={() => setEditing(false)}>
                       <Text style={styles.saveWordsText}>Vazgeç</Text>
                     </Pressable>
                   )}
-                  <Pressable style={[styles.saveWords, rating < 1 && styles.disabled]} onPress={saveReview} disabled={rating < 1}>
+                  <Pressable style={[styles.actionButton, styles.saveWords, rating < 1 && styles.disabled]} onPress={saveReview} disabled={rating < 1}>
                     <Text style={styles.saveWordsText}>{editing ? 'Kaydet' : 'Paylaş'}</Text>
                   </Pressable>
                   {!editing && shareButton}
                 </View>
               </View>
             )}
+            {/* Under the buttons, so they stay where they are when it appears */}
             {shared.note && <Text style={styles.muted}>{shared.note}</Text>}
           </View>
         ) : (
@@ -283,10 +307,15 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
           </>
         )}
         <Text style={styles.text}>Tekrar check-in: {clock(nextAt)}</Text>
-        <View style={[styles.primary, styles.disabled]}>
-          <Text style={styles.primaryText}><InlineIcon name="map-pin" /> Check-in yap</Text>
-        </View>
-        <Text style={styles.muted}>Aynı mekana 90 dakikada bir check-in yapılabilir.</Text>
+        {/* Right after a check-in the line above says enough */}
+        {!(result?.ok && shared) && (
+          <>
+            <View style={[styles.primary, styles.disabled]}>
+              <Text style={styles.primaryText}><InlineIcon name="map-pin" /> Check-in yap</Text>
+            </View>
+            <Text style={styles.muted}>Aynı mekana 90 dakikada bir check-in yapılabilir.</Text>
+          </>
+        )}
       </View>
     );
   }
@@ -404,7 +433,7 @@ const styles = themed(() => StyleSheet.create({
     fontSize: 14,
     textAlignVertical: 'top',
   },
-  saveWords: { alignSelf: 'flex-end', paddingVertical: 7, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary },
+  saveWords: { borderColor: colors.primary },
   saveWordsText: { color: colors.primary, fontWeight: '700' },
   quote: { fontSize: 14, fontStyle: 'italic', color: colors.text, textAlign: 'center' },
   stars: { color: '#E0A800', fontStyle: 'normal' },
@@ -412,12 +441,14 @@ const styles = themed(() => StyleSheet.create({
   starsRow: { flexDirection: 'row', gap: 6, justifyContent: 'center' },
   star: { fontSize: 28, color: colors.textMuted },
   starOn: { color: '#E0A800' },
-  reviewActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: 12 },
+  reviewActions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 12 },
   deleteText: { color: colors.danger, fontWeight: '700' },
   coupon: { alignSelf: 'stretch', padding: 10, borderRadius: 12, backgroundColor: colors.cream, gap: 2, alignItems: 'center' },
   couponTitle: { fontSize: 15, fontWeight: '800', color: colors.primary },
   partyTitle: { fontSize: 20, fontWeight: '800', color: colors.text },
-  share: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 12, backgroundColor: colors.primary },
+  share: { backgroundColor: colors.primary, borderColor: colors.primary },
+  buttonRow: { flexDirection: 'row', justifyContent: 'center', gap: 10 },
+  actionButton: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 12, borderWidth: 1.5 },
   shareText: { color: colors.onPrimary, fontWeight: '700' },
   privateText: { flex: 1, gap: 2 },
 }));

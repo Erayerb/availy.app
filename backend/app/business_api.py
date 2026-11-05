@@ -34,6 +34,13 @@ class RewardIn(BaseModel):
     message: str
 
 
+class QuietSlot(BaseModel):
+    weekday: int  # Monday = 0
+    start_hour: int
+    hours: int
+    checkins: int
+
+
 class StatsOut(BaseModel):
     today: list[HourOut]
     today_checkins: int
@@ -41,6 +48,7 @@ class StatsOut(BaseModel):
     week_people: int
     week_returning: int  # had been here before
     weekday: list[int]  # check-ins in the last 30 days, Monday first
+    quiet_slot: QuietSlot | None = None  # the emptiest two hours of the week
     total_checkins: int
     discovered_by: Discoverer | None
     month_people: int = 0  # different people in the last 30 days

@@ -62,6 +62,12 @@ export function VenueCard({ venue, friendsToken = null, onClose, onDetails, onSh
           </Pressable>
         </View>
       </View>
+      {venue.founder && (
+        <View style={styles.founderRow}>
+          <Icon name="rosette" size={14} color={colors.gold} />
+          <Text style={styles.founder}>Kurucu mekan</Text>
+        </View>
+      )}
       <Text style={styles.category}>{categoryLabel(venue.category)}</Text>
       <FriendsHere venueId={venue.id} token={friendsToken} />
 
@@ -106,6 +112,8 @@ export function VenueCard({ venue, friendsToken = null, onClose, onDetails, onSh
 
 const styles = themed(() => StyleSheet.create({
   verified: { color: colors.success, fontWeight: '800' },
+  founderRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  founder: { fontSize: 12, fontWeight: '700', color: colors.gold },
   card: {
     width: CARD_WIDTH,
     padding: 14,

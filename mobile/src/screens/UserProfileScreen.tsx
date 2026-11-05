@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
+import { useOnPageFocus } from '../context/PageContext';
+import { usePullRefresh } from '../hooks/usePullRefresh';
+import { PageSkeleton } from '../components/Skeleton';
 import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
@@ -53,6 +56,8 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
       .catch((e) => setError(e instanceof Error ? e.message : 'Profil yüklenemedi.'));
   }, [token, username]);
   useEffect(load, [load]);
+  const pull = usePullRefresh(load);
+  useOnPageFocus(load);
 
   const act = async (action: () => Promise<unknown>, done: string) => {
     try {
@@ -80,6 +85,7 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
       () => act(() => friendsApi.remove(token, id), 'Arkadaşlıktan çıkarıldı.'),
     );
 
+  if (!profile && !error) return <PageSkeleton />;
   if (!profile) {
     return (
       <View style={styles.page}>
@@ -106,7 +112,7 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
   // "Tümü": the whole list on its own page
   if (fullList && venues) {
     return (
-      <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.page} contentContainerStyle={styles.content} automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
         <View style={styles.topRow}>
           <BackButton onPress={() => setFullList(false)} />
           <Text style={styles.title} numberOfLines={1}>
@@ -125,7 +131,7 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
   }
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.page} contentContainerStyle={styles.content} automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl {...pull} tintColor={colors.primary} />}>
       <View style={styles.topRow}>
         <BackButton onPress={onBack} />
         <Text style={styles.title} numberOfLines={1}>

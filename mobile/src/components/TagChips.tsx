@@ -1,9 +1,9 @@
+import { startTransition, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text } from './Text';
 import { Pressable } from './Pressable';
 
 import { TAG_OPTIONS, type Tag } from '../lib/filters';
-import { haptics } from '../lib/haptics';
 import { colors, themed } from '../theme';
 
 type Props = {
@@ -24,17 +24,25 @@ export function TagChips({ selected, onToggle }: Props) {
 type ChipProps = { label: string; active: boolean; onPress: () => void; disabled?: boolean };
 
 export function Chip({ label, active, onPress, disabled = false }: ChipProps) {
+  // Turning on shows in the same instant; what it filters or sorts follows at low priority
+  const [turningOn, setTurningOn] = useState(false);
+  useEffect(() => setTurningOn(false), [active]);
+  const shown = active || turningOn;
   return (
     <Pressable
       onPress={() => {
-        haptics.tap();
-        onPress();
+        if (!active) {
+          setTurningOn(true);
+          // In case the press changes nothing (a form that refuses it)
+          setTimeout(() => setTurningOn(false), 1000);
+        }
+        startTransition(onPress);
       }}
       disabled={disabled}
-      accessibilityState={{ disabled, selected: active }}
-      style={[styles.chip, active && styles.chipActive, disabled && styles.chipDisabled]}
+      accessibilityState={{ disabled, selected: shown }}
+      style={[styles.chip, shown && styles.chipActive, disabled && styles.chipDisabled]}
     >
-      <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
+      <Text style={[styles.chipText, shown && styles.chipTextActive]}>{label}</Text>
     </Pressable>
   );
 }

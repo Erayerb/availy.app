@@ -66,7 +66,7 @@ export function AdminScreen({ token, onBack, onOpenVenue }: { token: string; onB
   };
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.page} contentContainerStyle={styles.content} automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
       <View style={styles.topRow}>
         <BackButton onPress={onBack} />
         <Text style={styles.title}>Yönetici</Text>

@@ -1,4 +1,5 @@
 import { Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { usePageTop } from '../context/PageContext';
 import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
@@ -67,6 +68,7 @@ type Props = {
 /** Last bottom tab ("☰"): everything that is not a tab of its own. */
 export function MoreScreen({ user, onSelect, onLogin, onRegister, onLogout }: Props) {
   const guest = !user || user.isGuest;
+  const top = usePageTop();
   const items = [
     ...(guest ? GUEST_ITEMS : isBusiness(user) ? BUSINESS_ITEMS : CUSTOMER_ITEMS),
     // A guest sees no row that cannot be opened yet
@@ -75,7 +77,7 @@ export function MoreScreen({ user, onSelect, onLogin, onRegister, onLogout }: Pr
   ];
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+    <ScrollView ref={top} style={styles.page} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
         <Wordmark size={34} />
         <HeaderButtons />

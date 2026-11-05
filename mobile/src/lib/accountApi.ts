@@ -1,4 +1,5 @@
 /** v2: accounts on the server (sign up, sign in, guest, profile). `send` is shared by other v2 calls. */
+import { reportConnection } from './connection.ts';
 import type { Badge, Role, User, ProfileStep } from './auth.ts';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -87,8 +88,10 @@ export async function send<T>(method: string, path: string, body?: unknown, toke
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
+    reportConnection(false);
     throw new ApiError('Sunucuya bağlanılamadı. İnternet bağlantını kontrol et.', 0);
   }
+  reportConnection(true);
   if (response.status === 204) return undefined as T;
   const data = await response.json().catch(() => null);
   if (!response.ok) throw new ApiError(errorMessage(response.status, data), response.status);

@@ -1,7 +1,8 @@
 import { BackButton } from '../components/BackButton';
 import { HeaderButtons } from '../components/HeaderButtons';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { usePageTop } from '../context/PageContext';
 import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
@@ -68,13 +69,19 @@ type Props = {
 export function CampaignsScreen({ signedIn, serverPoints, customerCode, business, onLogin, onOpenVenue, onBack, initialTab, onTabChange }: Props) {
   const tabs = business ? BUSINESS_TABS : CUSTOMER_TABS;
   const [tab, setTabState] = useState<Tab>(initialTab && tabs.some((t) => t.tab === initialTab) ? initialTab : tabs[0].tab);
+  const top = usePageTop();
+  // Opened again on another tab (Müşteriler > "Sadakat programı oluştur"): the page stays open, so it moves there
+  useEffect(() => {
+    if (initialTab && initialTab !== tab && tabs.some((t) => t.tab === initialTab)) setTabState(initialTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialTab]);
   const setTab = (next: Tab) => {
     setTabState(next);
     onTabChange?.(next);
   };
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+    <ScrollView ref={top} style={styles.page} contentContainerStyle={styles.content} automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
       <View style={styles.topRow}>
         {onBack && <BackButton onPress={onBack} />}
         <Text style={[styles.title, styles.flex]}>Kampanyalar</Text>

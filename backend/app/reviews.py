@@ -225,7 +225,8 @@ def friend_feed(
             SELECT 'checkin' AS kind, c.created_at AS at, u.username, v.id AS venue_id, v.name AS venue_name,
                    c.is_first, (SELECT COALESCE(sum(p.amount), 0) FROM points p WHERE p.checkin_id = c.id)::int AS points,
                    rv.rating, COALESCE(rv.body, c.note) AS body, NULL AS review_author,
-                   rv.id AS review_id, COALESCE(rv.allow_replies, false) AS allow_replies, c.id AS checkin_id
+                   rv.id AS review_id, COALESCE(rv.allow_replies, false) AS allow_replies, c.id AS checkin_id,
+                   c.level AS reported
             FROM checkins c JOIN users u ON u.id = c.user_id JOIN venues v ON v.id = c.venue_id
             LEFT JOIN LATERAL (
                 SELECT r.id, r.rating, r.body, r.allow_replies FROM reviews r
@@ -234,7 +235,7 @@ def friend_feed(
             WHERE {checkin_who} AND NOT c.is_demo AND c.created_at > %(since)s AND {plain}
             UNION ALL
             SELECT 'review', r.created_at, u.username, v.id, v.name, false, 0, r.rating, r.body, NULL,
-                   r.id, r.allow_replies, NULL::bigint
+                   r.id, r.allow_replies, NULL::bigint, NULL
             FROM reviews r JOIN users u ON u.id = r.user_id JOIN venues v ON v.id = r.venue_id
             WHERE r.user_id {author_in} AND r.created_at > %(since)s AND NOT {hidden_review("r")}
               -- Already shown with its check-in
@@ -243,7 +244,7 @@ def friend_feed(
               )
             UNION ALL
             SELECT 'reply', p.created_at, u.username, v.id, v.name, false, 0, NULL, p.body, a.username,
-                   r.id, r.allow_replies, NULL::bigint
+                   r.id, r.allow_replies, NULL::bigint, NULL
             FROM review_replies p JOIN users u ON u.id = p.user_id JOIN reviews r ON r.id = p.review_id
             JOIN users a ON a.id = r.user_id JOIN venues v ON v.id = r.venue_id
             WHERE p.user_id {author_in} AND p.created_at > %(since)s AND NOT {hidden_reply("p")}

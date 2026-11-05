@@ -7,6 +7,7 @@ import {
   createCampaign,
   deadHour,
   deadHourSuggestion,
+  scheduleSuggestion,
   endCampaign,
   isActive,
   timeLeft,
@@ -78,6 +79,7 @@ test('dead hour suggestion matches the venue type', () => {
     'Şu an çok sayıda boş yerimiz var! Önümüzdeki 2 saat tüm kahvelerde %20 indirim.',
   );
   assert.match(deadHourSuggestion('restaurant', 30, 1), /1 saat tüm menüde %30/);
+  assert.ok(!deadHourSuggestion('cafe', null, 3).includes('%') && deadHourSuggestion('cafe', null, 3).includes('3 saat'));
 });
 
 test('hours are written as 09:00', () => {
@@ -138,4 +140,10 @@ test('dead hour: two people saying Sakin or a long silence; one person is only m
   // Closed, or just opened: nothing to say
   assert.equal(deadHour({ ...stale(600), open_now: false }, now), null);
   assert.equal(deadHour({ ...stale(600), hours: '14:00–23:00' }, now), null);
+});
+
+test('the weekly campaign sentence follows the choices', () => {
+  assert.equal(scheduleSuggestion('cafe', [1], 13, 3, 20), 'Her salı 13:00–16:00 tüm kahvelerde %20 indirim!');
+  assert.equal(scheduleSuggestion('cafe', [4, 1], 22, 3, 10), 'Her salı ve cuma 22:00–01:00 tüm kahvelerde %10 indirim!');
+  assert.ok(scheduleSuggestion('cafe', [0, 1, 2, 3, 4, 5, 6], 9, 1, null).startsWith('Her gün 09:00–10:00 seni bekliyoruz'));
 });

@@ -11,7 +11,9 @@ import { fetchVenues, searchVenues, type Venue } from '../lib/api';
 import { categoryLabel } from '../lib/filters';
 import { distanceKm, formatDistance, sortByDistance } from '../lib/geo';
 import { shortLocation } from '../lib/location';
+import type { Visit } from '../lib/checkinApi';
 import { bboxAround, CHECKIN_RADIUS_KM } from '../lib/nearby';
+import { COOLDOWN_MS } from '../lib/suggestion';
 import { colors, themed } from '../theme';
 import { InlineIcon } from '../components/Icon';
 
@@ -19,10 +21,10 @@ import { InlineIcon } from '../components/Icon';
 const NEARBY_DELTA = 0.015;
 const MAX_NEARBY = 30;
 
-type Props = { onBack: () => void; onOpenVenue: (venue: Venue) => void; onAddVenue: () => void };
+type Props = { onBack: () => void; onOpenVenue: (venue: Venue) => void; onAddVenue: () => void; visits: Visit[] };
 
 /** v2 map "+": nearest venues and a search; tapping one opens its page, where the check-in is. */
-export function CheckinScreen({ onBack, onOpenVenue, onAddVenue }: Props) {
+export function CheckinScreen({ onBack, onOpenVenue, onAddVenue, visits }: Props) {
   const { point, locate } = useLocation();
   const { crowdLook } = useSettings();
   const [query, setQuery] = useState('');
@@ -119,6 +121,10 @@ export function CheckinScreen({ onBack, onOpenVenue, onAddVenue }: Props) {
       renderItem={({ item }) => {
         const km = point ? distanceKm(point, item) : null;
         const reachable = km !== null && km <= CHECKIN_RADIUS_KM && item.open_now;
+        // Checked in here a moment ago: the next one has to wait
+        const lastAt = visits.find((v) => v.venue_id === item.id)?.last_at;
+        const nextAt = lastAt ? new Date(lastAt).getTime() + COOLDOWN_MS : 0;
+        const waiting = nextAt > Date.now();
         return (
           <Pressable
             onPress={() => onOpenVenue(item)}
@@ -133,8 +139,8 @@ export function CheckinScreen({ onBack, onOpenVenue, onAddVenue }: Props) {
                 {categoryLabel(item.category)} · {shortLocation(item.neighborhood, item.district)}
                 {km !== null ? ` · ${formatDistance(km)}` : ''}
               </Text>
-              <Text style={reachable ? styles.reachable : styles.muted}>
-                {!item.open_now ? 'Kapalı' : reachable ? <><InlineIcon name="map-pin" /> Check-in yapabilirsin</> : crowdLook(item).label}
+              <Text style={reachable && !waiting ? styles.reachable : styles.muted}>
+                {!item.open_now ? 'Kapalı' : waiting ? `Tekrar check-in: ${new Date(nextAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}` : reachable ? <><InlineIcon name="map-pin" /> Check-in yapabilirsin</> : crowdLook(item).label}
               </Text>
             </View>
             <Text style={styles.chevron}>›</Text>

@@ -45,6 +45,7 @@ export type FeedItem = {
   allow_replies: boolean;
   // Check-in: its id, likes and friends' comments (rating / body: the review written with it)
   checkin_id?: number | null;
+  reported?: string | null; // how full the person said it was
   likes?: number;
   liked?: boolean;
   likers?: string[]; // the last 3 who liked it

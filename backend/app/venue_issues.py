@@ -8,6 +8,7 @@ from app.moderation import ModerationError, require_admin
 
 KINDS = ("closed", "hours", "location", "name", "offensive_name")
 NEEDED = 3  # different people reporting the same thing
+MAX_FOUNDERS = 10
 MAX_NOTE = 200
 
 
@@ -92,6 +93,26 @@ def resolve_issue(
     conn.execute(
         "UPDATE venue_issues SET resolved_at = %s WHERE venue_id = %s AND kind = %s AND resolved_at IS NULL",
         (now, venue_id, kind),
+    )
+
+
+def set_founder(conn: psycopg.Connection, user: dict, venue_id: int, founder: bool) -> None:
+    """"Kurucu mekan": set by an admin, for at most MAX_FOUNDERS venues."""
+    require_admin(user)
+    if conn.execute("SELECT 1 FROM venues WHERE id = %s", (venue_id,)).fetchone() is None:
+        raise ModerationError("Mekan bulunamadı.", 404)
+    if founder:
+        others = conn.execute(
+            "SELECT count(*)::int AS n FROM venue_profiles WHERE founder AND venue_id <> %s", (venue_id,)
+        ).fetchone()["n"]
+        if others >= MAX_FOUNDERS:
+            raise ModerationError(f"En fazla {MAX_FOUNDERS} kurucu mekan olabilir.", 409)
+    conn.execute(
+        """
+        INSERT INTO venue_profiles (venue_id, founder) VALUES (%s, %s)
+        ON CONFLICT (venue_id) DO UPDATE SET founder = EXCLUDED.founder
+        """,
+        (venue_id, founder),
     )
 
 

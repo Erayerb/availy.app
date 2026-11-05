@@ -25,7 +25,7 @@ def test_venue_fields(client):
         "id", "name", "category", "capacity", "lat", "lon",
         "neighborhood", "district", "tags",
         "open_now", "hours", "opens_at", "crowd", "discovery", "trend",
-        "pending", "photo_at", "instagram", "phone", "verified", "address", "description", "amenity_keys",
+        "pending", "photo_at", "instagram", "phone", "verified", "founder", "address", "description", "amenity_keys",
     }
     assert venue["hours"] == "08:00–23:00"  # cafe
     assert venue["opens_at"] == "08:00"

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Modal, PanResponder, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from './Text';
 
 import { Icon } from './Icon';
@@ -28,6 +28,25 @@ type Props = {
 export function FilterBar(props: Props) {
   const { tags, onTagsChange, sortMode, onSortChange, hideClosed, onHideClosedChange } = props;
   const [open, setOpen] = useState(false);
+  // One of the three is on: the old one goes off in the same instant the new one comes on
+  const [shownSort, setShownSort] = useState(sortMode);
+  useEffect(() => setShownSort(sortMode), [sortMode]);
+  // Pulling the sheet down by its top closes it
+  const dragY = useRef(new Animated.Value(0)).current;
+  const drag = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) => g.dy > 6,
+      onPanResponderMove: (_, g) => dragY.setValue(Math.max(0, g.dy)),
+      onPanResponderRelease: (_, g) => {
+        if (g.dy > 80 || g.vy > 0.8) {
+          setOpen(false);
+          dragY.setValue(0);
+        } else {
+          Animated.spring(dragY, { toValue: 0, useNativeDriver: false }).start();
+        }
+      },
+    }),
+  ).current;
   const active = tags.length + (hideClosed ? 1 : 0);
 
   return (
@@ -39,7 +58,15 @@ export function FilterBar(props: Props) {
         </Pressable>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bar}>
           {SORT_OPTIONS.map(({ mode, label }) => (
-            <Chip key={mode} label={label} active={sortMode === mode} onPress={() => onSortChange(mode)} />
+            <Chip
+              key={mode}
+              label={label}
+              active={shownSort === mode}
+              onPress={() => {
+                setShownSort(mode);
+                onSortChange(mode);
+              }}
+            />
           ))}
         </ScrollView>
       </View>
@@ -55,13 +82,15 @@ export function FilterBar(props: Props) {
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)} accessibilityLabel="Kapat" />
-        <View style={styles.sheet}>
+        <Animated.View style={[styles.sheet, { transform: [{ translateY: dragY }] }]}>
+          <View {...drag.panHandlers}>
           <View style={styles.handle} />
           <View style={styles.sheetTop}>
             <Text style={styles.title}>Filtrele</Text>
             <Pressable onPress={() => setOpen(false)} hitSlop={10} accessibilityLabel="Kapat">
               <Icon name="x" size={24} color={colors.text} />
             </Pressable>
+          </View>
           </View>
           <ScrollView contentContainerStyle={styles.sheetBody}>
             <Text style={styles.heading}>Ne arıyorsun?</Text>
@@ -89,7 +118,7 @@ export function FilterBar(props: Props) {
               <Text style={styles.showText}>{props.count} mekanı göster</Text>
             </Pressable>
           </View>
-        </View>
+        </Animated.View>
       </Modal>
     </>
   );

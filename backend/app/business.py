@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 import psycopg
 
 from app.crowd import report_score, Report
+from app.hours import venue_hours
 
 ISTANBUL = ZoneInfo("Europe/Istanbul")
 
@@ -64,12 +65,41 @@ def reward_discoverer(conn: psycopg.Connection, user: dict, venue_id: int, messa
 
 
 REGULAR_VISITS = 3  # check-ins in 30 days that make a regular ("müdavim")
+MIN_CHECKINS_FOR_QUIET_SLOT = 30
+QUIET_SLOT_HOURS = 2
 
 
 def _level_of(score: float) -> str:
     from app.occupancy import classify
 
     return classify(score).value
+
+
+def quietest_slot(check_ins: list[datetime], open_hour: int, close_hour: int) -> dict | None:
+    """The two hours of the week with the fewest check-ins while open, from a month of check-ins: "Salı 14–16".
+    With few check-ins every hour looks empty, so nothing is said then. A tie: the earliest in the week."""
+    if len(check_ins) < MIN_CHECKINS_FOR_QUIET_SLOT:
+        return None
+    count: dict[tuple[int, int], int] = {}
+    for at in check_ins:
+        local = at.astimezone(ISTANBUL)
+        count[(local.weekday(), local.hour)] = count.get((local.weekday(), local.hour), 0) + 1
+    open_hours = (close_hour - open_hour) % 24 or 24
+    if open_hours < QUIET_SLOT_HOURS:
+        return None
+    slots = [
+        (count.get((day, start % 24), 0) + count.get((day, (start + 1) % 24), 0), day, start)
+        for day in range(7)
+        for start in range(open_hour, open_hour + open_hours - QUIET_SLOT_HOURS + 1)
+    ]
+    checkins, day, start = min(slots)
+    return {"weekday": day, "start_hour": start % 24, "hours": QUIET_SLOT_HOURS, "checkins": checkins}
+
+
+def _quiet_slot(conn: psycopg.Connection, venue_id: int, check_ins: list[datetime]) -> dict | None:
+    venue = conn.execute("SELECT category, open_hour, close_hour FROM venues WHERE id = %s", (venue_id,)).fetchone()
+    hours = venue_hours(venue)
+    return quietest_slot(check_ins, hours.open_hour, hours.close_hour)
 
 
 def venue_stats(conn: psycopg.Connection, user: dict, venue_id: int, now: datetime) -> dict:
@@ -101,6 +131,8 @@ def venue_stats(conn: psycopg.Connection, user: dict, venue_id: int, now: dateti
     weekday = [0] * 7
     for r in rows:
         weekday[r["created_at"].astimezone(ISTANBUL).weekday()] += 1
+
+    quiet_slot = _quiet_slot(conn, venue_id, [r["created_at"] for r in rows])
 
     # Last 7 days: people, and whether they were here before
     week_ago = now - timedelta(days=7)
@@ -138,6 +170,7 @@ def venue_stats(conn: psycopg.Connection, user: dict, venue_id: int, now: dateti
         "week_people": len(week_people),
         "week_returning": returning,
         "weekday": weekday,
+        "quiet_slot": quiet_slot,
         "total_checkins": total,
         "discovered_by": discoverer,
     }

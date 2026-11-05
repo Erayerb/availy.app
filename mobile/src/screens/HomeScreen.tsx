@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useDeferredValue, useMemo } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { useOnPageFocus } from '../context/PageContext';
 import { Text, TextInput } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
@@ -70,13 +71,19 @@ export function HomeScreen({
   onOpenNotifications,
 }: Props) {
   const visibleDistricts = districtsForSides(useDistricts(), sides);
-  const { venues: found, loading, error, refreshing, refresh, updatedAt } = useSearch(query, null, tags);
+  const { venues: found, loading, error, refreshing, refresh, update, updatedAt } = useSearch(query, null, tags);
+  useOnPageFocus(update);
+  // A chip answers at once; the list follows when it can
+  const listSort = useDeferredValue(sortMode);
+  const listSides = useDeferredValue(sides);
+  const listDistricts = useDeferredValue(districts);
+  const listHideClosed = useDeferredValue(hideClosed);
   const venues = useMemo(
     () =>
       found.filter(
-        (v) => matchesSides(v.district, sides) && matchesDistricts(v.district, districts) && (!hideClosed || v.open_now),
+        (v) => matchesSides(v.district, listSides) && matchesDistricts(v.district, listDistricts) && (!listHideClosed || v.open_now),
       ),
-    [found, sides, districts, hideClosed],
+    [found, listSides, listDistricts, listHideClosed],
   );
   const searching = query.trim().length > 0;
   // Konum > Temizle: the place filters only (the rest are reset in Filtrele)
@@ -94,11 +101,11 @@ export function HomeScreen({
   // "Önerilen": open places first, nearest first; without a location a mixed order (search results by name)
   const items = useMemo(
     () =>
-      sortVenues(venues, sortMode, point, (list) => {
+      sortVenues(venues, listSort, point, (list) => {
         const ordered = point ? sortByDistance(list, point) : searching ? list : stableShuffle(list, SESSION_SEED);
         return [...ordered].sort((a, b) => Number(b.open_now) - Number(a.open_now));
       }),
-    [venues, searching, point, sortMode],
+    [venues, searching, point, listSort],
   );
   const needsLocation = sortMode === 'nearest' && !point;
 

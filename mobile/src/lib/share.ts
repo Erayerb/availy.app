@@ -29,6 +29,15 @@ export function checkinShareMessage(venueName: string, levelLabel: string, disco
   return `📍 ${what} · şu an ${levelLabel.toLocaleLowerCase('tr-TR')}.${words} availy'de gel gör: ${venueLink(venueName)}`;
 }
 
+/** The door sticker's QR: opens this venue's page, where the check-in is. */
+export const venueDoorLink = (venueId: number) => `${WEB_APP_URL}?kapi=${venueId}`;
+
+/** The venue of a door QR (or of the page opened from it), if it is one. */
+export function venueIdFromDoorLink(text: string): number | null {
+  const match = /[?&]kapi=(\d+)/.exec(text);
+  return match ? Number(match[1]) : null;
+}
+
 /** Venue name from a shared link (?venue=...), if any. */
 export function venueFromQuery(search: string): string | null {
   const name = new URLSearchParams(search).get('venue');

@@ -1,3 +1,4 @@
+import { reportConnection } from './connection.ts';
 import { isLocalVenueId } from './localVenues';
 import type { Crowd } from './crowd';
 
@@ -24,6 +25,7 @@ export type Venue = {
   instagram?: string | null;
   phone?: string | null;
   verified?: boolean; // "✓ Doğrulanmış işletme"
+  founder?: boolean; // "Kurucu mekan"
   // Written by the venue's business ("Mekan bilgilerini düzenle"); no features: guessed from the type
   description?: string | null;
   amenity_keys?: string[] | null;
@@ -68,7 +70,14 @@ async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
   if (!API_URL) {
     throw new Error('EXPO_PUBLIC_API_URL tanımlı değil (mobile/.env)');
   }
-  const response = await fetch(`${API_URL}${path}`, { signal });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, { signal });
+  } catch (e) {
+    if (!signal?.aborted) reportConnection(false);
+    throw e;
+  }
+  reportConnection(true);
   if (!response.ok) {
     throw new Error(`Sunucu hatası: ${response.status}`);
   }

@@ -31,7 +31,7 @@ export function CampaignForm({ venue, plan }: { venue: Venue; plan: PlanId }) {
   const [checkinOnly, setCheckinOnly] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
-  const text = message ?? deadHourSuggestion(venue.category, discount ?? 20, duration);
+  const text = message ?? deadHourSuggestion(venue.category, discount, duration);
 
   const [sending, setSending] = useState(false);
 
@@ -82,6 +82,12 @@ export function CampaignForm({ venue, plan }: { venue: Venue; plan: PlanId }) {
         placeholder="Kampanya mesajı"
         placeholderTextColor={colors.placeholder}
       />
+      {/* Written by hand: it no longer follows the choices below */}
+      {message !== null && (
+        <Pressable hitSlop={8} onPress={() => setMessage(null)}>
+          <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>Seçimlere göre yeniden yaz</Text>
+        </Pressable>
+      )}
       <Text style={panel.label}>İndirim</Text>
       <View style={panel.wrap}>
         <Chip label="Yok" active={discount === null} onPress={() => setDiscount(null)} />

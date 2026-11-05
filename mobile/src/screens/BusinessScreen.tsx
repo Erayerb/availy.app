@@ -1,15 +1,20 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
+import { useOnPageFocus, usePageTop } from '../context/PageContext';
+import { PageSkeleton } from '../components/Skeleton';
+import { usePullRefresh } from '../hooks/usePullRefresh';
 import { Text, TextInput } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { HeaderButtons } from '../components/HeaderButtons';
 import { CrowdDot } from '../components/CrowdDot';
 import { useCampaigns } from '../context/CampaignsContext';
+import { confirmAction } from '../lib/confirm';
+import { DEFAULT_PLAN } from '../lib/plans';
 import { useSettings } from '../context/SettingsContext';
 import { fetchVenues, fetchVenuesByIds, type Venue } from '../lib/api';
 import type { User } from '../lib/auth';
-import { busiestHour, businessApi, MAX_REWARD, quietestWeekday, WEEKDAY_NAMES, type VenueStats } from '../lib/business';
+import { busiestHour, businessApi, MAX_REWARD, quietestWeekday, quietSlotLabel, quietSlotSchedule, WEEKDAY_NAMES, type VenueStats } from '../lib/business';
 import { deadHour, deadHourSuggestion, QUIET_HOURS, timeLeft } from '../lib/campaigns';
 import { crowdRatioText, crowdSummary, crowdYesterday } from '../lib/crowd';
 import { categoryLabel } from '../lib/filters';
@@ -31,16 +36,19 @@ type Props = {
   onOpenUser: (username: string) => void;
   onRegister: () => void;
   onEditProfile: () => void; // Daha fazla > İşletme profili
+  onUpgrade: () => void; // Abonelik: scheduled campaigns are in the monthly plan
 };
 
 /** v2 business panel: everything from customers' check-ins (no estimated occupancy). */
-export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegister, onEditProfile }: Props) {
+export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegister, onEditProfile, onUpgrade }: Props) {
   const [venue, setVenue] = useState<Venue | null>(null);
   const [nearby, setNearby] = useState<Venue[]>([]);
   const [stats, setStats] = useState<VenueStats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<{ ok: boolean; text: string } | null>(null);
-  const { now, create, activeFor } = useCampaigns();
+  const { now, create, activeFor, schedules, addSchedule } = useCampaigns();
+  const plan = user.plan ?? DEFAULT_PLAN;
+  const [slotNote, setSlotNote] = useState<{ ok: boolean; text: string } | null>(null);
   const { crowdLook } = useSettings();
 
   const load = useCallback(async () => {
@@ -55,6 +63,9 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
       setError(e instanceof Error ? e.message : 'Yüklenemedi.');
     }
   }, [venueId, user.token]);
+  const pull = usePullRefresh(load);
+  useOnPageFocus(load);
+  const top = usePageTop();
 
   useEffect(() => {
     load();
@@ -62,10 +73,11 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
     return () => clearInterval(timer);
   }, [load]);
 
+  if (!venue && !error) return <PageSkeleton />;
   if (!venue) {
     return (
       <View style={styles.center}>
-        <Text style={styles.muted}>{error ?? 'Yükleniyor…'}</Text>
+        <Text style={styles.muted}>{error}</Text>
       </View>
     );
   }
@@ -75,6 +87,8 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
   const dead = deadHour(venue, now);
   const competitors = nearbyCompetitors(venue, nearby, 2, 5);
   const busiest = stats ? busiestHour(stats.today) : null;
+  const quietSlot = stats?.quiet_slot ?? null;
+  const slotScheduled = quietSlot !== null && schedules.some((s) => s.active && s.days.includes(quietSlot.weekday) && s.start_hour === quietSlot.start_hour);
   const quietDay = stats && stats.weekday.some((n) => n > 0) ? quietestWeekday(stats.weekday) : null;
   const maxToday = stats ? Math.max(1, ...stats.today.map((h) => h.checkins)) : 1;
   const maxWeekday = stats ? Math.max(1, ...stats.weekday) : 1;
@@ -95,7 +109,7 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
   };
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+    <ScrollView ref={top} style={styles.page} contentContainerStyle={styles.content} automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl {...pull} tintColor={colors.primary} />}>
       <View style={styles.topRow}>
         <Text style={styles.pageTitle}>İşletme paneli</Text>
         <HeaderButtons />
@@ -227,10 +241,37 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
                 </View>
               ))}
             </View>
-            {quietDay !== null && (
-              <Text style={styles.text}>
-                En az check-in {WEEKDAY_NAMES[quietDay]} günü. Bu güne zamanlanmış bir kampanya iyi bir fikir olabilir.
-              </Text>
+            {quietSlot ? (
+              <View style={styles.alert}>
+                <Text style={styles.alertTitle}>En sakin saatlerin: {quietSlotLabel(quietSlot)}</Text>
+                <Text style={styles.text}>Son 30 günün check-in'lerine göre. Her hafta bu saatte kendiliğinden kampanya başlatabilirsin.</Text>
+                {plan !== 'saas' ? (
+                  <Pressable style={styles.primary} onPress={onUpgrade}>
+                    <Text style={styles.primaryText}>Aylık paket'e geç</Text>
+                  </Pressable>
+                ) : slotScheduled ? (
+                  <Text style={styles.success}>✓ Bu saate zamanlanmış kampanyan var.</Text>
+                ) : (
+                  <Pressable
+                    style={styles.primary}
+                    onPress={() =>
+                      confirmAction(`Her hafta ${quietSlotLabel(quietSlot)} kampanya başlasın mı?`, '%20 indirim, 2 km içindekilere. Kampanyalar\'dan değiştirebilir ya da kapatabilirsin.', 'Başlat', async () => {
+                        const failure = await addSchedule(quietSlotSchedule(quietSlot, venue.category));
+                        setSlotNote(failure ? { ok: false, text: failure } : { ok: true, text: '✓ Zamanlandı; Kampanyalar\'da görürsün.' });
+                      })
+                    }
+                  >
+                    <Text style={styles.primaryText}>Haftalık kampanya kur</Text>
+                  </Pressable>
+                )}
+                {slotNote && <Text style={slotNote.ok ? styles.success : styles.error}>{slotNote.text}</Text>}
+              </View>
+            ) : (
+              quietDay !== null && (
+                <Text style={styles.text}>
+                  En az check-in {WEEKDAY_NAMES[quietDay]} günü. Bu güne zamanlanmış bir kampanya iyi bir fikir olabilir.
+                </Text>
+              )
             )}
           </>
         )}

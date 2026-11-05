@@ -10,7 +10,7 @@ from app.auth_api import current_user
 from app.checkins_api import get_clock
 from app.db import get_conn
 from app.groups import is_member
-from app.social import clear_notifications, dismiss_notification, leaderboard, notifications
+from app.social import CallError, call_friends, clear_notifications, dismiss_notification, leaderboard, notifications
 from app.suggestions import discovered_venues, suggested_people
 
 router = APIRouter(prefix="/v1")
@@ -47,6 +47,7 @@ class NotificationOut(BaseModel):
         "group_invite",
         "dead_hour",
         "auto_campaign",
+        "come_here",
     ]
     at: datetime
     username: str | None
@@ -59,6 +60,24 @@ class NotificationOut(BaseModel):
 
 class DismissIn(BaseModel):
     key: str
+
+
+class CalledOut(BaseModel):
+    friends: int
+
+
+@router.post("/checkins/{checkin_id}/call-friends", response_model=CalledOut)
+def call(
+    checkin_id: int,
+    user: dict = Depends(current_user),
+    conn: psycopg.Connection = Depends(get_conn),
+    now: datetime = Depends(get_clock),
+):
+    """"Buradayım, gel" after a check-in."""
+    try:
+        return {"friends": call_friends(conn, user, checkin_id, now)}
+    except CallError as e:
+        raise HTTPException(status_code=e.status, detail=e.message) from None
 
 
 @router.get("/leaderboard", response_model=LeaderboardOut)

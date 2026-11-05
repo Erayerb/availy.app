@@ -10,7 +10,7 @@ from app.auth_api import current_user
 from app.checkins_api import get_clock
 from app.db import get_conn
 from app.moderation import ModerationError, dismiss_reports, remove_item, reported_items
-from app.venue_issues import moderate_pending, open_issues, pending_venues, report_issue, resolve_issue
+from app.venue_issues import moderate_pending, open_issues, pending_venues, report_issue, resolve_issue, set_founder
 
 router = APIRouter(prefix="/v1/admin")
 # "Bilgi yanlış mı?" from the venue page (any signed-in user)
@@ -120,6 +120,20 @@ def pending(user: dict = Depends(current_user), conn: psycopg.Connection = Depen
         return pending_venues(conn, user)
     except ModerationError as e:
         raise _fail(e) from None
+
+
+class FounderIn(BaseModel):
+    founder: bool
+
+
+@router.post("/venues/{venue_id}/founder", status_code=204)
+def founder(venue_id: int, body: FounderIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    """"Kurucu mekan" on or off (from the venue page)."""
+    try:
+        set_founder(conn, user, venue_id, body.founder)
+    except ModerationError as e:
+        raise _fail(e) from None
+    return Response(status_code=204)
 
 
 class PendingIn(BaseModel):

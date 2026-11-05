@@ -44,7 +44,21 @@ export function PostSkeleton() {
 }
 
 const styles = themed(() => StyleSheet.create({
+  page: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 16, paddingTop: 60, gap: 14 },
   block: { backgroundColor: colors.cream },
   post: { flexDirection: 'row', gap: 12, paddingBottom: 20 },
   lines: { flex: 1, gap: 8 },
 }));
+
+/** A whole page still loading: a cover, a title and a few cards. */
+export function PageSkeleton() {
+  return (
+    <View style={styles.page}>
+      <Skeleton height={180} radius={16} />
+      <Skeleton width="60%" height={26} />
+      <Skeleton width="40%" height={14} />
+      <Skeleton height={96} radius={16} />
+      <Skeleton height={140} radius={16} />
+    </View>
+  );
+}

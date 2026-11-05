@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Linking, Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { useOnPageFocus } from '../context/PageContext';
 import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
@@ -20,7 +21,9 @@ import { useEngagement } from '../context/EngagementContext';
 import { useLoyalty } from '../context/LoyaltyContext';
 import { useLocation } from '../context/LocationContext';
 import { useSettings } from '../context/SettingsContext';
+import { PageSkeleton } from '../components/Skeleton';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
+import { venueIssuesApi } from '../lib/venueIssues';
 import { amenitiesFor } from '../lib/amenities';
 import type { Venue } from '../lib/api';
 import { categoryLabel } from '../lib/filters';
@@ -63,7 +66,7 @@ export function VenueDetailScreen({
   onEditProfile,
   lastCheckinAt = null,
 }: Props) {
-  const { venues, loading, error, refreshing, refresh } = useVenuesByIds([venueId]);
+  const { venues, loading, error, refreshing, refresh, update } = useVenuesByIds([venueId]);
   const venue = venues[0];
   const { crowdLook } = useSettings();
   const { activeFor } = useCampaigns();
@@ -84,10 +87,15 @@ export function VenueDetailScreen({
   const [listing, setListing] = useState(false);
   // v2: reviews and replies live on the server
   const { reviews, setReviews, reload: reloadReviews } = useReviews(venueId, user?.token);
+  useOnPageFocus(() => {
+    update();
+    reloadReviews();
+  });
   const writtenCount = reviews.items.filter((r) => r.body?.trim()).length;
   const { point } = useLocation();
   const [note, setNote] = useState<string | null>(null);
 
+  if (!venue && loading) return <PageSkeleton />;
   if (!venue) {
     return (
       <View style={styles.center}>
@@ -109,6 +117,9 @@ export function VenueDetailScreen({
   return (
     <ScrollView
       style={styles.page}
+      automaticallyAdjustKeyboardInsets
+      keyboardDismissMode="on-drag"
+      keyboardShouldPersistTaps="handled"
       contentContainerStyle={styles.content}
       refreshControl={
         Platform.OS !== 'web' ? (
@@ -156,6 +167,28 @@ export function VenueDetailScreen({
           {herePerson && !owner && <WrongInfo venueId={venue.id} venueName={venue.name} token={herePerson} />}
         </View>
         {venue.verified && <Text style={styles.verifiedText}>Doğrulanmış işletme</Text>}
+        {venue.founder && (
+          <View style={styles.founderRow}>
+            <Icon name="rosette" size={15} color={colors.gold} />
+            <Text style={styles.founder}>Kurucu mekan</Text>
+          </View>
+        )}
+        {user?.isAdmin && user.token && (
+          <Pressable
+            hitSlop={8}
+            onPress={() =>
+              venueIssuesApi
+                .setFounder(user.token!, venue.id, !venue.founder)
+                .then(() => {
+                  setNote(null);
+                  refresh();
+                })
+                .catch((e) => setNote(e instanceof Error ? e.message : 'Olmadı, tekrar dene.'))
+            }
+          >
+            <Text style={styles.link}>{venue.founder ? 'Kurucu mekanlıktan çıkar' : 'Kurucu mekan yap'}</Text>
+          </Pressable>
+        )}
         {venue.pending && (
           <Text style={styles.pending}><InlineIcon name="hourglass" /> Onay bekliyor · bir kullanıcı ekledi; 3 farklı kişi check-in yapınca onaylanır</Text>
         )}
@@ -332,6 +365,8 @@ const styles = themed(() => StyleSheet.create({
   edit: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 14, backgroundColor: colors.primary },
   editText: { color: colors.onPrimary, fontWeight: '700', fontSize: 14 },
   verified: { color: colors.success, fontWeight: '800' },
+  founderRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  founder: { fontSize: 13, fontWeight: '700', color: colors.gold },
   verifiedText: { fontSize: 13, color: colors.success, fontWeight: '600' },
   pending: { fontSize: 13, color: colors.gold, fontWeight: '600', marginTop: 2 },
   links: { flexDirection: 'row', gap: 10 },

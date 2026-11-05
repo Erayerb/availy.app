@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
+import { useSettings } from '../context/SettingsContext';
+import { useOnPageFocus, usePageTop } from '../context/PageContext';
+import { usePullRefresh } from '../hooks/usePullRefresh';
 import { Text, TextInput } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 import QRCode from 'react-native-qrcode-svg';
@@ -103,6 +106,14 @@ export function SocialScreen({
     }
   }, [token, days, tab]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(reload, [reload]);
+  const pull = usePullRefresh(reload);
+  useOnPageFocus(reload);
+  const top = usePageTop();
+  // A notification opens this page on another tab: it stays open, so it moves there
+  useEffect(() => {
+    if (initialTab !== tab) setTab(initialTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialTab]);
 
   useEffect(() => {
     if (!token || feed.length > 0 || tab !== 'friendsFeed') return;
@@ -123,7 +134,7 @@ export function SocialScreen({
 
   if (!user || user.isGuest || !user.username || !token) {
     return (
-      <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.page} contentContainerStyle={styles.content} automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
         <View style={styles.topRow}>
           <Text style={styles.title}>Sosyal</Text>
           <HeaderButtons onOpenProfile={onOpenProfile} onOpenNotifications={onOpenNotifications} />
@@ -163,7 +174,7 @@ export function SocialScreen({
   };
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={[styles.content, styles.fill]} keyboardShouldPersistTaps="handled">
+    <ScrollView ref={top} style={styles.page} contentContainerStyle={[styles.content, styles.fill]} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" refreshControl={<RefreshControl {...pull} tintColor={colors.primary} />}>
       <View style={styles.topRow}>
         <Text style={styles.title}>Sosyal</Text>
         <HeaderButtons onOpenProfile={onOpenProfile} onOpenNotifications={onOpenNotifications} />
@@ -520,6 +531,8 @@ const styles = themed(() => StyleSheet.create({
   points: { color: colors.primary, fontWeight: '700' },
   discovered: { color: colors.discovery },
   quote: { fontSize: 14, color: colors.text, fontWeight: '400', marginTop: 2 },
+  reportedText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
+  reportedDot: { width: 9, height: 9, borderRadius: 5 },
   ratingStars: { fontSize: 14, color: '#E0A800', marginTop: 2 },
   tabs: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   addFriend: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
@@ -626,6 +639,7 @@ function Post({
   onOpenUser: (username: string) => void;
   onChanged: () => void;
 }) {
+  const { look } = useSettings();
   const icon: IconName = item.kind === 'review' ? 'star' : item.kind === 'reply' ? 'message-circle' : item.is_first ? 'sparkles' : 'map-pin';
   const what =
     item.kind === 'review'
@@ -665,6 +679,12 @@ function Post({
           <Text style={[styles.postVenueText, item.is_first && styles.discovered]} numberOfLines={1}>
             {item.venue_name}
           </Text>
+          {item.reported ? (
+            <>
+              <View style={[styles.reportedDot, { backgroundColor: look(item.reported).color }]} />
+              <Text style={styles.reportedText}>{look(item.reported).label}</Text>
+            </>
+          ) : null}
           <Text style={styles.chevronSmall}>›</Text>
         </Pressable>
         {item.rating ? <Text style={styles.ratingStars}>{stars(item.rating)}</Text> : null}

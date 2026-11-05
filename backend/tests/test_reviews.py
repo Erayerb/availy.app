@@ -115,6 +115,7 @@ def test_a_review_from_the_venue_page_shows_under_the_check_in(client, conn):
     client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 5}, headers=auth(ayse))
     [post] = client.get("/v1/feed", headers=auth(ali)).json()
     assert (post["kind"], post["rating"]) == ("checkin", 5)
+    assert post["reported"] == "low"  # what Ayşe said about how full it was
     [mine] = client.get("/v1/feed?who=me", headers=auth(ayse)).json()
     assert (mine["kind"], mine["rating"]) == ("checkin", 5)
     # The check-in already has one: the second review stands on its own

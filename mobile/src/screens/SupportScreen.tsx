@@ -50,7 +50,7 @@ export function SupportScreen({ email, token, onBack }: Props) {
   };
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <ScrollView style={styles.page} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag">
       <View style={styles.topRow}>
         <BackButton onPress={onBack} />
         <Text style={styles.title}>{kind === 'bug' ? 'Hata bildir' : 'İletişime geç'}</Text>

@@ -118,8 +118,9 @@ const SUGGESTED_ITEMS: Record<string, string> = {
 };
 
 /** Ready-made "dead hour" campaign, as in the B2B scenario: one tap to send. */
-export function deadHourSuggestion(category: string, discount = 20, hours = 2): string {
+export function deadHourSuggestion(category: string, discount: number | null = 20, hours = 2): string {
   const items = SUGGESTED_ITEMS[category] ?? 'tüm siparişlerde';
+  if (discount === null) return `Şu an çok sayıda boş yerimiz var! Önümüzdeki ${hours} saat seni bekliyoruz.`;
   return `Şu an çok sayıda boş yerimiz var! Önümüzdeki ${hours} saat ${items} %${discount} indirim.`;
 }
 
@@ -136,6 +137,18 @@ export function campaignTotals(
   const recent = campaigns.filter((c) => c.venueId === venueId && new Date(c.startsAt).getTime() >= since);
   const sum = (key: 'views' | 'claims' | 'redemptions') => recent.reduce((n, c) => n + (c.stats?.[key] ?? 0), 0);
   return { campaigns: recent.length, views: sum('views'), claims: sum('claims'), redemptions: sum('redemptions') };
+}
+
+const DAY_NAMES = ['pazartesi', 'salı', 'çarşamba', 'perşembe', 'cuma', 'cumartesi', 'pazar'];
+
+/** The sentence of a weekly campaign, from what was chosen: "Her salı ve cuma 13:00–16:00 tüm kahvelerde %20 indirim!". */
+export function scheduleSuggestion(category: string, days: number[], startHour: number, hours: number, discount: number | null): string {
+  const sorted = [...days].sort((a, b) => a - b).map((d) => DAY_NAMES[d]);
+  const when = sorted.length === 7 ? 'Her gün' : `Her ${sorted.length > 1 ? `${sorted.slice(0, -1).join(', ')} ve ${sorted[sorted.length - 1]}` : (sorted[0] ?? '')}`;
+  const hour = (h: number) => `${String(h % 24).padStart(2, '0')}:00`;
+  const time = Number.isInteger(startHour) && startHour >= 0 && startHour <= 23 ? ` ${hour(startHour)}–${hour(startHour + hours)}` : '';
+  const offer = discount === null ? 'seni bekliyoruz' : `${SUGGESTED_ITEMS[category] ?? 'tüm siparişlerde'} %${discount} indirim`;
+  return `${when}${time} ${offer}!`;
 }
 
 // No check-in for this long while open: the panel suggests a campaign too

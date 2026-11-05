@@ -89,7 +89,7 @@ def load_profiles(conn: psycopg.Connection, venue_ids: list[int]) -> dict[int, d
         return {}
     rows = conn.execute(
         """
-        SELECT venue_id, photo_at, instagram, phone, verified, description, amenities AS amenity_keys
+        SELECT venue_id, photo_at, instagram, phone, verified, founder, description, amenities AS amenity_keys
         FROM venue_profiles WHERE venue_id = ANY(%s)
         """,
         (venue_ids,),

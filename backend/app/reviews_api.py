@@ -105,6 +105,7 @@ class FeedItem(BaseModel):
     allow_replies: bool
     # Check-in: id, likes and friends' comments
     checkin_id: int | None = None
+    reported: str | None = None  # how full the person said it was: low / medium / high
     likes: int = 0
     liked: bool = False
     likers: list[str] = []  # the last 3 who liked it

@@ -1,8 +1,11 @@
 /** v2 business panel: statistics from customers' check-ins. */
+import { scheduleSuggestion } from './campaigns.ts';
 import { send } from './accountApi.ts';
 import type { Level } from './occupancy.ts';
 
 export type HourStat = { hour: number; checkins: number; level: Level | null };
+export type QuietSlot = { weekday: number; start_hour: number; hours: number; checkins: number };
+
 export type VenueStats = {
   today: HourStat[];
   today_checkins: number;
@@ -10,6 +13,7 @@ export type VenueStats = {
   week_people: number;
   week_returning: number;
   weekday: number[]; // last 30 days, Monday first
+  quiet_slot?: QuietSlot | null; // the emptiest two hours of the week (needs a month with enough check-ins)
   total_checkins: number;
   // username is null for a private check-in; reward is what the business already sent
   discovered_by: { username: string | null; at: string; can_reward: boolean; reward: string | null } | null;
@@ -56,3 +60,22 @@ export function profileSteps(
     { key: 'amenities', label: 'Özellikler', done: !!venue.amenity_keys?.length },
   ];
 }
+
+const DAY_NAMES = ['pazartesi', 'salı', 'çarşamba', 'perşembe', 'cuma', 'cumartesi', 'pazar'];
+
+/** "Salı 14:00–16:00". */
+export function quietSlotLabel(slot: QuietSlot): string {
+  const name = DAY_NAMES[slot.weekday];
+  const hour = (h: number) => `${String(h % 24).padStart(2, '0')}:00`;
+  return `${name[0].toLocaleUpperCase('tr-TR')}${name.slice(1)} ${hour(slot.start_hour)}–${hour(slot.start_hour + slot.hours)}`;
+}
+
+/** The ready-made weekly campaign for that time: %20, 2 km. */
+export const quietSlotSchedule = (slot: QuietSlot, category: string) => ({
+  message: scheduleSuggestion(category, [slot.weekday], slot.start_hour, slot.hours, 20),
+  discount: 20,
+  radius_km: 2,
+  days: [slot.weekday],
+  start_hour: slot.start_hour,
+  duration_hours: slot.hours,
+});

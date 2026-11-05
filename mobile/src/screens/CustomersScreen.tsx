@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { useOnPageFocus, usePageTop } from '../context/PageContext';
 import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
@@ -29,12 +30,17 @@ export function CustomersScreen({ venueId, user, onOpenUser, onRegister, onOpenL
   const written = reviews.items.filter((r) => r.body?.trim());
   const waiting = written.filter((r) => !r.replies.some((p) => p.is_business)).length;
 
+  const top = usePageTop();
+  useOnPageFocus(() => {
+    reload();
+    if (user.token) businessApi.stats(user.token, venueId).then(setStats).catch(() => {});
+  });
   useEffect(() => {
     if (user.token) businessApi.stats(user.token, venueId).then(setStats).catch(() => setStats(null));
   }, [user.token, venueId]);
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+    <ScrollView ref={top} style={styles.page} contentContainerStyle={styles.content} automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
       <View style={styles.topRow}>
         <Text style={styles.title}>Müşteriler</Text>
         <HeaderButtons />

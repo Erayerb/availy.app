@@ -10,17 +10,39 @@ import { categoryLabel } from '../lib/filters';
 import { distanceKm, formatDistance, sortByDistance } from '../lib/geo';
 import { shortLocation } from '../lib/location';
 import { colors, themed } from '../theme';
+import { searchPlaces, type Place } from '../lib/reverseGeocode';
 import { CrowdDot } from './CrowdDot';
+import { Icon } from './Icon';
 
-type Props = { onClose: () => void; onChoose: (venue: Venue) => void };
+const MAX_PLACES = 4;
+const PLACE_WAIT_MS = 500;
 
-/** The map's 🔍: search venues by name / neighbourhood; choosing one moves the map to it. */
-export function MapSearch({ onClose, onChoose }: Props) {
+type Props = { onClose: () => void; onChoose: (venue: Venue) => void; onChoosePlace: (place: Place) => void };
+
+/** The map's 🔍: venues by name / neighbourhood and places ("Teşvikiye Mahallesi"); choosing one moves the map to it. */
+export function MapSearch({ onClose, onChoose, onChoosePlace }: Props) {
   const { point } = useLocation();
   const { crowdLook } = useSettings();
   const [query, setQuery] = useState('');
   const [venues, setVenues] = useState<Venue[]>([]);
+  const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Places from OpenStreetMap: their service asks for few requests, so this waits longer than our own search
+  useEffect(() => {
+    const text = query.trim();
+    if (text.length < 3) return setPlaces([]);
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      searchPlaces(text, controller.signal).then((found) => {
+        if (!controller.signal.aborted) setPlaces(found.slice(0, MAX_PLACES));
+      });
+    }, PLACE_WAIT_MS);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query]);
 
   useEffect(() => {
     const text = query.trim();
@@ -61,9 +83,32 @@ export function MapSearch({ onClose, onChoose }: Props) {
         keyExtractor={(v) => String(v.id)}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.list}
+        ListHeaderComponent={
+          <>
+            {places.map((place) => (
+              <Pressable
+                key={`${place.label}-${place.lat}-${place.lon}`}
+                onPress={() => onChoosePlace(place)}
+                style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+              >
+                <Icon name="map-pin" size={18} color={colors.primary} />
+                <View style={styles.flex}>
+                  <Text style={styles.name} numberOfLines={1}>
+                    {place.label}
+                  </Text>
+                  {place.detail ? (
+                    <Text style={styles.muted} numberOfLines={1}>
+                      {place.detail}
+                    </Text>
+                  ) : null}
+                </View>
+              </Pressable>
+            ))}
+          </>
+        }
         ListEmptyComponent={
           query.trim().length >= 2 ? (
-            <Text style={styles.muted}>{loading ? 'Aranıyor…' : 'Bu adla mekan bulunamadı.'}</Text>
+            places.length > 0 ? undefined : <Text style={styles.muted}>{loading ? 'Aranıyor…' : 'Bu adla bir yer bulunamadı.'}</Text>
           ) : (
             <Text style={styles.muted}>En az 2 harf yaz.</Text>
           )

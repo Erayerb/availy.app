@@ -116,6 +116,15 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Panel "Ölü saat": en az 2 kişi Sakin ya da açıldıktan sonra 2 saattir check-in yok → kampanya düğmesi; 1 kişi Sakin → yalnızca bilgi satırı. "Check-in yok" durumu telefona bildirim göndermez (olay yok, zamanlanmış bildirim yapılmaz)
 - Profil: tek liste "Gittiği mekanlar", keşfedilenlerde ✨, Tümü / Keşfettikleri seçimi
 - Mekan adı kontrolü: eklerken ve işletme adı değiştirirken app/name_check.py (bağlantı, telefon, 5+ harf tamamı büyük, küfür listesi); "Bilgi yanlış mı?" > Uygunsuz ad: 3 kayıtlı kişi bildirince kullanıcının eklediği mekan yönetici bakana dek gizlenir (hidden_at, migration 016; içe aktarılan mekanlar gizlenmez, yalnızca listeye düşer); Yönetici > Onay bekleyen mekanlar: adı düzelt ya da kaldır (kayıtlar kalır)
+- Kapı QR'ı: İşletme profili > Kapı QR'ı (yazdır / PDF, lib/doorPoster), link ?kapi=ID mekan sayfasını açar; telefon kamerasıyla okutulur. Check-in yine mekanda olmayı ister
+- Kurucu mekan: yönetici mekan sayfasından verir (venue_profiles.founder, migration 017, en fazla 10); mekan sayfasında ve harita kartında rozet
+- "Buradayım, gel" (check-in sonrası, Paylaş ile aynı boyda): sorar; availy'deki arkadaşlara bildirim (come_calls, check-in başına bir, 90 dk içinde; gizli check-in'de yok, sessize alanlara gitmez) ya da telefonun paylaş ekranı
+- Gezinme (components/ScreenStack, lib/navigation openPages, context/PageContext): açık sayfalar arkada kalır (sekmeler birer tane, geçmişten son 5 sayfa), kaydırma yeri ve verisi korunur; üstteki sayfa dışındakiler yeniden çizilmez, zamanlayıcıları çalışmaz, geri dönünce sessizce yenilenir (useOnPageFocus). Sol kenardan çekince altta gerçek sayfa görünür (ana sekmelerde ve haritada çekme yok). Açık sekmeye tekrar basınca listesi başa döner (usePageTop). Sekmeye basmak Sosyal / Kampanyalar'ı ilk sekmeye döndürmez
+- Panel "En sakin saatlerin": son 30 günde en az 30 check-in varsa haftanın en boş 2 saati, tek dokunuşla haftalık kampanya (Aylık paket)
+- Akıcılık (devam): açılan sayfa kayarak gelir, mekan listeleri bellekte (geri dönünce anında görünür, sessizce güncellenir), yüklenirken sayfa iskeleti, Sosyal / Bildirimler / Profil / Panel'de aşağı çekip yenileme, klavye açılınca sayfa kayar ve kaydırınca kapanır, sekme titreşimi, Android geri tuşu, fotoğraflar yumuşak gelir, sunucuya ulaşılamayınca üstte "İnternet yok"
+- Harita araması mekanların yanında yer de bulur ("Teşvikiye Mahallesi", OpenStreetMap Nominatim); seçince harita oraya gider
+- Aşağı çekip yenilemede yükleniyor işareti yalnızca 300 ms'den uzun sürerse çıkar
+- Sosyal akışta check-in'de bildirilen doluluk görünür (mekan adının yanında nokta ve "Sakin"; checkins.level, feed `reported`). Filtre çiplerinde titreşim yok; çip anında değişir, liste düşük öncelikle gelir
 - Check-in önerisi: açık bir mekanın 150 m yakınında 5 dk kalınca; uygulama önündeyse şerit, arka plandaysa telefon bildirimi (dokununca mekan sayfası); en fazla saatte bir, aynı mekan için günde iki kez (telefonda saklanır); son 90 dakikada orada check-in yaptıysan sormaz
 - Kayıt sonrası kısa tanıtım (müşteri 4, işletme 3 slayt; sağa / sola kaydırılır) ve "İlk check-in'in" (yakındaki en yakın açık mekan)
 
@@ -156,7 +165,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Favoriler: yalnızca kayıtlı kullanıcılar (misafire "Kayıt ol / Giriş yap"); Kaydedilenler / Ziyaret edilenler (telefonda, hesap başına)
 - Ana sayfa: "Mekan ara"nın altında "Filtrele" (açılan alt menü: Ne arıyorsun?, Sırala: Önerilen / En yakın / En sakin, Kapalıları gizle; "N mekanı göster", "Sıfırla"); seçilenler düğmenin yanında ✕ ile kaldırılır; Konum > Temizle yalnızca konumu temizler
 - Hesapla taşınanlar (migration 008, /v1/me/favorites, /watches, /settings): favoriler, "Sakin olunca haber ver" zilleri ve ayarlar sunucuda; telefon kopya tutar, telefondaki eski liste ilk girişte bir kez yüklenir; ayarlarda sunucudaki kopya kazanır. Eski yerel mekan fotoğrafları (KEYS.photos) yalnızca telefonda kaldı (yeni fotoğraflar zaten sunucuda)
-- Akıcılık: önemli dokunuşlarda titreşim (lib/haptics: check-in, ♡, zil, beğeni, çipler), check-in kutlama animasyonu (components/Celebration), yüklenirken iskelet (components/Skeleton: ana sayfa kartları, Sosyal akış)
+- Akıcılık: önemli dokunuşlarda titreşim (lib/haptics: check-in, ♡, zil, beğeni), check-in kutlama animasyonu (components/Celebration), yüklenirken iskelet (components/Skeleton: ana sayfa kartları, Sosyal akış)
 - Yorum hakkı sayacı gösterilmez; sınır (check-in başına 2) aşılınca sunucunun uyarısı çıkar
 - Yazı tipleri: metinler Figtree, 20 pt ve üstü başlıklar Tinos (components/Text: React Native'de genel font olmadığı için tüm Text / TextInput buradan gelir, fontWeight doğru font dosyasını seçer)
 - İkonlar: uygulamanın çerçevesi (alt menü, üst düğmeler, geri oku, arama) kendi çizimimiz (components/TabIcon, SVG); içerikteki ikonlar Tabler (MIT; components/Icon SVG çizer, lib/tablerPaths.json + tablerFilledPaths.json); yazı içindeki InlineIcon font kullanır (assets/fonts/tabler-icons.ttf, lib/tablerGlyphs.json; yazının boyutunu ve rengini alır). Semt elçisi simgesi taç. Telefon bildirimi metinleri ve paylaşım mesajlarında emoji kaldı (uygulama dışı); rozet simgeleri (sunucudan) ve Keşfedilmedi noktası (✨) bilerek emoji
@@ -222,16 +231,30 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Render + Neon + GitHub Pages /v2/ (bkz. Ortamlar); şema Neon'da `CREATE EXTENSION postgis` ile başlar; bağlantı havuzu kopan bağlantıyı yeniler; CORS: localhost:8081, localhost:8765, erayerb.github.io
 
 ### Yapılacaklar (v2)
-**Yayından önce** (özet: Kullanım koşulları ve gizlilik metnindeki `[iletişim e-postası]` boşluğunu doldur (mobile/src/lib/legal.ts `CONTACT`), 150 m, push bildirimleri, migration, Sentry, hukukçu kontrolü)
+**Yayından önce** (özet: 150 m, push bildirimleri, migration, Sentry, KVKK bölümü)
 - Render ayarları (availy-api → Environment): `PHONE_PEPPER` = uzun, rastgele bir metin (girilmezse "Rehberden bul" güvensiz varsayılan metinle çalışır; ayrıntı: Tanıdıkları bulmak) ve isteğe bağlı `SUPPORT_EMAIL` = hata bildirimleri ve iletişim mesajlarının e-postayla da geleceği adres (Resend alan adı doğrulanana kadar yalnızca Resend hesabının adresine gider)
 - Check-in mesafesini 1 km'den 150 m'ye geri al
 - Push bildirimleri (bkz. Bildirimler)
 - Deneme ve gerçek ortam ayrı: ikinci Render servisi + ikinci Neon veritabanı (gerçek ortam `main`'den, kod aynı)
 - Planlar: Render Starter (~7 $/ay, uyumaz), Neon ücretli plan (~19 $/ay; 7–30 gün yedek)
 - Hata takibi: Sentry (backend + uygulama)
-- Mağaza sürümü: Expo EAS Build ile App Store / Google Play
+- Mağaza sürümü: Expo EAS Build ile App Store / Google Play (Expo Go geliştirme modunda çalışır; yavaş sayfa geçişleri gerçek sürümde büyük ölçüde düzelir)
+- Ödeme: kampanya ücreti (₺150), Aylık paket ve Premium için ödeme altyapısı yok; ekranlarda "Prototip" yazıyor
 - E-posta: Resend hesabı açıldı, anahtar Render'da (`resend` ortam grubu, RESEND_API_KEY). Alan adı olmadan Resend yalnızca hesap sahibinin adresine gönderir; herkese gidebilmesi için alan adı al (ör. availy.app), Resend → Domains'te doğrula (DNS: SPF, DKIM) ve Render'da MAIL_FROM = "availy <no-reply@alanadı>" yap
-- Gizlilik politikası ve kullanım koşulları: hukukçu kontrolü, şirket bilgileri, web'de yayın; KVKK: sunucular Frankfurt'ta, yurt dışına aktarım şartları hukukçuya sorulmalı
+
+**KVKK ve hukuk** (hepsi hukukçuya sorulacak)
+- Gizlilik politikası ve kullanım koşulları: hukukçu kontrolü, şirket bilgileri, web'de yayın; `[iletişim e-postası]` boşluğu doldurulacak (mobile/src/lib/legal.ts `CONTACT`)
+- Sunucular Frankfurt'ta: yurt dışına veri aktarım şartları
+- Rehberden bul: gizlilik politikasına madde
+- Bekleme listesi: tanıtım sayfasında toplanan iletişim bilgileri için aydınlatma metni
+- Son konum (yakındaki kampanya için): "konum kaydedilmez" metni değişir, ayrı açık izin alınır
+- "Daima" konum izni (uygulama kapalıyken öneri): izin metni ve Konum ve izinler sayfası güncellenir
+- Kullanıcı fotoğrafları: fotoğrafta başkalarının yüzü çıkabilir; şikâyet, kaldırma, saklama süresi
+
+**Gerçek uygulama sürümü gerektirenler** (Apple Developer hesabı, EAS Build; Expo Go'da olmaz)
+- Instagram / TikTok'ta Paylaş'a basınca listede availy çıkması, mekanın favorilere girmesi
+- Kapı QR'ının telefon kamerasıyla doğrudan uygulamayı açması (universal link; kod hazır, alan adı gerekir)
+- Telefon bildirimleri ve ana ekran widget'ı (bkz. Bildirimler)
 
 **Sürpriz paket** (Too Good To Go benzeri)
 - İşletme gün sonunda satılmayan ürünlerden indirimli "sürpriz paket" açar: fiyat, normal değeri, adet, teslim saati (ör. 18:00–19:00), kabaca içerik
@@ -245,7 +268,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 **Tanıtım (reklam)**
 - Tanıtım sayfası: mobile/public/tanitim (yayında https://erayerb.github.io/availy.app/v2/tanitim/); bekleme listesi (kullanıcı / işletme, POST /v1/waitlist, Yönetici > Bekleme listesi). İsim kesinleşince alan adı ve kök adrese taşıma; haritadan kısa video / gif eklenebilir
 - Instagram ve TikTok serileri (haftada 2–3): "Moda'nın en sakin 5 kafesi" (her kafe 3 sn, "Salı 15:00 · sakin · priz var", sonda "Şu an hangisi sakin? Uygulamada canlı"); gün içinde "Kadıköy'de şu an sakin 3 yer" hikâyeleri (uygulamadan ekran görüntüsü); "Çalışmaya uygun" ve "Sınav haftası" listeleri (priz, Wi-Fi, sessizlik; uygulamadaki listelerden); kurucu kafelerin kısa tanıtımları; haftanın kâşifi ve "Burayı sen keşfettin" paylaşımları (paylaşana bonus puan)
-- Kurucu mekan programı (tanıtım sayfasında): ilk 10 mekana 3 ay ücretsiz Aylık paket, "Kurucu mekan" rozeti (uygulamada henüz yok), kapıya "availy'de · QR ile check-in" çıkartması, ekipten biri fotoğraf çeker, açılışta öne çıkma
+- Kurucu mekan programı (tanıtım sayfasında): ilk 10 mekana 3 ay ücretsiz Aylık paket, "Kurucu mekan" rozeti, kapıya "availy'de · QR ile check-in" çıkartması, ekipten biri fotoğraf çeker, açılışta öne çıkma
 - Tek semtte yoğun başlangıç (Moda / Kadıköy): ekip ve elçi kullanıcılar ilk haftalarda düzenli bildirim
 - Ölçüm: takipçi değil; bekleme listesine yazılan ve check-in yapan kişi sayısı
 
@@ -258,16 +281,11 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Deneme süresi (7 gün ücretsiz) ve seri ödülü: ör. 4 haftalık seriye 1 hafta Premium
 - Gerçek reklamlar gelince: yakındaki mekanların kampanyaları, Premium'da gizli
 
-**Görünüm**
-- Not: Expo Go geliştirme modunda çalışır (sıkıştırılmamış kod, ek kontroller); yavaş sayfa geçişleri gerçek (release) sürümde büyük ölçüde düzelir
-
 **Bildirimler** (olay olunca, uygulama kapalıyken de)
+- Yakındaki kampanya bildirimi: push ile birlikte, isteğe bağlı. Son konum yaklaşık 1 km'ye yuvarlanıp tutulur, 24 saatte silinir (bkz. KVKK). Favori ve gidilen mekanların kampanyası izinsiz gelir
 - Telefon bildirimi (push): uygulama bildirim adresini sunucuya kaydeder, sunucu olay olunca Expo push ile gönderir: arkadaşlık, yanıt, keşif ödülü, "Sakin olunca haber ver", yakında kampanya; işletmeye ölü saat
 - Kısıt: iPhone'da Expo Go ile çalışmaz; EAS Build ve Apple Developer hesabı (yıllık 99 $) gerekir. Android'de Expo Go ile de denenebilir
-- Uygulama kapalıyken check-in önerisi: geofencing (expo-location + TaskManager, "Her zaman" konum izni, en fazla ~20 bölge); Konum ve izinler metni o zaman güncellenmeli
-- Haftalık sıralama ödülleri: ne verileceği ve nasıl dağıtılacağı
-- Yakındaki kampanya bildirimi: push ile birlikte, isteğe bağlı. Son konum yaklaşık 1 km'ye yuvarlanıp tutulur, 24 saatte silinir; gizlilik metni değişir, ayrı izin alınır. Favori ve gidilen mekanların kampanyası izinsiz gelir
-- "Mekanın yakınındasın" (uygulama kapalıyken): son konumla olmaz (kişinin şu anki yerini göstermez), "Daima" konum izni ister; sonraya
+- Uygulama kapalıyken check-in önerisi: geofencing (expo-location + TaskManager, "Her zaman" konum izni, en fazla ~20 bölge); Konum ve izinler metni o zaman güncellenmeli. Son konumla olmaz (kişinin şu anki yerini göstermez); sonraya
 - Olaya bağlı toplu bildirim: "Moda'da 3 kafe şu an sakinleşti" (favori semt / favori mekanlar sakinleşince; push gerekir)
 - iPhone ana ekran widget'ı: favori mekanın şu anki doluluğu (EAS Build + iOS widget eklentisi; Android widget'ı da düşünülebilir)
 
@@ -278,6 +296,8 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Aynı telefondan açılan birden çok bireysel hesap aynı mekanda tek kişi sayılsın (sahte hesapla doluluk şişirme)
 
 **İşletme**
+- İşletmenin kendi doluluğunu bildirmesi ("işletme bildirdi" etiketiyle): yalnızca Aylık paket için
+- Kapı QR'ı şimdilik GitHub Pages adresine gidiyor: kesin alan adı alınmadan çok sayıda basılmamalı
 - Kurucu mekan avantajı: işletme isterse "Mahalleli'ye çift damga" açar (bedelini kafe seçer)
 - Aylık paketin sattığı "Rakip karşılaştırması" (Panel'de yakındaki benzer mekanlar, Kampanyalar > Rakipler) bedava pakette de açık: pakete bağla ya da paketin açıklamasından çıkar
 - Birden fazla mekan: tek hesapta mekan seçici ("Moda Şube ▾"; şimdi users.venue_id tek mekan), doğrulama ve Aylık paket şube başına
@@ -288,23 +308,23 @@ Testler: backend 217, mobil 124 (son ölçüm).
 
 **Tanıdıkları bulmak**
 - Render'da PHONE_PEPPER ayarı girilmeli. Ne işe yarar: "Rehberden bul"da telefon numaraları açık hâliyle saklanmaz, bu gizli metinle karıştırılıp geri çevrilemez bir özete (hash) dönüştürülür. Türkiye'de olası numara sayısı az olduğu için gizli metin olmadan özetler denenerek numaraya geri çevrilebilir; gizli metin bunu imkânsız yapar. Değer: uzun, rastgele bir metin (ör. 40+ karakter); bir kez girilir, sonra değiştirilmez (değişirse kayıtlı numaralar artık eşleşmez). Girilmezse geliştirme için yazılmış varsayılan metin kullanılır (güvensiz)
-- Rehberden bul için gizlilik politikasına madde (hukukçu kontrolü)
 
 **availy puanı** (kullanıcı "puan ne işe yarar?" diye soracak: yayından önce bir karşılığı olmalı ve uygulamada anlatılmalı)
-- Puan harcama: ör. 200 puan = katılan bir kafede %10 kupon (işletme ödülü kendisi belirler, sponsor olur); işletmeleri sisteme bağlamanın da yolu. Puan kasmaya karşı kurallar (başka mekandan sonra 30 dk / günde 8) ödül verilmeden önce yeniden gözden geçirilmeli (ör. aynı sokakta art arda check-in'lere bakmak, hesap yaşı)
-- Harcama: ödül kataloğu (ör. 200 puan = kafede %10 kupon), Premium indirimi, ortak kuponlar (Getir / Trendyol)
+- Puan harcama: ör. 200 puan = katılan bir kafede %10 kupon (işletme ödülü kendisi belirler, sponsor olur), Premium indirimi, ortak kuponlar (Getir / Trendyol); işletmeleri sisteme bağlamanın da yolu. Puan kasmaya karşı kurallar (başka mekandan sonra 30 dk / günde 8) ödül verilmeden önce yeniden gözden geçirilmeli (ör. aynı sokakta art arda check-in'lere bakmak, hesap yaşı)
 - Ek kazanım: yorum yazmak, Sakin saatte gitmek
+
+**Fikirler (karar bekliyor)**
+- Öneri şeridinden tek dokunuşla bildirim: şeritte Sakin / Orta / Kalabalık, basınca check-in ve "Geri al"
+- Check-in sonrası tek soru: priz, Wi-Fi, sessizlik; özellikleri kullanıcılar doldurur, çalışma filtresini besler
+- Kullanıcı fotoğrafı: check-in'de mekan fotoğrafı; 24 saat görünen "şu an burası" fikri (galeriden seçilemez), şikâyet ve kaldırma gerekir (bkz. KVKK)
+- Saat saat doluluk grafiği, yürüme süresi, fiyat aralığı, haftalık özet kartı (bildirimsiz), semt rozetleri
+- Puan ortalamasında her kişinin yalnızca son puanı sayılsın
+- İşletme: geçen haftayla karşılaştırma, takipçi sayısı, etkinlik duyurusu, hazır yorum yanıtları, yeni / geri gelen müşteri
+- Veri olanları ana sayfada üstte göster; harita çipleri ile "Filtrele" birleşsin; Daha fazla menüsünü kısalt
 
 **İşletmeye haber ver / işletme bildirimi**
 - Mekanların e-postasını (ve telefonunu) OpenStreetMap'ten içe aktarmak (venues.contact_email); yoksa ekip arar
 - İşletme katılınca haber veren müşterilere bildirim
-
-**Testte bulunanlar (29 Ekim)**
-- İşletme kendi doluluğunu bildiremiyor (panelde "Bilgi yok") → "Şu an: Sakin / Orta / Kalabalık" ("işletme bildirdi" etiketiyle)
-- Mekanların çoğunda veri yok ("?" / "✨"): veri olanları üstte göster, tipik saat tahmini
-- Harita çipleri ile ana sayfa "Filtrele" ayrı → birleştir; Görünüm açıklaması eski; "Destek" ve "İşletme doğrulama" hâlâ "Yakında"
-- Daha fazla menüsü uzun: ayarları tek "Ayarlar" altında topla; "Giriş yap / Kayıt ol / Çıkış yap" yazım birliği
-- Kampanya ücreti (₺150) ve Aylık paket için ödeme yok
 
 **Belki (v1'de vardı, sahte veriye dayanıyordu)**
 - Tahmini boşalma ("~15:20"), geçmiş haftaların check-in'lerine göre

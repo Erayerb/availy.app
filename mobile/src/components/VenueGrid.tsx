@@ -3,6 +3,7 @@ import { FlatList, Platform, RefreshControl, StyleSheet, View, useWindowDimensio
 import { Text } from './Text';
 
 import { useLocation } from '../context/LocationContext';
+import { usePageTop } from '../context/PageContext';
 import type { Venue } from '../lib/api';
 import { distanceKm, formatDistance } from '../lib/geo';
 import { TileSkeleton } from './Skeleton';
@@ -29,14 +30,21 @@ export function VenueGrid({ venues, header, emptyText, loading = false, error, o
   const { width } = useWindowDimensions();
   const tileSize = (width - PADDING * 2 - GAP) / 2;
   const { point } = useLocation();
+  const list = usePageTop();
 
   return (
     <FlatList
+      ref={list}
       style={styles.container}
       contentContainerStyle={styles.content}
       data={venues}
       keyExtractor={(v) => String(v.id)}
       numColumns={2}
+      // Fewer tiles built at once: a chip or a filter answers sooner
+      initialNumToRender={6}
+      maxToRenderPerBatch={6}
+      windowSize={7}
+      removeClippedSubviews={Platform.OS !== 'web'}
       columnWrapperStyle={styles.columns}
       ListHeaderComponent={header}
       ListEmptyComponent={

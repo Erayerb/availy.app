@@ -18,7 +18,9 @@ export type AppNotification = {
     | 'group_invite'
     // The business: its venue is quiet, and the campaign sent for it automatically
     | 'dead_hour'
-    | 'auto_campaign';
+    | 'auto_campaign'
+    // A friend after a check-in: "Buradayım, gel"
+    | 'come_here';
   at: string;
   username: string | null;
   venue_id: number | null;
@@ -52,6 +54,8 @@ export type Privacy = {
 };
 
 export const socialApi = {
+  // "Buradayım, gel" after a check-in
+  callFriends: (token: string, checkinId: number) => send<{ friends: number }>('POST', `/v1/checkins/${checkinId}/call-friends`, undefined, token),
   // scope "group": the members of `groupId`
   leaderboard: (token: string, period: Period, scope: Scope, groupId?: number) =>
     send<Leaderboard>(
@@ -89,6 +93,7 @@ export const NOTIFICATION_ICONS: Record<AppNotification['kind'], string> = {
   group_invite: '👥',
   dead_hour: '🌙',
   auto_campaign: '📣',
+  come_here: '📍',
 };
 
 /** One line for a notification (the 🔔 list shows its icon next to it). */
@@ -96,6 +101,7 @@ export function notificationText(n: AppNotification): string {
   const who = n.username ? `@${n.username}` : 'Biri';
   if (n.kind === 'friend_request')
     return n.done ? `${who} ile artık arkadaşsınız.` : `${who} seni arkadaş olarak eklemek istiyor.`;
+  if (n.kind === 'come_here') return `${who} şu an ${n.venue_name} mekanında: "Buradayım, gel!"`;
   if (n.kind === 'friend_accepted') return `${who} arkadaşlık isteğini kabul etti.`;
   if (n.kind === 'checkin_like') return `${who} ${n.venue_name} check-in'ini beğendi.`;
   if (n.kind === 'checkin_comment') return `${who} ${n.venue_name} check-in'ine yorum yaptı: "${n.body}"`;

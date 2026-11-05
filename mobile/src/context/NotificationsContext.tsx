@@ -43,6 +43,7 @@ export function NotificationsProvider({ token, accountKey, children }: Props) {
   wanted.current = {
     friend_request: settings.friendNotifications,
     group_invite: settings.friendNotifications,
+    come_here: settings.friendNotifications,
     friend_accepted: settings.friendAcceptedNotifications,
     reply: settings.replyNotifications,
     checkin_comment: settings.checkinCommentNotifications,
@@ -73,7 +74,7 @@ export function NotificationsProvider({ token, accountKey, children }: Props) {
         const since = announced.current;
         if (since !== null && Platform.OS !== 'web') {
           for (const n of list.filter((n) => !since || isAfter(n.at, since))) {
-            if (wanted.current[n.kind] ?? true) Notifications.scheduleNotificationAsync({ content: { title: 'availy', body: phoneNotificationText(n), data: { list: true } }, trigger: null }).catch(() => {});
+            if (wanted.current[n.kind] ?? true) Notifications.scheduleNotificationAsync({ content: { title: 'availy', body: phoneNotificationText(n), data: n.kind === 'come_here' && n.venue_id ? { venueId: n.venue_id } : { list: true } }, trigger: null }).catch(() => {});
           }
         }
         if (newest && (!announced.current || isAfter(newest, announced.current))) announced.current = newest;

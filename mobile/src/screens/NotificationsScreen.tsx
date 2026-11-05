@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
+import { useOnPageFocus } from '../context/PageContext';
 import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { BackButton } from '../components/BackButton';
+import { usePullRefresh } from '../hooks/usePullRefresh';
 import { useNotifications } from '../context/NotificationsContext';
 import { sentence, timeAgo } from '../lib/crowd';
 import { confirmAction } from '../lib/confirm';
@@ -33,11 +35,17 @@ const ICONS: Record<AppNotification['kind'], IconName> = {
   group_invite: 'users-group',
   dead_hour: 'moon',
   auto_campaign: 'speakerphone',
+  come_here: 'map-pin',
 };
 
 /** v2 🔔 list: friend requests, accepted requests and replies to my reviews (last 30 days); kept until deleted. */
 export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue, onOpenFriends, onOpenFeed, onOpenRanking, onOpenSettings }: Props) {
   const { items, markSeen, reload, dismiss, clear } = useNotifications();
+  const pull = usePullRefresh(reload);
+  useOnPageFocus(() => {
+    reload();
+    markSeen();
+  });
 
   // Opening the list reads everything in it
   useEffect(() => {
@@ -46,7 +54,7 @@ export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue,
   }, [reload, markSeen]);
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.page} contentContainerStyle={styles.content} automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl {...pull} tintColor={colors.primary} />}>
       <View style={styles.topRow}>
         <BackButton onPress={onBack} />
         <Text style={[styles.title, styles.flex]}>Bildirimler</Text>
@@ -80,7 +88,7 @@ export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue,
                   ? onOpenFeed()
                   : n.kind === 'group_invite'
                     ? onOpenRanking()
-                  : (n.kind === 'reply' || n.kind === 'reward' || n.kind === 'loyalty') && n.venue_id
+                  : (n.kind === 'reply' || n.kind === 'reward' || n.kind === 'loyalty' || n.kind === 'come_here') && n.venue_id
                     ? onOpenVenue({ id: n.venue_id })
                     : onOpenFriends()
               }

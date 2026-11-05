@@ -1,5 +1,6 @@
 import { Platform, StyleSheet, View } from 'react-native';
 import { Text } from './Text';
+import { haptics } from '../lib/haptics';
 import { Pressable } from './Pressable';
 
 import { colors, themed } from '../theme';
@@ -85,7 +86,10 @@ export function TabBar({ tabs, current, onSelect }: Props) {
           <Pressable
             key={screen}
             style={styles.tab}
-            onPress={() => onSelect(screen)}
+            onPress={() => {
+              if (!selected) haptics.tap();
+              onSelect(screen);
+            }}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
             accessibilityLabel={label}

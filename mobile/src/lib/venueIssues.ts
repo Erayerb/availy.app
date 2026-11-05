@@ -30,6 +30,8 @@ export type Resolution = { action: 'close' | 'fixed' | 'dismiss'; name?: string;
 export type PendingVenue = { id: number; name: string; district: string; added_by: string | null; created_at: string; checkins: number };
 
 export const venueIssuesApi = {
+  setFounder: (token: string, venueId: number, founder: boolean) =>
+    send<void>('POST', `/v1/admin/venues/${venueId}/founder`, { founder }, token),
   pending: (token: string) => send<PendingVenue[]>('GET', '/v1/admin/pending-venues', undefined, token),
   moderate: (token: string, id: number, action: 'rename' | 'remove', name?: string) =>
     send<void>('POST', `/v1/admin/pending-venues/${id}`, { action, name: name ?? null }, token),

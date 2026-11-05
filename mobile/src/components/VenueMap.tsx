@@ -215,6 +215,7 @@ export function VenueMap({
       style={styles.map}
       initialRegion={initialRegion}
       onRegionChange={updatePoint}
+      pitchEnabled={false}
       onRegionChangeComplete={(region: Region) => {
         setLabelRegion((current) =>
           Math.abs(zoomForDelta(current.longitudeDelta) - zoomForDelta(region.longitudeDelta)) < 0.25 ? current : region,

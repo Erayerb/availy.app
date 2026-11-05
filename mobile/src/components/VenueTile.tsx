@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text } from './Text';
 import { Pressable } from './Pressable';
@@ -20,7 +21,7 @@ type Props = {
 // The photo is a little shorter than it is wide, so more venues fit on the screen
 export const TILE_RATIO = 0.78;
 
-export function VenueTile({ venue, size, distance, onPress }: Props) {
+function Tile({ venue, size, distance, onPress }: Props) {
   const campaign = useCampaigns().activeFor(venue.id);
 
   return (
@@ -46,6 +47,9 @@ export function VenueTile({ venue, size, distance, onPress }: Props) {
     </Pressable>
   );
 }
+
+/** Lists re-render often (a chip, a filter): a tile only when what it shows changed. */
+export const VenueTile = memo(Tile, (a, b) => a.venue === b.venue && a.size === b.size && a.distance === b.distance);
 
 const styles = themed(() => StyleSheet.create({
   pressed: { opacity: 0.75 },

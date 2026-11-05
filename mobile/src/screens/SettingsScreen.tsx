@@ -103,8 +103,8 @@ export function SettingsScreen({ onBack, isBusiness, guest, venueId, account }: 
               <Text style={styles.heading}>Sosyal</Text>
               <View style={styles.card}>
                 <Row
-                  title="Arkadaşlık ve grup davetleri"
-                  subtitle="Biri seni arkadaş olarak eklemek ya da bir gruba almak istediğinde, gönderdiğin istek kabul edildiğinde."
+                  title="Arkadaşlar ve gruplar"
+                  subtitle="Biri seni arkadaş olarak eklemek ya da bir gruba almak istediğinde, isteğin kabul edildiğinde, arkadaşın 'Buradayım, gel' dediğinde."
                   value={settings.friendNotifications}
                   onChange={(v) => update({ friendNotifications: v, friendAcceptedNotifications: v })}
                 />

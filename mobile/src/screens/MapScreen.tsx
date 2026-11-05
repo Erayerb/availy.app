@@ -33,6 +33,7 @@ import { colors, themed } from '../theme';
 const QUERY_PADDING = 2;
 // "Konumuma git" and "+" are the same size
 const MAP_BUTTON = 52;
+const PLACE_ZOOM = 15; // a neighbourhood fills the screen
 type Props = {
   onShowVenue: (venue: Venue) => void; // a searched venue: the map opens again around it, its card open
   friendsToken: string | null; // the map card shows friends who are there (registered customers)
@@ -93,7 +94,7 @@ export function MapScreen({
   const [headerBottom, setHeaderBottom] = useState(120);
   const { venues, error, lastUpdated } = useVenues(formatBBox(queryBounds), tags);
   const selected = venues.find((v) => v.id === selectedId);
-  const [focus, setFocus] = useState<{ lat: number; lon: number; key: number } | null>(null);
+  const [focus, setFocus] = useState<{ lat: number; lon: number; key: number; zoom?: number } | null>(null);
   // Venue whose "Daha boş alternatifler" button was pressed; the pop-up hides when another venue is selected
   const [alternativesFor, setAlternativesFor] = useState<number | null>(null);
   const [popupHeight, setPopupHeight] = useState(0);
@@ -299,6 +300,11 @@ export function MapScreen({
           onChoose={(venue) => {
             setSearching(false);
             onShowVenue(venue);
+          }}
+          onChoosePlace={(place) => {
+            setSearching(false);
+            onSelect(null);
+            setFocus({ lat: place.lat, lon: place.lon, key: Date.now(), zoom: PLACE_ZOOM });
           }}
         />
       )}

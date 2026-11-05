@@ -1,3 +1,4 @@
+import { usePageFocused } from '../context/PageContext';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { fetchVenues, type Venue } from '../lib/api';
@@ -6,6 +7,7 @@ const POLL_INTERVAL_MS = 30_000;
 
 /** Fetch venues for the given bbox and tags, refreshing every 30 seconds. */
 export function useVenues(bbox: string, tags: string[]) {
+  const focused = usePageFocused();
   const [venues, setVenues] = useState<Venue[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -37,7 +39,7 @@ export function useVenues(bbox: string, tags: string[]) {
 
   useEffect(() => {
     load();
-    const timer = setInterval(load, POLL_INTERVAL_MS);
+    const timer = setInterval(() => focused.current && load(), POLL_INTERVAL_MS);
     return () => {
       clearInterval(timer);
       controllerRef.current?.abort();

@@ -123,6 +123,7 @@ class Venue(BaseModel):
     instagram: str | None = None
     phone: str | None = None
     verified: bool = False
+    founder: bool = False  # "Kurucu mekan"
     # Written by the venue's business ("Mekan bilgilerini düzenle"); no features: guessed from the type
     description: str | None = None
     amenity_keys: list[str] | None = None

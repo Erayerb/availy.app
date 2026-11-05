@@ -52,7 +52,7 @@ export function ProfileScreen({
 
   if (!user || user.isGuest) {
     return (
-      <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.page} contentContainerStyle={styles.content} automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
         <View style={styles.topRow}>
           <BackButton onPress={onBack} />
           <Text style={styles.title}>Profil</Text>
@@ -86,7 +86,7 @@ export function ProfileScreen({
 
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.page} contentContainerStyle={styles.content} automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
       <View style={styles.topRow}>
         <BackButton onPress={onBack} />
         <Text style={styles.title}>{business ? 'İşletme profili' : 'Profil ayarları'}</Text>

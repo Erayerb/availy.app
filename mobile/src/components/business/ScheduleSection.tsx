@@ -5,7 +5,7 @@ import { Pressable } from '../Pressable';
 
 import { useCampaigns } from '../../context/CampaignsContext';
 import type { Venue } from '../../lib/api';
-import { DISCOUNT_OPTIONS, DURATION_OPTIONS_HOURS, RADIUS_OPTIONS_KM } from '../../lib/campaigns';
+import { DISCOUNT_OPTIONS, DURATION_OPTIONS_HOURS, RADIUS_OPTIONS_KM, scheduleSuggestion } from '../../lib/campaigns';
 import type { PlanId } from '../../lib/plans';
 import { validateSchedule, WEEKDAYS } from '../../lib/schedules';
 import { colors } from '../../theme';
@@ -25,13 +25,14 @@ export function ScheduleSection({
   onUpgrade: () => void;
 }) {
   const { schedules: mine, addSchedule, setScheduleActive, removeSchedule } = useCampaigns();
-  const [message, setMessage] = useState('Her salı öğleden sonra tüm kahvelerde %20 indirim!');
+  const [message, setMessage] = useState<string | null>(null); // null: follows the choices
   const [days, setDays] = useState<number[]>([1]);
   const [startHour, setStartHour] = useState('13');
   const [duration, setDuration] = useState(3);
   const [discount, setDiscount] = useState<number | null>(20);
   const [radius, setRadius] = useState(2);
   const [error, setError] = useState<string | null>(null);
+  const text = message ?? scheduleSuggestion(venue.category, days, Number(startHour), duration, discount);
 
   if (plan !== 'saas') {
     return (
@@ -46,7 +47,7 @@ export function ScheduleSection({
   }
 
   const add = async () => {
-    const input = { message: message.trim(), days, start_hour: Number(startHour), duration_hours: duration, discount, radius_km: radius };
+    const input = { message: text.trim(), days, start_hour: Number(startHour), duration_hours: duration, discount, radius_km: radius };
     const problem = validateSchedule(input);
     setError(problem);
     if (problem) return;
@@ -76,11 +77,16 @@ export function ScheduleSection({
       ))}
       <Text style={panel.label}>Yeni tekrarlayan kampanya</Text>
       <TextInput
-        value={message}
+        value={text}
         onChangeText={setMessage}
         multiline
         style={[panel.input, { minHeight: 56 }]}
       />
+      {message !== null && (
+        <Pressable hitSlop={8} onPress={() => setMessage(null)}>
+          <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>Seçimlere göre yeniden yaz</Text>
+        </Pressable>
+      )}
       <Text style={panel.label}>Günler</Text>
       <View style={panel.wrap}>
         {WEEKDAYS.map((label, i) => (

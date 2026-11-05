@@ -1,4 +1,5 @@
-import { Image, StyleSheet, View } from 'react-native';
+import { useRef } from 'react';
+import { Animated, StyleSheet, View } from 'react-native';
 
 import { useEngagement } from '../context/EngagementContext';
 import { photoUrl } from '../lib/venueApi';
@@ -19,10 +20,20 @@ type Props = {
 export function VenuePhoto({ venueId, category, photoAt = null, size, height, radius = 16 }: Props) {
   // Photos picked before they were kept on the server stay on that phone
   const local = useEngagement().photos[venueId];
+  const fade = useRef(new Animated.Value(0)).current;
   const uri = photoAt ? photoUrl(venueId, photoAt) : local;
   const { icon, color, background } = categoryVisual(category);
   const box = { width: size, height, borderRadius: radius };
-  if (uri) return <Image source={{ uri }} style={[box, styles.image]} resizeMode="cover" />;
+  if (uri) {
+    return (
+      <Animated.Image
+        source={{ uri }}
+        style={[box, styles.image, { opacity: fade }]}
+        resizeMode="cover"
+        onLoad={() => Animated.timing(fade, { toValue: 1, duration: 200, useNativeDriver: true }).start()}
+      />
+    );
+  }
   return (
     <View style={[box, styles.placeholder, { backgroundColor: background }]}>
       <Icon name={icon} size={height * 0.34} color={color} />

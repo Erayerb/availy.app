@@ -12,6 +12,9 @@ LEADERBOARD_LIMIT = 50
 NOTIFICATION_DAYS = 30
 
 
+CALL_WINDOW = timedelta(minutes=90)  # "Buradayım, gel": like a check-in's own life
+
+
 def week_start(now: datetime) -> datetime:
     """Monday 00:00 in Istanbul: the weekly ranking starts again then."""
     local = now.astimezone(ISTANBUL)
@@ -131,6 +134,16 @@ def notifications(conn: psycopg.Connection, me: dict, now: datetime) -> list[dic
             JOIN venues v ON v.id = c.venue_id
             WHERE c.user_id = %(me)s AND k.user_id <> %(me)s AND k.created_at > %(since)s AND k.user_id NOT IN {BLOCKED}
             UNION ALL
+            -- A friend at a venue: "Buradayım, gel" (not the ones I muted)
+            SELECT 'come_here', k.created_at, u.username, v.id, v.name, NULL, false
+            FROM come_calls k JOIN users u ON u.id = k.user_id JOIN venues v ON v.id = k.venue_id
+            WHERE k.created_at > %(since)s AND NOT u.frozen AND k.user_id NOT IN {BLOCKED}
+              AND k.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id = %(me)s)
+              AND k.user_id IN (
+                  SELECT CASE WHEN requester_id = %(me)s THEN addressee_id ELSE requester_id END
+                  FROM friendships WHERE status = 'accepted' AND %(me)s IN (requester_id, addressee_id)
+              )
+            UNION ALL
             -- The business: its venue is quiet ("Ölü saat"), and the campaign sent for it
             SELECT a.kind, a.created_at, NULL, v.id, v.name, c.message, false
             FROM business_alerts a JOIN venues v ON v.id = a.venue_id LEFT JOIN campaigns c ON c.id = a.campaign_id
@@ -163,6 +176,37 @@ def notifications(conn: psycopg.Connection, me: dict, now: datetime) -> list[dic
     dismissed = {r["key"] for r in conn.execute("SELECT key FROM notification_dismissals WHERE user_id = %s", (me["id"],))}
     items = [{**r, "key": notification_key(r)} for r in rows]
     return [i for i in items if i["key"] not in dismissed][:50]
+
+
+class CallError(Exception):
+    def __init__(self, message: str, status: int = 400):
+        super().__init__(message)
+        self.message, self.status = message, status
+
+
+def call_friends(conn: psycopg.Connection, me: dict, checkin_id: int, now: datetime) -> int:
+    """"Buradayım, gel": my friends get a notification, once per check-in, while the check-in is fresh.
+    Returns how many friends there are to hear it."""
+    checkin = conn.execute(
+        "SELECT venue_id, is_private, created_at FROM checkins WHERE id = %s AND user_id = %s", (checkin_id, me["id"])
+    ).fetchone()
+    if checkin is None:
+        raise CallError("Check-in bulunamadı.", 404)
+    if checkin["is_private"]:
+        raise CallError("Gizli check-in'de arkadaşlarına haber verilemez.", 403)
+    if now - checkin["created_at"] > CALL_WINDOW:
+        raise CallError("Bu check-in eskidi; yeniden check-in yapınca çağırabilirsin.", 409)
+    friends = conn.execute(
+        "SELECT count(*)::int AS n FROM friendships WHERE status = 'accepted' AND %(me)s IN (requester_id, addressee_id)",
+        {"me": me["id"]},
+    ).fetchone()["n"]
+    if friends == 0:
+        raise CallError("Henüz arkadaşın yok.", 409)
+    conn.execute(
+        "INSERT INTO come_calls (checkin_id, user_id, venue_id, created_at) VALUES (%s, %s, %s, %s) ON CONFLICT DO NOTHING",
+        (checkin_id, me["id"], checkin["venue_id"], now),
+    )
+    return friends
 
 
 def notification_key(item: dict) -> str:
