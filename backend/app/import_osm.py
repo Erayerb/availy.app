@@ -26,7 +26,7 @@ OVERPASS_URLS = [
     "https://overpass.private.coffee/api/interpreter",
     "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
 ]
-USER_AGENT = "availy-prototype (pilot venue import)"
+USER_AGENT = "availo-prototype (pilot venue import)"
 
 
 @dataclass(frozen=True)
@@ -43,7 +43,7 @@ PILOT_AREAS = [
     Area("yeditepe", "40.964,29.138,40.981,29.166", "Kayışdağı", "Ataşehir"),
 ]
 
-# OSM tag -> (availy category, purposes)
+# OSM tag -> (availo category, purposes)
 CATEGORIES = {
     "cafe": ("cafe", ["socializing"]),
     "restaurant": ("restaurant", ["food", "socializing"]),

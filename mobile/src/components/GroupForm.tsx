@@ -29,7 +29,7 @@ export function GroupForm({ token, me, groupId, onDone, onCancel }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
-  // Friends, then people around (availy's suggestions)
+  // Friends, then people around (availo's suggestions)
   useEffect(() => {
     Promise.all([
       friendsApi.list(token).catch(() => null),

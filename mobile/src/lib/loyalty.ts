@@ -1,7 +1,7 @@
 /**
  * Loyalty: venues run either a stamp card ("5 kahveye 1 bedava") or a paid
  * membership (shown only; no payment), kept on the server (lib/loyaltyApi.ts).
- * Customers join the ones they want and also collect app-wide "availy puanı".
+ * Customers join the ones they want and also collect app-wide "availo puanı".
  */
 export type LoyaltyProgram = {
   venueId: number;

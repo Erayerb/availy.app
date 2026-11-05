@@ -79,7 +79,7 @@ export function MoreScreen({ user, onSelect, onLogin, onRegister, onLogout }: Pr
   return (
     <ScrollView ref={top} style={styles.page} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
-        <Wordmark size={34} />
+        <Wordmark size={28} />
         <HeaderButtons />
       </View>
       {guest ? (

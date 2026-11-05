@@ -2,10 +2,11 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2317110E'/%3E%3Cpath d='M18 78 L35.19 35.95 A16 16 0 0 1 64.81 35.95 L82 78' fill='none' stroke='%23FBF4E8' stroke-width='14' stroke-linecap='round'/%3E%3Ccircle cx='50' cy='60' r='8' fill='%23E0263F'/%3E%3C/svg%3E">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>availy · Şu an nerede yer var?</title>
+<title>availo · Şu an nerede yer var?</title>
 <meta name="description" content="İstanbul'daki kafe ve mekanların şu anki doluluğu, gidenlerin check-in'lerinden. Moda'da ilk sen dene.">
-<meta property="og:title" content="availy · Şu an nerede yer var?">
+<meta property="og:title" content="availo · Şu an nerede yer var?">
 <meta property="og:description" content="Kafeler şu an sakin mi, kalabalık mı? Gidenler söylesin, sen boşuna gitme.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,11 +28,14 @@
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.6 Figtree, system-ui, sans-serif; }
-  h1, h2, h3, .logo { font-family: Tinos, Georgia, serif; font-weight: 700; line-height: 1.15; margin: 0; }
+  h1, h2, h3 { font-family: Tinos, Georgia, serif; font-weight: 700; line-height: 1.15; margin: 0; }
   a { color: inherit; }
   .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
   header { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; }
-  .logo { font-size: 32px; font-weight: 400; color: var(--primary); text-decoration: none; }
+  .logo { display: inline-flex; align-items: center; gap: .25em; font-family: Figtree, system-ui, sans-serif; font-size: 30px; font-weight: 600; letter-spacing: -.01em; color: var(--text); text-decoration: none; }
+  .mark { width: 1.05em; height: 1.05em; flex: none; }
+  .mark path { fill: none; stroke: var(--text); stroke-width: 14; stroke-linecap: round; }
+  .mark circle { fill: var(--primary); }
   .nav-link { font-weight: 600; font-size: 15px; text-decoration: none; padding: 8px 14px; border-radius: 12px; border: 1.5px solid var(--border); }
 
   .hero { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center; padding: 40px 0 72px; }
@@ -48,7 +52,8 @@
   /* The phone: a small picture of the app, made in CSS */
   .phone { justify-self: center; width: 290px; border-radius: 40px; padding: 14px; background: #120d0a; box-shadow: 0 30px 60px rgba(43, 29, 22, .25); }
   .screen { border-radius: 28px; background: var(--bg); padding: 18px 14px 20px; display: flex; flex-direction: column; gap: 10px; }
-  .screen .logo { font-size: 24px; }
+  .screen .logo { font-size: 22px; }
+  .screen .title { font: 700 22px Tinos, Georgia, serif; }
   .screen .q { font-family: Tinos, serif; font-weight: 700; font-size: 17px; }
   .venue { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 10px 12px; }
   .venue .icon { width: 36px; height: 36px; border-radius: 10px; background: var(--cream); display: grid; place-items: center; color: var(--primary); font-size: 19px; }
@@ -157,7 +162,7 @@
 <body>
 <div class="wrap">
   <header>
-    <a class="logo" href="#">availy</a>
+    <a class="logo" href="#"><svg class="mark" viewBox="0 17 100 70" aria-hidden="true"><path d="M18 78 L35.19 35.95 A16 16 0 0 1 64.81 35.95 L82 78"/><circle cx="50" cy="60" r="8"/></svg>Availo</a>
     <a class="nav-link" href="#kurucu">İşletmeler için</a>
   </header>
 
@@ -174,7 +179,7 @@
     </div>
     <div class="phone" aria-hidden="true">
       <div class="screen">
-        <span class="logo">availy</span>
+        <span class="logo"><svg class="mark" viewBox="0 17 100 70" aria-hidden="true"><path d="M18 78 L35.19 35.95 A16 16 0 0 1 64.81 35.95 L82 78"/><circle cx="50" cy="60" r="8"/></svg>Availo</span>
         <span class="q">Şu an sakin olanlar</span>
         <div class="venue"><span class="icon"><i class="ti ti-coffee"></i></span><div><b>Moda Kahve Evi</b><small>Kafe · 300 m</small></div><span class="state"><span class="dot low"></span>Sakin</span></div>
         <div class="venue"><span class="icon"><i class="ti ti-books"></i></span><div><b>Kitaplı Köşe</b><small>Kafe · ~%25 dolu</small></div><span class="state"><span class="dot low"></span>Sakin</span></div>
@@ -259,7 +264,7 @@
       </div>
       <div class="phone" aria-hidden="true">
         <div class="screen">
-          <span class="logo">Sosyal</span>
+          <span class="title">Sosyal</span>
           <div class="tabs"><span>Akış</span><span class="on">Arkadaşlarım</span><span>Sıralama</span></div>
           <span class="day">Bugün</span>
           <div class="post">
@@ -305,11 +310,11 @@
   <div class="wrap">
     <span class="eyebrow"><i class="ti ti-building-store"></i> Yalnızca ilk 10 mekan</span>
     <h2 style="margin-top:14px">Kurucu mekan ol</h2>
-    <p class="sub">Moda ve Kadıköy'de availy'ye katılan ilk 10 mekan, açılışta en görünür yerde olur ve şu avantajlardan yararlanır.</p>
+    <p class="sub">Moda ve Kadıköy'de availo'ya katılan ilk 10 mekan, açılışta en görünür yerde olur ve şu avantajlardan yararlanır.</p>
     <div class="perks">
       <div class="perk"><i class="ti ti-gift"></i><div><b>3 ay ücretsiz Aylık paket</b><span>Zamanlanmış ve otomatik kampanyalar, sadakat kartı, müşteri istatistikleri.</span></div></div>
       <div class="perk"><i class="ti ti-rosette"></i><div><b>"Kurucu mekan" rozeti</b><span>Mekan sayfanda ve haritada kalıcı olarak görünür.</span></div></div>
-      <div class="perk"><i class="ti ti-qrcode"></i><div><b>Kapı çıkartması</b><span>"availy'de · QR ile check-in": müşterilerin tek dokunuşla doluluk bildirir.</span></div></div>
+      <div class="perk"><i class="ti ti-qrcode"></i><div><b>Kapı çıkartması</b><span>"availo'da · QR ile check-in": müşterilerin tek dokunuşla doluluk bildirir.</span></div></div>
       <div class="perk"><i class="ti ti-camera"></i><div><b>Ücretsiz fotoğraf çekimi</b><span>Ekibimiz gelip mekanının kapak fotoğrafını çeker.</span></div></div>
       <div class="perk"><i class="ti ti-speakerphone"></i><div><b>Açılışta öne çıkma</b><span>Uygulamada ve Instagram'da "Moda'nın kurucu mekanları" tanıtımında yer alırsın.</span></div></div>
       <div class="perk"><i class="ti ti-clock-hour-4"></i><div><b>Ölü saatlerini doldur</b><span>Mekanın sakinleşince haber al, tek dokunuşla yakındakilere kampanya gönder.</span></div></div>
@@ -355,7 +360,7 @@
 
 <footer>
   <div class="wrap row">
-    <span><span class="logo" style="font-size:20px">availy</span> · İstanbul</span>
+    <span><span class="logo" style="font-size:20px"><svg class="mark" viewBox="0 17 100 70" aria-hidden="true"><path d="M18 78 L35.19 35.95 A16 16 0 0 1 64.81 35.95 L82 78"/><circle cx="50" cy="60" r="8"/></svg>Availo</span> · İstanbul</span>
     <span>Mekan bilgileri © OpenStreetMap katkıcıları</span>
   </div>
 </footer>

@@ -494,7 +494,7 @@ export function SocialScreen({
           setScanning(false);
           const username = parseFriendCode(data);
           if (username) add(username);
-          else setNote({ ok: false, text: 'Bu bir availy arkadaş QR kodu değil.' });
+          else setNote({ ok: false, text: 'Bu bir availo arkadaş QR kodu değil.' });
         }}
       />
     </ScrollView>

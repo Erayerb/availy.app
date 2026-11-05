@@ -1,6 +1,6 @@
 """v2 groups ("Grup oluştur"): a few people with their own ranking (Sosyal > Sıralama > Gruplar).
 
-The creator names the group and invites friends or people around (the ones availy suggests);
+The creator names the group and invites friends or people around (the ones availo suggests);
 an invited person joins with "Katıl". Anyone in the group may invite more people.
 """
 from datetime import datetime

@@ -133,7 +133,7 @@ export default function App() {
 
 function Main() {
   const auth = useAuth();
-  // Tinos: the "availy" wordmark and headings; Figtree: all other text (components/Text); Tabler icons.
+  // Tinos: the "availo" wordmark and headings; Figtree: all other text (components/Text); Tabler icons.
   // Continue anyway if they fail
   const [fontLoaded, fontError] = useFonts({
     [ICON_FONT]: require('./assets/fonts/tabler-icons.ttf'),
@@ -394,7 +394,7 @@ function Main() {
     return (
       <View style={[styles.container, styles.splash]}>
         <Logo />
-        <Wordmark size={56} />
+        <Wordmark size={48} mark={false} />
         <StatusBar style={statusBar} />
       </View>
     );

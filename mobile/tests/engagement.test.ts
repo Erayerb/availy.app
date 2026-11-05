@@ -112,11 +112,11 @@ test('colour-blind mode adds a glyph and a different palette', () => {
 
 test('share message and link round trip', () => {
   const text = shareMessage(venue({}));
-  assert.match(text, /^Demo Kafe Moda şu an orta \(~%40\)\. availy'de gör: https:\/\/erayerb\.github\.io\/availy\.app\/v2\/\?venue=/);
+  assert.match(text, /^Demo Kafe Moda şu an orta \(~%40\)\. availo'da gör: https:\/\/erayerb\.github\.io\/availy\.app\/v2\/\?venue=/);
   assert.match(shareMessage(venue({ crowd: { state: 'unexplored' } })), /henüz güncel bildirim yok/);
   assert.match(checkinShareMessage('Demo Kafe', 'Sakin', false), /^📍 Demo Kafe'deyim · şu an sakin\. .*\?venue=Demo%20Kafe$/);
   assert.match(checkinShareMessage('Demo Kafe', 'Kalabalık', true), /ilk ben keşfettim ✨ · şu an kalabalık/);
-  assert.match(checkinShareMessage('Demo Kafe', 'Sakin', false, ' Kahve harika '), /şu an sakin\. “Kahve harika” availy'de/);
+  assert.match(checkinShareMessage('Demo Kafe', 'Sakin', false, ' Kahve harika '), /şu an sakin\. “Kahve harika” availo'da/);
   assert.equal(venueFromQuery(new URL(venueLink('Demo Kafe Moda')).search), 'Demo Kafe Moda');
   assert.match(shareMessage(venue({ open_now: false })), /kapalı, 08:00'de açılıyor/);
   assert.equal(venueFromQuery('?x=1'), null);

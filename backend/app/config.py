@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     resend_api_key: str = ""
     # Secret mixed into phone-number hashes ("Rehberden bul"); set PHONE_PEPPER on the server
     phone_pepper: str = "availy-dev-pepper"
-    mail_from: str = "availy <onboarding@resend.dev>"
+    mail_from: str = "availo <onboarding@resend.dev>"
     # Bug reports and contact messages are also e-mailed here (empty: only kept in the database)
     support_email: str = ""
 

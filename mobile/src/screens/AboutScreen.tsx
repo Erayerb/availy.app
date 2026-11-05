@@ -15,7 +15,7 @@ import { Pressable } from '../components/Pressable';
 // The Tanıtım sayfası (mobile/public/tanitim), published with the web version
 export const SITE_URL = 'https://erayerb.github.io/availy.app/v2/tanitim/';
 
-/** What availy is and how to use it (for now the intro lives here). */
+/** What availo is and how to use it (for now the intro lives here). */
 export function AboutScreen({ role, onBack }: { role: Role; onBack: () => void }) {
   const { look } = useSettings();
   const sections = role === 'business' ? BUSINESS_SLIDES : CUSTOMER_SLIDES;
@@ -27,7 +27,7 @@ export function AboutScreen({ role, onBack }: { role: Role; onBack: () => void }
         <Text style={styles.title}>Hakkında</Text>
       </View>
 
-      <Wordmark size={44} />
+      <Wordmark size={36} />
       <Text style={styles.text}>
         Kafe, bar ve ortak çalışma alanı gibi mekanların anlık doluluğunu harita üzerinde gösterir.
       </Text>

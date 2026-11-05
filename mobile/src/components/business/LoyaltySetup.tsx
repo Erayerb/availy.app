@@ -38,7 +38,7 @@ export function LoyaltySetup() {
   // Scanned QR or a typed code -> stamp or reward
   const apply = async (action: 'stamp' | 'reward', raw: string) => {
     const code = parseCustomerQr(raw);
-    if (!code) return setMessage('Bu bir availy müşteri kodu değil.');
+    if (!code) return setMessage('Bu bir availo müşteri kodu değil.');
     setMessage(action === 'stamp' ? await giveStamp(code) : await redeemReward(code));
   };
 

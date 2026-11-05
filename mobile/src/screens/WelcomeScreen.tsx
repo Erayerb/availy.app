@@ -36,14 +36,14 @@ export function WelcomeScreen({ onLogin, onRegister, onGuest }: Props) {
     <View style={styles.container}>
       <View style={styles.brand}>
         <Logo />
-        <Wordmark size={56} />
+        <Wordmark size={48} mark={false} />
         <Text style={styles.tagline}>Şu an nerede yer var?</Text>
       </View>
 
       <View style={styles.actions}>
         {role === null ? (
           <>
-            <Text style={styles.question}>availy'yi nasıl kullanacaksın?</Text>
+            <Text style={styles.question}>availo'yu nasıl kullanacaksın?</Text>
             <Pressable onPress={() => setRole('personal')} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
               <Text style={styles.primaryText}>Bireysel</Text>
             </Pressable>

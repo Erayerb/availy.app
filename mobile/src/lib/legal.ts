@@ -18,7 +18,7 @@ export const PRIVACY_POLICY: LegalDoc = {
     {
       title: 'Veri sorumlusu',
       paragraphs: [
-        `6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) kapsamında veri sorumlusu ${CONTROLLER}'dir ("availy"). Sorularını ${CONTACT} adresine yazabilirsin.`,
+        `6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) kapsamında veri sorumlusu ${CONTROLLER}'dir ("availo"). Sorularını ${CONTACT} adresine yazabilirsin.`,
       ],
     },
     {
@@ -28,7 +28,7 @@ export const PRIVACY_POLICY: LegalDoc = {
         "Check-in'ler: hangi mekana, hangi saatte check-in yaptığın, verdiğin doluluk bilgisi (Sakin / Orta / Kalabalık, sıra / oturacak yer) ve check-in'in gizli olup olmadığı.",
         'Konum: yalnızca check-in anında, mekana yakın olduğunu doğrulamak için kullanılır ve kaydedilmez. Yakındaki mekanları göstermek ve check-in önerisi için konumun telefonunda kullanılır, sunucuya gönderilmez.',
         'Sosyal: arkadaşlıkların, engellediğin ve sessize aldığın kişiler, mekan yorumların ve yanıtların, şikâyetlerin; bir davet bağlantısıyla kayıt olduysan seni kimin davet ettiği.',
-        '"Rehberden bul" (isteğe bağlı): kendi telefon numaran yalnızca geri çevrilemez, anahtarlı bir özet olarak saklanır ve kimseye gösterilmez. Rehberindeki numaralar yalnızca availy kullanan tanıdıklarını bulmak için bir kez gönderilir, karşılaştırılır ve saklanmaz. Numaranı istediğin zaman kaldırabilirsin.',
+        '"Rehberden bul" (isteğe bağlı): kendi telefon numaran yalnızca geri çevrilemez, anahtarlı bir özet olarak saklanır ve kimseye gösterilmez. Rehberindeki numaralar yalnızca availo kullanan tanıdıklarını bulmak için bir kez gönderilir, karşılaştırılır ve saklanmaz. Numaranı istediğin zaman kaldırabilirsin.',
         'Puanlar ve rozetler, gizlilik ve bildirim ayarların.',
         'Telefonda kalanlar: favorilerin, bildirim tercihlerin ve uygulama ayarların yalnızca telefonunda saklanır.',
       ],
@@ -67,7 +67,7 @@ export const PRIVACY_POLICY: LegalDoc = {
     },
     {
       title: 'Çocuklar',
-      paragraphs: ['availy 13 yaşından küçükler için değildir.'],
+      paragraphs: ['availo 13 yaşından küçükler için değildir.'],
     },
   ],
 };
@@ -80,7 +80,7 @@ export const TERMS: LegalDoc = {
     {
       title: 'Hizmet',
       paragraphs: [
-        "availy, mekanların şu anki doluluğunu kullanıcıların check-in'lerinden gösterir. Doluluk bilgisi kullanıcı bildirimlerine dayanır ve yanlış ya da eski olabilir; kesinliği garanti edilmez.",
+        "availo, mekanların şu anki doluluğunu kullanıcıların check-in'lerinden gösterir. Doluluk bilgisi kullanıcı bildirimlerine dayanır ve yanlış ya da eski olabilir; kesinliği garanti edilmez.",
       ],
     },
     {
@@ -100,7 +100,7 @@ export const TERMS: LegalDoc = {
       paragraphs: [
         'Yorumların gerçek deneyimine dayanmalı. Hakaret, taciz, nefret söylemi, kişisel bilgi paylaşmak, reklam / spam ve yasa dışı içerik yasaktır.',
         'Uygunsuz bir yorumu "Şikâyet et" ile bildirebilirsin. Çok şikâyet alan içerik incelenene kadar gizlenir; kurallara uymayan içerik kaldırılabilir ve hesap kapatılabilir.',
-        'Yazdığın yorumların sorumluluğu sana aittir; availy\'de gösterilmeleri için bize ücretsiz bir kullanım izni vermiş olursun.',
+        'Yazdığın yorumların sorumluluğu sana aittir; availo\'da gösterilmeleri için bize ücretsiz bir kullanım izni vermiş olursun.',
       ],
     },
     {

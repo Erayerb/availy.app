@@ -9,7 +9,7 @@ import { colors, themed } from '../theme';
 import { InlineIcon } from './Icon';
 
 type Found = Person & { relation: Relation; phone: string };
-// One row per contact: an availy user (Ekle) or someone to invite (Davet et)
+// One row per contact: an availo user (Ekle) or someone to invite (Davet et)
 type Row = { key: string; name: string; phone: string; user: Found | null };
 
 // Long address books: the first ones, the rest by searching
@@ -52,7 +52,7 @@ export function ContactsFinder({ token, me, onAdd, onOpenUser }: Props) {
         setBusy(false);
         return setNote(
           permission.canAskAgain === false
-            ? "Rehber izni kapalı. Telefonun Ayarlar'ından availy'ye kişiler izni verebilirsin."
+            ? "Rehber izni kapalı. Telefonun Ayarlar'ından availo'ya kişiler izni verebilirsin."
             : 'Rehber izni verilmedi.',
         );
       }
@@ -66,14 +66,14 @@ export function ContactsFinder({ token, me, onAdd, onOpenUser }: Props) {
         const user = c.phones.map((p) => byPhone.get(p)).find(Boolean) ?? null;
         return { key: `${i}`, name: c.name, phone: user?.phone ?? c.phones[0], user };
       });
-      // availy users first, then everyone else by name
+      // availo users first, then everyone else by name
       list.sort((a, b) => Number(!!b.user) - Number(!!a.user) || a.name.localeCompare(b.name, 'tr'));
       setRows(list);
       setStep('done');
       setNote(
         people.length === 0
-          ? 'Rehberinde availy kullanan kimse bulunamadı; tanıdıklarını davet edebilirsin.'
-          : `Rehberinde ${people.length} availy kullanıcısı var.`,
+          ? 'Rehberinde availo kullanan kimse bulunamadı; tanıdıklarını davet edebilirsin.'
+          : `Rehberinde ${people.length} availo kullanıcısı var.`,
       );
     } catch (e) {
       setNote(e instanceof Error ? e.message : 'Rehbere bakılamadı.');
@@ -95,7 +95,7 @@ export function ContactsFinder({ token, me, onAdd, onOpenUser }: Props) {
       <Text style={styles.title}><InlineIcon name="device-mobile" /> Rehberden bul</Text>
       {step === 'closed' && (
         <>
-          <Text style={styles.muted}>Rehberindeki availy kullanıcılarını bul. İsteğe bağlı; rehberin saklanmaz.</Text>
+          <Text style={styles.muted}>Rehberindeki availo kullanıcılarını bul. İsteğe bağlı; rehberin saklanmaz.</Text>
           <Pressable style={styles.primary} onPress={() => setStep('phone')}>
             <Text style={styles.primaryText}>Rehberimden bul</Text>
           </Pressable>
@@ -104,7 +104,7 @@ export function ContactsFinder({ token, me, onAdd, onOpenUser }: Props) {
       {step === 'phone' && (
         <>
           <Text style={styles.muted}>
-            Rehberine izin verince availy kullanan tanıdıklarını buluruz. Numaralar yalnızca eşleşme için bir kez gönderilir,
+            Rehberine izin verince availo kullanan tanıdıklarını buluruz. Numaralar yalnızca eşleşme için bir kez gönderilir,
             saklanmaz.
           </Text>
           <Text style={styles.muted}>
@@ -148,7 +148,7 @@ export function ContactsFinder({ token, me, onAdd, onOpenUser }: Props) {
                   <Text style={styles.bold} numberOfLines={1}>
                     {r.name}
                   </Text>
-                  <Text style={styles.muted}>{r.user ? `@${r.user.username} · availy'de` : r.phone}</Text>
+                  <Text style={styles.muted}>{r.user ? `@${r.user.username} · availo'da` : r.phone}</Text>
                 </Pressable>
                 {!r.user ? (
                   <Pressable style={styles.outline} onPress={() => smsInvite(r.phone, smsInviteMessage(me))}>

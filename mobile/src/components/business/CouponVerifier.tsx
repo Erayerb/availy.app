@@ -20,7 +20,7 @@ export function CouponVerifier() {
 
   const check = async (raw: string) => {
     const parsed = parseCouponQr(raw);
-    if (!parsed) return setResult({ ok: false, text: 'Bu bir availy kupon kodu değil.' });
+    if (!parsed) return setResult({ ok: false, text: 'Bu bir availo kupon kodu değil.' });
     const error = await redeem(parsed);
     setResult(error ? { ok: false, text: error } : { ok: true, text: `${parsed} geçerli, indirim uygulanabilir. ✓` });
     if (!error) setCode('');

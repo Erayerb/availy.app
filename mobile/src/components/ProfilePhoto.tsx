@@ -57,7 +57,7 @@ export function ProfilePhoto({ username, token, size = 72, framed = false }: { u
     try {
       await save(await ImagePicker.launchImageLibraryAsync(PICK_OPTIONS));
     } catch {
-      setNote('Fotoğraflar açılamadı. Telefonun Ayarlar > availy (Expo Go) > Fotoğraflar iznine bak.');
+      setNote('Fotoğraflar açılamadı. Telefonun Ayarlar > availo (Expo Go) > Fotoğraflar iznine bak.');
     }
   };
 

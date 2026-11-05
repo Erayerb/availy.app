@@ -52,7 +52,7 @@ async def lifespan(app: FastAPI):
     pool.close()
 
 
-app = FastAPI(title="Availy API", lifespan=lifespan)
+app = FastAPI(title="Availo API", lifespan=lifespan)
 # Sign-in uses the Authorization header, not cookies, so credentials stay off
 app.add_middleware(
     CORSMiddleware,

@@ -1,4 +1,4 @@
-/** How to use availy: shown on the Hakkında page, by account type. */
+/** How to use availo: shown on the Hakkında page, by account type. */
 import type { IconName } from '../components/Icon';
 
 export type IntroSection = { icon: IconName; title: string; lines: string[]; legend?: boolean };

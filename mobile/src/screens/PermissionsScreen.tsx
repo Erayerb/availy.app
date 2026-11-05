@@ -20,7 +20,7 @@ type Permission = {
   summary: string; // shown while the section is closed
   to: string; // "Konuma", "Kameraya": for "… izin vermezsen"
   status: Status;
-  // What availy uses it for
+  // What availo uses it for
   uses: string[];
   withoutIt: string;
   onAsk?: () => void; // no button when the permission can't be asked here
@@ -124,7 +124,7 @@ export function PermissionsScreen({
         summary: 'Yalnızca "Rehberden bul" dersen; rehberin saklanmaz',
         status: contacts,
         uses: [
-          "Sosyal > Arkadaşlar'da \"Rehberden bul\"a basınca rehberindeki availy kullanıcılarını bulmak",
+          "Sosyal > Arkadaşlar'da \"Rehberden bul\"a basınca rehberindeki availo kullanıcılarını bulmak",
           'Numaralar yalnızca eşleşme için bir kez gönderilir, saklanmaz',
         ],
         withoutIt: 'Arkadaşlarını kullanıcı adı, QR ya da davet bağlantısıyla eklersin.',
@@ -171,7 +171,7 @@ export function PermissionsScreen({
         <Text style={styles.title}>{business ? 'İzinler' : 'Konum ve izinler'}</Text>
       </View>
       <Text style={styles.muted}>
-        availy yalnızca aşağıdaki izinleri ister. Rehberine yalnızca sen "Rehberden bul" dersen bakar; fotoğraflarından
+        availo yalnızca aşağıdaki izinleri ister. Rehberine yalnızca sen "Rehberden bul" dersen bakar; fotoğraflarından
         yalnızca senin seçtiğini alır; sosyal medya hesaplarına erişmez.
       </Text>
 

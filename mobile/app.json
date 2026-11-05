@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "availy",
-    "slug": "availy",
+    "name": "availo",
+    "slug": "availo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -11,7 +11,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#17110E",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -37,7 +37,7 @@
       [
         "expo-contacts",
         {
-          "contactsPermission": "Rehberindeki arkadaşlarını availy'de bulmak için telefon numaralarına bakarız; rehberin saklanmaz."
+          "contactsPermission": "Rehberindeki arkadaşlarını availo'da bulmak için telefon numaralarına bakarız; rehberin saklanmaz."
         }
       ],
       "expo-font",

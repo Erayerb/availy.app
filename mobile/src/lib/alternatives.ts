@@ -12,7 +12,7 @@ export const shouldSuggestAlternatives = (venue: Venue) => liveLevel(venue) === 
 /**
  * Venues of the same kind nearby that are clearly emptier by fresh
  * check-ins, then the open similar ones nobody reported lately (`known: false`: maybe empty, nobody
- * knows; most venues are like this while availy is young). Order: a campaign that reaches the user,
+ * knows; most venues are like this while availo is young). Order: a campaign that reaches the user,
  * known before unknown, "Sakin" first, then by distance.
  */
 export function quieterAlternatives(

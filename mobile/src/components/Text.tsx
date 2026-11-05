@@ -11,7 +11,7 @@ import {
 
 /**
  * The app's fonts: Figtree for text, Tinos for headings (20 pt and larger: screen titles, venue names,
- * big numbers) like the "availy" wordmark. React Native has no app-wide font, so every Text / TextInput
+ * big numbers) like the "availo" wordmark. React Native has no app-wide font, so every Text / TextInput
  * comes from here; each weight is its own font file, so the style's fontWeight picks the file. A style
  * that names its own fontFamily (the wordmark, icons) is left alone.
  */

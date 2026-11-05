@@ -20,7 +20,7 @@ HOURLY_WINDOW = timedelta(hours=1)
 
 CHECKIN_COLUMNS = "id, venue_id, level, queue, seats, is_first, created_at"
 
-# availy points (for now): every check-in, plus a bonus for a venue's very first one
+# availo points (for now): every check-in, plus a bonus for a venue's very first one
 CHECKIN_POINTS = 10
 FIRST_CHECKIN_POINTS = 50
 # "Bugünün ilk bilgisini sen ver": the day's first check-in at a venue (not its discovery) earns double

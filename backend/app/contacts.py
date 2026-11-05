@@ -59,7 +59,7 @@ def remove_phone(conn: psycopg.Connection, user: dict) -> None:
 
 
 def match_contacts(conn: psycopg.Connection, user: dict, phones: list[str]) -> list[dict]:
-    """availy users among the contacts, each with the number as it was sent (the app shows the rest with "Davet et")."""
+    """availo users among the contacts, each with the number as it was sent (the app shows the rest with "Davet et")."""
     if user.get("is_guest") or user.get("role") != "personal":
         raise ContactsError("Rehberden bulmak için bireysel hesapla kayıt ol.", 403)
     sent: dict[str, str] = {}  # hash -> the number as the app sent it

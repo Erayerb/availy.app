@@ -112,7 +112,7 @@ export function HomeScreen({
   const header = (
     <View style={styles.header}>
       <View style={styles.topRow}>
-        <Wordmark size={34} />
+        <Wordmark size={28} />
         <HeaderButtons onOpenProfile={onOpenProfile} onOpenNotifications={onOpenNotifications} />
       </View>
 

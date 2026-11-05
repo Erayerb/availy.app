@@ -19,14 +19,14 @@ export function shareMessage(venue: Venue): string {
     : level
       ? `şu an ${levelStyle(level).label.toLocaleLowerCase('tr-TR')}${ratio ? ` (${ratio})` : ''}`
       : 'için henüz güncel bildirim yok, ilk check-in\'i sen yap';
-  return `${venue.name} ${status}. availy'de gör: ${venueLink(venue.name)}`;
+  return `${venue.name} ${status}. availo'da gör: ${venueLink(venue.name)}`;
 }
 
 /** "Arkadaşlarına paylaş" after a check-in: where I am and how full it is. */
 export function checkinShareMessage(venueName: string, levelLabel: string, discovered: boolean, note = ''): string {
   const what = discovered ? `${venueName}'i ilk ben keşfettim ✨` : `${venueName}'deyim`;
   const words = note.trim() ? ` “${note.trim()}”` : '';
-  return `📍 ${what} · şu an ${levelLabel.toLocaleLowerCase('tr-TR')}.${words} availy'de gel gör: ${venueLink(venueName)}`;
+  return `📍 ${what} · şu an ${levelLabel.toLocaleLowerCase('tr-TR')}.${words} availo'da gel gör: ${venueLink(venueName)}`;
 }
 
 /** The door sticker's QR: opens this venue's page, where the check-in is. */

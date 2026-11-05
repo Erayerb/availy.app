@@ -31,7 +31,7 @@ export function BusinessRequest({ venueId, token, onLogin }: Props) {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}><InlineIcon name="building-store" /> İşletmesi henüz availy'ye katılmadı</Text>
+      <Text style={styles.title}><InlineIcon name="building-store" /> İşletmesi henüz availo'ya katılmadı</Text>
       <Text style={styles.muted}>
         Doluluğunu yine görür, check-in yapabilirsin. İşletme katılınca kampanyalarını ve sadakat programını da burada
         görürsün. Yeterince kişi isteyince işletmeye haber veririz; kimin istediğini söylemeyiz.

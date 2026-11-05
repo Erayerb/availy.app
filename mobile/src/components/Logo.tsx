@@ -1,28 +1,16 @@
-import { StyleSheet, View } from 'react-native';
-import { Text } from './Text';
+import Svg, { Circle, Path } from 'react-native-svg';
 
-import { colors, themed } from '../theme';
+import { colors } from '../theme';
 
-/** App mark: a red "@" inside a red-outlined cream circle. */
+// The same shape as the app icon (scripts/build-logo.py): an arch with a dot under it
+export const LOGO_PATH = 'M18 78 L35.19 35.95 A16 16 0 0 1 64.81 35.95 L82 78';
+
+/** The Availo mark: the arch in the text color of the theme, the dot in its accent. */
 export function Logo({ size = 96 }: { size?: number }) {
   return (
-    <View
-      style={[
-        styles.circle,
-        { width: size, height: size, borderRadius: size / 2, borderWidth: Math.max(2, size * 0.06) },
-      ]}
-    >
-      <Text style={[styles.at, { fontSize: size * 0.58, lineHeight: size * 0.7 }]}>@</Text>
-    </View>
+    <Svg width={size} height={size} viewBox="0 17 100 70" accessibilityLabel="Availo">
+      <Path d={LOGO_PATH} stroke={colors.text} strokeWidth={14} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <Circle cx={50} cy={60} r={8} fill={colors.primary} />
+    </Svg>
   );
 }
-
-const styles = themed(() => StyleSheet.create({
-  circle: {
-    backgroundColor: colors.surface,
-    borderColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  at: { color: colors.primary, fontWeight: '800', textAlign: 'center' },
-}));

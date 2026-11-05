@@ -113,7 +113,7 @@ export function MapScreen({
     } else {
       setLocateNote(
         position.error === 'blocked'
-          ? 'Konum izni kapalı. Ayarlar > availy > Konum\'dan açabilirsin.'
+          ? 'Konum izni kapalı. Ayarlar > availo > Konum\'dan açabilirsin.'
           : 'Konumun alınamadı.',
       );
       setTimeout(() => setLocateNote(null), 4000);

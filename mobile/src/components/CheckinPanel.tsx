@@ -44,7 +44,7 @@ const clock = (ms: number) => new Date(ms).toLocaleTimeString('tr-TR', { hour: '
 
 const LOCATION_ERRORS = {
   denied: 'Check-in için konum izni gerekli.',
-  blocked: "Check-in için konum izni gerekli. Telefonun Ayarlar'ından availy'ye konum izni ver.",
+  blocked: "Check-in için konum izni gerekli. Telefonun Ayarlar'ından availo'ya konum izni ver.",
   failed: 'Konumun alınamadı. Biraz sonra tekrar dene.',
 };
 
@@ -179,7 +179,7 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
   };
 
   // Checked in here less than 90 minutes ago: the button stays, closed, with the time it opens above it
-  // "Buradayım, gel": a notification to friends on availy (once per check-in, not for a hidden one), or the share sheet
+  // "Buradayım, gel": a notification to friends on availo (once per check-in, not for a hidden one), or the share sheet
   const shareOut = async () => {
     if (!shared) return;
     const note = await shareText(checkinShareMessage(venue.name, shared.label, shared.first, review?.body ?? words));

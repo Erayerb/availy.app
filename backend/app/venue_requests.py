@@ -1,4 +1,4 @@
-"""v2 "İşletmeye haber ver": customers ask a venue that has no business account to join availy.
+"""v2 "İşletmeye haber ver": customers ask a venue that has no business account to join availo.
 
 Each person counts once. When the count reaches 3, 5, 10, 25, 50 or 100 and the venue's e-mail is known,
 the venue gets an e-mail with the number only: never who asked.
@@ -39,7 +39,7 @@ def ask_business(conn: psycopg.Connection, user: dict, venue_id: int, now: datet
     if venue is None:
         raise RequestError("Mekan bulunamadı.", 404)
     if _has_business(conn, venue_id):
-        raise RequestError("Bu mekan zaten availy'de.", 409)
+        raise RequestError("Bu mekan zaten availo'da.", 409)
     conn.execute(
         "INSERT INTO venue_requests (venue_id, user_id, created_at) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING",
         (venue_id, user["id"], now),
@@ -49,11 +49,11 @@ def ask_business(conn: psycopg.Connection, user: dict, venue_id: int, now: datet
     if reached and venue["contact_email"]:
         send_email(
             venue["contact_email"],
-            f"{status['count']} kişi {venue['name']}'i availy'de bekliyor",
-            f"Merhaba,\n\n{status['count']} availy kullanıcısı {venue['name']} için \"İşletmeye haber ver\" dedi. "
+            f"{status['count']} kişi {venue['name']}'i availo'da bekliyor",
+            f"Merhaba,\n\n{status['count']} availo kullanıcısı {venue['name']} için \"İşletmeye haber ver\" dedi. "
             "Bu kişiler mekanınızın anlık doluluğunu görmek, kampanyalarınızdan ve sadakat programınızdan "
-            "haberdar olmak istiyor.\n\nİşletme hesabını ücretsiz açmak için availy uygulamasında "
-            "\"İşletme\" ile kayıt olup mekanınızı seçebilirsiniz.\n\navaily",
+            "haberdar olmak istiyor.\n\nİşletme hesabını ücretsiz açmak için availo uygulamasında "
+            "\"İşletme\" ile kayıt olup mekanınızı seçebilirsiniz.\n\navailo",
         )
         conn.execute("UPDATE venues SET requests_mailed = %s WHERE id = %s", (status["count"], venue_id))
     return status

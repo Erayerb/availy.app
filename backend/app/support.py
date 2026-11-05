@@ -59,7 +59,7 @@ def send_support(
         who = f"@{me['username']}" if me and me.get("username") else ("misafir" if me else "giriş yapmamış")
         send_email(
             settings.support_email,
-            f"[availy {'hata' if kind == 'bug' else 'iletişim'} #{row['id']}] {topic}",
+            f"[availo {'hata' if kind == 'bug' else 'iletişim'} #{row['id']}] {topic}",
             f"{text}\n\nKimden: {who} · {mail or 'e-posta yok'}\nUygulama: {app_info or '-'}",
         )
     return {"id": row["id"]}

@@ -26,7 +26,7 @@ export type Candidate = { username: string; why: string };
 
 /**
  * Who to offer when creating a group or inviting more: friends first, then people around
- * (availy's suggestions: mutual friends, the same venues); each once, without the ones left out.
+ * (availo's suggestions: mutual friends, the same venues); each once, without the ones left out.
  */
 export function groupCandidates(
   friends: { username: string }[],

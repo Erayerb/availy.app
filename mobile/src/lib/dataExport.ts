@@ -7,8 +7,8 @@ import { send } from './accountApi';
 
 export const fetchMyData = (token: string) => send<Record<string, unknown>>('GET', '/v1/me/export', undefined, token);
 
-/** File name like "availy-verilerim-2026-10-27.json". */
-export const exportFileName = (now: Date) => `availy-verilerim-${now.toISOString().slice(0, 10)}.json`;
+/** File name like "availo-verilerim-2026-10-27.json". */
+export const exportFileName = (now: Date) => `availo-verilerim-${now.toISOString().slice(0, 10)}.json`;
 
 /**
  * Downloads my data: the browser saves the file; the phone writes it and opens the share sheet

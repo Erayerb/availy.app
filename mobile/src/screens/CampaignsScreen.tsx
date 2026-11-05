@@ -203,7 +203,7 @@ function Loyalty({
   if (!signedIn) {
     return (
       <View style={styles.list}>
-        <Text style={styles.empty}>Sadakat programlarına katılmak ve availy puanı kazanmak için giriş yap.</Text>
+        <Text style={styles.empty}>Sadakat programlarına katılmak ve availo puanı kazanmak için giriş yap.</Text>
         <Pressable style={styles.primary} onPress={onLogin}>
           <Text style={styles.primaryText}>Giriş yap</Text>
         </Pressable>
@@ -217,7 +217,7 @@ function Loyalty({
   return (
     <View style={styles.list}>
       <View style={styles.pointsCard}>
-        <Text style={styles.pointsLabel}>availy puanın</Text>
+        <Text style={styles.pointsLabel}>availo puanın</Text>
         <Text style={styles.points}>{serverPoints}</Text>
         <Text style={styles.muted}>
           Her check-in 10, bir mekanın ilk check-in'i +50; her damga 5, kullandığın her kupon 10 puan.

@@ -22,7 +22,7 @@ export type User = {
   id?: number; // server account id (v2)
   token?: string; // session token from the server (v2); users without one must sign in again
   isGuest?: boolean; // "Kayıt olmadan devam et": a server account without e-mail or password
-  // From the server (v2): availy points from check-ins, check-in count, venues discovered first, badges
+  // From the server (v2): availo points from check-ins, check-in count, venues discovered first, badges
   points?: number;
   checkins?: number;
   discoveries?: number;

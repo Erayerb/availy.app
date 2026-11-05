@@ -43,7 +43,7 @@ export const listsApi = {
 /** The web link that opens a list shared by link. */
 export const listLink = (code: string) => `${WEB_APP_URL}?list=${encodeURIComponent(code)}`;
 
-export const listShareMessage = (name: string, code: string) => `availy'de "${name}" listeme bak: ${listLink(code)}`;
+export const listShareMessage = (name: string, code: string) => `availo'da "${name}" listeme bak: ${listLink(code)}`;
 
 /** "?list=ABCD2345" in the web address, if any. */
 export function listCodeFromQuery(search: string): string | null {

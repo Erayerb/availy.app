@@ -133,7 +133,7 @@ export function SettingsScreen({ onBack, isBusiness, guest, venueId, account }: 
         </>
       )}
 
-      <Text style={styles.version}>availy</Text>
+      <Text style={styles.version}>availo</Text>
     </ScrollView>
   );
 }

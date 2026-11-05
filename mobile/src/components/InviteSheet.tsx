@@ -28,7 +28,7 @@ export function InviteSheet({ username, onFindContacts, onDone }: Props) {
         <Text style={styles.title}>Arkadaşlarını davet et</Text>
         <Text style={styles.art}><InlineIcon name="user-plus" /><InlineIcon name="heart-handshake" /></Text>
         <Text style={styles.text}>
-          availy arkadaşlarla daha eğlenceli: nerede olduklarını, nereyi sevdiklerini görürsün. Bağlantınla kayıt olan
+          availo arkadaşlarla daha eğlenceli: nerede olduklarını, nereyi sevdiklerini görürsün. Bağlantınla kayıt olan
           arkadaşın otomatik eklenir, sen de 50 puan kazanırsın.
         </Text>
         <Pressable

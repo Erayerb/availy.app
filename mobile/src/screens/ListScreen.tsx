@@ -62,7 +62,7 @@ export function ListScreen({ token, target, onBack, onOpenVenue, onOpenList }: P
 
   const { venues, loading, refresh } = useVenuesByIds(list?.venue_ids ?? []);
   const shown = list ? [...venues].sort((a, b) => list.venue_ids.indexOf(a.id) - list.venue_ids.indexOf(b.id)) : [];
-  // "şu an 3'ü sakin": the reason to keep a list in availy
+  // "şu an 3'ü sakin": the reason to keep a list in availo
   const quiet = shown.filter((v) => liveLevel(v) === 'low').length;
 
   const setVenue = async (venueId: number, present: boolean) => {

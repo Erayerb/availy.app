@@ -1,4 +1,6 @@
-# availy (v2)
+# availo (v2)
+
+**Ad:** Uygulamanın adı Availo (eski adı availy). Depo adı, sunucu ve site adresleri (availy-api, erayerb.github.io/availy.app), telefondaki kayıt anahtarları, QR önekleri ve test hesapları eski adla kalıyor. Logo: kemer ve nokta (components/Logo, simgeler scripts/build-logo.py), yazı Figtree; renkler temadan
 
 İstanbul'daki kafe, restoran, bar, kütüphane ve ortak çalışma alanlarının şu an ne kadar dolu
 olduğunu gösteren mobil uygulama. Doluluğu mekanda olan kullanıcılar check-in yaparak bildirir
@@ -49,7 +51,7 @@ dalında ve `v1` etiketinde olduğu gibi durur (bkz. en alttaki "v1" bölümü).
 ## Kurallar
 - v1 asla silinmez: `main` ve `v1` etiketi olduğu gibi kalır; v2 `main`'e alınmaz (yalnızca Pages iş akışı dosyası iki dalda ortak)
 - Commit ve push yalnızca istendiğinde
-- Kullanıcı verisi silinmez (gerçek hesaplar eray, availy, isletme ve onların check-in / yorumları; test hesapları availy_deneme, availy_isletme). Kullanılmayan veri silinmeden önce sorulur
+- Kullanıcı verisi silinmez (gerçek hesaplar eray, availo, isletme ve onların check-in / yorumları; test hesapları availy_deneme, availy_isletme). Kullanılmayan veri silinmeden önce sorulur
 - Gizli anahtarlar (.env, Render ayarları) koda ve sohbete yazılmaz
 - Bildirimler olay olunca gelir (zamanlı bildirim yok)
 - Kod yorumları ve değişken adları İngilizce, açıklamalar ve arayüz Türkçe; her değişikliğe kısa test
@@ -118,7 +120,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Mekan adı kontrolü: eklerken ve işletme adı değiştirirken app/name_check.py (bağlantı, telefon, 5+ harf tamamı büyük, küfür listesi); "Bilgi yanlış mı?" > Uygunsuz ad: 3 kayıtlı kişi bildirince kullanıcının eklediği mekan yönetici bakana dek gizlenir (hidden_at, migration 016; içe aktarılan mekanlar gizlenmez, yalnızca listeye düşer); Yönetici > Onay bekleyen mekanlar: adı düzelt ya da kaldır (kayıtlar kalır)
 - Kapı QR'ı: İşletme profili > Kapı QR'ı (yazdır / PDF, lib/doorPoster), link ?kapi=ID mekan sayfasını açar; telefon kamerasıyla okutulur. Check-in yine mekanda olmayı ister
 - Kurucu mekan: yönetici mekan sayfasından verir (venue_profiles.founder, migration 017, en fazla 10); mekan sayfasında ve harita kartında rozet
-- "Buradayım, gel" (check-in sonrası, Paylaş ile aynı boyda): sorar; availy'deki arkadaşlara bildirim (come_calls, check-in başına bir, 90 dk içinde; gizli check-in'de yok, sessize alanlara gitmez) ya da telefonun paylaş ekranı
+- "Buradayım, gel" (check-in sonrası, Paylaş ile aynı boyda): sorar; availo'daki arkadaşlara bildirim (come_calls, check-in başına bir, 90 dk içinde; gizli check-in'de yok, sessize alanlara gitmez) ya da telefonun paylaş ekranı
 - Gezinme (components/ScreenStack, lib/navigation openPages, context/PageContext): açık sayfalar arkada kalır (sekmeler birer tane, geçmişten son 5 sayfa), kaydırma yeri ve verisi korunur; üstteki sayfa dışındakiler yeniden çizilmez, zamanlayıcıları çalışmaz, geri dönünce sessizce yenilenir (useOnPageFocus). Sol kenardan çekince altta gerçek sayfa görünür (ana sekmelerde ve haritada çekme yok). Açık sekmeye tekrar basınca listesi başa döner (usePageTop). Sekmeye basmak Sosyal / Kampanyalar'ı ilk sekmeye döndürmez
 - Panel "En sakin saatlerin": son 30 günde en az 30 check-in varsa haftanın en boş 2 saati, tek dokunuşla haftalık kampanya (Aylık paket)
 - Akıcılık (devam): açılan sayfa kayarak gelir, mekan listeleri bellekte (geri dönünce anında görünür, sessizce güncellenir), yüklenirken sayfa iskeleti, Sosyal / Bildirimler / Profil / Panel'de aşağı çekip yenileme, klavye açılınca sayfa kayar ve kaydırınca kapanır, sekme titreşimi, Android geri tuşu, fotoğraflar yumuşak gelir, sunucuya ulaşılamayınca üstte "İnternet yok"
@@ -136,7 +138,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 
 **Sosyal**
 - Arkadaşlar: kullanıcı adıyla arama, istek / kabul / reddet / çıkar (onaylı), QR'ım, QR okut, davet bağlantısı (?invite=ad). Davet bağlantısıyla kayıt olan davet edenle otomatik arkadaş olur, davet eden 50 puan alır (ayda en fazla 5 davet ödülü; users.invited_by). Canlı konum yok
-- "📱 Rehberden bul" (isteğe bağlı, yalnızca telefonda; app/contacts.py): rehber izni yeter; kendi numaranı da yazarsan (isteğe bağlı; telefonlar uygulamaya kendi numarasını vermez) seni de bulurlar (yalnızca gizli anahtarlı özeti saklanır: users.phone_hash, PHONE_PEPPER; "Numaramı kaldır"); rehberdeki numaralar sunucuda eşleştirilir ve saklanmaz; yalnızca aranabilir bireysel hesaplar bulunur. Tüm rehber listelenir: availy'de olanlarda Ekle / Kabul et, olmayanlarda "Davet et" (SMS: "Arkadaşın seni availy'ye davet ediyor. Sen de ilk check-in'i yap." + bağlantı); uzun rehberde arama
+- "📱 Rehberden bul" (isteğe bağlı, yalnızca telefonda; app/contacts.py): rehber izni yeter; kendi numaranı da yazarsan (isteğe bağlı; telefonlar uygulamaya kendi numarasını vermez) seni de bulurlar (yalnızca gizli anahtarlı özeti saklanır: users.phone_hash, PHONE_PEPPER; "Numaramı kaldır"); rehberdeki numaralar sunucuda eşleştirilir ve saklanmaz; yalnızca aranabilir bireysel hesaplar bulunur. Tüm rehber listelenir: availo'da olanlarda Ekle / Kabul et, olmayanlarda "Davet et" (SMS: "Arkadaşın seni availo'ya davet ediyor. Sen de ilk check-in'i yap." + bağlantı); uzun rehberde arama
 - Akış (GET /v1/feed): arkadaşların ve kendi son 7 gündeki check-in'leri (keşif + puan + not), yorumları ve yanıtları, kişi başına ayrı bloklarda; Akış'tan yanıt. Check-in'lere ♡ beğeni ve yorum (checkin_likes, checkin_comments; kişi başı 5 yorum; yorumu yazan ya da check-in sahibi silebilir; yalnızca arkadaşlar) Akış boşken (arkadaşı yoksa en üstte "📨 Arkadaşlarını davet et") "Arkadaş ekle / Mekan keşfet / Check-in yap" kartları, "Önerilen kişiler" (ortak arkadaşı olanlar, aynı mekanlara gidenler (ikisi de izin verdiyse: Gizlilik > "Arkadaş olarak önerilmeye izin ver", users.suggest_by_venues, gizli check-in sayılmaz), sonra bu hafta en çok puan alanlar; Ekle) ve "✨ Yakında yeni keşfedilen mekanlar" (son 14 günün ilk check-in'leri, yakından uzağa) (GET /v1/suggestions)
 - "👥 @ayse ve @can burada · 20 dk önce check-in": mekan sayfasında ve haritadaki kartta, son 60 dakikada orada (gizli olmayan) check-in yapan arkadaşlar (GET /v1/venues/{id}/friends-here; check-in'lerini paylaşmayanlar görünmez). Arkadaşın profilinde en üstte son check-in'i ("📍 X'de check-in yaptı · 20 dk önce"). Haritada arkadaş işareti yok (istenmedi)
 - Kullanıcı profili: puan, check-in, keşif, rozetler, mekanlar (yalnızca kendin ve paylaşan arkadaşların); Arkadaş ekle / Sessize al / Arkadaşlıktan çıkar / Engelle
@@ -186,11 +188,11 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Mekan iletişim bilgileri (migration 011: contact_phone, contact_website, contact_source; contact_email zaten vardı): Overture Maps'ten app/import_contacts.py ile (ad + 80 m eşleşme; semt adları yok sayılır); yalnızca işletme doğrulaması için, uygulamada gösterilmez. Yerelde 286 mekanın 191'i: 175 telefon, 96 e-posta, 124 web. Neon'da da yapıldı (285 mekanın 195'i: 179 telefon, 97 e-posta, 128 web); yeni mekanlar için yeniden çalıştırılabilir: backend/scripts/import-contacts-live.sh (adresi sorar, bağlantıyı dener, dosyayı indirir, ekler, siler)
 - Mekan eklerken "Adresi haritada bul" (yazılan adres haritada açılır, pin kapıya getirilir); konum seçme haritasında üstte arama, yazdıkça sonuçlar arama çubuğunun hemen altında küçük liste (Google Maps gibi; Nominatim searchPlaces)
 - Daha fazla > Hakkında: "Web sitemiz" (tanıtım sayfası)
-- Logo yazısı (Wordmark): "availy", Tinos (serif, @expo-google-fonts/tinos), temanın ana renginde; y altında kıvrım yok
+- Logo yazısı (Wordmark): "availo", Tinos (serif, @expo-google-fonts/tinos), temanın ana renginde; y altında kıvrım yok
 - Görünüm: Cihaz ayarı / Açık / Koyu (denenen Koyu mavi, Petrol ve Grafit kaldırıldı; kayıtlıysa Cihaz ayarına döner)
 
 **Mekanlar**
-- "🏪 İşletmesi henüz availy'ye katılmadı · İşletmeye haber ver": işletmesi olmayan mekanın sayfasında (mekan availy'de görünür, yalnızca işletmesi yok); kişi başı bir kez, "N kişi istedi"; 3 / 5 / 10 / 25 / 50 / 100 kişide mekanın e-postası biliniyorsa yalnızca sayıyı yazan bir e-posta gider, kimin istediği yazmaz (venue_requests, venues.contact_email)
+- "🏪 İşletmesi henüz availo'ya katılmadı · İşletmeye haber ver": işletmesi olmayan mekanın sayfasında (mekan availo'da görünür, yalnızca işletmesi yok); kişi başı bir kez, "N kişi istedi"; 3 / 5 / 10 / 25 / 50 / 100 kişide mekanın e-postası biliniyorsa yalnızca sayıyı yazan bir e-posta gider, kimin istediği yazmaz (venue_requests, venues.contact_email)
 - "Mekan ekle" (giriş yapmış bireysel kullanıcı; Check-in yap ekranında sağ üstte; mobile/src/components/NewVenueForm.tsx): ad, tür, Konum seç (📍 şu anki konum ya da 🗺️ haritadan; harita çevredeki mekanları ve mavi noktanı gösterir), seçilen noktadan semt / mahalle / açık adres kendiliğinden dolar (Nominatim, değiştirilebilir), "Adresi doğrula" özeti → "Doğru, gönder". Kullanıcı seçtiği noktaya check-in mesafesinden yakın olmalı. Semt arama kutusuyla seçilir (yazınca altta liste). Yakında (60 m) aynı adlı mekan varsa eklenmez; 25 m içinde başka mekan varsa "haritada üst üste görünürler" uyarısı ve "Aynı mekan değil, yine de ekle"; kişi başı en fazla 3 onay bekleyen mekan. "⏳ Onay bekliyor" görünür, check-in alır; ekleyen dışında 3 farklı kişi en az 3 farklı günde check-in yapınca onaylanır, ekleyen 50 puan alır; 30 günde onaylanmazsa listelerden kalkar (veri silinmez)
 
 **İşletme**
@@ -209,7 +211,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - İşletme damga kartı ya da ücretli üyelik (gösterim, ödeme yok) kurar, açar / kapatır; müşteri Kampanyalar → Sadakat'ta ya da mekan sayfasında "Katıl" der (otomatik katılım yok), çıkabilir
 - Kasada müşterinin QR'ı / kodu (M-123456, sunucuda hesaba bağlı; GET /v1/me `customer_code`) okutulur: damga (kart dolunca ödül), ödülü kullandır; katılmamış müşteriye damga yok
 - O mekanda check-in yapmış (keşfetmiş, sık giden) ve katılmamış müşterilere 🔔 "⭐ … sadakat programı başlattı" bildirimi; program yeniden açılınca tekrar
-- Damga başına 5 availy puanı (uygulamada sayılır)
+- Damga başına 5 availo puanı (uygulamada sayılır)
 
 **Kampanya ve kupon** (sunucuda)
 - İşletme kampanya gönderir (mesaj, indirim, 1/2/3 saat, 1/2/5 km, kişi sınırı); her telefondaki müşteri yakınındaki aktif kampanyayı görür, "Kuponu al" → AV-XXXX (0/O, 1/I, 8/B yok; kişi başı bir; sınır kilitle korunur), kasada QR ya da elle; kampanya bitince kupon kullanılamaz
@@ -240,7 +242,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Hata takibi: Sentry (backend + uygulama)
 - Mağaza sürümü: Expo EAS Build ile App Store / Google Play (Expo Go geliştirme modunda çalışır; yavaş sayfa geçişleri gerçek sürümde büyük ölçüde düzelir)
 - Ödeme: kampanya ücreti (₺150), Aylık paket ve Premium için ödeme altyapısı yok; ekranlarda "Prototip" yazıyor
-- E-posta: Resend hesabı açıldı, anahtar Render'da (`resend` ortam grubu, RESEND_API_KEY). Alan adı olmadan Resend yalnızca hesap sahibinin adresine gönderir; herkese gidebilmesi için alan adı al (ör. availy.app), Resend → Domains'te doğrula (DNS: SPF, DKIM) ve Render'da MAIL_FROM = "availy <no-reply@alanadı>" yap
+- E-posta: Resend hesabı açıldı, anahtar Render'da (`resend` ortam grubu, RESEND_API_KEY). Alan adı olmadan Resend yalnızca hesap sahibinin adresine gönderir; herkese gidebilmesi için alan adı al (ör. availy.app), Resend → Domains'te doğrula (DNS: SPF, DKIM) ve Render'da MAIL_FROM = "availo <no-reply@alanadı>" yap
 
 **KVKK ve hukuk** (hepsi hukukçuya sorulacak)
 - Gizlilik politikası ve kullanım koşulları: hukukçu kontrolü, şirket bilgileri, web'de yayın; `[iletişim e-postası]` boşluğu doldurulacak (mobile/src/lib/legal.ts `CONTACT`)
@@ -252,7 +254,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Kullanıcı fotoğrafları: fotoğrafta başkalarının yüzü çıkabilir; şikâyet, kaldırma, saklama süresi
 
 **Gerçek uygulama sürümü gerektirenler** (Apple Developer hesabı, EAS Build; Expo Go'da olmaz)
-- Instagram / TikTok'ta Paylaş'a basınca listede availy çıkması, mekanın favorilere girmesi
+- Instagram / TikTok'ta Paylaş'a basınca listede availo çıkması, mekanın favorilere girmesi
 - Kapı QR'ının telefon kamerasıyla doğrudan uygulamayı açması (universal link; kod hazır, alan adı gerekir)
 - Telefon bildirimleri ve ana ekran widget'ı (bkz. Bildirimler)
 
@@ -268,7 +270,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 **Tanıtım (reklam)**
 - Tanıtım sayfası: mobile/public/tanitim (yayında https://erayerb.github.io/availy.app/v2/tanitim/); bekleme listesi (kullanıcı / işletme, POST /v1/waitlist, Yönetici > Bekleme listesi). İsim kesinleşince alan adı ve kök adrese taşıma; haritadan kısa video / gif eklenebilir
 - Instagram ve TikTok serileri (haftada 2–3): "Moda'nın en sakin 5 kafesi" (her kafe 3 sn, "Salı 15:00 · sakin · priz var", sonda "Şu an hangisi sakin? Uygulamada canlı"); gün içinde "Kadıköy'de şu an sakin 3 yer" hikâyeleri (uygulamadan ekran görüntüsü); "Çalışmaya uygun" ve "Sınav haftası" listeleri (priz, Wi-Fi, sessizlik; uygulamadaki listelerden); kurucu kafelerin kısa tanıtımları; haftanın kâşifi ve "Burayı sen keşfettin" paylaşımları (paylaşana bonus puan)
-- Kurucu mekan programı (tanıtım sayfasında): ilk 10 mekana 3 ay ücretsiz Aylık paket, "Kurucu mekan" rozeti, kapıya "availy'de · QR ile check-in" çıkartması, ekipten biri fotoğraf çeker, açılışta öne çıkma
+- Kurucu mekan programı (tanıtım sayfasında): ilk 10 mekana 3 ay ücretsiz Aylık paket, "Kurucu mekan" rozeti, kapıya "availo'da · QR ile check-in" çıkartması, ekipten biri fotoğraf çeker, açılışta öne çıkma
 - Tek semtte yoğun başlangıç (Moda / Kadıköy): ekip ve elçi kullanıcılar ilk haftalarda düzenli bildirim
 - Ölçüm: takipçi değil; bekleme listesine yazılan ve check-in yapan kişi sayısı
 
@@ -309,7 +311,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 **Tanıdıkları bulmak**
 - Render'da PHONE_PEPPER ayarı girilmeli. Ne işe yarar: "Rehberden bul"da telefon numaraları açık hâliyle saklanmaz, bu gizli metinle karıştırılıp geri çevrilemez bir özete (hash) dönüştürülür. Türkiye'de olası numara sayısı az olduğu için gizli metin olmadan özetler denenerek numaraya geri çevrilebilir; gizli metin bunu imkânsız yapar. Değer: uzun, rastgele bir metin (ör. 40+ karakter); bir kez girilir, sonra değiştirilmez (değişirse kayıtlı numaralar artık eşleşmez). Girilmezse geliştirme için yazılmış varsayılan metin kullanılır (güvensiz)
 
-**availy puanı** (kullanıcı "puan ne işe yarar?" diye soracak: yayından önce bir karşılığı olmalı ve uygulamada anlatılmalı)
+**availo puanı** (kullanıcı "puan ne işe yarar?" diye soracak: yayından önce bir karşılığı olmalı ve uygulamada anlatılmalı)
 - Puan harcama: ör. 200 puan = katılan bir kafede %10 kupon (işletme ödülü kendisi belirler, sponsor olur), Premium indirimi, ortak kuponlar (Getir / Trendyol); işletmeleri sisteme bağlamanın da yolu. Puan kasmaya karşı kurallar (başka mekandan sonra 30 dk / günde 8) ödül verilmeden önce yeniden gözden geçirilmeli (ör. aynı sokakta art arda check-in'lere bakmak, hesap yaşı)
 - Ek kazanım: yorum yazmak, Sakin saatte gitmek
 

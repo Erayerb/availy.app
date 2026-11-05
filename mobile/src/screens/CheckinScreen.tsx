@@ -68,7 +68,7 @@ export function CheckinScreen({ onBack, onOpenVenue, onAddVenue, visits }: Props
 
   const askLocation = async () => {
     const result = await locate();
-    if (result.error === 'blocked') setLocationNote("Konum izni kapalı. Ayarlar > availy > Konum'dan açabilirsin.");
+    if (result.error === 'blocked') setLocationNote("Konum izni kapalı. Ayarlar > availo > Konum'dan açabilirsin.");
     else if (result.error) setLocationNote('Konumun alınamadı.');
     else setLocationNote(null);
   };

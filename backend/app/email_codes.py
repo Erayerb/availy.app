@@ -25,11 +25,11 @@ RESEND_AFTER = timedelta(minutes=1)
 
 MESSAGES = {
     "reset": (
-        "availy şifre sıfırlama kodun",
+        "availo şifre sıfırlama kodun",
         "Şifreni sıfırlamak için kodun: {code}\n\nKod 15 dakika geçerli. Bunu sen istemediysen bu e-postayı yok say.",
     ),
     "verify": (
-        "availy e-posta doğrulama kodun",
+        "availo e-posta doğrulama kodun",
         "E-posta adresini doğrulamak için kodun: {code}\n\nKod 15 dakika geçerli.",
     ),
 }

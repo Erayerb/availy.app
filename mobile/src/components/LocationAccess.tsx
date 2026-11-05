@@ -13,7 +13,7 @@ const ACCESS: Record<Access, { title: string; hint: string }> = {
   unknown: { title: 'Bilinmiyor', hint: 'İzin durumu okunamadı' },
   none: { title: 'Kapalı', hint: 'Check-in yapılamaz' },
   ask: { title: 'Henüz sorulmadı', hint: 'Check-in için gerekli' },
-  inUse: { title: 'Uygulamayı kullanırken', hint: 'availy için yeterli' },
+  inUse: { title: 'Uygulamayı kullanırken', hint: 'availo için yeterli' },
   always: { title: 'Daima', hint: 'Tüm özellikler açık' },
 };
 
@@ -72,7 +72,7 @@ export function LocationAccess({ onChange }: { onChange?: () => void }) {
   return (
     <View style={styles.content}>
       <Text style={styles.intro}>
-        availy için konum erişiminin <Text style={styles.bold}>Uygulamayı kullanırken</Text> olması yeterli. Konumun yalnızca
+        availo için konum erişiminin <Text style={styles.bold}>Uygulamayı kullanırken</Text> olması yeterli. Konumun yalnızca
         check-in anında kontrol edilir ve saklanmaz.
       </Text>
 

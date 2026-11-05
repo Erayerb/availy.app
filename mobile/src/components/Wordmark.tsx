@@ -1,25 +1,26 @@
-import { StyleSheet } from 'react-native';
-import { Text } from './Text';
+import { StyleSheet, View } from 'react-native';
 
 import { colors, themed } from '../theme';
-
-export const WORDMARK_FONT = 'Tinos_400Regular';
+import { Logo } from './Logo';
+import { Text } from './Text';
 
 type Props = {
   size?: number;
-  color?: string;
+  mark?: boolean; // the arch and dot in front of the name
 };
 
-/** "availy" in Tinos (a serif), in the theme's accent color; plain letters, no swash under the y. */
-export function Wordmark({ size = 40, color = colors.primary }: Props) {
+/** The name as in the logo: "Availo" in Figtree, in the text color of the theme. */
+export function Wordmark({ size = 40, mark = true }: Props) {
   return (
-    <Text style={[styles.text, { fontSize: size, lineHeight: Math.round(size * 1.2), color }]} accessibilityLabel="availy">
-      availy
-    </Text>
+    <View style={styles.row} accessibilityRole="header">
+      {mark && <Logo size={size * 1.05} />}
+      <Text style={[styles.text, { fontSize: size, lineHeight: Math.round(size * 1.2) }]}>Availo</Text>
+    </View>
   );
 }
 
 const styles = themed(() => StyleSheet.create({
   // Placed by the parent: left in the headers, centered on the welcome and loading screens
-  text: { fontFamily: WORDMARK_FONT, includeFontPadding: false },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  text: { fontFamily: 'Figtree_600SemiBold', color: colors.text, includeFontPadding: false, letterSpacing: -0.5 },
 }));
