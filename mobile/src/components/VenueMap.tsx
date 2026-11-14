@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { TAB_BAR_HEIGHT } from './TabBar';
 import { Text } from './Text';
 import MapView, { Marker, type MapPressEvent } from 'react-native-maps';
 
@@ -226,23 +227,12 @@ export function VenueMap({
       onPress={handleMapPress}
       onLayout={(e) => setSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
       showsMyLocationButton={false}
+      // Apple's legal link stays visible above the floating tab bar
+      legalLabelInsets={{ top: 0, left: 8, right: 0, bottom: TAB_BAR_HEIGHT }}
+      mapPadding={{ top: 0, left: 0, right: 0, bottom: TAB_BAR_HEIGHT }}
       // Apple Maps' own dark style in the dark theme
       userInterfaceStyle={scheme === 'light' ? 'light' : 'dark'}
     >
-      {/* Under the venue dots: a venue right where the user stands stays visible */}
-      {userPoint && (
-        <Marker
-          coordinate={{ latitude: userPoint.lat, longitude: userPoint.lon }}
-          anchor={{ x: 0.5, y: 0.5 }}
-          zIndex={0}
-          tracksViewChanges={false}
-          tappable={false}
-        >
-          <View style={styles.userHalo} collapsable={false}>
-            <View style={styles.userDot} />
-          </View>
-        </Marker>
-      )}
       {items.map((item) => {
         if (item.kind === 'cluster') {
           return (
@@ -281,6 +271,20 @@ export function VenueMap({
             onSelect={onMarkerPress}
           />
         ))}
+      {/* Over the venue dots (last, so on top), smaller than them: a venue right where the user stands still shows */}
+      {userPoint && (
+        <Marker
+          coordinate={{ latitude: userPoint.lat, longitude: userPoint.lon }}
+          anchor={{ x: 0.5, y: 0.5 }}
+          zIndex={1000}
+          tracksViewChanges={false}
+          tappable={false}
+        >
+          <View style={styles.userHalo} collapsable={false}>
+            <View style={styles.userDot} />
+          </View>
+        </Marker>
+      )}
     </MapView>
   );
 }
@@ -346,19 +350,20 @@ const styles = themed(() => StyleSheet.create({
   clusterText: { color: colors.white, fontWeight: '800', fontSize: 14 },
   // "You are here", like Google Maps
   userHalo: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(26,115,232,0.18)',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(26,115,232,0.16)',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Smaller than a venue dot, so one right under it still shows around it
   userDot: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 15,
+    height: 15,
+    borderRadius: 8,
     backgroundColor: '#1A73E8',
-    borderWidth: 3,
+    borderWidth: 2.5,
     borderColor: colors.white,
     shadowColor: colors.shadow,
     shadowOpacity: 0.35,

@@ -11,7 +11,7 @@ def venue(conn, name="Test Kafe A"):
     return conn.execute("SELECT id FROM venues WHERE name = %s", (name,)).fetchone()["id"]
 
 
-def test_two_reviews_per_checkin(client, conn, visit):
+def test_one_review_per_checkin(client, conn, visit):
     kafe, ali = venue(conn), account(client, "t_ali")
     # No check-in here yet: no review
     no_visit = client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 5}, headers=auth(ali))
@@ -21,12 +21,12 @@ def test_two_reviews_per_checkin(client, conn, visit):
     first = client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 4, "body": " Kahvesi güzel "}, headers=auth(ali))
     assert first.status_code == 201
     assert first.json()["items"][0]["body"] == "Kahvesi güzel" and first.json()["items"][0]["mine"] is True
-    client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 2, "body": "Bugün kalabalıktı"}, headers=auth(ali))
-    third = client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 5}, headers=auth(ali))
-    assert third.status_code == 409 and "en fazla 2" in third.json()["detail"]
-    # Another check-in: two more
+    second = client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 5}, headers=auth(ali))
+    assert second.status_code == 409 and "tekrar check-in" in second.json()["detail"]
+    # Another check-in: one more
     visit("t_ali", kafe)
-    assert client.get(f"/v1/venues/{kafe}/reviews", headers=auth(ali)).json()["allowance"] == {"checkins": 2, "left": 2}
+    assert client.get(f"/v1/venues/{kafe}/reviews", headers=auth(ali)).json()["allowance"] == {"checkins": 2, "left": 1}
+    client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 2, "body": "Bugün kalabalıktı"}, headers=auth(ali))
     assert client.get(f"/v1/venues/{kafe}/reviews").json()["allowance"] is None
     public = client.get(f"/v1/venues/{kafe}/reviews").json()
     assert public["count"] == 2 and public["average"] == 3.0
@@ -91,8 +91,9 @@ def test_feed_has_friends_checkins_reviews_and_replies(client, conn, visit):
     stranger = client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 1}, headers=auth(other)).json()["items"]
     client.post(f"/v1/reviews/{[r for r in stranger if r['username'] == 't_yabanci'][0]['id']}/replies", json={"body": "Neden?"}, headers=auth(ayse))
     feed = client.get("/v1/feed", headers=auth(ali)).json()
-    assert [(f["kind"], f["username"]) for f in feed] == [("reply", "t_ayse"), ("review", "t_ayse"), ("checkin", "t_ayse")]
-    assert feed[0]["review_author"] == "t_yabanci" and feed[1]["rating"] == 4 and feed[2]["is_first"] is True
+    # Her rating belongs to her latest check-in, so it shows with it
+    assert [(f["kind"], f["username"]) for f in feed] == [("reply", "t_ayse"), ("checkin", "t_ayse")]
+    assert feed[0]["review_author"] == "t_yabanci" and feed[1]["rating"] == 4 and feed[1]["is_first"] is True
     # Reviews and replies carry the review to answer from the feed
     assert feed[1]["review_id"] == review["id"] and feed[1]["allow_replies"] is True
     # Ayşe stops sharing her check-ins: they leave the feed
@@ -118,9 +119,8 @@ def test_a_review_from_the_venue_page_shows_under_the_check_in(client, conn):
     assert post["reported"] == "low"  # what Ayşe said about how full it was
     [mine] = client.get("/v1/feed?who=me", headers=auth(ayse)).json()
     assert (mine["kind"], mine["rating"]) == ("checkin", 5)
-    # The check-in already has one: the second review stands on its own
-    client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 3, "body": "Yine geldim"}, headers=auth(ayse))
-    assert [(f["kind"], f["rating"]) for f in client.get("/v1/feed", headers=auth(ali)).json()] == [("review", 3), ("checkin", 5)]
+    # A second rating needs a new check-in
+    assert client.post(f"/v1/venues/{kafe}/reviews", json={"rating": 3}, headers=auth(ayse)).status_code == 409
 
 
 def test_two_replies_per_person_and_review(client, conn, visit):

@@ -13,7 +13,8 @@ test('a stay starts at a venue, goes on there and ends when walking away', () =>
 
 test('suggest after a few minutes, once per stay, not right after a check-in there', () => {
   const stay = { venueId: 7, since: 0, suggested: false };
-  assert.equal(shouldSuggest(stay, DWELL_MS - 1, null), false);
+  // Right away: the user is there now
+  assert.equal(DWELL_MS, 0);
   assert.equal(shouldSuggest(stay, DWELL_MS, null), true);
   assert.equal(shouldSuggest({ ...stay, suggested: true }, DWELL_MS, null), false);
   // Checked in there an hour ago: not yet; three hours ago: ask again

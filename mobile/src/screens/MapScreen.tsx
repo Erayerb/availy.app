@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { TAB_BAR_HEIGHT } from '../components/TabBar';
 import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
@@ -47,7 +48,7 @@ type Props = {
   onSelect: (id: number | null) => void;
   // Tapping the selected dot again closes its card
   onMarkerPress: (id: number) => void;
-  onBack: () => void;
+  onBack?: () => void; // none when the map is the first page
   onOpenDetails: (venue: Venue) => void;
   // v2: venues the user checked in at, for "Ziyaret ettiklerim"
   visitedIds: ReadonlySet<number>;
@@ -140,7 +141,7 @@ export function MapScreen({
           pin: pinPoint,
           card: { width: CARD_WIDTH, height: cardHeight },
           // Keep the venue card above the pop-up, or above the legend at the bottom
-          screen: { width: window.width, height: window.height - (showPopup ? popupHeight : legendHeight) - 36 },
+          screen: { width: window.width, height: window.height - (showPopup ? popupHeight : legendHeight) - TAB_BAR_HEIGHT - 8 },
           topInset: headerBottom + 8,
           margin: 8,
           pinHeight: SELECTED_DOT_SIZE / 2 + 4,
@@ -166,7 +167,7 @@ export function MapScreen({
 
       {/* Jump to the user's own position; asks for permission again if it was not given */}
       <Pressable
-        style={[styles.locate, { bottom: (showPopup ? popupHeight : legendHeight) + 48 }]}
+        style={[styles.locate, { bottom: (showPopup ? popupHeight : legendHeight) + TAB_BAR_HEIGHT + 20 }]}
         onPress={goToMyLocation}
         accessibilityLabel="Konumuma git"
       >
@@ -174,14 +175,14 @@ export function MapScreen({
       </Pressable>
       {/* Check in: nearest venues and a search */}
       <Pressable
-        style={[styles.checkinButton, { bottom: (showPopup ? popupHeight : legendHeight) + 48 }]}
+        style={[styles.checkinButton, { bottom: (showPopup ? popupHeight : legendHeight) + TAB_BAR_HEIGHT + 20 }]}
         onPress={onOpenCheckin}
         accessibilityLabel="Check-in yap"
       >
         <Text style={styles.checkinIcon}>+</Text>
       </Pressable>
       {locateNote && (
-        <Text style={[styles.locateNote, { bottom: (showPopup ? popupHeight : legendHeight) + 56 }]}>{locateNote}</Text>
+        <Text style={[styles.locateNote, { bottom: (showPopup ? popupHeight : legendHeight) + TAB_BAR_HEIGHT + 28 }]}>{locateNote}</Text>
       )}
 
       {selected && (
@@ -272,7 +273,7 @@ export function MapScreen({
         onLayout={(e) => setHeaderBottom(e.nativeEvent.layout.y + e.nativeEvent.layout.height)}
       >
         <View style={styles.topBar} pointerEvents="box-none">
-          <BackButton onPress={onBack} />
+          {onBack && <BackButton onPress={onBack} />}
           <Pressable style={styles.search} onPress={() => setSearching(true)} accessibilityLabel="Mekan ara">
             <TabIcon name="search" color={colors.textMuted} active={false} size={18} />
             <Text style={styles.searchText}>Mekan ara</Text>
@@ -361,7 +362,7 @@ const styles = themed(() => StyleSheet.create({
   cardMeasuring: { left: 0, top: 0, opacity: 0 },
   legend: {
     position: 'absolute',
-    bottom: 36,
+    bottom: TAB_BAR_HEIGHT + 8,
     left: 12,
     right: 12,
     flexDirection: 'row',

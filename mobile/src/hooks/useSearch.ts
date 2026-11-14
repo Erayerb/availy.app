@@ -4,6 +4,7 @@ import { usePageFocused } from '../context/PageContext';
 import { SPINNER_AFTER_MS } from './usePullRefresh';
 
 import { searchVenues, type Venue } from '../lib/api';
+import { onVenuesChanged } from '../lib/venueEvents';
 
 const DEBOUNCE_MS = 300;
 // Occupancy changes over time; refresh the list quietly this often
@@ -80,6 +81,8 @@ export function useSearch(query: string, district: string | null, tags: string[]
     quiet.current = true;
     setTick((n) => n + 1);
   }, []);
+
+  useEffect(() => onVenuesChanged(update), [update]);
 
   const refresh = useCallback(() => {
     quiet.current = true;

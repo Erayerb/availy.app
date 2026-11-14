@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { TAB_BAR_SPACE } from '../components/TabBar';
 import { Text, TextInput } from '../components/Text';
 
 import { BackButton } from '../components/BackButton';
@@ -266,7 +267,7 @@ function IssueCard({ issue, onOpenVenue, onResolve }: { issue: VenueIssue; onOpe
 
 const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 48, gap: 12 },
+  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 12 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
   heading: { fontSize: 17, fontWeight: '700', color: colors.text, marginTop: 8 },

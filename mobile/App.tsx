@@ -116,7 +116,7 @@ const sameRoute = (route: Route, name: Screen, params: Omit<Route, 'name' | 'id'
   route.username === params.username &&
   JSON.stringify(route.list) === JSON.stringify(params.list);
 
-const landingFor = (role: Role): Screen => (role === 'business' ? 'business' : 'home');
+const landingFor = (role: Role): Screen => (role === 'business' ? 'business' : 'map');
 
 // Before the main app: welcome page, sign in / sign up forms, business venue setup
 type Gate = 'welcome' | 'login' | 'register' | 'venueSetup' | null;
@@ -153,7 +153,7 @@ function Main() {
   // Account type chosen on the welcome page, preselected on the form
   const [authRole, setAuthRole] = useState<Role>('personal');
   // Screen history: the map's back button returns to wherever the user came from
-  const [nav, setNav] = useState<History<Route>>({ current: { name: 'home', id: 0 }, stack: [] });
+  const [nav, setNav] = useState<History<Route>>({ current: { name: 'map', id: 0 }, stack: [] });
   const screen = nav.current.name;
   const routeId = useRef(0);
   const goTo = (next: Screen, params: Omit<Route, 'name' | 'id'> = {}) =>
@@ -173,7 +173,7 @@ function Main() {
     goTo('profile');
   };
   // Sosyal opens on Akış; a friend-request notification opens it on Arkadaşlar
-  const [socialTab, setSocialTab] = useState<SocialTab>('feed');
+  const [socialTab, setSocialTab] = useState<SocialTab>('friendsFeed');
   // Favoriler / Listelerim / Ziyaret edilenler: kept here so "back" from a list returns to the same tab
   const [favoritesTab, setFavoritesTab] = useState<FavoritesTab>('saved');
   // Kampanyalar opened on one of its tabs (Müşteriler > "Sadakat programı oluştur")
@@ -244,7 +244,7 @@ function Main() {
   // After sign-up: the intro, then (registered customers) inviting friends, then the first check-in
   const [onboarding, setOnboarding] = useState<'intro' | 'invite' | 'first' | null>(null);
   // v2: "Mado yakınındasın, burası şu an nasıl?" (customers, after the onboarding)
-  const { suggestion, dismiss: dismissSuggestion } = useCheckinSuggestion(
+  const { suggestion, dismiss: dismissSuggestion, checkedIn } = useCheckinSuggestion(
     point,
     visits,
     checkinSuggestions && entered && auth.user !== null && !isBusiness(auth.user) && onboarding === null,
@@ -303,10 +303,20 @@ function Main() {
 
   // The map starts nearby, not on the whole city; once it has been opened it keeps its own place
   const ownVenueId = isBusiness(auth.user) ? (auth.user?.venueId ?? null) : null;
+  const startedNear = useRef(false);
   useEffect(() => {
-    if (mapRegion !== DEFAULT_REGION || screen === 'map') return;
-    const startAt = (latitude: number, longitude: number) =>
-      setMapRegion((region) => (region === DEFAULT_REGION ? { latitude, longitude, latitudeDelta: NEAR_ZOOM, longitudeDelta: NEAR_ZOOM } : region));
+    if (startedNear.current) return;
+    // Moved by the user before the location came: theirs
+    if (screen !== 'map' && mapRegion !== DEFAULT_REGION) {
+      startedNear.current = true;
+      return;
+    }
+    const startAt = (latitude: number, longitude: number) => {
+      startedNear.current = true;
+      setMapRegion({ latitude, longitude, latitudeDelta: NEAR_ZOOM, longitudeDelta: NEAR_ZOOM });
+      // The map is already open (it is the first page): it opens again there
+      if (screen === 'map') setMapKey((k) => k + 1);
+    };
     if (ownVenueId) {
       fetchVenuesByIds([ownVenueId]).then(([venue]) => venue && startAt(venue.lat, venue.lon)).catch(() => {});
     } else if (point) startAt(point.lat, point.lon);
@@ -550,10 +560,14 @@ function Main() {
               selectedId={selectedId}
               onSelect={setSelectedId}
               onMarkerPress={(id) => setSelectedId((current) => toggleSingle(current, id))}
-              onBack={() => {
-                setSelectedId(null);
-                goBack();
-              }}
+              onBack={
+                nav.stack.length > 0
+                  ? () => {
+                      setSelectedId(null);
+                      goBack();
+                    }
+                  : undefined
+              }
               onOpenDetails={openDetails}
             />
           )}
@@ -604,7 +618,10 @@ function Main() {
                 setAuthRole('personal');
                 setAuthForm('register');
               }}
-              onCheckedIn={auth.refreshMe}
+              onCheckedIn={() => {
+                auth.refreshMe();
+                checkedIn();
+              }}
               onLogin={() => setAuthForm('login')}
               onBack={goBack}
               onShowOnMap={openVenueOnMap}

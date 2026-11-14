@@ -2,6 +2,7 @@ import { usePageFocused } from '../context/PageContext';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { fetchVenues, type Venue } from '../lib/api';
+import { onVenuesChanged } from '../lib/venueEvents';
 
 const POLL_INTERVAL_MS = 30_000;
 
@@ -40,8 +41,10 @@ export function useVenues(bbox: string, tags: string[]) {
   useEffect(() => {
     load();
     const timer = setInterval(() => focused.current && load(), POLL_INTERVAL_MS);
+    const unsubscribe = onVenuesChanged(load);
     return () => {
       clearInterval(timer);
+      unsubscribe();
       controllerRef.current?.abort();
     };
   }, [load]);

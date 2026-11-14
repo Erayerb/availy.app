@@ -1,4 +1,5 @@
 import { Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { TAB_BAR_SPACE } from '../components/TabBar';
 import { usePageTop } from '../context/PageContext';
 import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
@@ -133,7 +134,7 @@ export function MoreScreen({ user, onSelect, onLogin, onRegister, onLogout }: Pr
 const styles = themed(() => StyleSheet.create({
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   page: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 32, gap: 14 },
+  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 14 },
   greeting: { fontSize: 14, color: colors.textMuted, marginTop: -6 },
   guestCard: { backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 10 },
   guestLogin: { alignSelf: 'center', paddingVertical: 2 },

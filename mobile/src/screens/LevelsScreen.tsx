@@ -1,4 +1,5 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { TAB_BAR_SPACE } from '../components/TabBar';
 
 import { BackButton } from '../components/BackButton';
 import { InlineIcon } from '../components/Icon';
@@ -58,7 +59,7 @@ export function LevelsScreen({ current, next, onBack }: { current: Level['id'] |
 
 const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 48, gap: 12 },
+  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 12 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },

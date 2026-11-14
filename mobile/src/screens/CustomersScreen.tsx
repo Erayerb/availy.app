@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { TAB_BAR_SPACE } from '../components/TabBar';
 import { useOnPageFocus, usePageTop } from '../context/PageContext';
 import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
@@ -111,7 +112,7 @@ function Stat({ value, label }: { value: number; label: string }) {
 
 const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 48, gap: 14 },
+  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 14 },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontSize: 24, fontWeight: '700', color: colors.text },
   card: { padding: 16, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 10 },

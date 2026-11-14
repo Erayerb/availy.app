@@ -126,7 +126,16 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Akıcılık (devam): açılan sayfa kayarak gelir, mekan listeleri bellekte (geri dönünce anında görünür, sessizce güncellenir), yüklenirken sayfa iskeleti, Sosyal / Bildirimler / Profil / Panel'de aşağı çekip yenileme, klavye açılınca sayfa kayar ve kaydırınca kapanır, sekme titreşimi, Android geri tuşu, fotoğraflar yumuşak gelir, sunucuya ulaşılamayınca üstte "İnternet yok"
 - Harita araması mekanların yanında yer de bulur ("Teşvikiye Mahallesi", OpenStreetMap Nominatim); seçince harita oraya gider
 - Aşağı çekip yenilemede yükleniyor işareti yalnızca 300 ms'den uzun sürerse çıkar
-- Sosyal akışta check-in'de bildirilen doluluk görünür (mekan adının yanında nokta ve "Sakin"; checkins.level, feed `reported`). Filtre çiplerinde titreşim yok; çip anında değişir, liste düşük öncelikle gelir
+- Sosyal akışta check-in'de bildirilen doluluk görünür (mekan adının yanında nokta ve "Sakin"; checkins.level, feed `reported`). Filtre çiplerinde titreşim yok; ana sayfadaki sıralama çipi anında değişir, sıralama düşük öncelikle gelir
+- Uygulama haritayla açılır (işletmede Panel); ilk sayfa haritaysa geri oku yok ve konum gelince harita oraya gider
+- Alt sekmeler yuvarlak, yüzen bir şerit; seçili sekme kendi hapı içinde
+- Sosyal: ilk sekme Akış (arkadaşlarınki), kendi gönderilerin Paylaşımlarım'da
+- Puan ve yorum: her check-in'de bir kez; verince mekan sayfasındaki form kalkar
+- Check-in yapınca açık öneri kapanır
+- Haritada kendi konumun mekanların üstünde, ortası boş halka (altındaki mekan görünür); mekan ekleyince ya da check-in yapınca açık harita ve listeler hemen yenilenir (lib/venueEvents)
+- Puan: mekanda son check-in'inin puanı yoksa verilebilir (eski check-in'ler birikip harcanamaz); puan o check-in'e bağlanır, Akış'ta onunla görünür, check-in akıştan düşünce tek başına görünür
+- Alt şerit sayfaların üstünde yüzer, buzlu ve yarı saydam (expo-blur); sayfalar altında TAB_BAR_SPACE kadar boşluk bırakır, haritanın alt öğeleri şeridin üstünde
+- Check-in önerisi uygulama açılınca ya da konum değişince hemen (bekleme yok); herhangi bir check-in'den sonra 1 saat yok
 - Check-in önerisi: açık bir mekanın 150 m yakınında 5 dk kalınca; uygulama önündeyse şerit, arka plandaysa telefon bildirimi (dokununca mekan sayfası); en fazla saatte bir, aynı mekan için günde iki kez (telefonda saklanır); son 90 dakikada orada check-in yaptıysan sormaz
 - Kayıt sonrası kısa tanıtım (müşteri 4, işletme 3 slayt; sağa / sola kaydırılır) ve "İlk check-in'in" (yakındaki en yakın açık mekan)
 
@@ -292,6 +301,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - iPhone ana ekran widget'ı: favori mekanın şu anki doluluğu (EAS Build + iOS widget eklentisi; Android widget'ı da düşünülebilir)
 
 **Güvenlik ve hile**
+- Onay bekleyen mekan sınırı (kişi başı 3) şimdilik kaldırıldı; yayından önce yeniden düşün (sahte mekan yağmuru)
 - Aynı IP'den çok sayıda giriş denemesine sınır (hesap kilidi var, IP sınırı yok)
 - Yanlış şifre kilidi: Resend alan adı doğrulanmadan "Şifremi unuttum" e-postası yalnızca hesap sahibine gider; yayından önce alan adı şart. Başkası bilerek yanlış şifre girip bir hesabı kilitleyebilir (e-postayla açılır)
 - İşletme sahibinin bireysel hesabıyla kendi mekanını "Sakin" göstermesi: "aynı telefon kuralı" (bir telefonda işletme hesabı açıldıysa o telefondaki bireysel hesapların o mekana check-in'i sayılmaz) denendi ve kaldırıldı (sahibin kendi denemelerini de engelliyordu); yayına yakın yeniden düşünülecek

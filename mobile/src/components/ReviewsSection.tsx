@@ -7,7 +7,7 @@ import { isRegistered, type User } from '../lib/auth';
 import { confirmAction } from '../lib/confirm';
 import { sentence, timeAgo } from '../lib/crowd';
 import { stars } from '../lib/feedback';
-import { author, MAX_REPLIES_PER_PERSON, MAX_REVIEW, MAX_REVIEWS_PER_CHECKIN, reviewsApi, type Review, type Reviews } from '../lib/reviews';
+import { author, MAX_REPLIES_PER_PERSON, MAX_REVIEW, reviewsApi, type Review, type Reviews } from '../lib/reviews';
 import { REPORT_REASONS, safetyApi, type ReportReason } from '../lib/safety';
 import { colors, themed } from '../theme';
 import { ThemedSwitch } from './ThemedSwitch';
@@ -75,9 +75,10 @@ export function ReviewsSection({ venueId, user, reviews, onChange, reload, onReg
             : 'İşletme hesapları yorum yazamaz.'}
         </Text>
       ) : registered && allowance && allowance.checkins === 0 ? (
-        <Text style={styles.muted}>Yorum yazmak için önce buraya check-in yap. Her check-in {MAX_REVIEWS_PER_CHECKIN} yorum hakkı verir.</Text>
+        <Text style={styles.muted}>Puan vermek için önce buraya check-in yap. Her check-in'de bir kez puan verebilirsin.</Text>
+      ) : registered && allowance && allowance.left <= 0 ? (
+        <Text style={styles.muted}>Bu check-in için puanını verdin. Tekrar check-in yapınca yeniden puan verebilirsin.</Text>
       ) : registered ? (
-        // No counter: past the limit (2 per check-in) the server's message shows when sending
         <View style={styles.form}>
           <View style={styles.starsRow}>
             {[1, 2, 3, 4, 5].map((n) => (

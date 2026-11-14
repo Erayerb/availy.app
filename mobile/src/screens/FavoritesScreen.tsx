@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { TAB_BAR_SPACE } from '../components/TabBar';
 import { Text, TextInput } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
@@ -197,7 +198,7 @@ const styles = themed(() => StyleSheet.create({
   tabTextActive: { color: colors.onPrimary },
   // Same top space as the other tabs (VenueGrid)
   page: { flex: 1, marginTop: 50, backgroundColor: colors.background },
-  listsPage: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 40, gap: 12 },
+  listsPage: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: TAB_BAR_SPACE, gap: 12 },
   newRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   input: { padding: 12, borderRadius: 12, backgroundColor: colors.cream, fontSize: 15, color: colors.text },
   flex: { flex: 1 },

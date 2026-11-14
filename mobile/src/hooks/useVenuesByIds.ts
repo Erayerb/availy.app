@@ -4,6 +4,7 @@ import { usePageFocused } from '../context/PageContext';
 import { SPINNER_AFTER_MS } from './usePullRefresh';
 
 import { fetchVenuesByIds, type Venue } from '../lib/api';
+import { onVenuesChanged } from '../lib/venueEvents';
 
 // Occupancy changes over time; refresh quietly this often
 const REFRESH_MS = 30_000;
@@ -76,6 +77,8 @@ export function useVenuesByIds(ids: number[]) {
     quiet.current = true;
     setTick((n) => n + 1);
   }, []);
+
+  useEffect(() => onVenuesChanged(update), [update]);
 
   const refresh = useCallback(() => {
     quiet.current = true;

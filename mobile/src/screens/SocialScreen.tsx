@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
+import { TAB_BAR_SPACE } from '../components/TabBar';
 import { useSettings } from '../context/SettingsContext';
 import { useOnPageFocus, usePageTop } from '../context/PageContext';
 import { usePullRefresh } from '../hooks/usePullRefresh';
@@ -41,7 +42,7 @@ type Props = {
   onTabChange?: (tab: SocialTab) => void; // remembered, so back from a profile or venue returns to this tab
 };
 
-// feed: Akış (my own activity), friendsFeed: Arkadaşlarım (friends' activity), friends: add / manage friends (the person-add icon)
+// friendsFeed: Akış (friends' activity, the first tab), feed: Paylaşımlarım (my own activity), friends: add / manage friends (the person-add icon)
 export type SocialTab = 'feed' | 'friendsFeed' | 'ranking' | 'friends';
 
 const EMPTY: FriendLists = { friends: [], incoming: [], outgoing: [] };
@@ -57,7 +58,7 @@ export function SocialScreen({
   onOpenUser,
   onOpenMap,
   onOpenCheckin,
-  initialTab = 'feed',
+  initialTab = 'friendsFeed',
   onTabChange,
 }: Props) {
   const token = user?.token;
@@ -183,8 +184,8 @@ export function SocialScreen({
       <View style={styles.tabs}>
         {(
           [
-            { id: 'feed', label: 'Akış' },
-            { id: 'friendsFeed', label: 'Arkadaşlarım' },
+            { id: 'friendsFeed', label: 'Akış' },
+            { id: 'feed', label: 'Paylaşımlarım' },
             { id: 'ranking', label: 'Sıralama' },
           ] as const
         ).map(({ id, label }) => (
@@ -378,7 +379,7 @@ export function SocialScreen({
           <View style={styles.grow} />
           <Text style={[styles.muted, styles.centered]}>
             {mine
-              ? "Gizli check-in'lerini yalnızca sen görürsün; arkadaşların diğerlerini Arkadaşlarım'da görür."
+              ? "Gizli check-in'lerini yalnızca sen görürsün; arkadaşların diğerlerini Akış'ta görür."
               : "Yalnızca check-in yapılan mekan görünür; canlı konum paylaşılmaz. Gizli check-in'ler görünmez."}
           </Text>
         </>
@@ -574,7 +575,7 @@ const styles = themed(() => StyleSheet.create({
   sectionHeading: { fontSize: 13, fontWeight: '800', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 4 },
   older: { alignSelf: 'center', paddingVertical: 10, paddingHorizontal: 18, borderRadius: 14, backgroundColor: colors.cream },
   olderText: { color: colors.text, fontWeight: '700', fontSize: 14 },
-  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 40, gap: 14 },
+  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 14 },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
   card: { padding: 16, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 10 },

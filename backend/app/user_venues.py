@@ -24,7 +24,6 @@ DEFAULT_CAPACITY = 50
 SAME_PLACE_M = 60  # a venue with the same name this close is probably the same one
 CROWDED_M = 25  # another venue this close: its dot would hide the new one, so ask first
 NEAR_WARNING = "Yine de ekle"  # the app shows this button for the warning below
-MAX_PENDING = 3  # venues one person may have waiting for approval
 APPROVE_PEOPLE = 3
 APPROVE_DAYS = 3
 APPROVAL_POINTS = 50
@@ -68,12 +67,6 @@ def add_venue(
         raise VenueError("Mekan türünü seç.")
     if not (-90 <= lat <= 90 and -180 <= lon <= 180):
         raise VenueError("Konum geçersiz.")
-    waiting = conn.execute(
-        "SELECT count(*)::int AS n FROM venues WHERE added_by = %s AND approved_at IS NULL AND created_at > %s",
-        (user["id"], now - timedelta(days=30)),
-    ).fetchone()["n"]
-    if waiting >= MAX_PENDING:
-        raise VenueError(f"Onay bekleyen {MAX_PENDING} mekanın var; onaylanınca yenisini ekleyebilirsin.", 429)
     point = "ST_SetSRID(ST_MakePoint(%(lon)s, %(lat)s), 4326)::geography"
     if not business:
         from app.checkins import CHECKIN_RADIUS_M  # app.checkins imports this module

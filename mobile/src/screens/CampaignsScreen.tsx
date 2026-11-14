@@ -2,6 +2,7 @@ import { BackButton } from '../components/BackButton';
 import { HeaderButtons } from '../components/HeaderButtons';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { TAB_BAR_SPACE } from '../components/TabBar';
 import { usePageTop } from '../context/PageContext';
 import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
@@ -417,7 +418,7 @@ function VenueCoupons({ venueId }: { venueId: number }) {
 const styles = themed(() => StyleSheet.create({
   flex: { flex: 1 },
   page: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 40, gap: 12 },
+  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 12 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
   tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

@@ -1,4 +1,5 @@
 import 'leaflet/dist/leaflet.css';
+import { TAB_BAR_HEIGHT } from './TabBar';
 
 import L from 'leaflet';
 import { useEffect, useRef, useState } from 'react';
@@ -59,10 +60,13 @@ export function VenueMap({
     }).setView([initialRegion.latitude, initialRegion.longitude], zoomForDelta(initialRegion.longitudeDelta));
 
 
-    // The user's blue dot sits under the venue dots (Leaflet's marker pane is 600), so a venue
-    // right where the user stands (e.g. one just added) is never hidden behind it
+    // The user's dot sits over the venue dots (Leaflet's marker pane is 600) smaller than a venue
+    // dot: one right where the user stands (e.g. one just added) still shows around it
+    // The map data credit stays visible above the floating tab bar
+    map.attributionControl.getContainer()?.style.setProperty('margin-bottom', `${TAB_BAR_HEIGHT}px`);
+
     const userPane = map.createPane(USER_PANE);
-    userPane.style.zIndex = '450';
+    userPane.style.zIndex = '650';
     userPane.style.pointerEvents = 'none';
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -194,9 +198,9 @@ export function VenueMap({
             pane: USER_PANE,
           }),
           L.circleMarker([userPoint.lat, userPoint.lon], {
-            radius: 8,
+            radius: 6.5,
             color: colors.white,
-            weight: 3,
+            weight: 2.5,
             fillColor: '#1A73E8',
             fillOpacity: 1,
             interactive: false,

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
+import { TAB_BAR_SPACE } from '../components/TabBar';
 import { Text, TextInput } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
@@ -155,7 +156,7 @@ const styles = themed(() => StyleSheet.create({
   add: { paddingVertical: 7, paddingHorizontal: 12, borderRadius: 14, borderWidth: 1.5, borderColor: colors.primary },
   addText: { color: colors.primary, fontSize: 14, fontWeight: '700' },
   page: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 40, gap: 8 },
+  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 8 },
   header: { gap: 12, marginBottom: 4 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },

@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import { FlatList, Platform, RefreshControl, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { TAB_BAR_SPACE } from './TabBar';
 import { Text } from './Text';
 
 import { useLocation } from '../context/LocationContext';
@@ -79,7 +80,7 @@ export function VenueGrid({ venues, header, emptyText, loading = false, error, o
 const styles = themed(() => StyleSheet.create({
   // Space for the status bar sits outside the list, so the pull-to-refresh spinner is not hidden behind it
   container: { flex: 1, marginTop: 50, backgroundColor: colors.background },
-  content: { paddingHorizontal: PADDING, paddingTop: 10, paddingBottom: 40, gap: 16 },
+  content: { paddingHorizontal: PADDING, paddingTop: 10, paddingBottom: TAB_BAR_SPACE, gap: 16 },
   columns: { gap: GAP },
   skeletons: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP, rowGap: 16 },
   empty: { textAlign: 'center', color: colors.textMuted, marginTop: 24 },

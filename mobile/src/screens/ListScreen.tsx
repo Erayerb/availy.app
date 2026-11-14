@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
+import { TAB_BAR_SPACE } from '../components/TabBar';
 import { Text, TextInput } from '../components/Text';
 
 import { BackButton } from '../components/BackButton';
@@ -269,7 +270,7 @@ export function ListScreen({ token, target, onBack, onOpenVenue, onOpenList }: P
 
 const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 40, gap: 8 },
+  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 8 },
   empty: { textAlign: 'center', color: colors.textMuted, marginTop: 16 },
   header: { gap: 10, marginBottom: 4 },
   addButton: { paddingVertical: 11, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center' },

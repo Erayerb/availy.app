@@ -7,7 +7,7 @@ import type { Visit } from '../lib/checkinApi';
 import { distanceKm, type LatLon } from '../lib/geo';
 import { bboxAround, nearestOpenVenue } from '../lib/nearby';
 import { KEYS, loadJson, saveJson } from '../lib/storage';
-import { mayAsk, nextStay, rememberAsked, shouldSuggest, SUGGEST_RADIUS_KM, suggestionText, type Asked, type Stay } from '../lib/suggestion';
+import { AFTER_CHECKIN_MS, mayAsk, nextStay, rememberAsked, shouldSuggest, SUGGEST_RADIUS_KM, suggestionText, type Asked, type Stay } from '../lib/suggestion';
 
 // Venues around the user are fetched again after walking this far
 const REFETCH_KM = 0.15;
@@ -28,6 +28,8 @@ export function useCheckinSuggestion(point: LatLon | null, visits: Visit[], enab
   const stay = useRef<Stay | null>(null);
   // null: not read yet, so nothing is asked
   const asked = useRef<Asked | null>(null);
+  // Just checked in somewhere: no "yakınındasın" for a while, anywhere (the list of visits comes a moment later)
+  const lastCheckin = useRef(0);
   useEffect(() => {
     loadJson<Asked>(KEYS.suggestionsAsked).then((saved) => {
       asked.current = saved ?? {};
@@ -55,6 +57,8 @@ export function useCheckinSuggestion(point: LatLon | null, visits: Visit[], enab
     stay.current = nextStay(stay.current, venue?.id ?? null, now);
     // Walked away: the banner goes too
     if (!venue) return setSuggestion(null);
+    const latestVisit = Math.max(lastCheckin.current, ...visits.map((v) => new Date(v.last_at).getTime()));
+    if (now - latestVisit < AFTER_CHECKIN_MS) return;
     const visit = visits.find((v) => v.venue_id === venue.id);
     if (!shouldSuggest(stay.current, now, visit ? new Date(visit.last_at).getTime() : null)) return;
     if (!asked.current || !mayAsk(asked.current, venue.id, now)) return;
@@ -76,5 +80,10 @@ export function useCheckinSuggestion(point: LatLon | null, visits: Visit[], enab
     return () => clearInterval(timer);
   }, [check]);
 
-  return { suggestion, dismiss: () => setSuggestion(null) };
+  const checkedIn = useCallback(() => {
+    lastCheckin.current = Date.now();
+    setSuggestion(null);
+  }, []);
+
+  return { suggestion, dismiss: () => setSuggestion(null), checkedIn };
 }

@@ -51,7 +51,8 @@ def test_unapproved_venues_go_after_30_days_and_limits(client, conn, clock):
     for i in range(3):
         spot = {"lat": SPOT["lat"] + i * 0.01, "lon": SPOT["lon"], "user_lat": SPOT["lat"] + i * 0.01}
         assert client.post("/v1/venues", json={**NEW, "name": f"Mekan {i}", **spot}, headers=auth(ali)).status_code == 201
-    assert client.post("/v1/venues", json={**NEW, "name": "Dördüncü"}, headers=auth(ali)).status_code == 429
+    # No limit on venues waiting for approval for now
+    assert client.post("/v1/venues", json={**NEW, "name": "Dördüncü", "confirm_near": True}, headers=auth(ali)).status_code == 201
     conn.execute("UPDATE venues SET created_at = now() - interval '31 days' WHERE name = 'Mekan 0'")
     names = {v["name"] for v in client.get("/v1/venues/search", params={"q": "mekan"}).json()}
     assert names == {"Mekan 1", "Mekan 2"}
@@ -75,3 +76,13 @@ def test_a_venue_right_next_to_another_asks_first(client, conn):
     warned = client.post("/v1/venues", json=beside, headers=auth(ali))
     assert warned.status_code == 409 and "Yine de ekle" in warned.json()["detail"] and "Yeni Kahveci" in warned.json()["detail"]
     assert client.post("/v1/venues", json={**beside, "confirm_near": True}, headers=auth(ali)).status_code == 201
+
+
+def test_user_venues_survive_the_per_request_limit(client, conn, clock, monkeypatch):
+    # Zoomed out, the area holds more venues than the limit; an added venue must not be the one cut
+    from app.config import settings
+    ali = account(client, "t_ali")
+    venue_id = client.post("/v1/venues", json=NEW, headers=auth(ali)).json()["id"]
+    monkeypatch.setattr(settings, "max_venues_per_request", 1)
+    shown = client.get("/v1/venues", params={"bbox": KADIKOY_BBOX}).json()
+    assert [v["id"] for v in shown] == [venue_id]

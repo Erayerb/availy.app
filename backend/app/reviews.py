@@ -10,7 +10,7 @@ import psycopg
 from app.safety import BLOCKED, FROZEN, MUTED, hidden_reply, hidden_review
 
 MAX_BODY = 280
-MAX_REVIEWS_PER_CHECKIN = 2  # each check-in at a venue allows 2 reviews there
+MAX_REVIEWS_PER_CHECKIN = 1  # one rating per check-in: rating twice from one visit would count the person twice
 MAX_REPLIES_PER_PERSON = 2  # replies one person may write under one review
 FEED_DAYS = 3  # Akış shows this many days; "Daha eski" asks for up to MAX_FEED_DAYS
 MAX_FEED_DAYS = 7
@@ -18,7 +18,6 @@ MAX_FEED_DAYS = 7
 MAX_MY_FEED_DAYS = 30
 PLAIN_CHECKIN_DAYS = 2  # a check-in with no words, likes or comments leaves Akış after this
 FEED_LIMIT = 50
-REVIEW_JOINS_CHECKIN = timedelta(hours=24)  # a review this soon after a check-in shows under it in Akış
 
 
 @dataclass
@@ -49,8 +48,7 @@ def save_review(
     now: datetime,
     checkin_id: int | None = None,
 ) -> dict:
-    """`checkin_id`: written right after that check-in ("Burası nasıl?"); it shows with the check-in in Akış.
-    Written on the venue page instead: it joins my latest check-in there of the last day, if that has no review yet."""
+    """One rating per visit: it belongs to my latest check-in there (`checkin_id` from "Burası nasıl?" is that one)."""
     _require_registered(user, "Yorum yazmak")
     if user.get("role") == "business":
         raise ReviewError("İşletme hesapları yorum yazamaz; yorumlara yanıt verebilir.", 403)
@@ -64,23 +62,10 @@ def save_review(
         raise ReviewError("Yorum yazmak için önce bu mekana check-in yap.", 403)
     if allowed["left"] <= 0:
         raise ReviewError(
-            f"Her check-in için en fazla {MAX_REVIEWS_PER_CHECKIN} yorum yazabilirsin. Yeni yorum için tekrar check-in yap.", 409
+            "Bu check-in için puanını verdin. Yeniden puan vermek için tekrar check-in yap.", 409
         )
-    if checkin_id is not None and conn.execute(
-        "SELECT 1 FROM checkins WHERE id = %s AND user_id = %s AND venue_id = %s", (checkin_id, user["id"], venue_id)
-    ).fetchone() is None:
-        raise ReviewError("Check-in bulunamadı.", 404)
-    if checkin_id is None:
-        latest = conn.execute(
-            """
-            SELECT c.id FROM checkins c
-            WHERE c.user_id = %s AND c.venue_id = %s AND NOT c.is_demo AND c.created_at > %s
-              AND NOT EXISTS (SELECT 1 FROM reviews r WHERE r.checkin_id = c.id)
-            ORDER BY c.created_at DESC LIMIT 1
-            """,
-            (user["id"], venue_id, now - REVIEW_JOINS_CHECKIN),
-        ).fetchone()
-        checkin_id = latest["id"] if latest else None
+    # The rating belongs to the latest visit: one per check-in, and it shows under that check-in in Akış
+    checkin_id = allowed["checkin_id"]
     return conn.execute(
         """
         INSERT INTO reviews (venue_id, user_id, rating, body, allow_replies, created_at, checkin_id)
@@ -104,15 +89,21 @@ def edit_review(conn: psycopg.Connection, user: dict, review_id: int, rating: in
 
 
 def review_allowance(conn: psycopg.Connection, user_id: int, venue_id: int) -> dict:
-    """How many check-ins the user has at the venue and how many reviews they may still write there."""
+    """Whether the user may rate the venue: their latest check-in there has no rating yet ("left": 1 or 0).
+    Older visits do not count, so check-ins piled up over time cannot be spent on many ratings at once."""
     row = conn.execute(
         """
         SELECT (SELECT count(*) FROM checkins WHERE venue_id = %(v)s AND user_id = %(u)s AND NOT is_demo)::int AS checkins,
-               (SELECT count(*) FROM reviews WHERE venue_id = %(v)s AND user_id = %(u)s)::int AS written
+               (SELECT c.id FROM checkins c WHERE c.venue_id = %(v)s AND c.user_id = %(u)s AND NOT c.is_demo
+                ORDER BY c.created_at DESC, c.id DESC LIMIT 1) AS latest
         """,
         {"v": venue_id, "u": user_id},
     ).fetchone()
-    return {"checkins": row["checkins"], "left": row["checkins"] * MAX_REVIEWS_PER_CHECKIN - row["written"]}
+    rated = row["latest"] is not None and conn.execute(
+        "SELECT 1 FROM reviews WHERE checkin_id = %s", (row["latest"],)
+    ).fetchone() is not None
+    left = 0 if row["latest"] is None or rated else MAX_REVIEWS_PER_CHECKIN
+    return {"checkins": row["checkins"], "left": left, "checkin_id": row["latest"]}
 
 
 def delete_review(conn: psycopg.Connection, user: dict, review_id: int) -> None:
@@ -241,6 +232,7 @@ def friend_feed(
               -- Already shown with its check-in
               AND NOT EXISTS (
                   SELECT 1 FROM checkins c2 WHERE c2.id = r.checkin_id AND NOT c2.is_demo AND {shared}
+                    AND c2.created_at > %(since)s
               )
             UNION ALL
             SELECT 'reply', p.created_at, u.username, v.id, v.name, false, 0, NULL, p.body, a.username,

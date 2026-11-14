@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { startTransition, useEffect, useRef, useState } from 'react';
 import { Animated, Modal, PanResponder, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from './Text';
 
@@ -64,7 +64,7 @@ export function FilterBar(props: Props) {
               active={shownSort === mode}
               onPress={() => {
                 setShownSort(mode);
-                onSortChange(mode);
+                startTransition(() => onSortChange(mode));
               }}
             />
           ))}

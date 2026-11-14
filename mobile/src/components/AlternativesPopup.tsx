@@ -1,4 +1,5 @@
 import { ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { TAB_BAR_HEIGHT } from './TabBar';
 import { Text } from './Text';
 import { Pressable } from './Pressable';
 
@@ -92,7 +93,7 @@ const styles = themed(() => StyleSheet.create({
     position: 'absolute',
     left: 12,
     right: 12,
-    bottom: 28,
+    bottom: TAB_BAR_HEIGHT + 8,
     padding: 14,
     borderRadius: 16,
     backgroundColor: colors.surface,

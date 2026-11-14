@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { notifyVenuesChanged } from '../lib/venueEvents';
 import { Text, TextInput } from './Text';
 import { Pressable } from './Pressable';
 
@@ -114,6 +115,7 @@ export function NewVenueForm({ token, business, title, intro, onBack, onAdded }:
         user_lon: me?.lon,
         confirm_near: confirmNear,
       });
+      notifyVenuesChanged();
       onAdded(added);
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Eklenemedi.';

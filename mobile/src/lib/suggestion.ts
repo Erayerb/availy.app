@@ -3,7 +3,10 @@
  * "Burası şu an nasıl?". Event-driven (arriving somewhere), never on a timer.
  */
 export const SUGGEST_RADIUS_KM = 0.15; // the same as a check-in's: further away the check-in would be refused
-export const DWELL_MS = 5 * 60_000;
+// Asked as soon as the user is at a venue (on opening the app or when the location changes)
+export const DWELL_MS = 0;
+// Just checked in somewhere: no question for an hour, anywhere
+export const AFTER_CHECKIN_MS = 60 * 60_000;
 // Same as the server: one check-in per venue every 90 minutes
 export const COOLDOWN_MS = 90 * 60_000;
 // A street of cafes must not mean a question every few minutes: at most this often, also after reopening the app

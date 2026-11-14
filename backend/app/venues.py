@@ -79,7 +79,8 @@ def find_venues_in_bbox(
         WHERE location && ST_MakeEnvelope(%(min_lon)s, %(min_lat)s, %(max_lon)s, %(max_lat)s, 4326)::geography
           AND (cardinality(%(tags)s::text[]) = 0 OR tags && %(tags)s::text[])
           AND {VISIBLE}
-        ORDER BY id
+        -- When the area has more venues than the limit, user-added venues must not be the ones cut
+        ORDER BY (source = 'user') DESC, popularity DESC NULLS LAST, id
         LIMIT %(limit)s
         """,
         {

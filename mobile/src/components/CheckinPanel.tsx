@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Alert, Platform, Linking, StyleSheet, View } from 'react-native';
+import { notifyVenuesChanged } from '../lib/venueEvents';
 import { Text, TextInput } from './Text';
 import { Pressable } from './Pressable';
 
@@ -128,6 +129,7 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
     try {
       const done = await sendCheckin(user.token, venue.id, checkinBody(level, answer, position.coords, isPrivate));
       haptics.success();
+      notifyVenuesChanged();
       // Badges this check-in earned: their pop-up a moment after the check-in's own celebration
       if (done.new_badges?.length) setTimeout(() => celebrateBadges(done.new_badges), 1400);
       setResult({ ok: true, text: checkinMessage(done) });

@@ -7,7 +7,14 @@ from app.checkins_api import get_clock
 from app.main import app
 
 # 12:00 in Istanbul: cafes are open, bars (17:00-03:00) are closed
-NOON = datetime(2026, 10, 14, 9, 0, tzinfo=timezone.utc)
+def _recent_wednesday_noon() -> datetime:
+    """A Wednesday, 12:00 in Istanbul, one to two weeks ago. Recent on purpose: some rules compare with the
+    database's own clock (users' new venues are hidden 30 days after they were added), a fixed date ages out."""
+    today = datetime.now(timezone.utc).replace(hour=9, minute=0, second=0, microsecond=0)
+    return today - timedelta(days=(today.weekday() - 2) % 7 + 7)
+
+
+NOON = _recent_wednesday_noon()
 # Test Kafe A in conftest.py
 KAFE_LAT, KAFE_LON = 40.9840, 29.0260
 # About 50 m north of it, and 100 m beyond the check-in limit (1° of latitude ≈ 111 km)

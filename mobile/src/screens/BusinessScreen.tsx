@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
+import { TAB_BAR_SPACE } from '../components/TabBar';
 import { useOnPageFocus, usePageTop } from '../context/PageContext';
 import { PageSkeleton } from '../components/Skeleton';
 import { usePullRefresh } from '../hooks/usePullRefresh';
@@ -393,7 +394,7 @@ const styles = themed(() => StyleSheet.create({
   editButton: { paddingVertical: 7, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary },
   editText: { fontSize: 13, fontWeight: '700', color: colors.primary },
   page: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 48, gap: 14 },
+  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 14 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   pageTitle: { fontSize: 24, fontWeight: '700', color: colors.text },

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { TAB_BAR_SPACE } from '../components/TabBar';
 import { Text } from '../components/Text';
 
 import { BackButton } from '../components/BackButton';
@@ -161,7 +162,7 @@ function Row({ title, subtitle, value, onChange, disabled }: RowProps) {
 const styles = themed(() => StyleSheet.create({
   sectionLabel: { fontSize: 13, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', marginTop: 4 },
   page: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 48, gap: 14 },
+  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 14 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
   card: {

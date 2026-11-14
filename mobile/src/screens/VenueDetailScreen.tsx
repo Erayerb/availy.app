@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Linking, Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { TAB_BAR_SPACE } from '../components/TabBar';
 import { useOnPageFocus } from '../context/PageContext';
 import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
@@ -382,7 +383,7 @@ const styles = themed(() => StyleSheet.create({
   linkText: { fontSize: 14, fontWeight: '700', color: colors.text },
   // Space for the status bar sits outside the scroll view, so the pull-to-refresh spinner stays visible
   page: { flex: 1, marginTop: 50, backgroundColor: colors.background },
-  content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 48, gap: 14 },
+  content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: TAB_BAR_SPACE, gap: 14 },
   center: {
     flex: 1,
     alignItems: 'center',
