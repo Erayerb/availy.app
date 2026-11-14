@@ -85,7 +85,7 @@ const styles = themed(() => StyleSheet.create({
   actions: { gap: 12 },
   question: { fontSize: 17, fontWeight: '600', color: colors.text, textAlign: 'center', marginBottom: 4 },
   roleLine: { fontSize: 15, color: colors.textMuted, textAlign: 'center', marginBottom: 4 },
-  change: { color: colors.primary, textDecorationLine: 'underline' },
+  change: { color: colors.primary, fontWeight: '700' },
   primary: { paddingVertical: 15, borderRadius: 14, backgroundColor: colors.primary, alignItems: 'center' },
   primaryText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
   secondary: {
@@ -99,5 +99,5 @@ const styles = themed(() => StyleSheet.create({
   pressed: { opacity: 0.8 },
   guest: { alignItems: 'center', paddingVertical: 10 },
   error: { color: colors.danger, fontSize: 14, textAlign: 'center' },
-  guestText: { color: colors.textMuted, fontSize: 15, textDecorationLine: 'underline' },
+  guestText: { color: colors.text, fontSize: 15, fontWeight: '600' },
 }));

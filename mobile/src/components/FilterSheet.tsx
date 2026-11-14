@@ -7,7 +7,7 @@ import { Pressable } from './Pressable';
 import { Chip, TagChips } from './TagChips';
 import { ThemedSwitch } from './ThemedSwitch';
 import { TAG_OPTIONS, toggleTag, type Tag } from '../lib/filters';
-import { SORT_OPTIONS, type SortMode } from '../lib/sort';
+import { SORT_OPTIONS, SORT_RESET_MS, type SortMode } from '../lib/sort';
 import { colors, themed } from '../theme';
 
 type Props = {
@@ -23,8 +23,8 @@ type Props = {
 };
 
 /**
- * Ana sayfa, under "Mekan ara": a "Filtrele" button (with how many filters are on) next to the sort
- * chips (Önerilen / En yakın / En sakin), and the chosen filters as small chips below; the sheet holds
+ * Ana sayfa, under "Mekan ara": the sort chips (En sakin / En yakın), the place button, then "Filtrele"
+ * (with how many filters are on), and the chosen filters as small chips below; the sheet holds
  * "Ne arıyorsun?" and "Kapalıları gizle". Changes apply at once.
  */
 export function FilterBar(props: Props) {
@@ -33,6 +33,12 @@ export function FilterBar(props: Props) {
   // One of the three is on: the old one goes off in the same instant the new one comes on
   const [shownSort, setShownSort] = useState(sortMode);
   useEffect(() => setShownSort(sortMode), [sortMode]);
+  // Left on, a sort switches itself off after a while
+  useEffect(() => {
+    if (sortMode === 'recommended') return;
+    const timer = setTimeout(() => onSortChange('recommended'), SORT_RESET_MS);
+    return () => clearTimeout(timer);
+  }, [sortMode]); // eslint-disable-line react-hooks/exhaustive-deps
   // Pulling the sheet down by its top closes it
   const dragY = useRef(new Animated.Value(0)).current;
   const drag = useRef(
@@ -54,23 +60,31 @@ export function FilterBar(props: Props) {
   return (
     <>
       <View style={styles.row}>
-        <Pressable onPress={() => setOpen(true)} style={[styles.button, active > 0 && styles.buttonOn]} accessibilityLabel="Filtrele">
-          <Icon name="adjustments-horizontal" size={17} color={active > 0 ? colors.onPrimary : colors.text} />
-          <Text style={[styles.buttonText, active > 0 && styles.buttonTextOn]}>Filtrele{active > 0 ? ` · ${active}` : ''}</Text>
-        </Pressable>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bar}>
-          {props.leading}
           {SORT_OPTIONS.map(({ mode, label }) => (
             <Chip
               key={mode}
+              compact
               label={label}
               active={shownSort === mode}
               onPress={() => {
-                setShownSort(mode);
-                startTransition(() => onSortChange(mode));
+                // A second tap switches it off: back to the default order
+                const next = shownSort === mode ? 'recommended' : mode;
+                setShownSort(next);
+                startTransition(() => onSortChange(next));
               }}
             />
           ))}
+          {props.leading}
+          {/* Filtrele: the icon only (the row fits one screen); how many are on as a small badge */}
+          <Pressable
+            onPress={() => setOpen(true)}
+            style={[styles.button, active > 0 && styles.buttonOn]}
+            accessibilityLabel={active > 0 ? `Filtrele, ${active} filtre açık` : 'Filtrele'}
+          >
+            <Icon name="adjustments-horizontal" size={18} color={active > 0 ? colors.onPrimary : colors.text} />
+            {active > 0 && <Text style={[styles.buttonText, styles.buttonTextOn]}>{active}</Text>}
+          </Pressable>
         </ScrollView>
       </View>
       {/* What is on, each removable with one tap */}
@@ -143,9 +157,9 @@ const styles = themed(() => StyleSheet.create({
   button: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
     borderRadius: 18,
     backgroundColor: colors.surface,
     borderWidth: 1,

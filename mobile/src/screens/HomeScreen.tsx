@@ -30,6 +30,7 @@ import { TabIcon } from '../components/TabIcon';
 import { Icon } from '../components/Icon';
 import { sortVenues, type SortMode } from '../lib/sort';
 import { stableShuffle } from '../lib/shuffle';
+import { sponsoredFirst } from '../lib/sponsors';
 import { colors, themed } from '../theme';
 
 // New mixed order each app start, stable while the app is open
@@ -52,6 +53,9 @@ type Props = {
   onOpenVenue: (venue: Venue) => void;
   // Signed-in user's session, for "Arkadaşlarının gittiği yerler"
   token: string | null;
+  // "Arkadaşlarının gittiği yerler" with nothing yet: open Sosyal > Arkadaşlar, or invite with my name
+  onOpenFriends?: () => void;
+  inviteName?: string | null;
   // 🔔 and profile icons at the top right
   onOpenProfile: () => void;
   onOpenNotifications: () => void;
@@ -72,6 +76,8 @@ export function HomeScreen({
   onHideClosedChange,
   onOpenVenue,
   token,
+  onOpenFriends,
+  inviteName,
   onOpenProfile,
   onOpenNotifications,
 }: Props) {
@@ -106,11 +112,14 @@ export function HomeScreen({
 
   // "Önerilen": open places first, nearest first; without a location a mixed order (search results by name)
   const items = useMemo(
-    () =>
-      sortVenues(venues, listSort, point, (list) => {
+    () => {
+      const sorted = sortVenues(venues, listSort, point, (list) => {
         const ordered = point ? sortByDistance(list, point) : searching ? list : stableShuffle(list, SESSION_SEED);
         return [...ordered].sort((a, b) => Number(b.open_now) - Number(a.open_now));
-      }),
+      });
+      // Sponsored open places first in the default order (a chosen sort or a search is left as it is)
+      return listSort === 'recommended' && !searching ? sponsoredFirst(sorted) : sorted;
+    },
     [venues, searching, point, listSort],
   );
   const needsLocation = sortMode === 'nearest' && !point;
@@ -140,7 +149,7 @@ export function HomeScreen({
         )}
       </View>
 
-      {!searching && <FriendsPlaces token={token} onOpenVenue={onOpenVenue} />}
+      {!searching && <FriendsPlaces token={token} onOpenVenue={onOpenVenue} onAddFriends={onOpenFriends} inviteName={inviteName} />}
 
       {/* Filtrele: Ne arıyorsun?, Sırala (Önerilen / En yakın / En sakin), Kapalıları gizle */}
       <FilterBar
@@ -260,7 +269,7 @@ export function HomeScreen({
 function placeLabel(sides: Side[], districts: string[]): string {
   if (districts.length > 0) return districts.length === 1 ? districts[0] : `${districts[0]} +${districts.length - 1}`;
   if (sides.length > 0) return sides.map((s) => SIDE_OPTIONS.find((o) => o.side === s)?.label ?? s).join(', ');
-  return 'Tüm İstanbul';
+  return 'İstanbul';
 }
 
 const styles = themed(() => StyleSheet.create({
@@ -268,10 +277,10 @@ const styles = themed(() => StyleSheet.create({
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6 },
   row: { gap: 8 },
   hint: { fontSize: 13, color: colors.textMuted },
-  place: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, backgroundColor: colors.cream, maxWidth: 200 },
+  place: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, backgroundColor: colors.cream, maxWidth: 140 },
   placeOn: { backgroundColor: colors.primary },
-  placeMain: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 8, paddingLeft: 11, paddingRight: 11, flexShrink: 1 },
-  placeText: { fontSize: 14, fontWeight: '600', color: colors.text, flexShrink: 1 },
+  placeMain: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 7, paddingLeft: 10, paddingRight: 10, flexShrink: 1 },
+  placeText: { fontSize: 13, fontWeight: '600', color: colors.text, flexShrink: 1 },
   placeTextOn: { color: colors.onPrimary },
   placeChevron: { fontSize: 11, color: colors.textMuted },
   placeClear: { paddingRight: 10, paddingLeft: 2, paddingVertical: 8 },

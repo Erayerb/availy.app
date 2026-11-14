@@ -1,3 +1,9 @@
+import type { ReactNode } from 'react';
+import { SponsorCard } from '../components/business/SponsorCard';
+import { GradientFill } from '../components/GradientFill';
+import { StatusPill } from '../components/StatusPill';
+import { VenuePhoto } from '../components/VenuePhoto';
+import { TINT } from '../components/Settings';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { TAB_BAR_SPACE } from '../components/TabBar';
@@ -24,7 +30,7 @@ import { shortLocation } from '../lib/location';
 import { bboxAround } from '../lib/nearby';
 import { formatHour, nearbyCompetitors } from '../lib/stats';
 import { colors, themed } from '../theme';
-import { InlineIcon } from '../components/Icon';
+import { Icon, InlineIcon, type IconName } from '../components/Icon';
 import { ProfileProgress } from '../components/business/ProfileProgress';
 
 const REFRESH_MS = 30_000;
@@ -119,35 +125,28 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
       {/* Until the venue page is complete: the cover photo first, then what else is missing */}
       {user.token && <ProfileProgress venue={venue} token={user.token} onSaved={load} onEditProfile={onEditProfile} />}
 
-      <View style={styles.card}>
-        <View style={styles.nameRow}>
-          <Pressable style={styles.flex} onPress={() => onShowOnMap(venue)}>
-            <Text style={styles.venueName}>{venue.name}</Text>
-            <Text style={styles.muted}>
-              {categoryLabel(venue.category)} · {shortLocation(venue.neighborhood, venue.district)} · Haritada gör ›
-            </Text>
-          </Pressable>
-          {/* İşletme profili: photo, name, hours, address, contact */}
-          <Pressable style={styles.editButton} onPress={onEditProfile} hitSlop={6} accessibilityLabel="Mekanı düzenle">
-            <Text style={styles.editText}>
-              <InlineIcon name="pencil" /> Düzenle
-            </Text>
-          </Pressable>
+      {/* The venue as customers see it: cover, name and the crowd now */}
+      <Pressable onPress={() => onShowOnMap(venue)} style={styles.hero}>
+        <VenuePhoto venueId={venue.id} category={venue.category} photoAt={venue.photo_at} size="100%" height={170} radius={20} />
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <GradientFill colors={['#000', '#000']} scrim />
         </View>
-        {stats?.discovered_by && user.token && (
-          <Discoverer
-            discoverer={stats.discovered_by}
-            token={user.token}
-            venueId={venue.id}
-            onOpenUser={onOpenUser}
-            onSent={load}
-          />
-        )}
-      </View>
+        <View style={styles.heroText} pointerEvents="none">
+          <StatusPill venue={venue} onPhoto />
+          <Text style={styles.heroName} numberOfLines={2}>{venue.name}</Text>
+          <Text style={styles.heroMeta} numberOfLines={1}>
+            {categoryLabel(venue.category)} · {shortLocation(venue.neighborhood, venue.district)} · Haritada gör ›
+          </Text>
+        </View>
+        <Pressable style={styles.heroEdit} onPress={onEditProfile} hitSlop={6} accessibilityLabel="Mekanı düzenle">
+          <Icon name="pencil" size={15} color="#fff" />
+          <Text style={styles.heroEditText}>Düzenle</Text>
+        </Pressable>
+      </Pressable>
 
       {/* Now: what customers see */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Şu an</Text>
+        <PanelTitle icon="circle-dot" tint={TINT.red}>Şu an</PanelTitle>
         <View style={styles.levelRow}>
           <CrowdDot venue={venue} size={16} />
           <Text style={styles.nowLabel}>{look.label}</Text>
@@ -176,11 +175,23 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
         )}
         {active && <Text style={styles.activeNote}><InlineIcon name="tag" /> Aktif kampanyan var · {timeLeft(active, now)}</Text>}
         {sent && <Text style={sent.ok ? styles.success : styles.error}>{sent.text}</Text>}
+        {/* Who found the venue first: part of what customers see */}
+        {stats?.discovered_by && user.token && (
+          <Discoverer
+            discoverer={stats.discovered_by}
+            token={user.token}
+            venueId={venue.id}
+            onOpenUser={onOpenUser}
+            onSent={load}
+          />
+        )}
       </View>
 
       {/* Today */}
+      {user.token && <SponsorCard token={user.token} />}
+
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Bugün · {stats?.today_checkins ?? 0} check-in</Text>
+        <PanelTitle icon="clock" tint={TINT.orange}>Bugün · {stats?.today_checkins ?? 0} check-in</PanelTitle>
         {!stats || stats.today_checkins === 0 ? (
           <Text style={styles.muted}>Bugün henüz check-in yok. Müşterilerin check-in yaptıkça saat saat burada görünür.</Text>
         ) : (
@@ -217,7 +228,7 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
 
       {/* Last 7 days */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Son 7 gün</Text>
+        <PanelTitle icon="chart-line" tint={TINT.blue}>Son 7 gün</PanelTitle>
         <View style={styles.stats}>
           <Stat value={stats?.week_checkins ?? 0} label="Check-in" />
           <Stat value={stats?.week_people ?? 0} label="Kişi" />
@@ -228,7 +239,7 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
 
       {/* Weekdays */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Haftanın günleri (son 30 gün)</Text>
+        <PanelTitle icon="chart-bar" tint={TINT.purple}>Haftanın günleri (son 30 gün)</PanelTitle>
         {!stats || stats.weekday.every((n) => n === 0) ? (
           <Text style={styles.muted}>Henüz yeterli check-in yok.</Text>
         ) : (
@@ -280,7 +291,7 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
 
       {/* Nearby similar venues, as customers see them now */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Yakındaki benzer mekanlar (2 km)</Text>
+        <PanelTitle icon="map-search" tint={TINT.green}>Yakındaki benzer mekanlar (2 km)</PanelTitle>
         {competitors.length === 0 && <Text style={styles.muted}>Yakında benzer mekan yok.</Text>}
         {competitors.map(({ venue: other, distanceKm }) => (
           <View key={other.id} style={styles.compRow}>
@@ -390,6 +401,14 @@ function Stat({ value, label }: { value: number; label: string }) {
 }
 
 const styles = themed(() => StyleSheet.create({
+  hero: { borderRadius: 20, overflow: 'hidden' },
+  heroText: { position: 'absolute', left: 14, right: 14, bottom: 14, gap: 5 },
+  heroName: { fontSize: 23, fontWeight: '800', color: '#fff' },
+  heroMeta: { fontSize: 13, color: 'rgba(255,255,255,0.85)' },
+  heroEdit: { position: 'absolute', top: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.45)' },
+  heroEditText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  panelTitle: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  panelIcon: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   nameRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   editButton: { paddingVertical: 7, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary },
   editText: { fontSize: 13, fontWeight: '700', color: colors.primary },
@@ -408,7 +427,7 @@ const styles = themed(() => StyleSheet.create({
   },
   venueName: { fontSize: 18, fontWeight: '700', color: colors.text },
   discovery: { fontSize: 13, fontWeight: '600', color: colors.discovery },
-  discoveryName: { fontWeight: '800', textDecorationLine: 'underline' },
+  discoveryName: { fontWeight: '800', color: colors.primary },
   discoverer: { gap: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border },
   rewardButton: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 14, borderWidth: 1.5, borderColor: colors.primary },
   rewardButtonText: { color: colors.primary, fontWeight: '700', fontSize: 13 },
@@ -452,3 +471,15 @@ const styles = themed(() => StyleSheet.create({
   primary: { paddingVertical: 13, paddingHorizontal: 12, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center' },
   primaryText: { color: colors.onPrimary, fontSize: 15, fontWeight: '600', textAlign: 'center' },
 }));
+
+/** A panel card's title with a coloured icon square, like the settings rows. */
+function PanelTitle({ icon, tint, children }: { icon: IconName; tint: string; children: ReactNode }) {
+  return (
+    <View style={styles.panelTitle}>
+      <View style={[styles.panelIcon, { backgroundColor: tint }]}>
+        <Icon name={icon} size={15} color="#fff" />
+      </View>
+      <Text style={styles.sectionTitle}>{children}</Text>
+    </View>
+  );
+}

@@ -142,5 +142,5 @@ const styles = themed(() => StyleSheet.create({
   secondaryText: { color: colors.primary, fontSize: 15, fontWeight: '600' },
   error: { color: colors.danger, fontSize: 14 },
   logout: { alignItems: 'center', paddingVertical: 16 },
-  logoutText: { color: colors.textMuted, textDecorationLine: 'underline' },
+  logoutText: { color: colors.danger, fontWeight: '600' },
 }));

@@ -1,3 +1,4 @@
+import { sponsorsApi, type SponsorOverview } from '../lib/sponsors';
 import { momentImage, momentsApi, REPORT_REASONS as PHOTO_REASONS, type ReportedMoment } from '../lib/moments';
 import { useCallback, useEffect, useState } from 'react';
 import { Image, ScrollView, StyleSheet, View } from 'react-native';
@@ -48,12 +49,14 @@ export function AdminScreen({ token, onBack, onOpenVenue }: { token: string; onB
   const [allSignUps, setAllSignUps] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [photos, setPhotos] = useState<ReportedMoment[]>([]);
+  const [sponsors, setSponsors] = useState<SponsorOverview | null>(null);
 
   const load = useCallback(() => {
     venueIssuesApi.open(token).then(setIssues).catch(() => {});
     venueIssuesApi.pending(token).then(setPending).catch(() => {});
     adminApi.waitlist(token).then(setSignUps).catch(() => {});
     momentsApi.reported(token).then(setPhotos).catch(() => {});
+    sponsorsApi.overview(token).then(setSponsors).catch(() => {});
     adminApi
       .reports(token)
       .then((list) => {
@@ -122,6 +125,36 @@ export function AdminScreen({ token, onBack, onOpenVenue }: { token: string; onB
             venueIssuesApi.resolve(token, issue.venue_id, issue.kind, resolution).catch(load);
           }}
         />
+      ))}
+
+      <Text style={styles.heading}>Sponsorlu mekanlar</Text>
+      <Text style={styles.muted}>İşletmelerin "Öne çık" talepleri. Ödeme sistemi gelene kadar buradan açılır; açılan mekan ana sayfada en üstte "Sponsorlu" görünür.</Text>
+      {sponsors && sponsors.requests.length === 0 && sponsors.active.length === 0 && <Text style={styles.muted}>Talep ya da yayında sponsorlu mekan yok.</Text>}
+      {sponsors?.requests.map((r) => (
+        <View key={`r${r.venue_id}`} style={styles.card}>
+          <Pressable onPress={() => onOpenVenue({ id: r.venue_id })}>
+            <Text style={styles.venue}>{r.venue_name} · {r.days === 7 ? '1 hafta' : '1 ay'} istedi</Text>
+          </Pressable>
+          <View style={styles.row}>
+            {([7, 30] as const).map((d) => (
+              <Pressable key={d} style={d === r.days ? styles.remove : styles.keep} onPress={() => sponsorsApi.start(token, r.venue_id, d).then(load).catch(load)}>
+                <Text style={d === r.days ? styles.removeText : styles.keepText}>{d === 7 ? '1 hafta' : '1 ay'} aç</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ))}
+      {sponsors?.active.map((a) => (
+        <View key={`a${a.venue_id}`} style={styles.card}>
+          <Text style={styles.venue}>{a.venue_name}</Text>
+          <Text style={styles.muted}>Yayında · {new Date(a.ends_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })} tarihine kadar</Text>
+          <Pressable
+            style={styles.keep}
+            onPress={() => confirmAction('Durdurulsun mu?', `${a.venue_name} artık sponsorlu görünmez.`, 'Durdur', () => sponsorsApi.stop(token, a.venue_id).then(load).catch(load))}
+          >
+            <Text style={styles.keepText}>Durdur</Text>
+          </Pressable>
+        </View>
       ))}
 
       <Text style={styles.heading}>Şikâyet edilen fotoğraflar</Text>

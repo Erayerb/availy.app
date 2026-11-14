@@ -6,8 +6,17 @@ import { Pressable } from './Pressable';
 import { useNotifications } from '../context/NotificationsContext';
 import { colors, themed } from '../theme';
 import { TabIcon } from './TabIcon';
+import { Icon } from './Icon';
+import { useCampaigns } from '../context/CampaignsContext';
+import { useLoyalty } from '../context/LoyaltyContext';
+import { couponValid } from '../lib/coupons';
 
-type Actions = { onOpenProfile: () => void; onOpenNotifications: () => void };
+type Actions = {
+  onOpenProfile: () => void;
+  onOpenNotifications: () => void;
+  // Customers: coupons and loyalty cards (Kampanyalar > Kuponlarım); absent for businesses and guests
+  onOpenWallet?: () => void;
+};
 
 /** Where the two icons lead; set once by the app so every tab can show them. */
 export const HeaderActionsContext = createContext<Actions>({ onOpenProfile: () => {}, onOpenNotifications: () => {} });
@@ -18,8 +27,25 @@ export function HeaderButtons(props: Partial<Actions>) {
   const onOpenProfile = props.onOpenProfile ?? actions.onOpenProfile;
   const onOpenNotifications = props.onOpenNotifications ?? actions.onOpenNotifications;
   const { unread } = useNotifications();
+  const onOpenWallet = actions.onOpenWallet;
+  const { coupons, now } = useCampaigns();
+  const { programs } = useLoyalty();
+  // A red dot when something is ready to use at the counter
+  const ready =
+    coupons.some((c) => !c.redeemedAt && couponValid(c, now)) || programs.some((p) => (p.member?.rewards ?? 0) > 0);
   return (
     <View style={styles.row}>
+      {onOpenWallet && (
+        <Pressable
+          onPress={onOpenWallet}
+          style={styles.button}
+          hitSlop={8}
+          accessibilityLabel={ready ? 'Kuponların ve kartların, kullanılabilir var' : 'Kuponların ve kartların'}
+        >
+          <Icon name="ticket" size={21} color={colors.text} />
+          {ready && <View style={styles.dot} />}
+        </Pressable>
+      )}
       <Pressable
         onPress={onOpenNotifications}
         style={styles.button}
@@ -42,6 +68,7 @@ export function HeaderButtons(props: Partial<Actions>) {
 
 const styles = themed(() => StyleSheet.create({
   row: { flexDirection: 'row', gap: 10 },
+  dot: { position: 'absolute', top: 2, right: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary, borderWidth: 2, borderColor: colors.surface },
   button: {
     width: 40,
     height: 40,

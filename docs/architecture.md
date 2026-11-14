@@ -74,7 +74,7 @@ MVP'de gerçek kullanıcı hesabı ve kimlik doğrulama yok. Mobilde giriş/kay�
 - WebSocket (önce polling kararı)
 - Kullanıcı hesapları
 - Kampanyaların sunucuda saklanıp gerçek push bildirimiyle gönderilmesi (prototipte telefonda)
-- Gerçek ödeme / abonelik: işletme kampanya göndermeden önce SaaS aboneliği (₺1.899/ay) almış olmalı ya da kampanya başı ₺150 ödemeli. Prototipte paketler sadece gösterim, kampanya ödemesiz gönderilir.
+- Gerçek ödeme / abonelik: işletme kampanya göndermeden önce SaaS aboneliği (₺599/ay) almış olmalı ya da kampanya başı ₺150 ödemeli. Prototipte paketler sadece gösterim, kampanya ödemesiz gönderilir.
 
 > Sonraya bırakılan işlerin güncel ve tam listesi: `CONTEXT.md` → **Yapılacaklar**.
 

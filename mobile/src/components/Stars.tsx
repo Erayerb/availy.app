@@ -4,12 +4,12 @@ import { colors } from '../theme';
 import { Icon } from './Icon';
 import { Text } from './Text';
 
-/** A 1–5 rating as the icon set's stars (filled up to the rating), instead of ★★★☆☆ text. */
+/** A 1–5 rating as the icon set's stars: gold filled up to the rating, gold outline after it. */
 export function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
   return (
     <View style={{ flexDirection: 'row', gap: 1 }} accessibilityLabel={`${rating} yıldız`}>
       {[1, 2, 3, 4, 5].map((n) => (
-        <Icon key={n} name="star" size={size} filled={n <= rating} color={n <= rating ? colors.gold : colors.border} />
+        <Icon key={n} name="star" size={size} filled={n <= rating} color={colors.gold} />
       ))}
     </View>
   );
@@ -21,7 +21,7 @@ export function InlineStars({ rating }: { rating: number }) {
     <Text accessibilityLabel={`${rating} yıldız`}>
       <View style={{ flexDirection: 'row', gap: 1, transform: [{ translateY: 2 }] }}>
         {[1, 2, 3, 4, 5].map((n) => (
-          <Icon key={n} name="star" size={13} filled={n <= rating} color={n <= rating ? colors.gold : colors.border} />
+          <Icon key={n} name="star" size={13} filled={n <= rating} color={colors.gold} />
         ))}
       </View>
     </Text>

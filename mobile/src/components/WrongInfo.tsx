@@ -1,3 +1,4 @@
+import { InlineIcon } from './Icon';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, StyleSheet, View } from 'react-native';
 import { Text, TextInput } from './Text';
@@ -36,7 +37,7 @@ export function WrongInfo({ venueId, venueName, token }: { venueId: number; venu
   return (
     <>
       <Pressable onPress={() => setOpen(true)} hitSlop={8} style={styles.linkWrap} accessibilityLabel="Bilgi yanlış mı? Bildir">
-        <Text style={styles.link}>{sent ? 'Bildirildi ✓' : 'Bilgi yanlış mı?'}</Text>
+        <Text style={styles.link}><InlineIcon name={sent ? 'circle-check' : 'pencil'} /> {sent ? 'Bildirildi' : 'Bilgi yanlış mı?'}</Text>
       </Pressable>
       <Modal visible={open} transparent animationType="fade" onRequestClose={close}>
         <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Kapat">
@@ -91,7 +92,8 @@ export function WrongInfo({ venueId, venueName, token }: { venueId: number; venu
 
 const styles = themed(() => StyleSheet.create({
   linkWrap: { paddingTop: 8 },
-  link: { color: colors.textMuted, fontWeight: '600', fontSize: 12, textDecorationLine: 'underline' },
+  // A small quiet pill, not an underlined web link
+  link: { color: colors.textMuted, fontWeight: '600', fontSize: 12, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 11, overflow: 'hidden', backgroundColor: colors.cream },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 24 },
   box: { padding: 18, borderRadius: 18, backgroundColor: colors.surface, gap: 14, maxWidth: 420, width: '100%', alignSelf: 'center' },
   title: { fontSize: 17, fontWeight: '700', color: colors.text },

@@ -1,3 +1,6 @@
+import { GradientFill } from '../components/GradientFill';
+import { Icon } from '../components/Icon';
+import { NewListSheet } from '../components/NewListSheet';
 import { EmptyState } from '../components/EmptyState';
 import { Skeleton } from '../components/Skeleton';
 import { useCallback, useEffect, useState } from 'react';
@@ -37,7 +40,7 @@ type Props = {
 export function FavoritesScreen({ onOpenVenue, visits, signedIn, token, onLogin, onRegister, onOpenList, tab, onTabChange: setTab, onExplore }: Props) {
   // Listelerim (on the server)
   const [lists, setLists] = useState<VenueList[] | null>(null);
-  const [newName, setNewName] = useState('');
+  const [creating, setCreating] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
   const loadLists = useCallback(() => {
     if (token) listsApi.mine(token).then(setLists).catch(() => setLists([]));
@@ -107,17 +110,6 @@ export function FavoritesScreen({ onOpenVenue, visits, signedIn, token, onLogin,
   }
 
   if (tab === 'lists') {
-    const create = async () => {
-      if (!token || !newName.trim()) return;
-      try {
-        const created = await listsApi.create(token, newName, 'private');
-        setNewName('');
-        setListError(null);
-        onOpenList(created.id);
-      } catch (e) {
-        setListError(e instanceof Error ? e.message : 'Olmadı, tekrar dene.');
-      }
-    };
     return (
       <ScrollView
         style={styles.page}
@@ -125,21 +117,22 @@ export function FavoritesScreen({ onOpenVenue, visits, signedIn, token, onLogin,
         refreshControl={<RefreshControl refreshing={false} onRefresh={loadLists} />}
       >
         {header}
-        <Text style={styles.label}>＋ Yeni liste oluştur</Text>
-        <View style={styles.newRow}>
-          <TextInput
-            value={newName}
-            onChangeText={setNewName}
-            placeholder="Yeni liste (ör. Kadıköy'de ders çalışılacak yerler)"
-            placeholderTextColor={colors.placeholder}
-            maxLength={MAX_LIST_NAME}
-            style={[styles.input, styles.flex]}
-            onSubmitEditing={create}
+        <Pressable onPress={() => setCreating(true)} style={({ pressed }) => [styles.newList, pressed && styles.pressed]} accessibilityRole="button">
+          <Icon name="plus" size={20} color={colors.onPrimary} />
+          <Text style={styles.newListText}>Yeni liste</Text>
+        </Pressable>
+        {token && (
+          <NewListSheet
+            visible={creating}
+            token={token}
+            onClose={() => setCreating(false)}
+            onCreated={(id) => {
+              setCreating(false);
+              loadLists();
+              onOpenList(id);
+            }}
           />
-          <Pressable style={[styles.add, !newName.trim() && styles.disabled]} onPress={create} disabled={!newName.trim()}>
-            <Text style={styles.addText}>Oluştur</Text>
-          </Pressable>
-        </View>
+        )}
         {listError && <Text style={styles.error}>{listError}</Text>}
         {lists === null && (
           <View style={styles.skeletons}>
@@ -155,19 +148,21 @@ export function FavoritesScreen({ onOpenVenue, visits, signedIn, token, onLogin,
           />
         )}
         {lists && lists.length > 0 && <Text style={styles.label}>Listelerin · {lists.length}</Text>}
-        {lists?.map((l) => (
-          <Pressable key={l.id} style={({ pressed }) => [styles.listCard, pressed && styles.pressed]} onPress={() => onOpenList(l.id)}>
-            <View style={styles.flex}>
-              <Text style={styles.listName} numberOfLines={1}>
+        <View style={styles.listGrid}>
+          {lists?.map((l, i) => (
+            <Pressable key={l.id} style={({ pressed }) => [styles.listTile, pressed && styles.pressed]} onPress={() => onOpenList(l.id)}>
+              <View style={styles.listCover}>
+                <GradientFill colors={LIST_GRADIENTS[i % LIST_GRADIENTS.length]} />
+                <Icon name="list" size={28} color="rgba(255,255,255,0.9)" />
+                <Text style={styles.listCount}>{l.venue_ids.length} mekan</Text>
+              </View>
+              <Text style={styles.listName} numberOfLines={2}>
                 {l.name}
               </Text>
-              <Text style={styles.muted}>
-                {l.venue_ids.length} mekan · {VISIBILITY_OPTIONS.find((o) => o.id === l.visibility)?.label}
-              </Text>
-            </View>
-            <Text style={styles.chevron}>›</Text>
-          </Pressable>
-        ))}
+              <Text style={styles.muted}>{VISIBILITY_OPTIONS.find((o) => o.id === l.visibility)?.label}</Text>
+            </Pressable>
+          ))}
+        </View>
       </ScrollView>
     );
   }
@@ -204,7 +199,22 @@ export function FavoritesScreen({ onOpenVenue, visits, signedIn, token, onLogin,
   );
 }
 
+// List covers take turns through the venue-card colours
+const LIST_GRADIENTS: [string, string][] = [
+  ['#7A2E1F', '#C8102E'],
+  ['#2B2350', '#7B5EA7'],
+  ['#123A2A', '#2E9E4F'],
+  ['#5A3A12', '#B7791F'],
+  ['#13304F', '#2F6AA3'],
+];
+
 const styles = themed(() => StyleSheet.create({
+  listGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  listTile: { width: '47.5%', gap: 4 },
+  listCover: { height: 110, borderRadius: 16, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  listCount: { position: 'absolute', left: 10, bottom: 8, fontSize: 12, fontWeight: '700', color: '#fff' },
+  newList: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 13, borderRadius: 14, backgroundColor: colors.primary },
+  newListText: { color: colors.onPrimary, fontSize: 16, fontWeight: '700' },
   skeletons: { gap: 10 },
   header: { gap: 12, marginBottom: 6 },
   signedOut: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 16, paddingTop: 60, gap: 14 },

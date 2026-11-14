@@ -33,3 +33,10 @@ test('every venue category has a placeholder visual', () => {
   }
   assert.equal(categoryVisual('club').icon, 'map-pin');
 });
+
+test('sponsored open places come first, closed sponsored ones keep their place', async () => {
+  const { sponsoredFirst } = await import('../src/lib/sponsors.ts');
+  const v = (id: number, sponsored: boolean, open_now = true) => ({ id, sponsored, open_now });
+  const ordered = sponsoredFirst([v(1, false), v(2, true, false), v(3, true), v(4, false)]);
+  assert.deepEqual(ordered.map((x) => x.id), [3, 1, 2, 4]);
+});

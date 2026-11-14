@@ -17,10 +17,12 @@ type Props = {
   radius?: number;
   // Small thumbnails: the icon in the middle instead of the corner
   centered?: boolean;
+  // The caller lays its own fade over it (a tile with the name on it)
+  noScrim?: boolean;
 };
 
 /** The venue's cover photo (uploaded by the business), or a coloured card by type: a gradient with the type's icon. */
-export function VenuePhoto({ venueId, category, photoAt = null, size, height, radius = 16, centered = false }: Props) {
+export function VenuePhoto({ venueId, category, photoAt = null, size, height, radius = 16, centered = false, noScrim = false }: Props) {
   // Photos picked before they were kept on the server stay on that phone
   const local = useEngagement().photos[venueId];
   const fade = useRef(new Animated.Value(0)).current;
@@ -39,7 +41,7 @@ export function VenuePhoto({ venueId, category, photoAt = null, size, height, ra
           resizeMode="cover"
           onLoad={() => Animated.timing(fade, { toValue: 1, duration: 200, useNativeDriver: true }).start()}
         />
-        {!centered && <GradientFill colors={gradient} scrim />}
+        {!centered && !noScrim && <GradientFill colors={gradient} scrim />}
       </View>
     );
   }

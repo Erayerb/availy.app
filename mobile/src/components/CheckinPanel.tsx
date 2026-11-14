@@ -60,6 +60,7 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
   // Gizlilik ayarları: "Check-in'lerim varsayılan olarak gizli olsun"
   const [isPrivate, setIsPrivate] = useState(privateByDefault);
   const [sending, setSending] = useState(false);
+  const [privateHelp, setPrivateHelp] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string; settings?: boolean } | null>(null);
   // Set right after a check-in, before the visits list has reloaded
   const [justCheckedIn, setJustCheckedIn] = useState<number | null>(null);
@@ -368,8 +369,14 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
 
       <View style={styles.privateRow}>
         <View style={styles.privateText}>
-          <Text style={styles.text}><InlineIcon name="lock" /> Gizli check-in</Text>
-          <Text style={styles.muted}>Doluluğa sayılır ama adın kimseye gösterilmez.</Text>
+          <View style={styles.privateTitle}>
+            <Text style={styles.text}><InlineIcon name="lock" /> Gizli check-in</Text>
+            {/* ⓘ: what it means, only when asked */}
+            <Pressable onPress={() => setPrivateHelp((h) => !h)} hitSlop={10} accessibilityLabel="Gizli check-in nedir?">
+              <Text style={styles.info}>ⓘ</Text>
+            </Pressable>
+          </View>
+          {privateHelp && <Text style={styles.muted}>Doluluğa sayılır ama adın kimseye gösterilmez.</Text>}
         </View>
         <ThemedSwitch value={isPrivate} onValueChange={setIsPrivate} />
       </View>
@@ -407,6 +414,8 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
 }
 
 const styles = themed(() => StyleSheet.create({
+  privateTitle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  info: { fontSize: 16, color: colors.textMuted },
   card: { padding: 16, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 10 },
   title: { fontSize: 16, fontWeight: '700', color: colors.text },
   text: { fontSize: 14, color: colors.text },

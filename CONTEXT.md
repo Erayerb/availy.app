@@ -213,7 +213,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Kendi mekanının yorumlarına "İşletme" etiketiyle yanıt (yanıtlar kapalı olsa da)
 - İşletme profili'nde üstte kalın "E-posta henüz doğrulanmadı" ve "Doğrulanmamış işletme" kartları, yanlarında Doğrula (ikincisi İşletme doğrulama'ya gider)
 - İşletme profili = mekan sayfası: sağ üstteki profil ikonu kendi mekan sayfasını "👁 Müşteriler mekanını böyle görüyor" olarak açar; sağ üstte "✏️ Düzenle" → Daha fazla > İşletme profili. Orada düzenlenenler sunucuda, herkese görünür: kapak fotoğrafı, adres ve konum (açık adres, mahalle, semt; yol tarifi noktası adresten bulunur ya da "Mekandayım: konumum"; en fazla 1 km kaydırılabilir, check-in mesafesi de bu noktaya göre; OSM yeniden içe aktarılınca korunur: `venues.edited_by_business`), Instagram, telefon. ✓ rozeti `venue_profiles.verified` ile (doğrulama henüz yok; elle açılır)
-- Daha fazla: İşletme profili, İşletme doğrulama ("Yakında"), Abonelik (kampanya başı ₺150 / SaaS ₺1.899/ay; ödeme yok), Ayarlar (hesap + mekan bilgileri + ölü saat / otomatik kampanya), Görünüm, İzinler
+- Daha fazla: İşletme profili, İşletme doğrulama ("Yakında"), Abonelik (kampanya başı ₺150 / SaaS ₺599/ay; ödeme yok), Ayarlar (hesap + mekan bilgileri + ölü saat / otomatik kampanya), Görünüm, İzinler
 - Kalıcı işletme test hesabı @availy_isletme
 
 **Sadakat** (sunucuda: loyalty_programs, loyalty_members; app/loyalty.py)
@@ -262,6 +262,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - "Daima" konum izni (uygulama kapalıyken öneri): izin metni ve Konum ve izinler sayfası güncellenir
 - Kullanıcı fotoğrafları: fotoğrafta başkalarının yüzü çıkabilir; şikâyet, kaldırma, saklama süresi
 - "Şu an burada" fotoğrafları (check-in'de çekilen, 24 saat görünen): fotoğraf telefonda yeniden kodlanır, içindeki konum (GPS) ve cihaz bilgileri (EXIF) sunucuya gönderilmeden silinir; 24 saat sonra fotoğraf sunucudan silinir. Bu "konum silinir" beyanı gizlilik politikasında yer alıyor (legal.ts "Ne kadar saklıyoruz?"); doğruluğu ve yeterliliği, başkalarının yüzü (açık rıza gerekir mi), şikâyet/kaldırma süreci ve 2 şikâyette gizleme kuralı hukukçuya sorulacak
+- "Check-in" kelimesinin kullanımı: genel bir terim (havayolları, oteller, Facebook, Swarm kullanıyor); yine de TÜRKPATENT'te uygulama sınıfında tescil araması yapılsın. "availo" adı ve logosu için de marka tescili
 
 **Gerçek uygulama sürümü gerektirenler** (Apple Developer hesabı, EAS Build; Expo Go'da olmaz)
 - Instagram / TikTok'ta Paylaş'a basınca listede availo çıkması, mekanın favorilere girmesi
@@ -302,6 +303,9 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - iPhone ana ekran widget'ı: favori mekanın şu anki doluluğu (EAS Build + iOS widget eklentisi; Android widget'ı da düşünülebilir)
 
 **Güvenlik ve hile**
+- Reklam (AdMob): sadece Premium olmayanlara; gerçek uygulama derlemesi (EAS) ile kurulacak: AdMob hesabı ve ödeme/vergi bilgileri (kullanıcı), paket + Premium kontrolü + gizlilik onayı penceresi (ATT/GDPR) + gizlilik politikasına madde (kod)
+- Sponsorlu mekan ödemesi: şimdilik işletme talep eder, yönetici açar (7 gün ₺300 / 30 gün ₺1.000 gösteriliyor); ödeme altyapısı (iyzico vb.) gelince otomatik
+- Uygulama içi ödemeler: Premium ₺79/ay (App Store / Google Play aboneliği), işletme paketi ₺599/ay ve kampanya başı ₺150
 - Google / Apple ile giriş: kod hazır (POST /v1/auth/oauth, user_identities); kimlikler girilince butonlar görünür. Kurulum: docs/social-sign-in.md
 - Onay bekleyen mekan sınırı (kişi başı 3) şimdilik kaldırıldı; yayından önce yeniden düşün (sahte mekan yağmuru)
 - Aynı IP'den çok sayıda giriş denemesine sınır (hesap kilidi var, IP sınırı yok)
@@ -382,5 +386,5 @@ olmadan, uygulamaya gömülü demo veriyle çalışır. v2'de olmayan ya da değ
 - Hata bildirimleri ve iletişim mesajları sunucuya / destek e-postasına
 - İşletme premium aboneliğine "hesap yönetimi"
 - Katılmamış işletmeler için "İşletmeye haber ver"
-- Gerçek ödeme (SaaS ₺1.899/ay, kampanya başı ₺150, B2C Premium ₺79/ay), mikro rezervasyon (masa + ön sipariş, %15 komisyon)
+- Gerçek ödeme (SaaS ₺599/ay, kampanya başı ₺150, B2C Premium ₺79/ay), mikro rezervasyon (masa + ön sipariş, %15 komisyon)
 - Tanıtım sitesi (özellikler, işletme başvurusu, fiyatlar, işbirlikleri, KVKK)

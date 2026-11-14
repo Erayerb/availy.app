@@ -548,6 +548,11 @@ function Main() {
               onHideClosedChange={setHideClosed}
               onOpenVenue={openDetails}
               token={isRegistered(auth.user) && !isBusiness(auth.user) ? (auth.user?.token ?? null) : null}
+              onOpenFriends={() => {
+                setSocialTab('friends');
+                goTo('friends');
+              }}
+              inviteName={auth.user?.username ?? null}
               onOpenProfile={openMyProfile}
               onOpenNotifications={() => goTo('notifications')}
             />
@@ -838,7 +843,18 @@ function Main() {
         accountKey={auth.user ? accountKey(auth.user) : null}
       >
       <HeaderActionsContext.Provider
-        value={{ onOpenProfile: openMyProfile, onOpenNotifications: () => goTo('notifications') }}
+        value={{
+          onOpenProfile: openMyProfile,
+          onOpenNotifications: () => goTo('notifications'),
+          // Coupons and loyalty cards: one tap to Kampanyalar > Kuponlarım (registered customers)
+          onOpenWallet:
+            isRegistered(auth.user) && !isBusiness(auth.user)
+              ? () => {
+                  setCampaignsTab('coupons');
+                  goTo('campaigns');
+                }
+              : undefined,
+        }}
       >
         <View style={styles.container}>
           <OfflineBar />

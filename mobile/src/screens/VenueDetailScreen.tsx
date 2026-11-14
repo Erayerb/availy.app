@@ -1,5 +1,7 @@
+import { StatusPill } from '../components/StatusPill';
+import { GradientFill } from '../components/GradientFill';
 import { InlineStars } from '../components/Stars';
-import { MomentStrip } from '../components/MomentStrip';
+import { MomentStack } from '../components/MomentStrip';
 import { useEffect, useState } from 'react';
 import { Linking, Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { TAB_BAR_SPACE } from '../components/TabBar';
@@ -138,38 +140,51 @@ export function VenueDetailScreen({
               <Text style={styles.editText}><InlineIcon name="pencil" /> Düzenle</Text>
             </Pressable>
           )}
-          {!owner && <WatchButton venue={venue} size={22} />}
-          <Pressable
-            onPress={async () => setNote(await shareVenue(venue))}
-            hitSlop={10}
-            accessibilityLabel="Paylaş"
-          >
+          <Pressable onPress={async () => setNote(await shareVenue(venue))} hitSlop={10} accessibilityLabel="Paylaş">
             <Icon name="share-3" size={22} color={colors.text} />
           </Pressable>
-          {/* Listeye ekle: registered customers */}
-          {herePerson && (
-            <Pressable onPress={() => setListing(true)} hitSlop={10} accessibilityLabel="Listeye ekle">
-              <Icon name="bookmarks" size={21} color={colors.text} />
-            </Pressable>
-          )}
           {!owner && <FavoriteButton venueId={venue.id} size={22} />}
         </View>
       </View>
 
       {owner && <Text style={styles.ownerNote}><InlineIcon name="eye" /> Müşteriler mekanını böyle görüyor</Text>}
 
-      <VenuePhoto venueId={venue.id} category={venue.category} photoAt={venue.photo_at} size="100%" height={200} />
-
-      <View>
-        <View style={styles.nameRow}>
-          <Text style={[styles.name, styles.flex]}>
-            {venue.name}
-            {venue.verified && <Text style={styles.verified}> <InlineIcon name="circle-check" color={colors.primary} /></Text>}
-          </Text>
-          {/* Closed, wrong hours / location / name: 3 people → the admin checks it */}
-          {herePerson && !owner && <WrongInfo venueId={venue.id} venueName={venue.name} token={herePerson} />}
+      {/* Cover: the name and the crowd now on the photo, a dark fade under them */}
+      <View style={styles.hero}>
+        <VenuePhoto venueId={venue.id} category={venue.category} photoAt={venue.photo_at} size="100%" height={230} radius={20} />
+        <View style={styles.heroFade} pointerEvents="none">
+          <GradientFill colors={['#000', '#000']} scrim />
         </View>
-        {venue.verified && <Text style={styles.verifiedText}>Doğrulanmış işletme</Text>}
+        {/* Live photos: a fanned stack in the cover's corner */}
+        <View style={styles.heroStack}>
+          <MomentStack venueId={venue.id} token={user?.token ?? null} onOpenUser={onOpenUser} reloadKey={venue} />
+        </View>
+        <View style={styles.heroText} pointerEvents="none">
+          <StatusPill venue={venue} onPhoto />
+          <Text style={styles.heroName} numberOfLines={2}>
+            {venue.name}
+            {venue.verified && <Text> <InlineIcon name="circle-check" color="#fff" /></Text>}
+          </Text>
+          <Text style={styles.heroMeta} numberOfLines={1}>
+            {categoryLabel(venue.category)} · {shortLocation(venue.neighborhood, venue.district)}
+            {point ? ` · ${formatDistance(distanceKm(point, venue))}` : ''}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.underCover}>
+        {/* Top right of this block, over nothing: it never pushes the lines below */}
+        {herePerson && !owner && (
+          <View style={styles.wrongInfo}>
+            <WrongInfo venueId={venue.id} venueName={venue.name} token={herePerson} />
+          </View>
+        )}
+        {reviews.average !== null && (
+          <Text style={styles.rating}>
+            <InlineStars rating={Math.round(reviews.average)} /> {reviews.average.toLocaleString('tr-TR', { maximumFractionDigits: 1 })}{' '}
+            <Text style={styles.muted}>({reviews.count})</Text>
+          </Text>
+        )}
         {venue.founder && (
           <View style={styles.founderRow}>
             <Icon name="rosette" size={15} color={colors.gold} />
@@ -193,7 +208,7 @@ export function VenueDetailScreen({
           </Pressable>
         )}
         {venue.pending && (
-          <Text style={styles.pending}><InlineIcon name="hourglass" /> Onay bekliyor · bir kullanıcı ekledi; 3 farklı kişi check-in yapınca onaylanır</Text>
+          <Text style={styles.pending}><InlineIcon name="hourglass" /> Onay bekliyor (kullanıcı tarafından eklendi; 3 check-in yapılırsa onaylanır)</Text>
         )}
         {venue.discovery && (
           <Text style={styles.discovery}>
@@ -208,15 +223,6 @@ export function VenueDetailScreen({
             {new Date(venue.discovery.at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}
           </Text>
         )}
-        {reviews.average !== null && (
-          <Text style={styles.rating}>
-            <InlineStars rating={Math.round(reviews.average)} /> {reviews.average} · {writtenCount > 0 ? `${writtenCount} yorum` : `${reviews.count} puan`}
-          </Text>
-        )}
-        <Text style={styles.muted}>
-          {categoryLabel(venue.category)} · {shortLocation(venue.neighborhood, venue.district)}
-          {point ? ` · ${formatDistance(distanceKm(point, venue))}` : ''}
-        </Text>
         {user?.role !== 'business' && <BusinessRequest venueId={venue.id} token={user?.token ?? null} onLogin={onLogin} />}
       </View>
       {note && <Text style={styles.note}>{note}</Text>}
@@ -251,7 +257,6 @@ export function VenueDetailScreen({
           <Text style={styles.unusual}>{usualNowText(liveLevel(venue), typical?.usual_now)}</Text>
         )}
         {venue.open_now && crowdYesterday(venue.crowd) && <Text style={styles.text}><InlineIcon name="history" /> {crowdYesterday(venue.crowd)}</Text>}
-        <MomentStrip venueId={venue.id} token={user?.token ?? null} onOpenUser={onOpenUser} reloadKey={venue} />
         <FriendsHere venueId={venue.id} token={herePerson} onOpenUser={onOpenUser} reloadKey={venue} />
         <VenueRegular venueId={venue.id} token={herePerson} onOpenUser={onOpenUser} reloadKey={venue} />
         <Text style={styles.text}><InlineIcon name="clock" /> {venue.hours}</Text>
@@ -263,13 +268,8 @@ export function VenueDetailScreen({
             <InlineIcon name="chart-line" /> {line}
           </Text>
         ))}
-        {watching ? (
-          <Text style={styles.watch}><InlineIcon name="bell" /> Sakin olunca haber vereceğiz (6 saat açık kalır)</Text>
-        ) : (
-          canWatch(venue) && (
-            <Text style={styles.muted}>Kalabalık mı? Üstteki zil simgesine bas, sakinleşince haber verelim.</Text>
-          )
-        )}
+        {/* Busy: "Sakin olunca haber ver" as a button with its words (stays on for 6 hours) */}
+        {!owner && <WatchButton venue={venue} labeled />}
       </View>
 
       <CheckinPanel
@@ -286,16 +286,25 @@ export function VenueDetailScreen({
         onReviewsChange={(list) => (list ? setReviews(list) : reloadReviews())}
       />
 
-      <View style={styles.buttons}>
-        <Pressable style={styles.secondary} onPress={() => onShowOnMap(venue)}>
-          <Text style={styles.secondaryText}>Haritada gör</Text>
+      {/* Quiet labelled actions: not buttons that look like Check-in */}
+      <View style={styles.quickRow}>
+        <Pressable style={({ pressed }) => [styles.quick, pressed && styles.pressedDim]} onPress={() => onShowOnMap(venue)}>
+          <Icon name="map-pin" size={16} color={colors.text} />
+          <Text style={styles.quickText}>Haritada gör</Text>
         </Pressable>
         <Pressable
-          style={styles.primary}
+          style={({ pressed }) => [styles.quick, pressed && styles.pressedDim]}
           onPress={() => Linking.openURL(directionsUrl(Platform.OS, venue.lat, venue.lon))}
         >
-          <Text style={styles.primaryText}>Yol tarifi</Text>
+          <Icon name="map" size={16} color={colors.text} />
+          <Text style={styles.quickText}>Yol tarifi</Text>
         </Pressable>
+        {herePerson && (
+          <Pressable style={({ pressed }) => [styles.quick, pressed && styles.pressedDim]} onPress={() => setListing(true)}>
+            <Icon name="bookmarks" size={16} color={colors.text} />
+            <Text style={styles.quickText}>Listeye ekle</Text>
+          </Pressable>
+        )}
       </View>
       {campaign && (
         <View style={styles.section}>
@@ -307,25 +316,43 @@ export function VenueDetailScreen({
       {program && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Sadakat programı</Text>
-          <Text style={styles.text}><InlineIcon name="star" /> {describeProgram(program)}</Text>
-          {program.member ? (
-            <>
-              <Text style={styles.text}>
-                {program.kind === 'stamps'
-                  ? `✓ Katıldın · kartında ${program.member.stamps}/${program.stampsRequired} damga${program.member.rewards ? ` · <InlineIcon name="gift" /> ${program.member.rewards} ödül` : ''}`
-                  : '✓ Üyesin'}
-              </Text>
-              <Text style={styles.muted}>Kasada QR'ını göster: Kampanyalar → Sadakat</Text>
-              <Pressable onPress={() => leave(program.venueId)} hitSlop={6}>
-                <Text style={styles.muted}>Programdan çık</Text>
+          <View style={styles.loyalty}>
+            <View style={styles.loyaltyHead}>
+              <View style={styles.loyaltyIcon}>
+                <GradientFill colors={['#5A3A12', '#C9962B']} />
+                <Icon name="star" size={18} color="#fff" filled />
+              </View>
+              <Text style={[styles.text, styles.flex]}>{describeProgram(program)}</Text>
+            </View>
+            {program.member ? (
+              <>
+                {program.kind === 'stamps' ? (
+                  <View style={styles.stampRow}>
+                    {/* One dot per stamp on the card */}
+                    {Array.from({ length: program.stampsRequired }, (_, i) => (
+                      <View key={i} style={[styles.stamp, i < program.member!.stamps && styles.stampOn]}>
+                        {i < program.member!.stamps && <Icon name="check" size={12} color={colors.onPrimary} />}
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+                <Text style={styles.muted}>
+                  {program.kind === 'stamps'
+                    ? `${program.member.stamps}/${program.stampsRequired} damga${program.member.rewards ? ` · ${program.member.rewards} ödül hazır` : ''} · `
+                    : 'Üyesin · '}
+                  Kasada QR'ını göster (Kampanyalar → Sadakat)
+                </Text>
+                <Pressable onPress={() => leave(program.venueId)} hitSlop={6}>
+                  <Text style={styles.leave}>Programdan çık</Text>
+                </Pressable>
+              </>
+            ) : user?.role !== 'business' ? (
+              <Pressable style={styles.primary} onPress={async () => setLoyaltyNote(await join(program.venueId))}>
+                <Text style={styles.primaryText}>{program.kind === 'stamps' ? 'Sadakat programına katıl' : `Üye ol (₺${program.price}/ay)`}</Text>
               </Pressable>
-            </>
-          ) : user?.role !== 'business' ? (
-            <Pressable style={styles.primary} onPress={async () => setLoyaltyNote(await join(program.venueId))}>
-              <Text style={styles.primaryText}>{program.kind === 'stamps' ? 'Sadakat programına katıl' : `Üye ol (₺${program.price}/ay)`}</Text>
-            </Pressable>
-          ) : null}
-          {loyaltyNote && <Text style={styles.muted}>{loyaltyNote}</Text>}
+            ) : null}
+            {loyaltyNote && <Text style={styles.muted}>{loyaltyNote}</Text>}
+          </View>
         </View>
       )}
 
@@ -363,6 +390,30 @@ export function VenueDetailScreen({
 }
 
 const styles = themed(() => StyleSheet.create({
+  underCover: { minHeight: 26, gap: 4 },
+  wrongInfo: { position: 'absolute', top: 0, right: 0, zIndex: 1 },
+  quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  quick: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 9, paddingHorizontal: 13, borderRadius: 14, backgroundColor: colors.cream },
+  quickText: { fontSize: 14, fontWeight: '600', color: colors.text },
+  hero: { borderRadius: 20, overflow: 'hidden' },
+  heroFade: { ...StyleSheet.absoluteFill },
+  heroStack: { position: 'absolute', top: 16, right: 18 },
+  heroText: { position: 'absolute', left: 14, right: 14, bottom: 14, gap: 6 },
+  heroName: { fontSize: 25, fontWeight: '800', color: '#fff' },
+  heroMeta: { fontSize: 14, color: 'rgba(255,255,255,0.85)' },
+  heroActions: { flexDirection: 'row', gap: 8 },
+  heroPrimary: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 46, borderRadius: 14, backgroundColor: colors.primary },
+  heroPrimaryText: { color: colors.onPrimary, fontSize: 16, fontWeight: '700' },
+  heroIcon: { flexDirection: 'row', gap: 6, width: 52, height: 46, borderRadius: 14, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  heroIconText: { fontSize: 15, fontWeight: '700', color: colors.text },
+  pressedDim: { opacity: 0.8 },
+  loyalty: { padding: 12, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 10 },
+  loyaltyHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  loyaltyIcon: { width: 40, height: 40, borderRadius: 11, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  stampRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  stamp: { width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  stampOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  leave: { alignSelf: 'flex-start', fontSize: 12, fontWeight: '600', color: colors.textMuted, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 11, overflow: 'hidden', backgroundColor: colors.cream },
   discovery: { fontSize: 13, color: colors.discovery, fontWeight: '600', marginTop: 2 },
   discoveryName: { fontSize: 15, fontWeight: '800', color: colors.text },
   ownerNote: { fontSize: 13, color: colors.textMuted, fontWeight: '600' },

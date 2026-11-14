@@ -1,17 +1,22 @@
+import { WEB_APP_URL } from '../lib/share';
+import { NewListSheet } from '../components/NewListSheet';
+import { VenueTile } from '../components/VenueTile';
+import { Icon, type IconName } from '../components/Icon';
+import { distanceKm, formatDistance } from '../lib/geo';
+import { useLocation } from '../context/LocationContext';
 import { RowsSkeleton } from '../components/Skeleton';
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { TAB_BAR_SPACE } from '../components/TabBar';
-import { Text, TextInput } from '../components/Text';
+import { Text } from '../components/Text';
 
 import { BackButton } from '../components/BackButton';
 import { Pressable } from '../components/Pressable';
-import { VenueRow } from '../components/VenueRow';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
-import { searchVenues, type Venue } from '../lib/api';
+import type { Venue } from '../lib/api';
 import { confirmAction } from '../lib/confirm';
 import { liveLevel } from '../lib/crowd';
-import { listsApi, listShareMessage, MAX_LIST_NAME, VISIBILITY_OPTIONS, type VenueList, type Visibility } from '../lib/lists';
+import { listLink, listsApi, listShareMessage, type VenueList } from '../lib/lists';
 import { shareText } from '../lib/shareVenue';
 import { colors, themed } from '../theme';
 import { InlineIcon } from '../components/Icon';
@@ -30,26 +35,12 @@ export function ListScreen({ token, target, onBack, onOpenVenue, onOpenList }: P
   const [list, setList] = useState<VenueList | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  const [renaming, setRenaming] = useState<string | null>(null);
   const code = 'code' in target ? target.code : null;
-  // "＋ Mekan ekle": search and add right here
-  const [adding, setAdding] = useState(false);
-  const [query, setQuery] = useState('');
-  const [found, setFound] = useState<Venue[]>([]);
-  useEffect(() => {
-    const q = query.trim();
-    if (!adding || q.length < 2) return setFound([]);
-    const controller = new AbortController();
-    const timer = setTimeout(() => {
-      searchVenues(q, null, [], controller.signal)
-        .then((list) => setFound(list.slice(0, 8)))
-        .catch(() => {});
-    }, 300);
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [query, adding]);
+  // Düzenle: the same steps as making a list
+  const [editing, setEditing] = useState(false);
+  const { width } = useWindowDimensions();
+  const tileSize = (width - 32 - 12) / 2;
+  const { point } = useLocation();
 
   const load = useCallback(() => {
     ('code' in target ? listsApi.byCode(token, target.code) : listsApi.get(token, target.id))
@@ -67,24 +58,14 @@ export function ListScreen({ token, target, onBack, onOpenVenue, onOpenList }: P
   // "şu an 3'ü sakin": the reason to keep a list in availo
   const quiet = shown.filter((v) => liveLevel(v) === 'low').length;
 
-  const setVenue = async (venueId: number, present: boolean) => {
-    if (!list) return;
-    try {
-      setList(await listsApi.setVenue(token, list.id, venueId, present));
-      refresh();
-    } catch (e) {
-      setNote(e instanceof Error ? e.message : 'Olmadı, tekrar dene.');
-    }
-  };
 
-  const change = async (patch: { name?: string; visibility?: Visibility }) => {
+
+  // Paylaş: "Herkes" lists send their link; the others send the venues' names as text (nothing to open)
+  const share = async () => {
     if (!list) return;
-    try {
-      setList(await listsApi.update(token, list.id, patch));
-      setNote(null);
-    } catch (e) {
-      setNote(e instanceof Error ? e.message : 'Kaydedilemedi.');
-    }
+    if (list.visibility === 'link' && list.share_code) return setNote(await shareText(listShareMessage(list.name, list.share_code)));
+    const names = shown.map((v) => `• ${v.name}`).join('\n');
+    setNote(await shareText(`availo'da "${list.name}" listem:\n${names || '(henüz mekan yok)'}\n${WEB_APP_URL}`));
   };
 
   const header = (
@@ -105,65 +86,25 @@ export function ListScreen({ token, target, onBack, onOpenVenue, onOpenList }: P
 
           {list.mine ? (
             <View style={styles.card}>
-              <Text style={styles.label}>Kimler görsün?</Text>
-              <View style={styles.chips}>
-                {VISIBILITY_OPTIONS.map((o) => (
-                  <Pressable
-                    key={o.id}
-                    onPress={() => change({ visibility: o.id })}
-                    style={[styles.chip, list.visibility === o.id && styles.chipOn]}
-                  >
-                    <Text style={[styles.chipText, list.visibility === o.id && styles.chipTextOn]}>{o.label}</Text>
-                  </Pressable>
-                ))}
+              <View style={styles.row}>
+                <Icon name={VISIBILITY_ICON[list.visibility]} size={16} color={colors.textMuted} />
+                <Text style={[styles.muted, styles.flex]}>
+                  {list.visibility === 'link' ? 'Herkes · bağlantıyla açılır' : list.visibility === 'friends' ? 'Arkadaşların görür' : 'Yalnızca sen görürsün'}
+                </Text>
               </View>
-              <Text style={styles.muted}>{VISIBILITY_OPTIONS.find((o) => o.id === list.visibility)?.hint}</Text>
               {list.visibility === 'link' && list.share_code && (
-                <Pressable
-                  style={styles.primary}
-                  onPress={async () => setNote(await shareText(listShareMessage(list.name, list.share_code!)))}
-                >
-                  <Text style={styles.primaryText}><InlineIcon name="link" /> Bağlantıyı paylaş</Text>
+                <Text style={styles.linkBox} numberOfLines={1} selectable>
+                  {listLink(list.share_code)}
+                </Text>
+              )}
+              <View style={styles.row}>
+                <Pressable style={[styles.primary, styles.flex]} onPress={share}>
+                  <Text style={styles.primaryText}><InlineIcon name="share-3" /> Paylaş</Text>
                 </Pressable>
-              )}
-
-              {renaming === null ? (
-                <View style={styles.row}>
-                  <Pressable onPress={() => setRenaming(list.name)} hitSlop={8}>
-                    <Text style={styles.link}>Adını değiştir</Text>
-                  </Pressable>
-                  <View style={styles.flex} />
-                  <Pressable
-                    hitSlop={8}
-                    onPress={() =>
-                      confirmAction(`"${list.name}" silinsin mi?`, 'Liste ve içindeki mekan seçimin silinir; mekanlar silinmez.', 'Sil', () =>
-                        listsApi.remove(token, list.id).then(onBack).catch(() => {}),
-                      )
-                    }
-                  >
-                    <Text style={styles.delete}>Listeyi sil</Text>
-                  </Pressable>
-                </View>
-              ) : (
-                <View style={styles.row}>
-                  <TextInput
-                    value={renaming}
-                    onChangeText={setRenaming}
-                    maxLength={MAX_LIST_NAME}
-                    autoFocus
-                    style={[styles.input, styles.flex]}
-                  />
-                  <Pressable
-                    style={styles.small}
-                    onPress={async () => {
-                      await change({ name: renaming });
-                      setRenaming(null);
-                    }}
-                  >
-                    <Text style={styles.smallText}>Kaydet</Text>
-                  </Pressable>
-                </View>
-              )}
+                <Pressable style={[styles.secondary, styles.flex]} onPress={() => setEditing(true)}>
+                  <Text style={styles.secondaryText}><InlineIcon name="pencil" /> Düzenle</Text>
+                </Pressable>
+              </View>
             </View>
           ) : (
             <Pressable
@@ -181,48 +122,22 @@ export function ListScreen({ token, target, onBack, onOpenVenue, onOpenList }: P
             </Pressable>
           )}
           {list.mine && (
-            <View style={styles.card}>
-              {!adding ? (
-                <Pressable style={styles.addButton} onPress={() => setAdding(true)}>
-                  <Text style={styles.addButtonText}>＋ Mekan ekle</Text>
-                </Pressable>
-              ) : (
-                <>
-                  <View style={styles.row}>
-                    <TextInput
-                      value={query}
-                      onChangeText={setQuery}
-                      placeholder="Mekan adı ya da semt"
-                      placeholderTextColor={colors.placeholder}
-                      autoFocus
-                      style={[styles.input, styles.flex]}
-                    />
-                    <Pressable
-                      onPress={() => {
-                        setAdding(false);
-                        setQuery('');
-                      }}
-                      hitSlop={8}
-                    >
-                      <Text style={styles.link}>Bitti</Text>
-                    </Pressable>
-                  </View>
-                  {query.trim().length >= 2 && found.length === 0 && <Text style={styles.muted}>Bu adla mekan bulunamadı.</Text>}
-                  {found.map((v) => {
-                    const inList = list.venue_ids.includes(v.id);
-                    return (
-                      <VenueRow
-                        key={v.id}
-                        venue={v}
-                        onPress={() => setVenue(v.id, !inList)}
-                        action={<Text style={inList ? styles.inList : styles.link}>{inList ? '✓ Listede' : '＋ Ekle'}</Text>}
-                      />
-                    );
-                  })}
-                </>
-              )}
-              <Text style={styles.muted}>Mekan sayfasındaki liste simgesinden de ekleyebilirsin.</Text>
-            </View>
+            <NewListSheet
+              visible={editing}
+              token={token}
+              edit={list}
+              onClose={() => setEditing(false)}
+              onCreated={() => {
+                setEditing(false);
+                load();
+                refresh();
+              }}
+              onDelete={() =>
+                confirmAction(`"${list.name}" silinsin mi?`, 'Liste ve içindeki mekan seçimin silinir; mekanlar silinmez.', 'Sil', () =>
+                  listsApi.remove(token, list.id).then(onBack).catch(() => {}),
+                )
+              }
+            />
           )}
           {list.venue_ids.length > 0 && <Text style={styles.label}>Mekanlar</Text>}
           {note && <Text style={styles.muted}>{note}</Text>}
@@ -245,35 +160,32 @@ export function ListScreen({ token, target, onBack, onOpenVenue, onOpenList }: P
         refresh();
       }}
       refreshing={false}
+      numColumns={2}
+      columnWrapperStyle={styles.columns}
       renderItem={({ item }) => (
-        <VenueRow
+        <VenueTile
           venue={item}
+          size={tileSize}
+          distance={point ? formatDistance(distanceKm(point, item)) : null}
           onPress={() => onOpenVenue(item)}
-          action={
-            list?.mine ? (
-              <Pressable
-                hitSlop={10}
-                onPress={() =>
-                  confirmAction(`${item.name} listeden çıkarılsın mı?`, 'Mekan silinmez, yalnızca bu listeden çıkar.', 'Çıkar', () =>
-                    setVenue(item.id, false),
-                  )
-                }
-              >
-                <Text style={styles.remove}>Çıkar</Text>
-              </Pressable>
-            ) : undefined
-          }
         />
       )}
     />
   );
 }
 
+const VISIBILITY_ICON: Record<VenueList['visibility'], IconName> = { private: 'lock', friends: 'users', link: 'world' };
+
 const styles = themed(() => StyleSheet.create({
+  columns: { gap: 12 },
+  linkBox: { fontSize: 13, color: colors.text, padding: 10, borderRadius: 10, backgroundColor: colors.cream, overflow: 'hidden' },
+  secondary: { paddingVertical: 12, borderRadius: 12, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center' },
+  secondaryText: { color: colors.text, fontWeight: '700', fontSize: 15 },
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 8 },
   empty: { textAlign: 'center', color: colors.textMuted, marginTop: 16 },
   header: { gap: 10, marginBottom: 4 },
+  tagRow: { gap: 8, paddingRight: 8 },
   addButton: { paddingVertical: 11, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center' },
   addButtonText: { color: colors.primary, fontWeight: '700', fontSize: 15 },
   inList: { color: colors.success, fontWeight: '700', fontSize: 14 },

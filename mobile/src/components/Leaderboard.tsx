@@ -94,11 +94,21 @@ export function Leaderboard({ token, me, onOpenUser }: Props) {
   const shownGroup = memberOf.find((g) => g.id === groupId) ?? null;
 
   const meShown = board?.rows.some((r) => r.me);
+  // The first three with points stand on the podium; the rest follow as a list
+  const podium = (board?.rows ?? []).filter((r) => r.rank <= 3 && r.points > 0);
+  const [help, setHelp] = useState(false);
 
   return (
     <View style={styles.card}>
-      <Segment options={PERIODS} value={period} onChange={setPeriod} />
-      <Segment options={SCOPES} value={scope} onChange={setScope} />
+      {/* One choice row: who, and the period as a small switch at the end */}
+      <View style={styles.choiceRow}>
+        <View style={styles.flex}>
+          <Segment options={SCOPES} value={scope} onChange={setScope} />
+        </View>
+        <Pressable onPress={() => setPeriod(period === 'week' ? 'all' : 'week')} hitSlop={6} style={styles.period} accessibilityLabel="Dönemi değiştir">
+          <Text style={styles.periodText}>{PERIODS.find((p) => p.id === period)?.label} ▾</Text>
+        </Pressable>
+      </View>
 
       {scope === 'group' && (
         <View style={styles.groups}>
@@ -177,7 +187,8 @@ export function Leaderboard({ token, me, onOpenUser }: Props) {
           {period === 'week' ? 'Bu hafta henüz kimse puan kazanmadı.' : 'Henüz kimse puan kazanmadı.'}
         </Text>
       )}
-      {board?.rows.map((row) => (
+      {podium.length > 0 && <Podium rows={podium} onOpenUser={onOpenUser} />}
+      {board?.rows.filter((row) => !podium.includes(row)).map((row) => (
         <Pressable
           key={`${row.rank}-${row.username}`}
           onPress={() => row.username && onOpenUser(row.username)}
@@ -236,8 +247,45 @@ export function Leaderboard({ token, me, onOpenUser }: Props) {
           <InlineIcon name="trophy" /> Haftanın 1.si: {winners.map((u) => `@${u}`).join(', ')}
         </Text>
       )}
-      <Text style={styles.muted}>Haftanın 1.si rozeti alır · her pazartesi sıfırlanır.</Text>
-      <Text style={styles.muted}>Check-in 10 puan, bir mekanın ilk check-in'i +50 puan.</Text>
+      <Pressable onPress={() => setHelp((h) => !h)} hitSlop={6}>
+        <Text style={styles.muted}>ⓘ Puanlar nasıl kazanılır {help ? '▴' : '▾'}</Text>
+      </Pressable>
+      {help && (
+        <Text style={styles.muted}>
+          Check-in 10 puan, bir mekanın ilk check-in'i +50 puan. Haftanın 1.si rozet alır; sıralama her pazartesi sıfırlanır.
+        </Text>
+      )}
+    </View>
+  );
+}
+
+type Row = NonNullable<Board>['rows'][number];
+
+/** Kürsü: 2nd, 1st, 3rd side by side; the first one highest, each with its medal colour. */
+function Podium({ rows, onOpenUser }: { rows: Row[]; onOpenUser: (username: string) => void }) {
+  const order = [rows.find((r) => r.rank === 2), rows.find((r) => r.rank === 1), rows.find((r) => r.rank === 3)];
+  const heights = [44, 62, 32];
+  const sizes = [44, 54, 40];
+  return (
+    <View style={styles.podium}>
+      {order.map((row, i) =>
+        row ? (
+          <Pressable key={row.rank} style={styles.podiumCol} onPress={() => row.username && onOpenUser(row.username)}>
+            <View style={[styles.podiumRing, { borderColor: MEDALS[row.rank - 1] }]}>
+              <Avatar username={row.username} size={sizes[i]} />
+            </View>
+            <Text style={[styles.podiumName, row.me && styles.podiumMe]} numberOfLines={1}>
+              {row.me ? 'Sen' : row.username ? `@${row.username}` : 'Misafir'}
+            </Text>
+            <Text style={styles.podiumPoints}>{row.points} puan</Text>
+            <View style={[styles.podiumStep, { height: heights[i], backgroundColor: MEDALS[row.rank - 1] }]}>
+              <Text style={styles.podiumRank}>{row.rank}</Text>
+            </View>
+          </Pressable>
+        ) : (
+          <View key={`empty${i}`} style={styles.podiumCol} />
+        ),
+      )}
     </View>
   );
 }
@@ -261,6 +309,17 @@ function Segment<T extends string>({ options, value, onChange }: { options: Choi
 }
 
 const styles = themed(() => StyleSheet.create({
+  choiceRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  period: { paddingVertical: 8, paddingHorizontal: 10, borderRadius: 12, backgroundColor: colors.cream },
+  periodText: { fontSize: 13, fontWeight: '700', color: colors.text },
+  podium: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 8, marginTop: 8 },
+  podiumCol: { flex: 1, alignItems: 'center', gap: 3 },
+  podiumRing: { padding: 2, borderRadius: 40, borderWidth: 2.5 },
+  podiumName: { fontSize: 13, fontWeight: '700', color: colors.text, maxWidth: '100%' },
+  podiumMe: { color: colors.primary },
+  podiumPoints: { fontSize: 12, color: colors.textMuted },
+  podiumStep: { alignSelf: 'stretch', borderTopLeftRadius: 10, borderTopRightRadius: 10, alignItems: 'center', justifyContent: 'center', marginTop: 4, opacity: 0.9 },
+  podiumRank: { fontSize: 18, fontWeight: '800', color: '#fff' },
   card: {
     padding: 16,
     borderRadius: 16,

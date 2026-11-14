@@ -177,7 +177,8 @@ export function MapScreen({
         onPress={onOpenCheckin}
         accessibilityLabel="Check-in yap"
       >
-        <Text style={styles.checkinIcon}>+</Text>
+        <Icon name="map-pin" size={17} color={colors.onPrimary} />
+        <Text style={styles.checkinText}>Check-in</Text>
       </Pressable>
       {locateNote && (
         <Text style={[styles.locateNote, { bottom: (showPopup ? popupHeight : legendHeight) + TAB_BAR_HEIGHT + 28 }]}>{locateNote}</Text>
@@ -388,9 +389,11 @@ const styles = themed(() => StyleSheet.create({
   checkinButton: {
     position: 'absolute',
     right: 14,
-    width: MAP_BUTTON,
-    height: MAP_BUTTON,
-    borderRadius: MAP_BUTTON / 2,
+    height: 44,
+    paddingHorizontal: 14,
+    borderRadius: 22,
+    flexDirection: 'row',
+    gap: 5,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -400,7 +403,7 @@ const styles = themed(() => StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 6,
   },
-  checkinIcon: { fontSize: 32, lineHeight: 34, color: colors.onPrimary, fontWeight: '500' },
+  checkinText: { fontSize: 14, fontWeight: '700', color: colors.onPrimary },
   locateNote: {
     position: 'absolute',
     left: 14 + MAP_BUTTON + 8,

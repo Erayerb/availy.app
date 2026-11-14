@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Image, Modal, PanResponder, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Animated, Image, Modal, PanResponder, Platform, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import * as ScreenCapture from 'expo-screen-capture';
 
 import { useSettings } from '../context/SettingsContext';
 import { usePersistentState } from '../hooks/usePersistentState';
@@ -120,6 +121,67 @@ export function MomentStrip({ venueId, token, onOpenUser, reloadKey }: Props) {
   );
 }
 
+/**
+ * The venue cover's corner: the live photos as a small fanned stack (blurred) with how many there are.
+ * A tap opens the next one not yet seen (each is seen once); one's own always open.
+ */
+export function MomentStack({ venueId, token, onOpenUser, reloadKey }: Props) {
+  const [moments, setMoments] = useState<Moment[]>([]);
+  const [open, setOpen] = useState<Moment | null>(null);
+  const [seen, setSeen] = usePersistentState<number[]>(KEYS.seenMoments, [], parseSeen);
+  const load = useCallback(() => {
+    momentsApi.list(venueId, token).then(setMoments).catch(() => {});
+  }, [venueId, token]);
+  useEffect(load, [load, reloadKey]);
+  useEffect(() => onVenuesChanged(load), [load]);
+
+  if (moments.length === 0) return null;
+  const next = moments.find((m) => !m.mine && !seen.includes(m.id)) ?? moments.find((m) => m.mine) ?? null;
+  const fresh = moments.filter((m) => !m.mine && !seen.includes(m.id)).length;
+  const cards = moments.slice(0, 3).reverse();
+  const tilt = ['9deg', '-7deg', '0deg'].slice(3 - cards.length);
+
+  return (
+    <>
+      <Pressable
+        onPress={() => {
+          if (!next) return;
+          setOpen(next);
+          if (!next.mine) setSeen((list) => (list.includes(next.id) ? list : [...list, next.id]));
+        }}
+        disabled={!next}
+        style={styles.stack}
+        accessibilityLabel={next ? `${moments.length} canlı fotoğraf, aç` : 'Fotoğrafların hepsini gördün'}
+      >
+        {cards.map((m, i) => (
+          <View key={m.id} style={[styles.stackCard, { transform: [{ rotate: tilt[i] }] }]}>
+            <Image source={momentImage(m.id, token)} style={styles.stackImage} resizeMode="cover" blurRadius={14} />
+          </View>
+        ))}
+        <View style={styles.stackBadge} pointerEvents="none">
+          <Icon name={next ? 'camera' : 'eye'} size={12} color="#fff" />
+          <Text style={styles.stackBadgeText}>{next ? fresh || moments.length : 'Görüldü'}</Text>
+        </View>
+      </Pressable>
+      {open && (
+        <Viewer
+          moment={open}
+          token={token}
+          onClose={() => setOpen(null)}
+          onChanged={() => {
+            setOpen(null);
+            load();
+          }}
+          onOpenUser={(u) => {
+            setOpen(null);
+            onOpenUser(u);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
 /** Full screen; a tap or a drag down closes it. The author deletes, others report. */
 function Viewer({
   moment,
@@ -141,6 +203,15 @@ function Viewer({
   const now = new Date();
   // How much of its 24 hours is left: the thin bar at the top
   const left = Math.max(0, (new Date(moment.expires_at).getTime() - now.getTime()) / (24 * 3_600_000));
+
+  // While a photo is open: no screenshots or screen recordings (Android; iOS 13+). A browser cannot stop them.
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    ScreenCapture.preventScreenCaptureAsync('moment').catch(() => {});
+    return () => {
+      ScreenCapture.allowScreenCaptureAsync('moment').catch(() => {});
+    };
+  }, []);
 
   const drag = useRef(new Animated.Value(0)).current;
   const pan = useRef(
@@ -247,6 +318,11 @@ function Viewer({
 }
 
 const styles = themed(() => StyleSheet.create({
+  stack: { width: 64, height: 84 },
+  stackCard: { position: 'absolute', top: 0, left: 0, width: 64, height: 84, borderRadius: 10, borderWidth: 2, borderColor: '#fff', overflow: 'hidden', backgroundColor: '#444' },
+  stackImage: { width: '100%', height: '100%' },
+  stackBadge: { position: 'absolute', left: 6, right: 6, bottom: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, paddingVertical: 2, borderRadius: 9, backgroundColor: 'rgba(0,0,0,0.55)' },
+  stackBadgeText: { fontSize: 11, fontWeight: '800', color: '#fff' },
   section: { gap: 8, marginTop: 4 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   live: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },

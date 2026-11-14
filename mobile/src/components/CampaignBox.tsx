@@ -7,7 +7,8 @@ import { useCampaigns } from '../context/CampaignsContext';
 import { timeLeft, type Campaign } from '../lib/campaigns';
 import { remainingCoupons } from '../lib/coupons';
 import { colors, themed } from '../theme';
-import { InlineIcon } from './Icon';
+import { GradientFill } from './GradientFill';
+import { Icon, InlineIcon } from './Icon';
 
 /** Campaign line with "Kuponu al"; after claiming, the code to show at the counter. */
 export function CampaignBox({ campaign }: { campaign: Campaign }) {
@@ -19,17 +20,24 @@ export function CampaignBox({ campaign }: { campaign: Campaign }) {
 
   return (
     <View style={styles.box}>
-      <Text style={styles.message}><InlineIcon name="tag" /> {campaign.message}</Text>
-      <Text style={styles.time}>
-        {timeLeft(campaign, now)}
-        {remaining !== null ? ` · ${remaining} kupon kaldı` : ''}
-      </Text>
+      <View style={styles.head}>
+        <View style={styles.iconBox}>
+          <GradientFill colors={['#7A2E1F', '#D9480F']} />
+          <Icon name="tag" size={18} color="#fff" />
+        </View>
+        <View style={styles.flex}>
+          <Text style={styles.message}>{campaign.message}</Text>
+          <View style={styles.pills}>
+            <Text style={styles.pill}><InlineIcon name="clock" /> {timeLeft(campaign, now)}</Text>
+          </View>
+        </View>
+      </View>
       {coupon ? (
         <View style={styles.code}>
+          <Text style={[styles.codeText, coupon.redeemedAt && styles.used]}>{coupon.code}</Text>
           <Text style={styles.codeLabel}>
             {coupon.redeemedAt ? 'Kupon kullanıldı' : "Kasada göster · QR'ı Kampanyalar → Kuponlarım'da"}
           </Text>
-          <Text style={[styles.codeText, coupon.redeemedAt && styles.used]}>{coupon.code}</Text>
         </View>
       ) : remaining === 0 ? (
         <Text style={styles.full}>Kuponlar tükendi</Text>
@@ -54,28 +62,20 @@ export function CampaignBox({ campaign }: { campaign: Campaign }) {
 }
 
 const styles = themed(() => StyleSheet.create({
-  box: { padding: 8, borderRadius: 10, backgroundColor: colors.cream, gap: 4 },
-  message: { fontSize: 13, color: colors.primary, fontWeight: '600' },
-  time: { fontSize: 12, color: colors.textMuted },
-  button: {
-    marginTop: 2,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-  },
-  buttonText: { color: colors.onPrimary, fontWeight: '700', fontSize: 13 },
+  box: { padding: 12, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 10 },
+  head: { flexDirection: 'row', gap: 12, alignItems: 'center' },
+  iconBox: { width: 40, height: 40, borderRadius: 11, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  flex: { flex: 1, gap: 5 },
+  message: { fontSize: 15, fontWeight: '700', color: colors.text },
+  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  pill: { fontSize: 12, fontWeight: '600', color: colors.text, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, overflow: 'hidden', backgroundColor: colors.cream },
+  button: { paddingVertical: 10, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center' },
   pressed: { opacity: 0.8 },
-  full: { fontSize: 12, color: colors.danger, fontWeight: '600' },
-  checkin: { fontSize: 13, color: colors.primary, fontWeight: '700', textAlign: 'center', paddingVertical: 4 },
-  code: {
-    marginTop: 2,
-    alignItems: 'center',
-    paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: colors.surface,
-  },
-  codeLabel: { fontSize: 11, color: colors.textMuted },
-  codeText: { fontSize: 18, fontWeight: '800', letterSpacing: 2, color: colors.text },
+  buttonText: { color: colors.onPrimary, fontWeight: '700', fontSize: 15 },
+  code: { alignItems: 'center', gap: 4, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.primary },
+  codeText: { fontSize: 20, fontWeight: '800', letterSpacing: 2, color: colors.text },
   used: { textDecorationLine: 'line-through', color: colors.textMuted },
+  codeLabel: { fontSize: 12, color: colors.textMuted, textAlign: 'center' },
+  full: { fontSize: 13, color: colors.danger, fontWeight: '600' },
+  checkin: { fontSize: 14, fontWeight: '700', color: colors.primary },
 }));

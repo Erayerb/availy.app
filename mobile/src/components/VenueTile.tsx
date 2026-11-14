@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text } from './Text';
 import { Pressable } from './Pressable';
@@ -9,7 +9,9 @@ import { colors, themed } from '../theme';
 import { FavoriteButton } from './FavoriteButton';
 import { StatusPill } from './StatusPill';
 import { categoryLabel } from '../lib/filters';
+import { sponsorsApi } from '../lib/sponsors';
 import { VenuePhoto } from './VenuePhoto';
+import { GradientFill } from './GradientFill';
 import { Icon, InlineIcon } from './Icon';
 
 type Props = {
@@ -23,19 +25,37 @@ type Props = {
 export const TILE_RATIO = 0.78;
 
 function Tile({ venue, size, distance, onPress }: Props) {
+  // Sponsored cards count their views and taps for the business's numbers
+  useEffect(() => {
+    if (venue.sponsored) sponsorsApi.view(venue.id);
+  }, [venue.sponsored, venue.id]);
+  const press = () => {
+    if (venue.sponsored) sponsorsApi.tap(venue.id);
+    onPress();
+  };
   const campaign = useCampaigns().activeFor(venue.id);
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [{ width: size }, pressed && styles.pressed]}>
+    <Pressable onPress={press} style={({ pressed }) => [{ width: size }, pressed && styles.pressed]}>
       <View>
-        <VenuePhoto venueId={venue.id} category={venue.category} photoAt={venue.photo_at} size={size} height={Math.round(size * TILE_RATIO)} />
+        <VenuePhoto venueId={venue.id} category={venue.category} photoAt={venue.photo_at} size={size} height={Math.round(size * TILE_RATIO)} noScrim />
         {!venue.open_now && <View style={[styles.closedShade, { borderRadius: 16 }]} />}
+        {/* A soft fade so the name on the card reads on any photo or colour */}
+        <View style={[StyleSheet.absoluteFill, styles.fade]} pointerEvents="none">
+          <GradientFill colors={['#000', '#000']} scrim />
+        </View>
         <View style={styles.status}>
           <StatusPill venue={venue} onPhoto maxWidth={size - 52} />
         </View>
-        {campaign && venue.open_now && (
-          <Text style={[styles.campaign, !!venue.moments && styles.campaignRaised]}><InlineIcon name="tag" /> {campaign.discount !== null ? `%${campaign.discount}` : 'Kampanya'}</Text>
-        )}
+        {/* The name on the card, like the venue page's cover */}
+        <View style={[styles.onCard, { maxWidth: size - 52 }]} pointerEvents="none">
+          {campaign && venue.open_now && (
+            <Text style={styles.campaign}><InlineIcon name="tag" /> {campaign.discount !== null ? `%${campaign.discount}` : 'Kampanya'}</Text>
+          )}
+          <Text style={styles.name} numberOfLines={2}>
+            {venue.name}
+          </Text>
+        </View>
         {!!venue.moments && (
           <View style={styles.moments}>
             <Icon name="camera" size={12} color="#fff" />
@@ -46,10 +66,8 @@ function Tile({ venue, size, distance, onPress }: Props) {
           <FavoriteButton venueId={venue.id} size={16} floating />
         </View>
       </View>
-      <Text style={styles.name} numberOfLines={2}>
-        {venue.name}
-      </Text>
       <Text style={styles.distance} numberOfLines={1}>
+        {venue.sponsored && <Text style={styles.sponsored}>Sponsorlu · </Text>}
         {categoryLabel(venue.category)}
         {distance ? ` · ${distance}` : ''}
       </Text>
@@ -65,34 +83,35 @@ const styles = themed(() => StyleSheet.create({
   closedShade: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: colors.closedShade },
   status: { position: 'absolute', top: 8, left: 8 },
   // Live photos: bottom left (the type's icon is bottom right); a campaign tag then sits above it
+  // Live photos: top right, next to the heart (the name sits at the bottom)
   moments: {
     position: 'absolute',
-    bottom: 8,
-    left: 8,
+    top: 8,
+    right: 40,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 7,
-    paddingVertical: 4,
-    borderRadius: 11,
-    backgroundColor: colors.primary,
-  },
-  momentsText: { fontSize: 11.5, fontWeight: '800', color: '#fff' },
-  campaignRaised: { bottom: 36 },
-  campaign: {
-    position: 'absolute',
-    bottom: 8,
-    left: 8,
-    paddingHorizontal: 8,
+    gap: 3,
+    paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 10,
+    backgroundColor: colors.primary,
+  },
+  momentsText: { fontSize: 11, fontWeight: '800', color: '#fff' },
+  fade: { borderRadius: 16, overflow: 'hidden' },
+  onCard: { position: 'absolute', left: 10, bottom: 9, gap: 4 },
+  campaign: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 9,
     overflow: 'hidden',
     backgroundColor: colors.primary,
     color: colors.onPrimary,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
   favorite: { position: 'absolute', top: 6, right: 6 },
-  distance: { marginTop: 2, fontSize: 12, color: colors.textMuted },
-  name: { marginTop: 6, fontSize: 14, fontWeight: '600', color: colors.text },
+  distance: { marginTop: 6, fontSize: 12, color: colors.textMuted },
+  sponsored: { color: colors.gold, fontWeight: '700' },
+  name: { fontSize: 15, fontWeight: '800', color: '#fff', lineHeight: 18 },
 }));

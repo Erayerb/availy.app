@@ -22,7 +22,7 @@ import { FriendsHere } from './FriendsHere';
 import { VenuePhoto } from './VenuePhoto';
 import { WatchButton } from './WatchButton';
 
-export const CARD_WIDTH = 260;
+export const CARD_WIDTH = 320;
 
 type Props = {
   venue: Venue;
@@ -47,37 +47,30 @@ export function VenueCard({ venue, friendsToken = null, onClose, onDetails, onSh
 
   return (
     <View style={styles.card} onLayout={onLayout}>
-      {/* Close sits in the corner; the name gets the whole width (long names wrap by words, not letters) */}
-      <Pressable onPress={onClose} hitSlop={12} style={styles.closeButton} accessibilityLabel="Kapat">
-        <Icon name="x" size={20} color={colors.textMuted} />
-      </Pressable>
+      {/* Photo and name side by side (the name centred on the photo); watch, share, favourite and close on the right */}
       <View style={styles.header}>
-        <VenuePhoto venueId={venue.id} category={venue.category} photoAt={venue.photo_at} size={52} height={52} radius={13} centered />
-        <View style={styles.titleBox}>
-          <Text style={styles.title} numberOfLines={2}>
-            {venue.name}
-            {venue.verified && <Text style={styles.verified}> <InlineIcon name="circle-check" color={colors.primary} /></Text>}
-          </Text>
-          <Text style={styles.category} numberOfLines={1}>
-            {categoryLabel(venue.category)}
-            {point ? ` · ${formatDistance(distanceKm(point, venue))}` : ''}
-          </Text>
-        </View>
-      </View>
-      <View style={styles.actionRow}>
-        {venue.moments ? (
-          <Text style={[styles.momentsText, styles.flex]} numberOfLines={1}>
-            <InlineIcon name="camera" color={colors.primary} /> {venue.moments} canlı fotoğraf
-          </Text>
-        ) : (
-          <View style={styles.flex} />
-        )}
+        <Pressable onPress={onDetails} style={({ pressed }) => [styles.headerMain, pressed && styles.pressed]} accessibilityRole="link">
+          <VenuePhoto venueId={venue.id} category={venue.category} photoAt={venue.photo_at} size={56} height={56} radius={14} centered />
+          <View style={styles.titleBox}>
+            <Text style={styles.title} numberOfLines={2}>
+              {venue.name}
+              {venue.verified && <Text style={styles.verified}> <InlineIcon name="circle-check" color={colors.primary} /></Text>}
+            </Text>
+            <Text style={styles.category} numberOfLines={1}>
+              {categoryLabel(venue.category)}
+              {point ? ` · ${formatDistance(distanceKm(point, venue))}` : ''}
+            </Text>
+          </View>
+        </Pressable>
         <View style={styles.actions}>
-          <WatchButton venue={venue} />
-          <Pressable onPress={async () => setNote(await shareVenue(venue))} hitSlop={10} accessibilityLabel="Paylaş">
-            <Icon name="share-3" size={20} color={colors.text} />
+          <WatchButton venue={venue} size={18} />
+          <Pressable onPress={async () => setNote(await shareVenue(venue))} hitSlop={8} accessibilityLabel="Paylaş">
+            <Icon name="share-3" size={18} color={colors.text} />
           </Pressable>
-          <FavoriteButton venueId={venue.id} />
+          <FavoriteButton venueId={venue.id} size={18} />
+          <Pressable onPress={onClose} hitSlop={10} accessibilityLabel="Kapat">
+            <Icon name="x" size={18} color={colors.textMuted} />
+          </Pressable>
         </View>
       </View>
       {venue.founder && (
@@ -88,12 +81,19 @@ export function VenueCard({ venue, friendsToken = null, onClose, onDetails, onSh
       )}
       <FriendsHere venueId={venue.id} token={friendsToken} />
 
+      {/* The crowd now, with the live photos at the end of the line */}
       <View style={styles.row}>
         <CrowdDot venue={venue} />
-        <Text style={styles.level}>{label}</Text>
-        <Text style={styles.ratio}>
+        <Text style={styles.level} numberOfLines={1}>{label}</Text>
+        <Text style={[styles.ratio, styles.flex]} numberOfLines={1}>
           {venue.open_now ? (crowdRatioText(venue.crowd) ?? '') : `${venue.opens_at}'de açılır`}
         </Text>
+        {venue.moments ? (
+          <Pressable onPress={onDetails} hitSlop={8} style={styles.moments} accessibilityLabel={`${venue.moments} canlı fotoğraf`}>
+            <Icon name="camera" size={13} color={colors.onPrimary} />
+            <Text style={styles.momentsText}>{venue.moments}</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       {venue.open_now && <Text style={styles.secondary}>{crowdSummary(venue.crowd, new Date())}</Text>}
@@ -143,14 +143,17 @@ const styles = themed(() => StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 8,
   },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  titleBox: { flex: 1, minWidth: 0, gap: 2, paddingRight: 28 },
+  header: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  headerMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 0 },
+  titleBox: { flex: 1, minWidth: 0, gap: 2 },
   closeButton: { position: 'absolute', top: 14, right: 14, zIndex: 2 },
-  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 2 },
+  moments: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: colors.primary },
+  chevron: { fontSize: 22, color: colors.placeholder },
   flex: { flex: 1 },
-  momentsText: { color: colors.primary, fontWeight: '700' },
+  momentsText: { color: colors.onPrimary, fontWeight: '800', fontSize: 12 },
   title: { fontSize: 17, fontWeight: '700', color: colors.text },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingTop: 2 },
   close: { fontSize: 16, color: colors.textMuted },
   category: { fontSize: 13, color: colors.textMuted },
   row: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
