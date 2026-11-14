@@ -18,14 +18,12 @@ import { useCampaigns } from '../context/CampaignsContext';
 import { useLocation } from '../context/LocationContext';
 import { quieterAlternatives, shouldSuggestAlternatives } from '../lib/alternatives';
 import { campaignsNear } from '../lib/campaigns';
-import { containsBounds, formatBBox, regionToBounds, type Region } from '../lib/bbox';
+import { formatBBox, needsRequery, regionToBounds, type Region } from '../lib/bbox';
 import { cardPosition, type Point } from '../lib/cardPosition';
 import { trending } from '../lib/sort';
 import { toggleTag, type Tag } from '../lib/filters';
 import { LEVELS } from '../lib/occupancy';
-import { CrowdDot } from '../components/CrowdDot';
 import { LevelDot } from '../components/LevelDot';
-import { UNEXPLORED } from '../lib/crowd';
 import { useSettings } from '../context/SettingsContext';
 import type { Venue } from '../lib/api';
 import { colors, themed } from '../theme';
@@ -130,7 +128,7 @@ export function MapScreen({
 
   const handleRegionChangeComplete = (region: Region) => {
     onRegionSaved(region);
-    if (!containsBounds(queryBounds, regionToBounds(region))) {
+    if (needsRequery(queryBounds, regionToBounds(region), QUERY_PADDING)) {
       setQueryBounds(regionToBounds(region, QUERY_PADDING));
     }
   };
@@ -241,28 +239,23 @@ export function MapScreen({
           {onlyVisited && visitedIds.size === 0 && (
             <Text style={styles.status}>Henüz check-in yapmadın. Check-in yaptığın mekanlar burada görünür.</Text>
           )}
-          {LEVELS.map((level) => (
-            <View key={level} style={styles.legendItem}>
-              <LevelDot level={level} />
-              <Text style={styles.legendText}>{look(level).label}</Text>
+          {/* One thin line: the colours, then the time of the last update */}
+          <View style={styles.legendLine}>
+            {LEVELS.map((level) => (
+              <View key={level} style={styles.legendItem}>
+                <LevelDot level={level} size={8} />
+                <Text style={styles.legendText}>{look(level).label}</Text>
+              </View>
+            ))}
+            <View style={styles.legendItem}>
+              <Text style={styles.legendSpark}>✨</Text>
+              <Text style={styles.legendText}>Keşfet</Text>
             </View>
-          ))}
-          <View style={styles.legendItem}>
-            <LevelDot level="low" open={false} />
-            <Text style={styles.legendText}>Kapalı</Text>
+            <Text style={error ? styles.error : styles.legendTime} numberOfLines={1}>
+              {error ??
+                (lastUpdated ? lastUpdated.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '…')}
+            </Text>
           </View>
-          {/* Never checked in: on its own line under the others */}
-          <View style={styles.legendBreak} />
-          <View style={styles.legendItem}>
-            <CrowdDot venue={{ open_now: true, crowd: UNEXPLORED }} />
-            <Text style={styles.legendText}>Keşfedilmedi</Text>
-          </View>
-          <Text style={error ? styles.error : styles.status}>
-            {error ??
-              (lastUpdated
-                ? lastUpdated.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
-                : '…')}
-          </Text>
         </View>
       )}
 
@@ -371,12 +364,12 @@ const styles = themed(() => StyleSheet.create({
     rowGap: 6,
     alignItems: 'center',
     gap: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 18,
     backgroundColor: colors.surface,
   },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   locate: {
     position: 'absolute',
     left: 14,
@@ -420,7 +413,10 @@ const styles = themed(() => StyleSheet.create({
     color: colors.text,
   },
   legendBreak: { width: '100%', height: 0 },
-  legendText: { fontSize: 12, color: colors.text },
+  legendTime: { fontSize: 10.5, color: colors.textMuted },
+  legendLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%' },
+  legendSpark: { fontSize: 9 },
+  legendText: { fontSize: 11, color: colors.text },
   dot: { width: 10, height: 10, borderRadius: 5 },
   status: { fontSize: 11, color: colors.textMuted },
   error: { fontSize: 11, color: colors.danger, maxWidth: 140 },

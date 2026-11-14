@@ -1,3 +1,4 @@
+import { RowsSkeleton } from './Skeleton';
 import { useEffect, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { Text, TextInput } from './Text';
@@ -50,7 +51,7 @@ export function AddToList({ token, venueId, venueName, visible, onClose }: Props
           {venueName}
         </Text>
         <ScrollView style={styles.lists} contentContainerStyle={styles.listsContent}>
-          {lists === null && <Text style={styles.muted}>Yükleniyor…</Text>}
+          {lists === null && <RowsSkeleton count={3} />}
           {lists?.length === 0 && <Text style={styles.muted}>Henüz listen yok; aşağıdan ilkini oluştur.</Text>}
           {lists?.map((l) => {
             const on = l.venue_ids.includes(venueId);

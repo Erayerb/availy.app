@@ -1,3 +1,5 @@
+import { EmptyState } from '../components/EmptyState';
+import { Skeleton } from '../components/Skeleton';
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { TAB_BAR_SPACE } from '../components/TabBar';
@@ -29,9 +31,10 @@ type Props = {
   // The tab shown, kept by the app: "back" from a list returns to Listelerim
   tab: FavoritesTab;
   onTabChange: (tab: FavoritesTab) => void;
+  onExplore?: () => void; // empty lists: "Mekanları keşfet" opens the map
 };
 
-export function FavoritesScreen({ onOpenVenue, visits, signedIn, token, onLogin, onRegister, onOpenList, tab, onTabChange: setTab }: Props) {
+export function FavoritesScreen({ onOpenVenue, visits, signedIn, token, onLogin, onRegister, onOpenList, tab, onTabChange: setTab, onExplore }: Props) {
   // Listelerim (on the server)
   const [lists, setLists] = useState<VenueList[] | null>(null);
   const [newName, setNewName] = useState('');
@@ -138,12 +141,18 @@ export function FavoritesScreen({ onOpenVenue, visits, signedIn, token, onLogin,
           </Pressable>
         </View>
         {listError && <Text style={styles.error}>{listError}</Text>}
-        {lists === null && <Text style={styles.muted}>Yükleniyor…</Text>}
+        {lists === null && (
+          <View style={styles.skeletons}>
+            <Skeleton height={64} radius={14} />
+            <Skeleton height={64} radius={14} />
+          </View>
+        )}
         {lists?.length === 0 && (
-          <Text style={styles.muted}>
-            Mekanları listelere ayır, arkadaşlarınla ya da bağlantıyla paylaş. İstediğin kadar liste oluşturabilirsin;
-            mekanları listenin içinden ya da mekan sayfasındaki liste simgesinden eklersin.
-          </Text>
+          <EmptyState
+            icon="list"
+            title="İlk listeni oluştur"
+            text="Mekanları listelere ayır; arkadaşlarınla ya da bağlantıyla paylaş. Yukarıya bir ad yaz."
+          />
         )}
         {lists && lists.length > 0 && <Text style={styles.label}>Listelerin · {lists.length}</Text>}
         {lists?.map((l) => (
@@ -164,15 +173,29 @@ export function FavoritesScreen({ onOpenVenue, visits, signedIn, token, onLogin,
   }
 
   const empty =
-    tab === 'saved'
-      ? 'Henüz kaydettiğin mekan yok.\nMekanlardaki ♡ ile kaydedebilirsin.'
-      : "Henüz check-in yapmadın.\nCheck-in yaptığın mekanlar burada görünür.";
+    tab === 'saved' ? (
+      <EmptyState
+        icon="heart"
+        title="İlk mekanını kaydet"
+        text="Beğendiğin mekanlardaki kalbe dokun; hepsi burada toplanır."
+        action={onExplore && { label: 'Mekanları keşfet', onPress: onExplore }}
+      />
+    ) : (
+      <EmptyState
+        icon="map-pin"
+        title="İlk check-in'ini yap"
+        text="Gittiğin mekanlarda check-in yap; ziyaret ettiğin yerler burada birikir."
+        action={onExplore && { label: 'Haritayı aç', onPress: onExplore }}
+      />
+    );
 
   return (
     <VenueGrid
       venues={visible}
       header={header}
-      emptyText={loading ? 'Yükleniyor…' : empty}
+      emptyText=""
+      empty={empty}
+      loading={loading}
       error={error}
       onOpenVenue={onOpenVenue}
       refreshing={refreshing}
@@ -182,6 +205,7 @@ export function FavoritesScreen({ onOpenVenue, visits, signedIn, token, onLogin,
 }
 
 const styles = themed(() => StyleSheet.create({
+  skeletons: { gap: 10 },
   header: { gap: 12, marginBottom: 6 },
   signedOut: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 16, paddingTop: 60, gap: 14 },
   text: { fontSize: 15, color: colors.text, lineHeight: 21 },

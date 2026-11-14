@@ -19,6 +19,7 @@ import { FavoriteButton } from './FavoriteButton';
 import { Icon, InlineIcon } from './Icon';
 import { CrowdDot } from './CrowdDot';
 import { FriendsHere } from './FriendsHere';
+import { VenuePhoto } from './VenuePhoto';
 import { WatchButton } from './WatchButton';
 
 export const CARD_WIDTH = 260;
@@ -46,20 +47,37 @@ export function VenueCard({ venue, friendsToken = null, onClose, onDetails, onSh
 
   return (
     <View style={styles.card} onLayout={onLayout}>
+      {/* Close sits in the corner; the name gets the whole width (long names wrap by words, not letters) */}
+      <Pressable onPress={onClose} hitSlop={12} style={styles.closeButton} accessibilityLabel="Kapat">
+        <Icon name="x" size={20} color={colors.textMuted} />
+      </Pressable>
       <View style={styles.header}>
-        <Text style={styles.title}>
-          {venue.name}
-          {venue.verified && <Text style={styles.verified}> ✓</Text>}
-        </Text>
+        <VenuePhoto venueId={venue.id} category={venue.category} photoAt={venue.photo_at} size={52} height={52} radius={13} centered />
+        <View style={styles.titleBox}>
+          <Text style={styles.title} numberOfLines={2}>
+            {venue.name}
+            {venue.verified && <Text style={styles.verified}> <InlineIcon name="circle-check" color={colors.primary} /></Text>}
+          </Text>
+          <Text style={styles.category} numberOfLines={1}>
+            {categoryLabel(venue.category)}
+            {point ? ` · ${formatDistance(distanceKm(point, venue))}` : ''}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.actionRow}>
+        {venue.moments ? (
+          <Text style={[styles.momentsText, styles.flex]} numberOfLines={1}>
+            <InlineIcon name="camera" color={colors.primary} /> {venue.moments} canlı fotoğraf
+          </Text>
+        ) : (
+          <View style={styles.flex} />
+        )}
         <View style={styles.actions}>
           <WatchButton venue={venue} />
           <Pressable onPress={async () => setNote(await shareVenue(venue))} hitSlop={10} accessibilityLabel="Paylaş">
             <Icon name="share-3" size={20} color={colors.text} />
           </Pressable>
           <FavoriteButton venueId={venue.id} />
-          <Pressable onPress={onClose} hitSlop={12}>
-            <Text style={styles.close}>✕</Text>
-          </Pressable>
         </View>
       </View>
       {venue.founder && (
@@ -68,7 +86,6 @@ export function VenueCard({ venue, friendsToken = null, onClose, onDetails, onSh
           <Text style={styles.founder}>Kurucu mekan</Text>
         </View>
       )}
-      <Text style={styles.category}>{categoryLabel(venue.category)}</Text>
       <FriendsHere venueId={venue.id} token={friendsToken} />
 
       <View style={styles.row}>
@@ -126,9 +143,14 @@ const styles = themed(() => StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 8,
   },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
-  title: { fontSize: 16, fontWeight: '600', flexShrink: 1, color: colors.text },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  titleBox: { flex: 1, minWidth: 0, gap: 2, paddingRight: 28 },
+  closeButton: { position: 'absolute', top: 14, right: 14, zIndex: 2 },
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  flex: { flex: 1 },
+  momentsText: { color: colors.primary, fontWeight: '700' },
+  title: { fontSize: 17, fontWeight: '700', color: colors.text },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   close: { fontSize: 16, color: colors.textMuted },
   category: { fontSize: 13, color: colors.textMuted },
   row: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },

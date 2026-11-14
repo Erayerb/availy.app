@@ -111,7 +111,7 @@ def hash_token(token: str) -> str:
 
 USER_COLUMNS = (
     "id, email, username, name, role, venue_id, plan, trust, is_guest, created_at, "
-    "share_checkins, show_in_leaderboard, searchable, frozen, email_verified, suggest_by_venues, regular_public, stats_visibility, is_admin"
+    "share_checkins, show_in_leaderboard, searchable, frozen, email_verified, suggest_by_venues, regular_public, stats_visibility, is_admin, moment_audience"
 )
 USERNAME_TAKEN = "Bu kullanıcı adı alınmış, başka bir tane dene."
 

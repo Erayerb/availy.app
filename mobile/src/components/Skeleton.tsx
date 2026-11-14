@@ -62,3 +62,26 @@ export function PageSkeleton() {
     </View>
   );
 }
+
+/** Placeholder rows for a list (venues, people, ranking): a thumbnail and two lines, `count` times. */
+export function RowsSkeleton({ count = 4, round = false }: { count?: number; round?: boolean }) {
+  return (
+    <View style={rowStyles.list}>
+      {Array.from({ length: count }, (_, i) => (
+        <View key={i} style={rowStyles.row}>
+          <Skeleton width={44} height={44} radius={round ? 22 : 12} />
+          <View style={rowStyles.lines}>
+            <Skeleton width="55%" height={14} />
+            <Skeleton width="35%" height={11} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const rowStyles = StyleSheet.create({
+  list: { gap: 14, paddingVertical: 6 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  lines: { flex: 1, gap: 7 },
+});

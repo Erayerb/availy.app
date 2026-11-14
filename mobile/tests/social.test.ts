@@ -33,3 +33,11 @@ test('notification texts', () => {
   assert.ok(!notificationText(n('reward', '')).startsWith('🎁'));
   assert.ok(phoneNotificationText(n('reward', '')).startsWith('🎁 '));
 });
+
+test('a moment photo shows the time left before it disappears', async () => {
+  const { timeLeft } = await import('../src/lib/moments.ts');
+  const now = new Date('2026-11-14T12:00:00Z');
+  assert.equal(timeLeft('2026-11-15T11:00:00Z', now), '23 sa');
+  assert.equal(timeLeft('2026-11-14T12:40:00Z', now), '40 dk');
+  assert.equal(timeLeft('2026-11-14T11:00:00Z', now), '0 dk');
+});

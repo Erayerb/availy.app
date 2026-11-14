@@ -13,6 +13,7 @@ type Props = { venueId: number; token: string | null; onLogin: () => void };
 export function BusinessRequest({ venueId, token, onLogin }: Props) {
   const [status, setStatus] = useState<Status | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     venueApi.businessRequest(venueId, token ?? undefined).then(setStatus).catch(() => setStatus(null));
@@ -29,33 +30,43 @@ export function BusinessRequest({ venueId, token, onLogin }: Props) {
     }
   };
 
+  // A small line under the venue's name; a tap opens the explanation and the button
+  if (status.mine) {
+    return <Text style={styles.done}>✓ İşletmeye haber verdin · {status.count} kişi istedi</Text>;
+  }
   return (
-    <View style={styles.card}>
-      <Text style={styles.title}><InlineIcon name="building-store" /> İşletmesi henüz availo'ya katılmadı</Text>
-      <Text style={styles.muted}>
-        Doluluğunu yine görür, check-in yapabilirsin. İşletme katılınca kampanyalarını ve sadakat programını da burada
-        görürsün. Yeterince kişi isteyince işletmeye haber veririz; kimin istediğini söylemeyiz.
-      </Text>
-      {status.mine ? (
-        <Text style={styles.done}>✓ Haber verdin · {status.count} kişi istedi</Text>
-      ) : (
-        <Pressable style={styles.button} onPress={ask}>
-          <Text style={styles.buttonText}>
-            İşletmeye haber ver{status.count > 0 ? ` · ${status.count} kişi istedi` : ''}
+    <View style={styles.box}>
+      <Pressable onPress={() => setOpen((o) => !o)} hitSlop={8} accessibilityRole="button" accessibilityState={{ expanded: open }}>
+        <Text style={styles.line}>
+          <InlineIcon name="building-store" /> İşletme availo'ya katılmadı · <Text style={styles.link}>Haber ver {open ? '▴' : '›'}</Text>
+        </Text>
+      </Pressable>
+      {open && (
+        <View style={styles.card}>
+          <Text style={styles.muted}>
+            İşletme katılınca kampanyalarını ve sadakat programını burada görürsün. Yeterince kişi isteyince işletmeye haber
+            veririz; kimin istediğini söylemeyiz.
           </Text>
-        </Pressable>
+          <Pressable style={styles.button} onPress={ask}>
+            <Text style={styles.buttonText}>
+              Haber ver{status.count > 0 ? ` · ${status.count} kişi istedi` : ''}
+            </Text>
+          </Pressable>
+          {error && <Text style={styles.error}>{error}</Text>}
+        </View>
       )}
-      {error && <Text style={styles.error}>{error}</Text>}
     </View>
   );
 }
 
 const styles = themed(() => StyleSheet.create({
-  card: { padding: 14, borderRadius: 14, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 8 },
-  title: { fontSize: 15, fontWeight: '700', color: colors.text },
+  box: { gap: 8, marginTop: 4 },
+  line: { fontSize: 13, color: colors.textMuted },
+  link: { color: colors.primary, fontWeight: '700' },
+  card: { padding: 12, borderRadius: 14, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 8 },
   muted: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
-  done: { fontSize: 14, color: colors.success, fontWeight: '700' },
-  button: { paddingVertical: 11, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center' },
+  done: { fontSize: 13, color: colors.success, fontWeight: '700', marginTop: 4 },
+  button: { paddingVertical: 10, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center' },
   buttonText: { color: colors.primary, fontWeight: '700' },
   error: { fontSize: 13, color: colors.danger },
 }));

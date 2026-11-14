@@ -1,3 +1,4 @@
+import { InlineStars } from './Stars';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text, TextInput } from './Text';
@@ -63,7 +64,7 @@ export function ReviewsSection({ venueId, user, reviews, onChange, reload, onReg
         {reviews.count > 0 && (
           <>
             {' · '}
-            <Text style={styles.stars}>{stars(Math.round(reviews.average ?? 0))}</Text> {reviews.average} ({reviews.count})
+            <InlineStars rating={Math.round(reviews.average ?? 0)} /> {reviews.average} ({reviews.count})
           </>
         )}
       </Text>
@@ -170,7 +171,7 @@ function ReviewItem({
   return (
     <View style={styles.review}>
       <Text style={styles.text}>
-        <Text style={styles.stars}>{stars(review.rating)}</Text> ·{' '}
+        <InlineStars rating={review.rating} /> ·{' '}
         <Text style={styles.bold} onPress={() => review.username && token && onOpenUser(review.username)}>
           {author(review.username)}
         </Text>

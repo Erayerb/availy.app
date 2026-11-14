@@ -98,6 +98,8 @@ export async function send<T>(method: string, path: string, body?: unknown, toke
   return data as T;
 }
 
+export type SocialProvider = 'google' | 'apple';
+
 export const accountApi = {
   // invitedBy: the user name in an invite link; the two become friends and the inviter earns points
   register: (username: string, email: string, password: string, role: Role, invitedBy: string | null = null) =>
@@ -105,6 +107,10 @@ export const accountApi = {
   // `login` is the e-mail or the user name
   login: (login: string, password: string, role: Role) => send<Session>('POST', '/v1/auth/login', { login, password, role }),
   guest: () => send<Session>('POST', '/v1/auth/guest'),
+  // "Google / Apple ile devam et": which ones the server has set up, and signing in with the provider's token
+  providers: () => send<{ providers: SocialProvider[] }>('GET', '/v1/auth/providers'),
+  oauth: (provider: SocialProvider, idToken: string, name = '', invitedBy: string | null = null) =>
+    send<Session & { created: boolean }>('POST', '/v1/auth/oauth', { provider, id_token: idToken, name, invited_by: invitedBy }),
   // A guest signs up; same id, the current token stays valid
   upgrade: (token: string, username: string, email: string, password: string, role: Role, invitedBy: string | null = null) =>
     send<ServerUser>('POST', '/v1/auth/upgrade', { username, email, password, role, invited_by: invitedBy }, token),

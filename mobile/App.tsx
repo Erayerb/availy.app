@@ -450,6 +450,14 @@ function Main() {
             if (!error) enterApp(role);
             return error;
           }}
+          onSocial={async (provider, idToken, name) => {
+            const error = await auth.socialSignIn(provider, idToken, name, invite);
+            if (!error) {
+              if (invite) setInvite(null);
+              enterApp('personal');
+            }
+            return error;
+          }}
           onRegister={async (username, email, password, role) => {
             // A guest who signs up has already been through the onboarding
             const wasGuest = auth.user?.isGuest === true;
@@ -539,6 +547,7 @@ function Main() {
               hideClosed={hideClosed}
               onHideClosedChange={setHideClosed}
               onOpenVenue={openDetails}
+              token={isRegistered(auth.user) && !isBusiness(auth.user) ? (auth.user?.token ?? null) : null}
               onOpenProfile={openMyProfile}
               onOpenNotifications={() => goTo('notifications')}
             />
@@ -603,6 +612,7 @@ function Main() {
               onOpenList={openList}
               tab={favoritesTab}
               onTabChange={setFavoritesTab}
+              onExplore={() => goTo('map')}
               onLogin={() => setAuthForm('login')}
               onRegister={() => {
                 setAuthRole('personal');

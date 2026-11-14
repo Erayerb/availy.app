@@ -96,6 +96,8 @@ def test_feed_has_friends_checkins_reviews_and_replies(client, conn, visit):
     assert feed[0]["review_author"] == "t_yabanci" and feed[1]["rating"] == 4 and feed[1]["is_first"] is True
     # Reviews and replies carry the review to answer from the feed
     assert feed[1]["review_id"] == review["id"] and feed[1]["allow_replies"] is True
+    # The venue type, for the card's thumbnail
+    assert {f["venue_category"] for f in feed} == {conn.execute("SELECT category FROM venues WHERE id = %s", (kafe,)).fetchone()["category"]}
     # Ayşe stops sharing her check-ins: they leave the feed
     client.patch("/v1/me/privacy", json={"share_checkins": False}, headers=auth(ayse))
     assert [f["kind"] for f in client.get("/v1/feed", headers=auth(ali)).json()] == ["reply", "review"]

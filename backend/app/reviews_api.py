@@ -96,6 +96,8 @@ class FeedItem(BaseModel):
     username: str | None
     venue_id: int
     venue_name: str
+    venue_category: str  # for the card's thumbnail
+    has_moment: bool = False  # check-in: a live "Şu an burada" photo (the 📷 in the feed)
     is_first: bool  # check-in: the venue's first ("keşfetti")
     points: int  # check-in: points earned
     rating: int | None  # review

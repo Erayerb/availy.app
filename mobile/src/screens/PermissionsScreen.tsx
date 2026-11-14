@@ -7,6 +7,8 @@ import { AppState, Linking, Platform, ScrollView, StyleSheet, View } from 'react
 import { TAB_BAR_SPACE } from '../components/TabBar';
 import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
+import { TINT } from '../components/Settings';
+import type { IconName } from '../components/Icon';
 
 import { Collapsible } from '../components/Collapsible';
 import { BackButton } from '../components/BackButton';
@@ -179,6 +181,8 @@ export function PermissionsScreen({
       {permissions.map((p) => (
         <Collapsible
           key={p.title}
+          icon={PERMISSION_ICONS[p.title]?.[0]}
+          tint={PERMISSION_ICONS[p.title]?.[1]}
           title={p.title}
           summary={p.summary}
           badge={<Text style={[styles.status, p.status === 'granted' ? styles.on : styles.off]}>{STATUS_TEXT[p.status]}</Text>}
@@ -220,7 +224,7 @@ export function PermissionsScreen({
         </Collapsible>
       ))}
 
-      <Collapsible title="Verilerin" summary="Sunucuda neler tutuluyor, hesabını silince ne olur">
+      <Collapsible icon="lock" tint={TINT.dark} title="Verilerin" summary="Sunucuda neler tutuluyor, hesabını silince ne olur">
         <Text style={styles.text}>
           {business
             ? 'Sunucuda tutulanlar: kullanıcı adın, e-postan, şifrenin özeti (şifrenin kendisi değil), mekanın ve yorumlara verdiğin yanıtlar. İstatistikler adsızdır; yalnızca mekanını keşfeden kişinin adını görürsün (gizli check-in değilse).'
@@ -235,6 +239,15 @@ export function PermissionsScreen({
     </ScrollView>
   );
 }
+
+// Each permission's coloured icon square
+const PERMISSION_ICONS: Record<string, [IconName, string]> = {
+  Konum: ['location', TINT.green],
+  Rehber: ['users', TINT.blue],
+  Kamera: ['camera', TINT.dark],
+  Bildirimler: ['bell', TINT.orange],
+  Fotoğraflar: ['photo', TINT.purple],
+};
 
 const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },

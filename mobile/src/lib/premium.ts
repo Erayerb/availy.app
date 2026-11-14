@@ -4,19 +4,19 @@
  */
 export const PREMIUM_PRICE = '₺79 / ay';
 
-// Free users can watch one busy venue at a time ("boşalınca haber ver")
+// Free users can watch one busy venue at a time ("sakin olunca haber ver")
 export const FREE_WATCH_LIMIT = 1;
 
 export const FREE_FEATURES = [
   'Anlık doluluk, harita ve filtreler',
   'Kampanyalar, kuponlar ve sadakat kartları',
-  `"Boşalınca haber ver": aynı anda ${FREE_WATCH_LIMIT} mekan`,
+  `"Sakin olunca haber ver": aynı anda ${FREE_WATCH_LIMIT} mekan`,
   'Konuma göre reklamlar',
 ];
 
 export const PREMIUM_FEATURES = [
   'Reklamsız',
-  '"Boşalınca haber ver": sınırsız mekan',
+  '"Sakin olunca haber ver": sınırsız mekan',
   'Ücretsiz plandaki her şey',
 ];
 

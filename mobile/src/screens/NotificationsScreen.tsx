@@ -11,6 +11,7 @@ import { useNotifications } from '../context/NotificationsContext';
 import { sentence, timeAgo } from '../lib/crowd';
 import { confirmAction } from '../lib/confirm';
 import { notificationText, type AppNotification } from '../lib/social';
+import { GradientFill } from '../components/GradientFill';
 import { Icon, type IconName } from '../components/Icon';
 import { colors, themed } from '../theme';
 
@@ -37,6 +38,21 @@ const ICONS: Record<AppNotification['kind'], IconName> = {
   dead_hour: 'moon',
   auto_campaign: 'speakerphone',
   come_here: 'map-pin',
+};
+
+// Each kind its own colour, so the list reads at a glance: people blue, rewards gold, likes red…
+const TINTS: Record<AppNotification['kind'], [string, string]> = {
+  friend_request: ['#13304F', '#2F6AA3'],
+  friend_accepted: ['#13304F', '#2F6AA3'],
+  group_invite: ['#13304F', '#2F6AA3'],
+  reply: ['#2B2350', '#7B5EA7'],
+  checkin_comment: ['#2B2350', '#7B5EA7'],
+  reward: ['#5A3A12', '#C9962B'],
+  loyalty: ['#5A3A12', '#C9962B'],
+  checkin_like: ['#7A2E1F', '#C8102E'],
+  dead_hour: ['#3A3F47', '#6B7280'],
+  auto_campaign: ['#7A2E1F', '#D9480F'],
+  come_here: ['#123A2A', '#2E9E4F'],
 };
 
 /** v2 🔔 list: friend requests, accepted requests and replies to my reviews (last 30 days); kept until deleted. */
@@ -96,7 +112,8 @@ export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue,
               style={({ pressed }) => [styles.row, i > 0 && styles.divider, pressed && styles.pressed]}
             >
               <View style={styles.iconBox}>
-                <Icon name={ICONS[n.kind]} size={20} color={colors.primary} />
+                <GradientFill colors={TINTS[n.kind] ?? TINTS.dead_hour} />
+                <Icon name={ICONS[n.kind]} size={19} color="#fff" />
               </View>
               <View style={styles.flex}>
                 <Text style={styles.text}>{notificationText(n)}</Text>
@@ -132,7 +149,7 @@ const styles = themed(() => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
   divider: { borderTopWidth: 1, borderTopColor: colors.border },
   pressed: { opacity: 0.7 },
-  iconBox: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
+  iconBox: { width: 38, height: 38, borderRadius: 19, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   flex: { flex: 1, gap: 2 },
   text: { fontSize: 14, color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },

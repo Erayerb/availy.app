@@ -1,3 +1,5 @@
+import { Stars } from '../components/Stars';
+import { EmptyState } from '../components/EmptyState';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { TAB_BAR_SPACE } from '../components/TabBar';
@@ -8,6 +10,7 @@ import { Text, TextInput } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 import QRCode from 'react-native-qrcode-svg';
 
+import { VenuePhoto } from '../components/VenuePhoto';
 import { Avatar } from '../components/Avatar';
 import { LevelMark } from '../components/LevelCard';
 import { ContactsFinder } from '../components/ContactsFinder';
@@ -393,7 +396,13 @@ export function SocialScreen({
 
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Arkadaşların · {lists.friends.length}</Text>
-            {lists.friends.length === 0 && <Text style={styles.muted}>Henüz arkadaşın yok. QR'ını göster ya da kullanıcı adıyla ara.</Text>}
+            {lists.friends.length === 0 && (
+              <EmptyState
+                icon="users"
+                title="Arkadaşlarını ekle"
+                text="Arkadaşların nereye gittiğini, nerenin sakin olduğunu Akış'ta görürsün. Kullanıcı adıyla ara ya da davet gönder."
+              />
+            )}
             {/* Four rows show; more scroll inside the card */}
             <ScrollView
               style={lists.friends.length > 4 && styles.friendList}
@@ -525,7 +534,9 @@ function Action({ label, onPress, quiet = false }: { label: string; onPress: () 
 
 const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
-  replyBar: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  replyBar: { flexDirection: 'row', alignItems: 'center', gap: 18 },
+  feedAction: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 2 },
+  actionCount: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
   replyLink: { color: colors.primary, fontWeight: '600', fontSize: 13 },
   replyForm: { gap: 8 },
   bold: { fontWeight: '700', color: colors.text },
@@ -563,7 +574,9 @@ const styles = themed(() => StyleSheet.create({
   railDotFirst: { borderWidth: 1.5, borderColor: colors.discovery },
   railLine: { flex: 1, width: 2, marginVertical: 4, borderRadius: 1, backgroundColor: colors.border },
   postBody: { gap: 4, paddingBottom: 20 },
-  postVenue: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  postVenue: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 3 },
+  postVenuePressed: { opacity: 0.75 },
+  momentBadge: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   postVenueText: { fontSize: 15, fontWeight: '700', color: colors.text, flexShrink: 1 },
   postText: { fontSize: 15, color: colors.text, lineHeight: 21 },
   chevronSmall: { fontSize: 18, color: colors.textMuted },
@@ -676,7 +689,8 @@ function Post({
           {what} · {time}
           {item.points > 0 && <Text style={styles.points}> · +{item.points} puan</Text>}
         </Text>
-        <Pressable onPress={() => onOpenVenue({ id: item.venue_id })} style={styles.postVenue}>
+        <Pressable onPress={() => onOpenVenue({ id: item.venue_id })} style={({ pressed }) => [styles.postVenue, pressed && styles.postVenuePressed]}>
+          <VenuePhoto venueId={item.venue_id} category={item.venue_category ?? ''} size={26} height={26} radius={7} centered />
           <Text style={[styles.postVenueText, item.is_first && styles.discovered]} numberOfLines={1}>
             {item.venue_name}
           </Text>
@@ -686,9 +700,14 @@ function Post({
               <Text style={styles.reportedText}>{look(item.reported).label}</Text>
             </>
           ) : null}
+          {item.has_moment ? (
+            <View style={styles.momentBadge} accessibilityLabel="Şu an burada fotoğrafı var">
+              <Icon name="camera" size={12} color={colors.onPrimary} />
+            </View>
+          ) : null}
           <Text style={styles.chevronSmall}>›</Text>
         </Pressable>
-        {item.rating ? <Text style={styles.ratingStars}>{stars(item.rating)}</Text> : null}
+        {item.rating ? <Stars rating={item.rating} /> : null}
         {item.body ? <Text style={styles.postText}>{item.body}</Text> : null}
         <Thread token={token} item={item} owner={mine} onOpenUser={onOpenUser} onChanged={onChanged} />
         {item.kind === 'checkin' && item.checkin_id ? (
@@ -761,7 +780,7 @@ function Thread({
         <View style={styles.threadRow}>
           <Icon name="corner-down-right" size={16} color={colors.textMuted} />
           <Text style={[styles.threadText, styles.flex]}>
-            <Text style={styles.likedText}>♥ </Text>
+            <InlineIcon name="heart" color={colors.primary} />{' '}
             {likers.length ? likers.map((u) => `@${u}`).join(', ') : `${likes} kişi`}
             {likes > likers.length && likers.length ? ` ve ${likes - likers.length} kişi` : ''} beğendi
           </Text>
@@ -771,7 +790,7 @@ function Thread({
   );
 }
 
-/** Under a check-in: ♡ Beğen (not on mine) and 💬 Yorum yap; the comments show in <Thread> above. */
+/** Under a check-in: ♡ with the likes (not on mine) and 💬 with the comments; the comments show in <Thread> above. */
 function CheckinActions({
   token,
   item,
@@ -818,15 +837,15 @@ function CheckinActions({
     <View style={styles.checkinActions}>
       <View style={styles.replyBar}>
         {!own && (
-          <Pressable onPress={toggleLike} hitSlop={6} accessibilityLabel={liked ? 'Beğeniyi geri al' : 'Beğen'}>
-            <Text style={[styles.replyLink, liked && styles.likedText]}>
-              {liked ? '♥' : '♡'} {likes > 0 ? likes : 'Beğen'}
-            </Text>
+          <Pressable onPress={toggleLike} hitSlop={8} style={styles.feedAction} accessibilityLabel={liked ? 'Beğeniyi geri al' : 'Beğen'}>
+            <Icon name="heart" size={17} filled={liked} color={liked ? colors.primary : colors.textMuted} />
+            {likes > 0 && <Text style={[styles.actionCount, liked && styles.likedText]}>{likes}</Text>}
           </Pressable>
         )}
         {!open && (
-          <Pressable onPress={() => setOpen(true)} hitSlop={6}>
-            <Text style={styles.replyLink}><InlineIcon name="message-circle" /> Yorum yap</Text>
+          <Pressable onPress={() => setOpen(true)} hitSlop={8} style={styles.feedAction} accessibilityLabel="Yorum yap">
+            <Icon name="message-circle" size={17} color={colors.textMuted} />
+            {(item.comments?.length ?? 0) > 0 && <Text style={styles.actionCount}>{item.comments!.length}</Text>}
           </Pressable>
         )}
       </View>
@@ -878,8 +897,8 @@ function FeedReply({ token, reviewId, to, onSent }: { token: string; reviewId: n
   if (!open) {
     return (
       <View style={styles.replyBar}>
-        <Pressable onPress={() => setOpen(true)} hitSlop={6}>
-          <Text style={styles.replyLink}><InlineIcon name="message-circle" /> Yanıtla</Text>
+        <Pressable onPress={() => setOpen(true)} hitSlop={8} style={styles.feedAction} accessibilityLabel="Yanıtla">
+          <Icon name="message-circle" size={17} color={colors.textMuted} />
         </Pressable>
         {note && <Text style={note.ok ? styles.success : styles.error}>{note.text}</Text>}
       </View>

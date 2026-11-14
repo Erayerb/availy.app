@@ -1,5 +1,6 @@
+import { momentImage, momentsApi, REPORT_REASONS as PHOTO_REASONS, type ReportedMoment } from '../lib/moments';
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, View } from 'react-native';
 import { TAB_BAR_SPACE } from '../components/TabBar';
 import { Text, TextInput } from '../components/Text';
 
@@ -46,11 +47,13 @@ export function AdminScreen({ token, onBack, onOpenVenue }: { token: string; onB
   const [signUps, setSignUps] = useState<SignUp[]>([]);
   const [allSignUps, setAllSignUps] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<ReportedMoment[]>([]);
 
   const load = useCallback(() => {
     venueIssuesApi.open(token).then(setIssues).catch(() => {});
     venueIssuesApi.pending(token).then(setPending).catch(() => {});
     adminApi.waitlist(token).then(setSignUps).catch(() => {});
+    momentsApi.reported(token).then(setPhotos).catch(() => {});
     adminApi
       .reports(token)
       .then((list) => {
@@ -119,6 +122,51 @@ export function AdminScreen({ token, onBack, onOpenVenue }: { token: string; onB
             venueIssuesApi.resolve(token, issue.venue_id, issue.kind, resolution).catch(load);
           }}
         />
+      ))}
+
+      <Text style={styles.heading}>Şikâyet edilen fotoğraflar</Text>
+      <Text style={styles.muted}>“Şu an burada” fotoğrafları; 2 şikâyette gizlenir. "Kaldır" fotoğrafı ve puanını siler, "Geri aç" sayfaya döndürür.</Text>
+      {photos.length === 0 && <Text style={styles.muted}>İncelenecek fotoğraf yok.</Text>}
+      {photos.map((photo) => (
+        <View key={photo.id} style={styles.card}>
+          <View style={styles.row}>
+            <Image source={momentImage(photo.id, token)} style={styles.photo} />
+            <View style={styles.flex}>
+              <Pressable onPress={() => onOpenVenue({ id: photo.venue_id })}>
+                <Text style={styles.venue}>
+                  {photo.venue_name}
+                  {photo.author ? ` · @${photo.author}` : ''}
+                </Text>
+              </Pressable>
+              <Text style={styles.muted}>
+                {photo.reports} şikâyet: {photo.reasons.map((r) => PHOTO_REASONS.find((x) => x.id === r)?.label ?? r).join(', ')}
+                {photo.hidden_at ? ' · gizlendi' : ''}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.row}>
+            <Pressable
+              style={styles.remove}
+              onPress={() =>
+                confirmAction('Kaldırılsın mı?', 'Fotoğraf silinir, verilen puan geri alınır.', 'Kaldır', () => {
+                  setPhotos((list) => list.filter((p) => p.id !== photo.id));
+                  momentsApi.decide(token, photo.id, false).catch(load);
+                })
+              }
+            >
+              <Text style={styles.removeText}>Kaldır</Text>
+            </Pressable>
+            <Pressable
+              style={styles.keep}
+              onPress={() => {
+                setPhotos((list) => list.filter((p) => p.id !== photo.id));
+                momentsApi.decide(token, photo.id, true).catch(load);
+              }}
+            >
+              <Text style={styles.keepText}>Geri aç</Text>
+            </Pressable>
+          </View>
+        </View>
       ))}
 
       <Text style={styles.heading}>Şikâyet edilen yorumlar</Text>
@@ -279,6 +327,7 @@ const styles = themed(() => StyleSheet.create({
   card: { padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 8 },
   venue: { fontSize: 14, fontWeight: '700', color: colors.primary },
   body: { fontSize: 15, color: colors.text },
+  photo: { width: 72, height: 96, borderRadius: 10, backgroundColor: colors.cream },
   row: { flexDirection: 'row', gap: 8 },
   remove: { flex: 1, paddingVertical: 10, borderRadius: 12, backgroundColor: colors.danger, alignItems: 'center' },
   removeText: { color: colors.white, fontWeight: '700' },

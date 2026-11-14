@@ -7,9 +7,10 @@ import { useCampaigns } from '../context/CampaignsContext';
 import type { Venue } from '../lib/api';
 import { colors, themed } from '../theme';
 import { FavoriteButton } from './FavoriteButton';
-import { CrowdDot } from './CrowdDot';
+import { StatusPill } from './StatusPill';
+import { categoryLabel } from '../lib/filters';
 import { VenuePhoto } from './VenuePhoto';
-import { InlineIcon } from './Icon';
+import { Icon, InlineIcon } from './Icon';
 
 type Props = {
   venue: Venue;
@@ -29,12 +30,17 @@ function Tile({ venue, size, distance, onPress }: Props) {
       <View>
         <VenuePhoto venueId={venue.id} category={venue.category} photoAt={venue.photo_at} size={size} height={Math.round(size * TILE_RATIO)} />
         {!venue.open_now && <View style={[styles.closedShade, { borderRadius: 16 }]} />}
-        <View style={styles.badge}>
-          <CrowdDot venue={venue} size={14} />
+        <View style={styles.status}>
+          <StatusPill venue={venue} onPhoto maxWidth={size - 52} />
         </View>
-        {!venue.open_now && <Text style={styles.closed}>Kapalı · {venue.opens_at}</Text>}
         {campaign && venue.open_now && (
-          <Text style={styles.campaign}><InlineIcon name="tag" /> {campaign.discount !== null ? `%${campaign.discount}` : 'Kampanya'}</Text>
+          <Text style={[styles.campaign, !!venue.moments && styles.campaignRaised]}><InlineIcon name="tag" /> {campaign.discount !== null ? `%${campaign.discount}` : 'Kampanya'}</Text>
+        )}
+        {!!venue.moments && (
+          <View style={styles.moments}>
+            <Icon name="camera" size={12} color="#fff" />
+            <Text style={styles.momentsText}>{venue.moments}</Text>
+          </View>
         )}
         <View style={styles.favorite}>
           <FavoriteButton venueId={venue.id} size={16} floating />
@@ -43,7 +49,10 @@ function Tile({ venue, size, distance, onPress }: Props) {
       <Text style={styles.name} numberOfLines={2}>
         {venue.name}
       </Text>
-      {distance && <Text style={styles.distance}><InlineIcon name="map-pin" /> {distance}</Text>}
+      <Text style={styles.distance} numberOfLines={1}>
+        {categoryLabel(venue.category)}
+        {distance ? ` · ${distance}` : ''}
+      </Text>
     </Pressable>
   );
 }
@@ -54,27 +63,22 @@ export const VenueTile = memo(Tile, (a, b) => a.venue === b.venue && a.size === 
 const styles = themed(() => StyleSheet.create({
   pressed: { opacity: 0.75 },
   closedShade: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: colors.closedShade },
-  badge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: colors.white,
-  },
-  closed: {
+  status: { position: 'absolute', top: 8, left: 8 },
+  // Live photos: bottom left (the type's icon is bottom right); a campaign tag then sits above it
+  moments: {
     position: 'absolute',
     bottom: 8,
     left: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-    overflow: 'hidden',
-    backgroundColor: colors.text,
-    color: colors.onPrimary,
-    fontSize: 12,
-    fontWeight: '700',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    borderRadius: 11,
+    backgroundColor: colors.primary,
   },
+  momentsText: { fontSize: 11.5, fontWeight: '800', color: '#fff' },
+  campaignRaised: { bottom: 36 },
   campaign: {
     position: 'absolute',
     bottom: 8,
@@ -88,7 +92,7 @@ const styles = themed(() => StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  favorite: { position: 'absolute', top: 6, left: 6 },
+  favorite: { position: 'absolute', top: 6, right: 6 },
   distance: { marginTop: 2, fontSize: 12, color: colors.textMuted },
   name: { marginTop: 6, fontSize: 14, fontWeight: '600', color: colors.text },
 }));

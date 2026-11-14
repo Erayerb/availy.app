@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useRef, useState } from 'react';
+import { type ReactNode, startTransition, useEffect, useRef, useState } from 'react';
 import { Animated, Modal, PanResponder, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from './Text';
 
@@ -18,6 +18,8 @@ type Props = {
   hideClosed: boolean;
   onHideClosedChange: (hide: boolean) => void;
   count: number; // venues shown with these filters
+  // First in the row, before the sort chips (Ana sayfa: the place button)
+  leading?: ReactNode;
 };
 
 /**
@@ -57,6 +59,7 @@ export function FilterBar(props: Props) {
           <Text style={[styles.buttonText, active > 0 && styles.buttonTextOn]}>Filtrele{active > 0 ? ` · ${active}` : ''}</Text>
         </Pressable>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bar}>
+          {props.leading}
           {SORT_OPTIONS.map(({ mode, label }) => (
             <Chip
               key={mode}

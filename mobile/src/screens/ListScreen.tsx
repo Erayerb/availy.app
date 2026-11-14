@@ -1,3 +1,4 @@
+import { RowsSkeleton } from '../components/Skeleton';
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { TAB_BAR_SPACE } from '../components/TabBar';
@@ -237,7 +238,7 @@ export function ListScreen({ token, target, onBack, onOpenVenue, onOpenList }: P
       data={shown}
       keyExtractor={(v) => String(v.id)}
       ListHeaderComponent={header}
-      ListEmptyComponent={<Text style={styles.empty}>{!list || loading ? 'Yükleniyor…' : 'Bu listede henüz mekan yok.'}</Text>}
+      ListEmptyComponent={!list || loading ? <RowsSkeleton count={4} /> : <Text style={styles.empty}>{'Bu listede henüz mekan yok.'}</Text>}
       keyboardShouldPersistTaps="handled"
       onRefresh={() => {
         load();

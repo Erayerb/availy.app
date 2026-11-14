@@ -18,6 +18,8 @@ type Props = {
   venues: Venue[];
   header: ReactElement;
   emptyText: string;
+  // Instead of the plain text: an inviting card (EmptyState)
+  empty?: ReactElement;
   loading?: boolean; // first load: placeholder tiles instead of the empty text
   error?: string | null;
   onOpenVenue: (venue: Venue) => void;
@@ -27,7 +29,7 @@ type Props = {
 };
 
 /** Two-column grid of square venue tiles with a scrolling header above it. */
-export function VenueGrid({ venues, header, emptyText, loading = false, error, onOpenVenue, refreshing = false, onRefresh }: Props) {
+export function VenueGrid({ venues, header, emptyText, empty, loading = false, error, onOpenVenue, refreshing = false, onRefresh }: Props) {
   const { width } = useWindowDimensions();
   const tileSize = (width - PADDING * 2 - GAP) / 2;
   const { point } = useLocation();
@@ -55,6 +57,8 @@ export function VenueGrid({ venues, header, emptyText, loading = false, error, o
               <TileSkeleton key={i} size={tileSize} />
             ))}
           </View>
+        ) : !error && empty ? (
+          empty
         ) : (
           <Text style={error ? styles.error : styles.empty}>{error ?? emptyText}</Text>
         )

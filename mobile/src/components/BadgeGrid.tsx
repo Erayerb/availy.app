@@ -5,7 +5,7 @@ import type { Badge } from '../lib/auth';
 import { colors, themed } from '../theme';
 import { InlineIcon } from './Icon';
 
-/** Round badges: earned ones in colour, locked ones grey with their progress ("1/5"). */
+/** Round badges: earned ones in the brand red, locked ones faded with a progress bar ("1/5"). */
 export function BadgeGrid({ badges }: { badges: Badge[] }) {
   const earned = badges.filter((b) => b.earned).length;
   return (
@@ -27,9 +27,14 @@ export function BadgeGrid({ badges }: { badges: Badge[] }) {
               {badge.description}
             </Text>
             {!badge.earned && (
-              <Text style={styles.progress}>
-                {badge.progress}/{badge.target}
-              </Text>
+              <View style={styles.progressRow}>
+                <View style={styles.track}>
+                  <View style={[styles.fill, { width: `${Math.min(100, (badge.progress / Math.max(1, badge.target)) * 100)}%` }]} />
+                </View>
+                <Text style={styles.progress}>
+                  {badge.progress}/{badge.target}
+                </Text>
+              </View>
             )}
           </View>
         ))}
@@ -46,7 +51,7 @@ const styles = themed(() => StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 16 },
   item: { width: '33.33%', alignItems: 'center', gap: 4, paddingHorizontal: 4 },
   circle: { width: SIZE, height: SIZE, borderRadius: SIZE / 2, alignItems: 'center', justifyContent: 'center' },
-  earned: { backgroundColor: colors.cream, borderWidth: 3, borderColor: colors.primary },
+  earned: { backgroundColor: colors.primary, borderWidth: 2, borderColor: 'rgba(255,255,255,0.5)' },
   locked: { backgroundColor: colors.background, borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed' },
   icon: { fontSize: 30 },
   iconLocked: { opacity: 0.25 },
@@ -54,5 +59,8 @@ const styles = themed(() => StyleSheet.create({
   name: { fontSize: 13, fontWeight: '700', color: colors.text, textAlign: 'center' },
   muted: { color: colors.textMuted },
   description: { fontSize: 11, color: colors.textMuted, textAlign: 'center' },
+  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 6, width: '80%' },
+  track: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.border, overflow: 'hidden' },
+  fill: { height: 4, borderRadius: 2, backgroundColor: colors.primary },
   progress: { fontSize: 11, fontWeight: '700', color: colors.primary },
 }));

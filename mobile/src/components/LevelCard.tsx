@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import type { Level } from '../lib/safety';
 import { colors, themed } from '../theme';
 import { Icon, InlineIcon, type IconName } from './Icon';
+import { GradientFill } from './GradientFill';
 import { Pressable } from './Pressable';
 import { TabIcon, type IconName as TabIconName } from './TabIcon';
 import { Text } from './Text';
@@ -35,34 +36,35 @@ export function LevelMark({ level, plain = false }: { level?: string | null; pla
   );
 }
 
-/** On the profile: the level with its icon, "Kâşif → Mahalleli" on my own (what is left: on the Seviyeler page). */
+// Each level its own colour, from Yeni gelen (green) up to Semt elçisi (gold)
+const LEVEL_GRADIENTS: Record<Level['id'], [string, string]> = {
+  newcomer: ['#123A2A', '#2E9E4F'],
+  explorer: ['#2B2350', '#7B5EA7'],
+  local: ['#7A2E1F', '#C8102E'],
+  ambassador: ['#5A3A12', '#C9962B'],
+};
+
+/** On the profile: the level on a small coloured card (what comes next: on the Seviyeler page). */
 export function LevelCard({ level, onOpen }: { level: Level; onOpen?: () => void }) {
   return (
-    <Pressable style={styles.row} onPress={onOpen} disabled={!onOpen} accessibilityRole="button" accessibilityLabel={`Seviye: ${level.name}`}>
-      <View style={[styles.badge, level.rank >= 2 && styles.badgeHigh]}>
-        <LevelIcon id={level.id} size={20} color={level.rank >= 2 ? colors.onPrimary : colors.primary} />
+    <Pressable style={styles.card} onPress={onOpen} disabled={!onOpen} accessibilityRole="button" accessibilityLabel={`Seviye: ${level.name}`}>
+      <GradientFill colors={LEVEL_GRADIENTS[level.id] ?? LEVEL_GRADIENTS.newcomer} />
+      <View style={styles.badge}>
+        <LevelIcon id={level.id} size={19} color="#fff" />
       </View>
-      <View style={[styles.flex, styles.names]}>
+      <View style={styles.flex}>
+        <Text style={styles.caption}>Seviye</Text>
         <Text style={styles.name}>{level.name}</Text>
-        {level.next && (
-          <>
-            <Icon name="arrow-right" size={16} color={colors.textMuted} />
-            <Text style={styles.next}>{level.next.name}</Text>
-          </>
-        )}
       </View>
-      {onOpen && <Text style={styles.chevron}>›</Text>}
+      {onOpen && <Icon name="arrow-right" size={17} color="rgba(255,255,255,0.85)" />}
     </Pressable>
   );
 }
 
 const styles = themed(() => StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  badge: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
-  badgeHigh: { backgroundColor: colors.primary },
-  flex: { flex: 1 },
-  names: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-  next: { fontSize: 15, fontWeight: '600', color: colors.textMuted },
-  name: { fontSize: 15, fontWeight: '700', color: colors.text },
-  chevron: { fontSize: 22, color: colors.textMuted },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 14, overflow: 'hidden' },
+  badge: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+  flex: { flex: 1, gap: 1 },
+  caption: { fontSize: 10, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' },
+  name: { fontSize: 16, fontWeight: '800', color: '#fff' },
 }));

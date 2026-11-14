@@ -8,7 +8,7 @@ import { useVenuesByIds } from '../hooks/useVenuesByIds';
 import { useSettings } from '../context/SettingsContext';
 import { automationApi, type Automation } from '../lib/schedules';
 import { colors, themed } from '../theme';
-import { ThemedSwitch } from '../components/ThemedSwitch';
+import { SettingsSection, SettingsSwitch, TINT } from '../components/Settings';
 import { AccountSettings } from './ProfileScreen';
 import { InlineIcon } from '../components/Icon';
 
@@ -56,113 +56,99 @@ export function SettingsScreen({ onBack, isBusiness, guest, venueId, account }: 
 
 
       {isBusiness ? (
-        <View style={styles.card}>
-          <Row
+        <SettingsSection footer="Uygulaman kapalı olsa da çalışır.">
+          <SettingsSwitch
+            icon="moon"
+            tint={TINT.purple}
             title="Ölü saat bildirimi"
-            subtitle="Mekanın açıkken en az 2 müşteri Sakin bildirince bildirim listene haber düşer (en fazla 2 saatte bir). Uygulaman kapalı olsa da çalışır."
+            subtitle="Açıkken en az 2 müşteri Sakin bildirince haber düşer (en fazla 2 saatte bir)."
             value={automation?.dead_hour_alerts ?? true}
             onChange={(v) => changeAutomation({ dead_hour_alerts: v })}
             disabled={!automation}
           />
-          <Row
+          <SettingsSwitch
+            icon="speakerphone"
+            tint={TINT.orange}
             title="Otomatik kampanya"
-            subtitle="Ölü saatte hazır kampanyayı (2 saat, %20, 2 km) kendiliğinden gönderir. En fazla 3 saatte bir; aktif kampanya varken göndermez."
+            subtitle="Ölü saatte hazır kampanyayı (2 saat, %20, 2 km) gönderir. En fazla 3 saatte bir; aktif kampanya varken göndermez."
             value={automation?.auto_campaign ?? false}
             onChange={(v) => changeAutomation({ auto_campaign: v })}
             disabled={!automation}
           />
-        </View>
+        </SettingsSection>
       ) : (
         <>
           <Text style={styles.muted}>Hangi durumlarda telefonuna bildirim gelsin? Kapattıkların yine de <InlineIcon name="bell" /> listesinde görünür.</Text>
-          <Text style={styles.heading}>Mekanlar</Text>
-          <View style={styles.card}>
-            <Row
+          <SettingsSection
+            title="Mekanlar"
+            footer="Şimdilik bildirimler uygulama açıkken gelir; kapalıyken gelmesi yayın sürümüyle eklenecek."
+          >
+            <SettingsSwitch
+              icon="map-pin"
+              tint={TINT.red}
               title="Check-in önerileri"
-              subtitle="Açık bir mekanın yanında birkaç dakika kalınca check-in yapmak isteyip istemediğini sorarız; en fazla saatte bir, aynı mekan için günde iki kez."
+              subtitle="Açık bir mekanın yanındayken sorarız; check-in'den sonra 1 saat sormayız."
               value={settings.checkinSuggestions}
               onChange={(v) => update({ checkinSuggestions: v })}
             />
-            <Row
+            <SettingsSwitch
+              icon="bell-ringing"
+              tint={TINT.green}
               title="Sakin olunca haber ver"
               subtitle={
                 Platform.OS === 'web'
                   ? 'Tarayıcıda bildirim yerine uygulama içinde uyarı gösterilir.'
-                  : 'Zil simgesiyle takip ettiğin mekan sakinleşince telefonuna bildirim gelir.'
+                  : 'Zil simgesiyle takip ettiğin mekan sakinleşince.'
               }
               value={watchNotifications}
               onChange={(v) => update({ watchNotifications: v })}
             />
-            <Row title="Kampanya bildirimleri" subtitle="Yakında: yakındaki kampanyalar." value={false} disabled />
-            <Text style={styles.muted}>
-              Şimdilik bildirimler uygulama açıkken gelir; kapalıyken gelmesi yayın sürümüyle eklenecek.
-            </Text>
-          </View>
-
+            <SettingsSwitch icon="tag" tint={TINT.orange} title="Kampanya bildirimleri" subtitle="Yakında" value={false} disabled />
+          </SettingsSection>
           {!guest && (
-            <>
-              <Text style={styles.heading}>Sosyal</Text>
-              <View style={styles.card}>
-                <Row
-                  title="Arkadaşlar ve gruplar"
-                  subtitle="Biri seni arkadaş olarak eklemek ya da bir gruba almak istediğinde, isteğin kabul edildiğinde, arkadaşın 'Buradayım, gel' dediğinde."
-                  value={settings.friendNotifications}
-                  onChange={(v) => update({ friendNotifications: v, friendAcceptedNotifications: v })}
-                />
-                <Row
-                  title="Check-in yorumları"
-                  subtitle="Arkadaşın check-in'ine yorum yaptığında."
-                  value={settings.checkinCommentNotifications}
-                  onChange={(v) => update({ checkinCommentNotifications: v })}
-                />
-                <Row
-                  title="Check-in beğenileri"
-                  subtitle="Arkadaşın check-in'ini beğendiğinde."
-                  value={settings.checkinLikeNotifications}
-                  onChange={(v) => update({ checkinLikeNotifications: v })}
-                />
-                <Row
-                  title="Yorumlarıma yanıtlar"
-                  subtitle="Biri mekan yorumunu yanıtladığında."
-                  value={settings.replyNotifications}
-                  onChange={(v) => update({ replyNotifications: v })}
-                />
-              </View>
-            </>
+            <SettingsSection title="Sosyal">
+              <SettingsSwitch
+                icon="users"
+                tint={TINT.blue}
+                title="Arkadaşlar ve gruplar"
+                subtitle="İstekler, kabuller ve 'Buradayım, gel'."
+                value={settings.friendNotifications}
+                onChange={(v) => update({ friendNotifications: v, friendAcceptedNotifications: v })}
+              />
+              <SettingsSwitch
+                icon="message-circle"
+                tint={TINT.purple}
+                title="Check-in yorumları"
+                value={settings.checkinCommentNotifications}
+                onChange={(v) => update({ checkinCommentNotifications: v })}
+              />
+              <SettingsSwitch
+                icon="heart"
+                tint={TINT.red}
+                title="Check-in beğenileri"
+                value={settings.checkinLikeNotifications}
+                onChange={(v) => update({ checkinLikeNotifications: v })}
+              />
+              <SettingsSwitch
+                icon="message-dots"
+                tint={TINT.purple}
+                title="Yorumlarıma yanıtlar"
+                value={settings.replyNotifications}
+                onChange={(v) => update({ replyNotifications: v })}
+              />
+            </SettingsSection>
           )}
-
         </>
       )}
-
       <Text style={styles.version}>availo</Text>
     </ScrollView>
-  );
-}
-
-type RowProps = {
-  title: string;
-  subtitle: string;
-  value: boolean;
-  onChange?: (value: boolean) => void;
-  disabled?: boolean;
-};
-
-function Row({ title, subtitle, value, onChange, disabled }: RowProps) {
-  return (
-    <View style={styles.row}>
-      <View style={styles.rowText}>
-        <Text style={[styles.sectionTitle, disabled && styles.disabled]}>{title}</Text>
-        <Text style={styles.muted}>{subtitle}</Text>
-      </View>
-      <ThemedSwitch value={value} onValueChange={onChange} disabled={disabled} />
-    </View>
   );
 }
 
 const styles = themed(() => StyleSheet.create({
   sectionLabel: { fontSize: 13, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', marginTop: 4 },
   page: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 14 },
+  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 20 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
   card: {

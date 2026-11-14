@@ -51,6 +51,7 @@ export type Privacy = {
   suggest_by_venues: boolean; // suggested to people who check in at the same venues
   regular_public: boolean; // "Buranın müdavimi" shown to everyone, not only to friends
   stats_visibility: 'friends' | 'me'; // who sees the statistics on my profile
+  moment_audience?: 'everyone' | 'friends'; // "Şu an burada" photos: the choice when sharing
 };
 
 export const socialApi = {

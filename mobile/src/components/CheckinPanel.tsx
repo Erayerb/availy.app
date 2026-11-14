@@ -1,3 +1,4 @@
+import { InlineStars } from './Stars';
 import { useState } from 'react';
 import { Alert, Platform, Linking, StyleSheet, View } from 'react-native';
 import { notifyVenuesChanged } from '../lib/venueEvents';
@@ -19,11 +20,12 @@ import { socialApi } from '../lib/social';
 import { shareText } from '../lib/shareVenue';
 import { LEVELS, type Level } from '../lib/occupancy';
 import { Celebration } from './Celebration';
+import { MomentCapture } from './MomentCapture';
 import { haptics } from '../lib/haptics';
 import { celebrateBadges } from '../lib/badgeEvents';
 import { colors, themed } from '../theme';
 import { ThemedSwitch } from './ThemedSwitch';
-import { InlineIcon } from './Icon';
+import { Icon, InlineIcon } from './Icon';
 
 type Props = {
   venue: Venue;
@@ -226,6 +228,7 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
             <Text style={styles.partyTitle}>{shared.first ? 'Burayı sen keşfettin!' : 'Check-in yapıldı!'}</Text>
             <Text style={styles.success}>{result.text}</Text>
             {shared.streak >= 2 && <Text style={styles.streak}><InlineIcon name="flame" /> {shared.streak}. hafta üst üste check-in!</Text>}
+            {isRegistered(user) && user?.token && <MomentCapture token={user.token} checkinId={shared.id} />}
             {shared.coupons.map((c) => (
               <View key={c.code} style={styles.coupon}>
                 <Text style={styles.couponTitle}><InlineIcon name="ticket" /> Kupon kazandın: {c.code}</Text>
@@ -246,7 +249,7 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
             ) : review && !editing ? (
               <View style={styles.words}>
                 <Text style={styles.quote}>
-                  <Text style={styles.stars}>{stars(review.rating)}</Text>
+                  <InlineStars rating={review.rating} />
                   {review.body ? `  “${review.body}”` : ''}
                 </Text>
                 <View style={styles.reviewActions}>
@@ -272,7 +275,7 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
                 <View style={styles.starsRow}>
                   {[1, 2, 3, 4, 5].map((n) => (
                     <Pressable key={n} onPress={() => setRating(n)} hitSlop={6} accessibilityLabel={`${n} yıldız`}>
-                      <Text style={[styles.star, n <= rating && styles.starOn]}>{n <= rating ? '★' : '☆'}</Text>
+                      <Icon name="star" size={30} filled={n <= rating} color={n <= rating ? colors.gold : colors.textMuted} />
                     </Pressable>
                   ))}
                 </View>
@@ -304,7 +307,7 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
           </View>
         ) : (
           <>
-            <Text style={styles.title}>✓ Check-in yapıldı</Text>
+            <Text style={styles.title}><InlineIcon name="circle-check" /> Check-in yapıldı</Text>
             <Text style={styles.muted}>Son check-in'in {clock(last)}.</Text>
           </>
         )}

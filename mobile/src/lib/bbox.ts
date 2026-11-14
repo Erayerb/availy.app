@@ -34,3 +34,15 @@ export function containsBounds(outer: Bounds, inner: Bounds): boolean {
     inner[0] >= outer[0] && inner[1] >= outer[1] && inner[2] <= outer[2] && inner[3] <= outer[3]
   );
 }
+
+/**
+ * Whether the map needs a new venue query for this view: it moved outside what was fetched, or it
+ * zoomed well in. A wide area holds more venues than one answer carries, so after zooming in the
+ * closer view is fetched again and shows every venue there.
+ */
+export function needsRequery(queried: Bounds, view: Bounds, padding: number): boolean {
+  if (!containsBounds(queried, view)) return true;
+  const queriedWidth = queried[2] - queried[0];
+  const viewWidth = view[2] - view[0];
+  return viewWidth > 0 && queriedWidth > viewWidth * padding * 2;
+}

@@ -68,3 +68,27 @@ export const friendsApi = {
       token,
     ),
 };
+
+// Only fresh visits; an old one says little about where to go now
+const RECENT_DAYS = 7;
+const MAX_PLACES = 10;
+
+export type FriendPlace = { venueId: number; at: string; people: Friend[] };
+
+/** Places friends checked in to lately, newest first; one card per place. */
+export function placesFromFriends(friends: Friend[], now: Date): FriendPlace[] {
+  const since = now.getTime() - RECENT_DAYS * 86_400_000;
+  const byVenue = new Map<number, FriendPlace>();
+  for (const friend of friends) {
+    const visit = friend.last_checkin;
+    if (!visit || new Date(visit.at).getTime() < since) continue;
+    const place = byVenue.get(visit.venue_id);
+    if (!place) byVenue.set(visit.venue_id, { venueId: visit.venue_id, at: visit.at, people: [friend] });
+    else {
+      place.people.push(friend);
+      if (visit.at > place.at) place.at = visit.at;
+    }
+  }
+  return [...byVenue.values()].sort((a, b) => b.at.localeCompare(a.at)).slice(0, MAX_PLACES);
+}
+

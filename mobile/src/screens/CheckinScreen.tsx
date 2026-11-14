@@ -1,3 +1,4 @@
+import { RowsSkeleton } from '../components/Skeleton';
 import { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { TAB_BAR_SPACE } from '../components/TabBar';
@@ -117,7 +118,9 @@ export function CheckinScreen({ onBack, onOpenVenue, onAddVenue, visits }: Props
       data={venues}
       keyExtractor={(v) => String(v.id)}
       ListHeaderComponent={header}
-      ListEmptyComponent={empty ? <Text style={error ? styles.error : styles.muted}>{empty}</Text> : undefined}
+      ListEmptyComponent={
+        loading && !error ? <RowsSkeleton count={5} /> : empty ? <Text style={error ? styles.error : styles.muted}>{empty}</Text> : undefined
+      }
       keyboardShouldPersistTaps="handled"
       renderItem={({ item }) => {
         const km = point ? distanceKm(point, item) : null;

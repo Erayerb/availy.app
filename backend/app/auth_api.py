@@ -5,8 +5,10 @@ from typing import Literal
 import psycopg
 from fastapi import APIRouter, Depends, Header, HTTPException, Response
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from app import social_auth
+from app.social_auth import enabled_providers, sign_in_with
 from app.accounts import (
     GUEST_SESSION_DAYS,
     AccountError,
@@ -81,6 +83,7 @@ class PrivacyOut(BaseModel):
     suggest_by_venues: bool = True  # suggested to people who go to the same venues
     regular_public: bool = False  # "👑 müdavim" shown to everyone, not only to friends
     stats_visibility: Literal["friends", "me"] = "friends"  # who sees the profile's statistics
+    moment_audience: Literal["everyone", "friends"] = "everyone"  # "Şu an burada" photos: the default when sharing
 
 
 class ProfileStepOut(BaseModel):
@@ -177,6 +180,37 @@ def login(body: LoginIn, conn: psycopg.Connection = Depends(get_conn)):
         # Returned, not raised: the wrong-password count is saved together with the failed request
         return JSONResponse(status_code=e.status, content={"detail": e.message})
     return {"token": create_session(conn, user["id"]), "user": user}
+
+
+class OAuthIn(BaseModel):
+    provider: Literal["google", "apple"]
+    id_token: str = Field(min_length=20, max_length=8000)
+    # Apple gives the name only the first time, to the app (not in the token)
+    name: str = Field(default="", max_length=60)
+    invited_by: str | None = None
+
+
+class OAuthOut(SessionOut):
+    created: bool  # a new account: the app offers to pick a user name
+
+
+@router.get("/auth/providers")
+def providers():
+    """Which "… ile devam et" buttons to show: only the ones set up on the server."""
+    return {"providers": enabled_providers()}
+
+
+@router.post("/auth/oauth", response_model=OAuthOut)
+def oauth(body: OAuthIn, conn: psycopg.Connection = Depends(get_conn)):
+    """Google / Apple: the provider's ID token in, our session out (signing up on the first time)."""
+    try:
+        identity = social_auth.verify_id_token(body.provider, body.id_token)
+        user, created = sign_in_with(conn, identity, body.name)
+    except AccountError as e:
+        raise _fail(e) from None
+    if created:
+        accept_invite(conn, user, body.invited_by, datetime.now(timezone.utc))
+    return {"token": create_session(conn, user["id"]), "user": user, "created": created}
 
 
 @router.post("/auth/guest", response_model=SessionOut, status_code=201)
@@ -291,6 +325,7 @@ class PrivacyIn(BaseModel):
     suggest_by_venues: bool | None = None
     regular_public: bool | None = None
     stats_visibility: Literal["friends", "me"] | None = None
+    moment_audience: Literal["everyone", "friends"] | None = None
 
 
 @router.patch("/me/privacy", response_model=PrivacyOut)
@@ -301,7 +336,7 @@ def privacy(body: PrivacyIn, user: dict = Depends(current_user), conn: psycopg.C
         return user
     columns = ", ".join(f"{name} = %({name})s" for name in changes)
     return conn.execute(
-        f"UPDATE users SET {columns} WHERE id = %(id)s RETURNING share_checkins, show_in_leaderboard, searchable, suggest_by_venues, regular_public, stats_visibility",
+        f"UPDATE users SET {columns} WHERE id = %(id)s RETURNING share_checkins, show_in_leaderboard, searchable, suggest_by_venues, regular_public, stats_visibility, moment_audience",
         {**changes, "id": user["id"]},
     ).fetchone()
 

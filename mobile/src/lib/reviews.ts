@@ -36,6 +36,8 @@ export type FeedItem = {
   username: string | null;
   venue_id: number;
   venue_name: string;
+  venue_category?: string; // for the card's thumbnail
+  has_moment?: boolean; // check-in with a live "Şu an burada" photo
   is_first: boolean;
   points: number;
   rating: number | null;

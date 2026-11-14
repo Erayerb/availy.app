@@ -3,25 +3,24 @@ import { StyleSheet, View } from 'react-native';
 import { Text } from './Text';
 
 import { useLocation } from '../context/LocationContext';
-import { useSettings } from '../context/SettingsContext';
 import type { Venue } from '../lib/api';
 import { categoryLabel } from '../lib/filters';
 import { distanceKm, formatDistance } from '../lib/geo';
 import { shortLocation } from '../lib/location';
 import { colors, themed } from '../theme';
-import { CrowdDot } from './CrowdDot';
+import { StatusPill } from './StatusPill';
+import { VenuePhoto } from './VenuePhoto';
 import { Pressable } from './Pressable';
 
 type Props = { venue: Venue; onPress: () => void; action?: ReactNode };
 
-/** One venue as a row: crowd dot, name, type · place · distance, crowd now; `action` on the right (else ›). */
+/** One venue as a row: gradient thumbnail, name, type · place · distance, crowd now; `action` on the right (else ›). */
 export function VenueRow({ venue, onPress, action }: Props) {
   const { point } = useLocation();
-  const { crowdLook } = useSettings();
   const km = point ? distanceKm(point, venue) : null;
   return (
     <Pressable onPress={onPress} style={styles.row}>
-      <CrowdDot venue={venue} size={14} />
+      <VenuePhoto venueId={venue.id} category={venue.category} photoAt={venue.photo_at} size={56} height={56} radius={14} centered />
       <View style={styles.flex}>
         <Text style={styles.name} numberOfLines={1}>
           {venue.name}
@@ -30,7 +29,9 @@ export function VenueRow({ venue, onPress, action }: Props) {
           {categoryLabel(venue.category)} · {shortLocation(venue.neighborhood, venue.district)}
           {km !== null ? ` · ${formatDistance(km)}` : ''}
         </Text>
-        <Text style={styles.muted}>{venue.open_now ? crowdLook(venue).label : 'Kapalı'}</Text>
+        <View style={styles.pill}>
+          <StatusPill venue={venue} />
+        </View>
       </View>
       {action ?? <Text style={styles.chevron}>›</Text>}
     </Pressable>
@@ -42,13 +43,14 @@ const styles = themed(() => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    padding: 12,
+    padding: 10,
     borderRadius: 14,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
   },
   flex: { flex: 1, gap: 2 },
+  pill: { marginTop: 3 },
   name: { fontSize: 16, fontWeight: '700', color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },
   chevron: { fontSize: 22, color: colors.textMuted },

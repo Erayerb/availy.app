@@ -5,7 +5,7 @@ import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { BackButton } from '../components/BackButton';
-import { ThemedSwitch } from '../components/ThemedSwitch';
+import { SettingsBlock, SettingsLink, SettingsSection, SettingsSwitch, TINT } from '../components/Settings';
 import { useSettings } from '../context/SettingsContext';
 import { safetyApi } from '../lib/safety';
 import { socialApi, type Privacy } from '../lib/social';
@@ -29,7 +29,7 @@ export function PrivacyScreen({ token, onBack, onOpenPermissions, onOpenLegal }:
     if (!token) return;
     socialApi
       .privacy(token)
-      .then(({ share_checkins, show_in_leaderboard, searchable, suggest_by_venues, regular_public, stats_visibility }) =>
+      .then(({ share_checkins, show_in_leaderboard, searchable, suggest_by_venues, regular_public, stats_visibility, moment_audience }) =>
         setPrivacy({
           share_checkins,
           show_in_leaderboard,
@@ -37,6 +37,7 @@ export function PrivacyScreen({ token, onBack, onOpenPermissions, onOpenLegal }:
           suggest_by_venues: suggest_by_venues ?? true,
           regular_public: regular_public ?? false,
           stats_visibility: stats_visibility === 'me' ? 'me' : 'friends',
+          moment_audience: moment_audience === 'friends' ? 'friends' : 'everyone',
         }),
       )
       .catch(() => setError('Gizlilik ayarları yüklenemedi.'));
@@ -64,116 +65,138 @@ export function PrivacyScreen({ token, onBack, onOpenPermissions, onOpenLegal }:
         <Text style={styles.title}>Gizlilik ayarları</Text>
       </View>
 
-      <View style={styles.card}>
-        <Row
-          title="Check-in'lerim varsayılan olarak gizli olsun"
-          subtitle="Check-in ekranında Gizli check-in açık başlar. Gizli check-in doluluğa sayılır ama adın görünmez."
+      <SettingsSection title="Check-in'ler" footer="Konumun hiçbir zaman paylaşılmaz. Gizli check-in doluluğa sayılır ama adın görünmez.">
+        <SettingsSwitch
+          icon="lock"
+          tint={TINT.dark}
+          title="Varsayılan olarak gizli"
+          subtitle="Check-in ekranında Gizli check-in açık başlar."
           value={privateByDefault}
           onChange={(v) => update({ privateByDefault: v })}
         />
-        {token && privacy && (
-          <>
-            <Row
-              title="Arkadaşlarım check-in'lerimi görsün"
-              subtitle="Kapalıysa check-in'lerin Akış'ta ve profilinde görünmez. Konumun hiçbir zaman paylaşılmaz."
-              value={privacy.share_checkins}
-              onChange={(v) => change({ share_checkins: v })}
-            />
-            <Row
-              title="Herkese açık sıralamada görüneyim"
+        {token && privacy ? (
+          <SettingsSwitch
+            icon="users"
+            tint={TINT.blue}
+            title="Arkadaşlarım görsün"
+            subtitle="Kapalıysa check-in'lerin Akış'ta ve profilinde görünmez."
+            value={privacy.share_checkins}
+            onChange={(v) => change({ share_checkins: v })}
+          />
+        ) : null}
+      </SettingsSection>
+
+      {token && privacy && (
+        <>
+          <SettingsSection title="Profil ve bulunabilirlik">
+            <SettingsSwitch
+              icon="trophy"
+              tint={TINT.gold}
+              title="Herkese açık sıralama"
               subtitle="Kapalıysa yalnızca arkadaşlarının sıralamasında görünürsün."
               value={privacy.show_in_leaderboard}
               onChange={(v) => change({ show_in_leaderboard: v })}
             />
-            <Row
+            <SettingsSwitch
+              icon="search"
+              tint={TINT.blue}
               title="Kullanıcı adımla aranabileyim"
               subtitle="Kapalıysa yalnızca QR kodun ya da davet bağlantınla eklenebilirsin."
               value={privacy.searchable}
               onChange={(v) => change({ searchable: v })}
             />
-            <Row
-              title="Arkadaş olarak önerilmeye izin ver"
-              subtitle="Açıksa aynı mekanlara gittiğin kişilerin Sosyal'deki “Önerilen kişiler”inde görünürsün (gizli check-in'ler sayılmaz). Profilin yine yalnızca arkadaşlarına açık."
+            <SettingsSwitch
+              icon="user-plus"
+              tint={TINT.green}
+              title="Arkadaş önerilerinde görün"
+              subtitle="Aynı mekanlara gittiğin kişilere önerilirsin (gizli check-in'ler sayılmaz)."
               value={privacy.suggest_by_venues}
               onChange={(v) => change({ suggest_by_venues: v })}
             />
-            <View style={styles.choice}>
-              <Text style={styles.sectionTitle}>Profilimdeki istatistikleri kimler görsün?</Text>
-              <Text style={styles.muted}>Puanların, check-in ve keşif sayın, haftalık serin ve rozetlerin.</Text>
-              <View style={styles.choiceRow}>
-                {(
-                  [
-                    { id: 'friends', label: 'Arkadaşlarım' },
-                    { id: 'me', label: 'Sadece ben' },
-                  ] as const
-                ).map((o) => (
-                  <Pressable
-                    key={o.id}
-                    onPress={() => change({ stats_visibility: o.id })}
-                    style={[styles.choiceChip, privacy.stats_visibility === o.id && styles.choiceChipOn]}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: privacy.stats_visibility === o.id }}
-                  >
-                    <Text style={[styles.choiceText, privacy.stats_visibility === o.id && styles.choiceTextOn]}>{o.label}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-            <Row
-              title="Müdavimi olduğum mekanlarda herkes görsün"
-              subtitle="Bir mekana son 30 günde en çok sen gidiyorsan mekan sayfasında “Buranın müdavimi @sen” yazar. Kapalıysa bunu yalnızca arkadaşların görür."
+            <SettingsSwitch
+              icon="crown"
+              tint={TINT.gold}
+              title="Müdavimliğim herkese açık"
+              subtitle="Mekan sayfasında “Buranın müdavimi @sen” yazar. Kapalıysa yalnızca arkadaşların görür."
               value={privacy.regular_public}
               onChange={(v) => change({ regular_public: v })}
             />
-          </>
-        )}
-        {!token && <Text style={styles.muted}>Diğer gizlilik ayarları için kayıt ol.</Text>}
-        {error && <Text style={styles.error}>{error}</Text>}
-      </View>
+          </SettingsSection>
 
-      {token && (
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Engellenenler · {blocked.length}</Text>
-          <Text style={styles.muted}>
-            Engellediğin kişi seni ekleyemez; yorumlarınızı birbiriniz göremezsiniz. Bir kişiyi profilinden engelleyebilirsin.
-          </Text>
-          {blocked.map((b) => (
-            <View key={b.username} style={styles.row}>
-              <Text style={[styles.text, styles.flex]}>@{b.username}</Text>
-              <Pressable onPress={() => safetyApi.unblock(token, b.username).then(load)} hitSlop={6}>
-                <Text style={styles.link}>Engeli kaldır</Text>
-              </Pressable>
-            </View>
-          ))}
-        </View>
+          <SettingsSection title="İstatistiklerimi kimler görsün?" footer="Puanların, check-in ve keşif sayın, haftalık serin ve rozetlerin.">
+            <SettingsLink
+              icon="users"
+              tint={TINT.blue}
+              title="Arkadaşlarım"
+              selected={privacy.stats_visibility === 'friends'}
+              onPress={() => change({ stats_visibility: 'friends' })}
+            />
+            <SettingsLink
+              icon="lock"
+              tint={TINT.dark}
+              title="Sadece ben"
+              selected={privacy.stats_visibility === 'me'}
+              onPress={() => change({ stats_visibility: 'me' })}
+            />
+          </SettingsSection>
+
+          <SettingsSection
+            title="“Şu an burada” fotoğraflarım"
+            footer="Check-in'de çektiğin fotoğraflar 24 saat mekan sayfasında görünür. Paylaşırken her seferinde değiştirebilirsin."
+          >
+            <SettingsLink
+              icon="world"
+              tint={TINT.green}
+              title="Herkes görsün"
+              selected={privacy.moment_audience !== 'friends'}
+              onPress={() => change({ moment_audience: 'everyone' })}
+            />
+            <SettingsLink
+              icon="users"
+              tint={TINT.blue}
+              title="Sadece arkadaşlarım"
+              selected={privacy.moment_audience === 'friends'}
+              onPress={() => change({ moment_audience: 'friends' })}
+            />
+          </SettingsSection>
+
+          <SettingsSection
+            title={`Engellenenler · ${blocked.length}`}
+            footer="Engellediğin kişi seni ekleyemez; yorumlarınızı birbiriniz göremezsiniz. Bir kişiyi profilinden engelleyebilirsin."
+          >
+            {blocked.length === 0 ? (
+              <SettingsBlock>
+                <Text style={styles.muted}>Kimseyi engellemedin.</Text>
+              </SettingsBlock>
+            ) : (
+              blocked.map((b) => (
+                <SettingsBlock key={b.username}>
+                  <View style={styles.row}>
+                    <Text style={[styles.text, styles.flex]}>@{b.username}</Text>
+                    <Pressable onPress={() => safetyApi.unblock(token, b.username).then(load)} hitSlop={6}>
+                      <Text style={styles.link}>Engeli kaldır</Text>
+                    </Pressable>
+                  </View>
+                </SettingsBlock>
+              ))
+            )}
+          </SettingsSection>
+        </>
       )}
+      {!token && <Text style={styles.muted}>Diğer gizlilik ayarları için kayıt ol.</Text>}
+      {error && <Text style={styles.error}>{error}</Text>}
 
-      <Pressable style={styles.card} onPress={onOpenPermissions}>
-        <Text style={styles.sectionTitle}>Konum ve izinler ›</Text>
-        <Text style={styles.muted}>Konum, kamera ve bildirim izinleri ne için kullanılıyor.</Text>
-      </Pressable>
-      <Pressable style={styles.card} onPress={onOpenLegal}>
-        <Text style={styles.sectionTitle}>Kullanım koşulları ›</Text>
-      </Pressable>
+      <SettingsSection>
+        <SettingsLink icon="location" tint={TINT.green} title="Konum ve izinler" onPress={onOpenPermissions} />
+        <SettingsLink icon="bookmarks" tint={TINT.grey} title="Kullanım koşulları" onPress={onOpenLegal} />
+      </SettingsSection>
     </ScrollView>
-  );
-}
-
-function Row({ title, subtitle, value, onChange }: { title: string; subtitle: string; value: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <View style={styles.row}>
-      <View style={styles.flex}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <Text style={styles.muted}>{subtitle}</Text>
-      </View>
-      <ThemedSwitch value={value} onValueChange={onChange} />
-    </View>
   );
 }
 
 const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 14 },
+  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 20 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
   card: { padding: 16, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 14 },

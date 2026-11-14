@@ -213,11 +213,13 @@ def friend_feed(
         f"""
         SELECT * FROM (
             -- A review written right after the check-in shows with it (older check-ins may have a note)
-            SELECT 'checkin' AS kind, c.created_at AS at, u.username, v.id AS venue_id, v.name AS venue_name,
+            SELECT 'checkin' AS kind, c.created_at AS at, u.username, v.id AS venue_id, v.name AS venue_name, v.category AS venue_category,
                    c.is_first, (SELECT COALESCE(sum(p.amount), 0) FROM points p WHERE p.checkin_id = c.id)::int AS points,
                    rv.rating, COALESCE(rv.body, c.note) AS body, NULL AS review_author,
                    rv.id AS review_id, COALESCE(rv.allow_replies, false) AS allow_replies, c.id AS checkin_id,
-                   c.level AS reported
+                   c.level AS reported,
+                   EXISTS (SELECT 1 FROM moment_photos m WHERE m.checkin_id = c.id AND m.expires_at > now()
+                           AND m.hidden_at IS NULL) AS has_moment
             FROM checkins c JOIN users u ON u.id = c.user_id JOIN venues v ON v.id = c.venue_id
             LEFT JOIN LATERAL (
                 SELECT r.id, r.rating, r.body, r.allow_replies FROM reviews r
@@ -225,8 +227,8 @@ def friend_feed(
             ) rv ON true
             WHERE {checkin_who} AND NOT c.is_demo AND c.created_at > %(since)s AND {plain}
             UNION ALL
-            SELECT 'review', r.created_at, u.username, v.id, v.name, false, 0, r.rating, r.body, NULL,
-                   r.id, r.allow_replies, NULL::bigint, NULL
+            SELECT 'review', r.created_at, u.username, v.id, v.name, v.category, false, 0, r.rating, r.body, NULL,
+                   r.id, r.allow_replies, NULL::bigint, NULL, false
             FROM reviews r JOIN users u ON u.id = r.user_id JOIN venues v ON v.id = r.venue_id
             WHERE r.user_id {author_in} AND r.created_at > %(since)s AND NOT {hidden_review("r")}
               -- Already shown with its check-in
@@ -235,8 +237,8 @@ def friend_feed(
                     AND c2.created_at > %(since)s
               )
             UNION ALL
-            SELECT 'reply', p.created_at, u.username, v.id, v.name, false, 0, NULL, p.body, a.username,
-                   r.id, r.allow_replies, NULL::bigint, NULL
+            SELECT 'reply', p.created_at, u.username, v.id, v.name, v.category, false, 0, NULL, p.body, a.username,
+                   r.id, r.allow_replies, NULL::bigint, NULL, false
             FROM review_replies p JOIN users u ON u.id = p.user_id JOIN reviews r ON r.id = p.review_id
             JOIN users a ON a.id = r.user_id JOIN venues v ON v.id = r.venue_id
             WHERE p.user_id {author_in} AND p.created_at > %(since)s AND NOT {hidden_reply("p")}

@@ -16,7 +16,7 @@ import { shortDate, timeAgo } from '../lib/crowd';
 import { categoryLabel } from '../lib/filters';
 import { friendsApi } from '../lib/friends';
 import { safetyApi, type Profile, type ProfileVenue, type Level } from '../lib/safety';
-import { categoryVisual } from '../lib/visuals';
+import { VenuePhoto } from '../components/VenuePhoto';
 import { Icon, InlineIcon } from '../components/Icon';
 import { confirmAction } from '../lib/confirm';
 import { colors, themed } from '../theme';
@@ -257,7 +257,7 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
 function VenueRow({ venue, onOpenVenue }: { venue: ProfileVenue; onOpenVenue: (v: { id: number }) => void }) {
   return (
     <Pressable onPress={() => onOpenVenue({ id: venue.venue_id })} style={styles.venue}>
-      <Icon name={categoryVisual(venue.category).icon} size={22} color={categoryVisual(venue.category).color} />
+      <VenuePhoto venueId={venue.venue_id} category={venue.category} size={46} height={46} radius={12} centered />
       <View style={styles.flex}>
         <Text style={styles.text}>
           {venue.venue_name}

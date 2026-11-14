@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { accountApi, ApiError, toUser, type LocalBusiness } from '../lib/accountApi';
+import { accountApi, type SocialProvider, ApiError, toUser, type LocalBusiness } from '../lib/accountApi';
 import { accountKey, normalizeUsername, validateUsername, type Role, type User } from '../lib/auth';
 import { moveAccountData } from '../lib/accountData';
 import { isLocalVenueId } from '../lib/localVenues';
@@ -111,6 +111,21 @@ export function useAuth() {
         // Also fills in the user name next time
         if (rememberMe) await saveJson(KEYS.lastLogin, login.trim());
         else await remove(KEYS.lastLogin);
+        await signIn(toUser(started.user, started.token, await localBusiness(started.user.id)));
+        return null;
+      } catch (e) {
+        return asMessage(e);
+      }
+    },
+    [signIn],
+  );
+
+  /** "Google / Apple ile devam et": the provider's ID token for our session (a new account the first time). */
+  const socialSignIn = useCallback(
+    async (provider: SocialProvider, idToken: string, name = '', invitedBy: string | null = null): Promise<string | null> => {
+      try {
+        const started = await accountApi.oauth(provider, idToken, name, invitedBy);
+        remember.current = true;
         await signIn(toUser(started.user, started.token, await localBusiness(started.user.id)));
         return null;
       } catch (e) {
@@ -241,6 +256,7 @@ export function useAuth() {
     user,
     ready,
     login,
+    socialSignIn,
     register,
     continueAsGuest,
     refreshMe,

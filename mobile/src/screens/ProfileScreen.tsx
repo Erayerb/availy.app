@@ -1,3 +1,4 @@
+import { InlineIcon } from '../components/Icon';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { TAB_BAR_SPACE } from '../components/TabBar';
@@ -5,6 +6,7 @@ import { Text, TextInput } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { ProfilePhoto } from '../components/ProfilePhoto';
+import { TINT } from '../components/Settings';
 import { Collapsible } from '../components/Collapsible';
 import { ProfileEditor } from '../components/business/ProfileEditor';
 import { CoverPhoto } from '../components/business/CoverPhoto';
@@ -128,7 +130,7 @@ export function ProfileScreen({
             </Text>
           </Pressable>
         )}
-        {user.emailVerified && <Text style={styles.success}>✓ E-posta doğrulandı</Text>}
+        {user.emailVerified && <Text style={styles.success}><InlineIcon name="circle-check" /> E-posta doğrulandı</Text>}
       </View>
 
       {user.email && !user.emailVerified && (
@@ -139,7 +141,7 @@ export function ProfileScreen({
         <View style={styles.card}>
           <View style={styles.verifyRow}>
             <Text style={[styles.bold, styles.flex, venue.verified && styles.success]}>
-              {venue.verified ? '✓ Doğrulanmış işletme' : 'Doğrulanmamış işletme'}
+              {venue.verified ? <><InlineIcon name="circle-check" /> Doğrulanmış işletme</> : 'Doğrulanmamış işletme'}
             </Text>
             {!venue.verified && (
               <Pressable style={styles.smallPrimary} onPress={onOpenVerification}>
@@ -187,7 +189,7 @@ function MyData({ token }: { token: string | null | undefined }) {
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   if (!token) return null;
   return (
-    <Collapsible title="Verilerimi indir" summary="Sunucuda senin hakkında tutulan her şey, tek dosyada">
+    <Collapsible icon="list" tint={TINT.green} title="Verilerimi indir" summary="Sunucuda senin hakkında tutulan her şey, tek dosyada">
       <Text style={styles.muted}>
         Hesap bilgilerin, check-in'lerin, puanların, yorumların, arkadaşların, grupların, kuponların ve sadakat
         kartların bir JSON dosyası olarak iner. Şifren ve telefon numaran dosyada yer almaz.
@@ -240,7 +242,7 @@ export function AccountSettings({
 
   return (
     <>
-      <Collapsible title="Kullanıcı adını değiştir" summary={user.username ? `Şu an @${user.username}` : undefined}>
+      <Collapsible icon="user" tint={TINT.blue} title="Kullanıcı adını değiştir" summary={user.username ? `Şu an @${user.username}` : undefined}>
         <TextInput
           value={username}
           onChangeText={(text) => {
@@ -274,11 +276,11 @@ export function AccountSettings({
         )}
       </Collapsible>
 
-      <Collapsible title="E-posta adresini değiştir" summary={user.email ? `Şu an ${user.email}` : undefined}>
+      <Collapsible icon="mail-forward" tint={TINT.blue} title="E-posta adresini değiştir" summary={user.email ? `Şu an ${user.email}` : undefined}>
         <EmailForm current={user.email} onSave={onChangeEmail} />
       </Collapsible>
 
-      <Collapsible title="Şifreni değiştir" summary="Mevcut şifren ve yeni şifren">
+      <Collapsible icon="password" tint={TINT.dark} title="Şifreni değiştir" summary="Mevcut şifren ve yeni şifren">
         <TextInput
           value={oldPassword}
           onChangeText={setOldPassword}
@@ -303,7 +305,7 @@ export function AccountSettings({
 
       <MyData token={user.token} />
 
-      <Collapsible title="Hesabı geçici olarak dondur" summary="Silmeden profilini ve aktiviteni gizler">
+      <Collapsible icon="hourglass" tint={TINT.gold} title="Hesabı geçici olarak dondur" summary="Silmeden profilini ve aktiviteni gizler">
         <Text style={styles.muted}>
           Profilin, check-in'lerin, yorumların ve sıralamadaki yerin kimseye görünmez; çıkış yapılır. Verilerin silinmez:
           tekrar giriş yaptığında hesabın olduğu gibi geri açılır.
@@ -316,7 +318,7 @@ export function AccountSettings({
         />
       </Collapsible>
 
-      <Collapsible title="Hesabı sil" summary="Hesabın ve yorumların kalıcı olarak silinir">
+      <Collapsible icon="trash" tint={TINT.red} title="Hesabı sil" summary="Hesabın ve yorumların kalıcı olarak silinir">
         <Text style={styles.muted}>
           Hesabın, yorumların, arkadaşlıkların ve puanların silinir; check-in'lerin yalnızca adsız doluluk bilgisi olarak
           kalır. Bu geri alınamaz.

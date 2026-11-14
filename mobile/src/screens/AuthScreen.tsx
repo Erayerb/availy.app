@@ -1,3 +1,5 @@
+import { SocialSignIn } from '../components/SocialSignIn';
+import type { SocialProvider } from '../lib/accountApi';
 import { ForgotPasswordScreen } from './ForgotPasswordScreen';
 import { LegalScreen } from './LegalScreen';
 import { useEffect, useState } from 'react';
@@ -23,10 +25,12 @@ type Props = {
   // `login` is the e-mail or the user name
   onLogin: (login: string, password: string, role: Role, remember: boolean) => Promise<string | null>;
   onRegister: (username: string, email: string, password: string, role: Role) => Promise<string | null>;
+  // "Apple / Google ile devam et" (personal accounts): the provider's token; signs up the first time
+  onSocial?: (provider: SocialProvider, idToken: string, name: string) => Promise<string | null>;
 };
 
 /** Sign in / sign up form (accounts on the server, v2). */
-export function AuthScreen({ mode, initialRole = 'personal', onBack, onSwitchMode, onLogin, onRegister }: Props) {
+export function AuthScreen({ mode, initialRole = 'personal', onBack, onSwitchMode, onLogin, onRegister, onSocial }: Props) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -102,6 +106,7 @@ export function AuthScreen({ mode, initialRole = 'personal', onBack, onSwitchMod
             </Text>
           )}
         </View>
+        {role === 'personal' && onSocial && <SocialSignIn onToken={onSocial} />}
         {isRegister && (
           <View>
             <TextInput

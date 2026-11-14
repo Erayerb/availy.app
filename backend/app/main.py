@@ -9,6 +9,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.auth_api import router as auth_router
+from app.moments_api import router as moments_router
+from app.moments import load_moment_counts
 from app.campaigns_api import router as campaigns_router
 from app.checkins_api import router as checkins_router
 from app.friends_api import router as friends_router
@@ -61,6 +63,7 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
 )
 app.include_router(auth_router)
+app.include_router(moments_router)
 app.include_router(checkins_router)
 app.include_router(friends_router)
 app.include_router(reviews_router)
@@ -118,6 +121,7 @@ class Venue(BaseModel):
     opens_at: str  # next opening time, shown when closed
     address: str | None = None  # written by the venue's business
     pending: bool = False  # added by a user, waiting for approval ("⏳ Onay bekliyor")
+    moments: int = 0  # "Şu an burada" photos anyone may see (last 24 hours)
     # The business's profile: cover photo (GET /v1/venues/{id}/photo), links, "✓ Doğrulanmış işletme"
     photo_at: datetime | None = None
     instagram: str | None = None
@@ -186,6 +190,7 @@ def with_crowds(conn: psycopg.Connection, venues: list[dict]) -> list[dict]:
     discoveries = load_discoveries(conn, ids, now)
     trends = load_trends(conn, ids, now)
     profiles = load_profiles(conn, ids)
+    moments = load_moment_counts(conn, ids, now)
     result = []
     for v in venues:
         opening = venue_hours(v)
@@ -196,6 +201,7 @@ def with_crowds(conn: psycopg.Connection, venues: list[dict]) -> list[dict]:
                 "crowd": crowds[v["id"]],
                 "discovery": discoveries.get(v["id"]),
                 "trend": trends.get(v["id"], 0),
+                "moments": moments.get(v["id"], 0),
                 "open_now": opening.is_open_at_hour(hour),
                 "hours": opening.label(),
                 "opens_at": opening.opens_at,

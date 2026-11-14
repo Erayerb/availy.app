@@ -221,7 +221,7 @@ function Loyalty({
         <Text style={styles.pointsLabel}>availo puanın</Text>
         <Text style={styles.points}>{serverPoints}</Text>
         <Text style={styles.muted}>
-          Her check-in 10, bir mekanın ilk check-in'i +50; her damga 5, kullandığın her kupon 10 puan.
+          Her damga 5, kullandığın her kupon 10 puan.
         </Text>
         {customerCode && (
           <>

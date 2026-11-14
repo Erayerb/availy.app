@@ -1,3 +1,4 @@
+import { RowsSkeleton } from './Skeleton';
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from './Text';
@@ -170,7 +171,7 @@ export function Leaderboard({ token, me, onOpenUser }: Props) {
       )}
 
       {error && <Text style={styles.error}>{error}</Text>}
-      {!board && !error && (scope !== 'group' || groupId) && <Text style={styles.muted}>Yükleniyor…</Text>}
+      {!board && !error && (scope !== 'group' || groupId) && <RowsSkeleton count={4} round />}
       {board && board.rows.length === 0 && (
         <Text style={styles.muted}>
           {period === 'week' ? 'Bu hafta henüz kimse puan kazanmadı.' : 'Henüz kimse puan kazanmadı.'}
@@ -182,12 +183,21 @@ export function Leaderboard({ token, me, onOpenUser }: Props) {
           onPress={() => row.username && onOpenUser(row.username)}
           style={[styles.row, row.me && styles.meRow]}
         >
-          <Text style={[styles.rank, row.me && styles.meText]}>{row.rank <= 3 && row.points > 0 ? <InlineIcon name="medal" color={MEDALS[row.rank - 1]} /> : `${row.rank}.`}</Text>
-          <Avatar username={row.username} size={28} framed={row.level === 'ambassador'} />
+          {/* First three: a gold / silver / bronze medal and the same colour around the photo */}
+          {row.rank <= 3 && row.points > 0 ? (
+            <View style={[styles.medal, { backgroundColor: MEDALS[row.rank - 1] }]}>
+              <Text style={styles.medalText}>{row.rank}</Text>
+            </View>
+          ) : (
+            <Text style={[styles.rank, row.me && styles.meText]}>{row.rank}.</Text>
+          )}
+          <View style={[styles.ring, row.rank <= 3 && row.points > 0 && { borderColor: MEDALS[row.rank - 1] }]}>
+            <Avatar username={row.username} size={30} framed={row.level === 'ambassador'} />
+          </View>
           <Text style={[styles.name, row.me && styles.meText]} numberOfLines={1}>
             {row.username ? `@${row.username}` : 'Misafir'}
             {/* Before "(sen)": a long name is cut at the end of the line */}
-            <LevelMark level={row.level} plain={row.me} />
+            <LevelMark level={row.level} />
             {row.me ? ' (sen)' : ''}
           </Text>
           <Text style={[styles.points, row.me && styles.meText]}>{row.points} puan</Text>
@@ -226,7 +236,7 @@ export function Leaderboard({ token, me, onOpenUser }: Props) {
           <InlineIcon name="trophy" /> Haftanın 1.si: {winners.map((u) => `@${u}`).join(', ')}
         </Text>
       )}
-      <Text style={styles.muted}>Sıralama her pazartesi sıfırlanır. Haftayı genel sıralamada 1. bitiren "Haftanın 1.si" rozetini alır.</Text>
+      <Text style={styles.muted}>Haftanın 1.si rozeti alır · her pazartesi sıfırlanır.</Text>
       <Text style={styles.muted}>Check-in 10 puan, bir mekanın ilk check-in'i +50 puan.</Text>
     </View>
   );
@@ -266,9 +276,12 @@ const styles = themed(() => StyleSheet.create({
   optionTextActive: { color: colors.text },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 12 },
   // My own row stands out
-  meRow: { backgroundColor: colors.primary },
-  meText: { color: colors.onPrimary },
-  rank: { width: 30, fontSize: 16, fontWeight: '800', color: colors.text, textAlign: 'center' },
+  meRow: { backgroundColor: colors.cream, borderWidth: 1.5, borderColor: colors.primary },
+  meText: { color: colors.text },
+  rank: { width: 26, fontSize: 15, fontWeight: '800', color: colors.textMuted, textAlign: 'center' },
+  medal: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  medalText: { fontSize: 13, fontWeight: '800', color: '#fff' },
+  ring: { padding: 2, borderRadius: 20, borderWidth: 2, borderColor: 'transparent' },
   name: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.text },
   points: { fontSize: 14, fontWeight: '700', color: colors.primary },
   prize: { fontSize: 14, fontWeight: '700', color: colors.gold, textAlign: 'center', marginTop: 6 },

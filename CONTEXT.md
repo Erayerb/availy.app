@@ -261,6 +261,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Son konum (yakındaki kampanya için): "konum kaydedilmez" metni değişir, ayrı açık izin alınır
 - "Daima" konum izni (uygulama kapalıyken öneri): izin metni ve Konum ve izinler sayfası güncellenir
 - Kullanıcı fotoğrafları: fotoğrafta başkalarının yüzü çıkabilir; şikâyet, kaldırma, saklama süresi
+- "Şu an burada" fotoğrafları (check-in'de çekilen, 24 saat görünen): fotoğraf telefonda yeniden kodlanır, içindeki konum (GPS) ve cihaz bilgileri (EXIF) sunucuya gönderilmeden silinir; 24 saat sonra fotoğraf sunucudan silinir. Bu "konum silinir" beyanı gizlilik politikasında yer alıyor (legal.ts "Ne kadar saklıyoruz?"); doğruluğu ve yeterliliği, başkalarının yüzü (açık rıza gerekir mi), şikâyet/kaldırma süreci ve 2 şikâyette gizleme kuralı hukukçuya sorulacak
 
 **Gerçek uygulama sürümü gerektirenler** (Apple Developer hesabı, EAS Build; Expo Go'da olmaz)
 - Instagram / TikTok'ta Paylaş'a basınca listede availo çıkması, mekanın favorilere girmesi
@@ -301,6 +302,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - iPhone ana ekran widget'ı: favori mekanın şu anki doluluğu (EAS Build + iOS widget eklentisi; Android widget'ı da düşünülebilir)
 
 **Güvenlik ve hile**
+- Google / Apple ile giriş: kod hazır (POST /v1/auth/oauth, user_identities); kimlikler girilince butonlar görünür. Kurulum: docs/social-sign-in.md
 - Onay bekleyen mekan sınırı (kişi başı 3) şimdilik kaldırıldı; yayından önce yeniden düşün (sahte mekan yağmuru)
 - Aynı IP'den çok sayıda giriş denemesine sınır (hesap kilidi var, IP sınırı yok)
 - Yanlış şifre kilidi: Resend alan adı doğrulanmadan "Şifremi unuttum" e-postası yalnızca hesap sahibine gider; yayından önce alan adı şart. Başkası bilerek yanlış şifre girip bir hesabı kilitleyebilir (e-postayla açılır)

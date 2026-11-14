@@ -1,3 +1,5 @@
+import { InlineStars } from '../components/Stars';
+import { MomentStrip } from '../components/MomentStrip';
 import { useEffect, useState } from 'react';
 import { Linking, Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { TAB_BAR_SPACE } from '../components/TabBar';
@@ -162,7 +164,7 @@ export function VenueDetailScreen({
         <View style={styles.nameRow}>
           <Text style={[styles.name, styles.flex]}>
             {venue.name}
-            {venue.verified && <Text style={styles.verified}> ✓</Text>}
+            {venue.verified && <Text style={styles.verified}> <InlineIcon name="circle-check" color={colors.primary} /></Text>}
           </Text>
           {/* Closed, wrong hours / location / name: 3 people → the admin checks it */}
           {herePerson && !owner && <WrongInfo venueId={venue.id} venueName={venue.name} token={herePerson} />}
@@ -208,13 +210,14 @@ export function VenueDetailScreen({
         )}
         {reviews.average !== null && (
           <Text style={styles.rating}>
-            <Text style={styles.ratingStars}>{stars(Math.round(reviews.average))}</Text> {reviews.average} · {writtenCount > 0 ? `${writtenCount} yorum` : `${reviews.count} puan`}
+            <InlineStars rating={Math.round(reviews.average)} /> {reviews.average} · {writtenCount > 0 ? `${writtenCount} yorum` : `${reviews.count} puan`}
           </Text>
         )}
         <Text style={styles.muted}>
           {categoryLabel(venue.category)} · {shortLocation(venue.neighborhood, venue.district)}
           {point ? ` · ${formatDistance(distanceKm(point, venue))}` : ''}
         </Text>
+        {user?.role !== 'business' && <BusinessRequest venueId={venue.id} token={user?.token ?? null} onLogin={onLogin} />}
       </View>
       {note && <Text style={styles.note}>{note}</Text>}
       {/* Written by the venue's business */}
@@ -248,6 +251,7 @@ export function VenueDetailScreen({
           <Text style={styles.unusual}>{usualNowText(liveLevel(venue), typical?.usual_now)}</Text>
         )}
         {venue.open_now && crowdYesterday(venue.crowd) && <Text style={styles.text}><InlineIcon name="history" /> {crowdYesterday(venue.crowd)}</Text>}
+        <MomentStrip venueId={venue.id} token={user?.token ?? null} onOpenUser={onOpenUser} reloadKey={venue} />
         <FriendsHere venueId={venue.id} token={herePerson} onOpenUser={onOpenUser} reloadKey={venue} />
         <VenueRegular venueId={venue.id} token={herePerson} onOpenUser={onOpenUser} reloadKey={venue} />
         <Text style={styles.text}><InlineIcon name="clock" /> {venue.hours}</Text>
@@ -325,7 +329,6 @@ export function VenueDetailScreen({
         </View>
       )}
 
-      {user?.role !== 'business' && <BusinessRequest venueId={venue.id} token={user?.token ?? null} onLogin={onLogin} />}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Özellikler</Text>

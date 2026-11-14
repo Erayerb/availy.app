@@ -2,6 +2,7 @@ import { Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { TAB_BAR_SPACE } from '../components/TabBar';
 import { usePageTop } from '../context/PageContext';
 import { Text } from '../components/Text';
+import { Icon, type IconName } from '../components/Icon';
 import { Pressable } from '../components/Pressable';
 
 import type { Screen } from '../components/TabBar';
@@ -13,49 +14,57 @@ import { SUPPORT_SITE_URL } from '../lib/share';
 import { colors, themed } from '../theme';
 
 // `url`: opens a web page instead of a screen (the screen is the fallback until the page exists)
-type Item = { screen: Screen; label: string; hint?: string; badge?: string; url?: string | null; disabled?: boolean };
+type Item = { screen: Screen; label: string; hint?: string; badge?: string; url?: string | null; disabled?: boolean; icon?: IconName };
+
+// A coloured square per row (iOS settings style); same colour family as the venue cards
+const ICON_COLORS: Partial<Record<IconName, string>> = {
+  user: '#2F6AA3', 'building-store': '#2F6AA3', tag: '#C8102E', crown: '#C9962B', bell: '#D9480F', moon: '#7B5EA7',
+  lock: '#3A3F47', location: '#2E9E4F', id: '#2E9E4F', settings: '#6B7280', 'message-circle': '#2F6AA3',
+  bug: '#D9480F', compass: '#7B5EA7', bookmarks: '#6B7280', star: '#C9962B', camera: '#2E9E4F', eye: '#C8102E',
+};
 
 const CUSTOMER_ITEMS: Item[] = [
-  { screen: 'profile', label: 'Profil ayarları', hint: 'Kullanıcı adı, e-posta, şifre, hesabı dondurma ve silme' },
-  { screen: 'campaigns', label: 'Kampanyalar', hint: 'Yakındaki kampanyalar, kuponların ve sadakat kartların' },
-  { screen: 'subscription', label: 'Abonelik', hint: 'Ücretsiz ya da Premium (₺79/ay)' },
-  { screen: 'settings', label: 'Bildirim ayarları', hint: 'Check-in önerileri, sakinleşince haber ver, arkadaşlık, yorum ve beğeniler' },
-  { screen: 'appearance', label: 'Görünüm', hint: 'Açık ya da koyu tema, renk körlüğü dostu mod' },
-  { screen: 'privacy', label: 'Gizlilik ayarları', hint: "Check-in'lerimi kim görür, sıralama, aranabilirlik, engellenenler" },
-  { screen: 'permissions', label: 'Konum ve izinler', hint: 'Konum, kamera ve bildirim izinleri ne için kullanılıyor' },
+  { screen: 'profile', label: 'Profil ayarları', icon: 'user', hint: 'Kullanıcı adı, e-posta, şifre, hesabı dondurma ve silme' },
+  { screen: 'campaigns', label: 'Kampanyalar', icon: 'tag', hint: 'Yakındaki kampanyalar, kuponların ve sadakat kartların' },
+  { screen: 'subscription', label: 'Abonelik', icon: 'crown', hint: 'Ücretsiz ya da Premium (₺79/ay)' },
+  { screen: 'settings', label: 'Bildirim ayarları', icon: 'bell', hint: 'Check-in önerileri, sakinleşince haber ver, arkadaşlık, yorum ve beğeniler' },
+  { screen: 'appearance', label: 'Görünüm', icon: 'moon', hint: 'Açık ya da koyu tema, renk körlüğü dostu mod' },
+  { screen: 'privacy', label: 'Gizlilik ayarları', icon: 'lock', hint: "Check-in'lerimi kim görür, sıralama, aranabilirlik, engellenenler" },
+  { screen: 'permissions', label: 'Konum ve izinler', icon: 'location', hint: 'Konum, kamera ve bildirim izinleri ne için kullanılıyor' },
 ];
 
 // A guest has no account to set up, nothing to subscribe to and no friends to hide from: signing up is the card on top
 const GUEST_ITEMS: Item[] = [
-  { screen: 'profile', label: 'Puanın', hint: 'Misafir olarak topladıkların' },
-  { screen: 'campaigns', label: 'Kampanyalar', hint: 'Yakındaki kampanyalar ve kuponlar' },
-  { screen: 'settings', label: 'Bildirim ayarları', hint: 'Check-in önerileri, sakinleşince haber ver' },
-  { screen: 'appearance', label: 'Görünüm', hint: 'Açık ya da koyu tema, renk körlüğü dostu mod' },
-  { screen: 'permissions', label: 'Konum ve izinler', hint: 'Konum, kamera ve bildirim izinleri ne için kullanılıyor' },
+  { screen: 'profile', label: 'Puanın', icon: 'star', hint: 'Misafir olarak topladıkların' },
+  { screen: 'campaigns', label: 'Kampanyalar', icon: 'tag', hint: 'Yakındaki kampanyalar ve kuponlar' },
+  { screen: 'settings', label: 'Bildirim ayarları', icon: 'bell', hint: 'Check-in önerileri, sakinleşince haber ver' },
+  { screen: 'appearance', label: 'Görünüm', icon: 'moon', hint: 'Açık ya da koyu tema, renk körlüğü dostu mod' },
+  { screen: 'permissions', label: 'Konum ve izinler', icon: 'location', hint: 'Konum, kamera ve bildirim izinleri ne için kullanılıyor' },
 ];
 
 const BUSINESS_ITEMS: Item[] = [
-  { screen: 'profile', label: 'İşletme profili', hint: 'Kapak fotoğrafı, ad, saatler, özellikler, adres ve konum, iletişim' },
-  { screen: 'verification', label: 'İşletme doğrulama', hint: 'Mekan sahipliğini kanıtla', badge: 'Yakında' },
-  { screen: 'subscription', label: 'Abonelik', hint: 'Kampanya başı ödeme ya da aylık paket' },
-  { screen: 'settings', label: 'Ayarlar', hint: 'Hesap, ölü saat bildirimi, otomatik kampanya' },
-  { screen: 'appearance', label: 'Görünüm', hint: 'Açık ya da koyu tema, renk körlüğü dostu mod' },
-  { screen: 'permissions', label: 'İzinler', hint: 'Kamera ve bildirim izinleri ne için kullanılıyor' },
+  { screen: 'profile', label: 'İşletme profili', icon: 'building-store', hint: 'Kapak fotoğrafı, ad, saatler, özellikler, adres ve konum, iletişim' },
+  { screen: 'verification', label: 'İşletme doğrulama', icon: 'id', hint: 'Mekan sahipliğini kanıtla', badge: 'Yakında' },
+  { screen: 'subscription', label: 'Abonelik', icon: 'crown', hint: 'Kampanya başı ödeme ya da aylık paket' },
+  { screen: 'settings', label: 'Ayarlar', icon: 'settings', hint: 'Hesap, ölü saat bildirimi, otomatik kampanya' },
+  { screen: 'appearance', label: 'Görünüm', icon: 'moon', hint: 'Açık ya da koyu tema, renk körlüğü dostu mod' },
+  { screen: 'permissions', label: 'İzinler', icon: 'camera', hint: 'Kamera ve bildirim izinleri ne için kullanılıyor' },
 ];
 
 const COMMON_ITEMS: Item[] = [
   {
     screen: 'support',
     label: 'Destek',
+    icon: 'message-circle',
     hint: 'Sık sorulan sorular ve yardım',
     url: SUPPORT_SITE_URL,
     // Until the introduction website is up it cannot be opened ("Hata bildir ve iletişim" is below)
     badge: SUPPORT_SITE_URL ? undefined : 'Yakında',
     disabled: !SUPPORT_SITE_URL,
   },
-  { screen: 'support', label: 'Hata bildir ve iletişim', hint: 'Sorun bildir ya da bize yaz' },
-  { screen: 'about', label: 'Hakkında', hint: 'Nasıl kullanılır, web sitemiz' },
-  { screen: 'legal', label: 'Kullanım koşulları', hint: 'Kullanım koşulları ve gizlilik politikası (KVKK)' },
+  { screen: 'support', label: 'Hata bildir ve iletişim', icon: 'bug', hint: 'Sorun bildir ya da bize yaz' },
+  { screen: 'about', label: 'Hakkında', icon: 'compass', hint: 'Nasıl kullanılır, web sitemiz' },
+  { screen: 'legal', label: 'Kullanım koşulları', icon: 'bookmarks', hint: 'Kullanım koşulları ve gizlilik politikası (KVKK)' },
 ];
 
 type Props = {
@@ -70,11 +79,14 @@ type Props = {
 export function MoreScreen({ user, onSelect, onLogin, onRegister, onLogout }: Props) {
   const guest = !user || user.isGuest;
   const top = usePageTop();
-  const items = [
-    ...(guest ? GUEST_ITEMS : isBusiness(user) ? BUSINESS_ITEMS : CUSTOMER_ITEMS),
-    // A guest sees no row that cannot be opened yet
-    ...COMMON_ITEMS.filter((item) => !(guest && item.disabled)),
-    ...(user?.isAdmin ? [{ screen: 'admin' as Screen, label: 'Yönetici', hint: 'Şikâyet edilen yorum ve yanıtlar' }] : []),
+  // Two groups: the account, then help and the rules
+  const groups: Item[][] = [
+    guest ? GUEST_ITEMS : isBusiness(user) ? BUSINESS_ITEMS : CUSTOMER_ITEMS,
+    [
+      // A guest sees no row that cannot be opened yet
+      ...COMMON_ITEMS.filter((item) => !(guest && item.disabled)),
+      ...(user?.isAdmin ? [{ screen: 'admin' as Screen, label: 'Yönetici', icon: 'eye' as IconName, hint: 'Şikâyet edilen yorum ve yanıtlar' }] : []),
+    ],
   ];
 
   return (
@@ -104,23 +116,32 @@ export function MoreScreen({ user, onSelect, onLogin, onRegister, onLogout }: Pr
       {/* Personal accounts: until the profile is complete (Tam profil badge) */}
       {user && !user.isGuest && !isBusiness(user) && user.profile && <ProfileCompletion steps={user.profile} onOpen={onSelect} />}
 
-      <View style={styles.card}>
-        {items.map((item, i) => (
-          <Pressable
-            key={item.label}
-            onPress={() => (item.url ? Linking.openURL(item.url).catch(() => onSelect(item.screen)) : onSelect(item.screen))}
-            disabled={item.disabled}
-            style={({ pressed }) => [styles.row, i > 0 && styles.divider, pressed && styles.pressed, item.disabled && styles.disabled]}
-          >
-            <View style={styles.rowText}>
-              <Text style={styles.label}>{item.label}</Text>
-              {item.hint && <Text style={styles.hint}>{item.hint}</Text>}
-            </View>
-            {item.badge && <Text style={styles.badge}>{item.badge}</Text>}
-            {!item.disabled && <Text style={styles.chevron}>›</Text>}
-          </Pressable>
-        ))}
-      </View>
+      {groups.map((items, g) => (
+        <View key={g} style={styles.card}>
+          {items.map((item, i) => (
+            <Pressable
+              key={item.label}
+              onPress={() => (item.url ? Linking.openURL(item.url).catch(() => onSelect(item.screen)) : onSelect(item.screen))}
+              disabled={item.disabled}
+              style={({ pressed }) => [styles.row, pressed && styles.pressed, item.disabled && styles.disabled]}
+            >
+              {item.icon && (
+                <View style={[styles.iconBox, { backgroundColor: ICON_COLORS[item.icon] ?? '#6B7280' }]}>
+                  <Icon name={item.icon} size={17} color="#fff" />
+                </View>
+              )}
+              <View style={[styles.rowText, i > 0 && styles.divider]}>
+                <View style={styles.flex}>
+                  <Text style={styles.label}>{item.label}</Text>
+                  {item.hint && <Text style={styles.hint} numberOfLines={1}>{item.hint}</Text>}
+                </View>
+                {item.badge && <Text style={styles.badge}>{item.badge}</Text>}
+                {!item.disabled && <Text style={styles.chevron}>›</Text>}
+              </View>
+            </Pressable>
+          ))}
+        </View>
+      ))}
 
       {!guest && (
         <Pressable onPress={onLogout} style={styles.logout}>
@@ -146,12 +167,14 @@ const styles = themed(() => StyleSheet.create({
     borderColor: colors.border,
     overflow: 'hidden',
   },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14, paddingHorizontal: 16 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 14 },
+  iconBox: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  flex: { flex: 1, gap: 2 },
   divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   pressed: { backgroundColor: colors.cream },
   disabled: { opacity: 0.55 },
-  rowText: { flex: 1, gap: 2 },
-  label: { fontSize: 16, color: colors.text },
+  rowText: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingRight: 14 },
+  label: { fontSize: 16, fontWeight: '500', color: colors.text },
   hint: { fontSize: 12, color: colors.textMuted },
   badge: {
     fontSize: 11,
