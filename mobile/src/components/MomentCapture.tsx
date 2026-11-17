@@ -61,7 +61,7 @@ export function MomentCapture({ token, checkinId }: Props) {
     try {
       const saved = await momentsApi.add(token, checkinId, `data:image/jpeg;base64,${shot.base64}`, audience);
       setState('done');
-      setMessage(`Paylaşıldı${audience === 'friends' ? ' (sadece arkadaşların)' : ''} · +${saved.points ?? 5} puan. 24 saat sonra silinir.`);
+      setMessage(`Paylaşıldı${audience === 'friends' ? ' (sadece arkadaşların)' : ''} · +${saved.points ?? 5} puan. Mekan kapandıktan 1 saat sonra silinir.`);
       notifyVenuesChanged();
     } catch (e) {
       setState('idle');
@@ -122,7 +122,7 @@ export function MomentCapture({ token, checkinId }: Props) {
   return (
     <View style={styles.box}>
       <Text style={styles.title}><InlineIcon name="camera" /> Şu anı paylaş</Text>
-      <Text style={styles.note}>Ortamın fotoğrafı 24 saat mekan sayfasında “Şu an burada” olarak görünür. İnsanları yakından çekme.</Text>
+      <Text style={styles.note}>Ortamın fotoğrafı mekan kapanana kadar sayfasında “Şu an burada” olarak görünür. İnsanları yakından çekme.</Text>
       <Pressable onPress={take} style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
         <Text style={styles.buttonText}>Fotoğraf çek · +5 puan</Text>
       </Pressable>

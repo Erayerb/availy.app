@@ -41,3 +41,10 @@ test('a moment photo shows the time left before it disappears', async () => {
   assert.equal(timeLeft('2026-11-14T12:40:00Z', now), '40 dk');
   assert.equal(timeLeft('2026-11-14T11:00:00Z', now), '0 dk');
 });
+
+test('a check-in with friends there says so', async () => {
+  const { checkinMessage } = await import('../src/lib/checkinApi.ts');
+  const base = { is_first: false, points_earned: 10, visitor_rank: null, my_visits: 3, points_note: null, first_today: false };
+  assert.equal(checkinMessage(base), "+10 puan · Buraya 3. check-in'in");
+  assert.match(checkinMessage({ ...base, together: ['ayse'] }), /@ayse ile birliktesiniz · \+10 puan$/);
+});

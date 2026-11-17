@@ -16,7 +16,9 @@ export function parseNominatimAddress(address: NominatimAddress | undefined): Ad
   if (!address) return null;
   const district = clean(address.town ?? address.city_district ?? address.district ?? address.county);
   if (!district) return null;
-  const neighborhood = clean(address.quarter ?? address.neighbourhood ?? address.suburb);
+  // The mahalle when OSM names it ("neighbourhood": Trump Towers → Mecidiyeköy, not the wider "Osmanbey"),
+  // then the well-known semt ("quarter": Moda), then the wider area ("suburb")
+  const neighborhood = clean(address.neighbourhood ?? address.quarter ?? address.suburb);
   const line = [address.road ?? address.pedestrian, address.house_number].filter(Boolean).join(' ');
   return line ? { district, neighborhood, line } : { district, neighborhood };
 }

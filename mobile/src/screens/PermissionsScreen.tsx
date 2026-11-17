@@ -1,3 +1,4 @@
+import { useLocation } from '../context/LocationContext';
 import { useCameraPermissions } from 'expo-camera';
 import * as Contacts from 'expo-contacts/legacy';
 import * as Location from 'expo-location';
@@ -69,6 +70,7 @@ export function PermissionsScreen({
   business?: boolean;
   onBack: () => void;
 }) {
+  const { approximate } = useLocation();
   const [location, setLocation] = useState<Status>('unknown');
   const [notifications, setNotifications] = useState<Status>('unknown');
   const [contacts, setContacts] = useState<Status>('unknown');
@@ -189,7 +191,20 @@ export function PermissionsScreen({
         >
           {/* Konum: its state, "Düzenle" and the features it covers */}
           {p.title === 'Konum' ? (
-            <LocationAccess onChange={refresh} />
+            <>
+              <LocationAccess onChange={refresh} />
+              {/* Precise or approximate: approximate can be a few km off, so check-in and distances go wrong */}
+              <Text style={approximate ? styles.warn : styles.muted}>
+                {approximate
+                  ? `Konumun yaklaşık paylaşılıyor; birkaç km sapabilir. ${isWeb ? '' : Platform.OS === 'ios' ? "Ayarlar › Expo Go / availo › Konum › Kesin Konum'u aç." : "Ayarlar › Uygulamalar › Konum › Tam konum'u seç."}`
+                  : 'Tam konum açık olmalı: kapalıysa telefon yalnızca yaklaşık bir yer verir (birkaç km sapabilir).'}
+              </Text>
+              {approximate && !isWeb && (
+                <Pressable style={styles.secondary} onPress={() => Linking.openSettings()}>
+                  <Text style={styles.secondaryText}>Ayarlarda aç</Text>
+                </Pressable>
+              )}
+            </>
           ) : (
             <>
               <Text style={styles.label}>Ne için kullanıyoruz</Text>
@@ -262,6 +277,7 @@ const styles = themed(() => StyleSheet.create({
   muted: { fontSize: 13, color: colors.textMuted, marginTop: 4 },
   // "İzin vermezsen" stands out
   without: { fontSize: 14, fontWeight: '700', color: colors.text, marginTop: 6 },
+  warn: { fontSize: 13, fontWeight: '700', color: colors.danger, marginTop: 6 },
   secondary: {
     marginTop: 8,
     paddingVertical: 11,

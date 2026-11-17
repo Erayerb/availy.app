@@ -1,3 +1,4 @@
+import type { NewBadge } from '../lib/badgeEvents';
 import { Modal, StyleSheet, View } from 'react-native';
 
 import { useBadgeCelebration } from '../lib/badgeEvents';
@@ -17,13 +18,19 @@ export function BadgeCelebration() {
       <Pressable style={styles.backdrop} onPress={close}>
         <Pressable style={styles.box} onPress={() => {}}>
           <Celebration emoji={badges[0]?.icon} first={badges[0]?.id === 'explorer'} />
-          <Text style={styles.title}>{badges.length > 1 ? `${badges.length} yeni rozet!` : 'Yeni rozet!'}</Text>
-          {badges.map((b) => (
-            <Text key={b.id} style={styles.line}>
-              {b.icon} {b.name} · +{b.points} puan
-            </Text>
-          ))}
-          {badges.length > 1 && <Text style={styles.total}>Toplam +{total} puan</Text>}
+          <Text style={styles.title}>{title(badges)}</Text>
+          {badges.map((b) =>
+            // A streak alone is the title; with badges it is one of the lines
+            b.kind === 'streak' && badges.length === 1 ? (
+              <Text key={b.id} style={styles.total}>Her hafta en az bir check-in yap, seri sürsün.</Text>
+            ) : (
+              <Text key={b.id} style={styles.line}>
+                {b.icon} {b.name}
+                {b.points > 0 ? ` · +${b.points} puan` : ''}
+              </Text>
+            ),
+          )}
+          {badges.filter((b) => b.points > 0).length > 1 && <Text style={styles.total}>Toplam +{total} puan</Text>}
           <Pressable style={styles.button} onPress={close}>
             <Text style={styles.buttonText}>Harika</Text>
           </Pressable>
@@ -31,6 +38,12 @@ export function BadgeCelebration() {
       </Pressable>
     </Modal>
   );
+}
+
+function title(badges: NewBadge[]): string {
+  const real = badges.filter((b) => b.kind !== 'streak');
+  if (!real.length) return `${badges[0]?.icon ?? ''} ${badges[0]?.name ?? ''}`.trim();
+  return real.length > 1 ? `${real.length} yeni rozet!` : 'Yeni rozet!';
 }
 
 const styles = themed(() => StyleSheet.create({

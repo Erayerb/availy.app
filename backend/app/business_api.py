@@ -54,6 +54,9 @@ class StatsOut(BaseModel):
     month_people: int = 0  # different people in the last 30 days
     regulars: int = 0  # of them, people with 3+ check-ins
     top_visits: list[int] = []  # check-ins of the 5 most frequent people (anonymous)
+    month_checkins: int = 0  # this month so far
+    last_month_checkins: int = 0  # the same days of last month
+    month_change_pct: int | None = None  # +20 = 20% more than last month (None: nothing last month)
 
 
 def _fail(e: BusinessError) -> HTTPException:

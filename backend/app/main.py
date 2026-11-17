@@ -13,6 +13,7 @@ from app.moments_api import router as moments_router
 from app.moments import load_moment_counts
 from app.sponsors import active_sponsored
 from app.sponsors_api import router as sponsors_router
+from app.place_candidates_api import router as candidates_router
 from app.campaigns_api import router as campaigns_router
 from app.checkins_api import router as checkins_router
 from app.friends_api import router as friends_router
@@ -67,6 +68,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(moments_router)
 app.include_router(sponsors_router)
+app.include_router(candidates_router)
 app.include_router(checkins_router)
 app.include_router(friends_router)
 app.include_router(reviews_router)

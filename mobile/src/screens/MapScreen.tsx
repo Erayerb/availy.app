@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Linking, Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
+import * as Location from 'expo-location';
 import { TAB_BAR_HEIGHT } from '../components/TabBar';
 import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
@@ -100,7 +101,7 @@ export function MapScreen({
 
   const showPopup = selected !== undefined && alternativesFor === selected.id;
   const { campaigns, now, activeFor } = useCampaigns();
-  const { point, locate } = useLocation();
+  const { point, locate, approximate } = useLocation();
   const [legendHeight, setLegendHeight] = useState(0);
   const [locateNote, setLocateNote] = useState<string | null>(null);
 
@@ -180,6 +181,25 @@ export function MapScreen({
         <Icon name="map-pin" size={17} color={colors.onPrimary} />
         <Text style={styles.checkinText}>Check-in</Text>
       </Pressable>
+      {/* The phone shares only an approximate place: say how to turn on the precise one */}
+      {approximate && !locateNote && (
+        <Pressable
+          style={[styles.approxNote, { top: headerBottom + 8 }]}
+          onPress={async () => {
+            // Android asks again (it offers "Tam konum"); iOS only changes it in Settings
+            if (Platform.OS === 'android') {
+              await Location.requestForegroundPermissionsAsync().catch(() => null);
+              locate();
+            } else {
+              Linking.openSettings().catch(() => {});
+            }
+          }}
+        >
+          <Text style={styles.approxText}>
+            📍 Konumun yaklaşık · {Platform.OS === 'ios' ? 'Kesin Konum' : 'Tam konum'}'u aç ›
+          </Text>
+        </Pressable>
+      )}
       {locateNote && (
         <Text style={[styles.locateNote, { bottom: (showPopup ? popupHeight : legendHeight) + TAB_BAR_HEIGHT + 28 }]}>{locateNote}</Text>
       )}
@@ -301,6 +321,11 @@ export function MapScreen({
             onSelect(null);
             setFocus({ lat: place.lat, lon: place.lon, key: Date.now(), zoom: PLACE_ZOOM });
           }}
+          token={friendsToken}
+          onAddedCandidate={(venue) => {
+            setSearching(false);
+            onOpenDetails(venue as Venue);
+          }}
         />
       )}
     </View>
@@ -308,6 +333,9 @@ export function MapScreen({
 }
 
 const styles = themed(() => StyleSheet.create({
+  // A small pill under the filters (not over the Check-in button)
+  approxNote: { position: 'absolute', left: 12, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 12, backgroundColor: colors.primary },
+  approxText: { color: colors.onPrimary, fontSize: 12, fontWeight: '700' },
   container: { flex: 1 },
   header: {
     position: 'absolute',

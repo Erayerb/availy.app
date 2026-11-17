@@ -1,3 +1,4 @@
+import { CandidateResults } from '../components/CandidateResults';
 import { RowsSkeleton } from '../components/Skeleton';
 import { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
@@ -23,10 +24,16 @@ import { InlineIcon } from '../components/Icon';
 const NEARBY_DELTA = 0.015;
 const MAX_NEARBY = 30;
 
-type Props = { onBack: () => void; onOpenVenue: (venue: Venue) => void; onAddVenue: () => void; visits: Visit[] };
+type Props = {
+  onBack: () => void;
+  onOpenVenue: (venue: Venue | { id: number }) => void;
+  onAddVenue: () => void;
+  visits: Visit[];
+  token?: string | null; // "Haritada yok mu?": adding a place from open data
+};
 
 /** v2 map "+": nearest venues and a search; tapping one opens its page, where the check-in is. */
-export function CheckinScreen({ onBack, onOpenVenue, onAddVenue, visits }: Props) {
+export function CheckinScreen({ onBack, onOpenVenue, onAddVenue, visits, token = null }: Props) {
   const { point, locate } = useLocation();
   const { crowdLook } = useSettings();
   const [query, setQuery] = useState('');
@@ -122,6 +129,8 @@ export function CheckinScreen({ onBack, onOpenVenue, onAddVenue, visits }: Props
         loading && !error ? <RowsSkeleton count={5} /> : empty ? <Text style={error ? styles.error : styles.muted}>{empty}</Text> : undefined
       }
       keyboardShouldPersistTaps="handled"
+      // Not on the map yet: matching places from open data, added on the spot
+      ListFooterComponent={query.trim() ? <CandidateResults query={query} token={token} onAdded={onOpenVenue} /> : undefined}
       renderItem={({ item }) => {
         const km = point ? distanceKm(point, item) : null;
         const reachable = km !== null && km <= CHECKIN_RADIUS_KM && item.open_now;

@@ -21,6 +21,9 @@ export type VenueStats = {
   month_people: number;
   regulars: number;
   top_visits: number[];
+  month_checkins?: number; // this month so far
+  last_month_checkins?: number; // the same days of last month
+  month_change_pct?: number | null; // +20 = 20% more than last month
 };
 
 export const MAX_REWARD = 120;
@@ -79,3 +82,10 @@ export const quietSlotSchedule = (slot: QuietSlot, category: string) => ({
   start_hour: slot.start_hour,
   duration_hours: slot.hours,
 });
+
+/** "Geçen aya göre +%20" / "−%10" / "aynı"; null when last month had nothing to compare with. */
+export function monthChangeText(pct: number | null | undefined): string | null {
+  if (pct === null || pct === undefined) return null;
+  if (pct === 0) return 'geçen ayla aynı';
+  return `geçen aya göre ${pct > 0 ? '+' : '−'}%${Math.abs(pct)}`;
+}

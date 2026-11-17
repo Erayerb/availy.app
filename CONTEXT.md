@@ -303,6 +303,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - iPhone ana ekran widget'ı: favori mekanın şu anki doluluğu (EAS Build + iOS widget eklentisi; Android widget'ı da düşünülebilir)
 
 **Güvenlik ve hile**
+- Mekan verisi: haritada OSM (pilot: Nişantaşı, Caddebostan, Kayışdağı, Etiler, Beşiktaş, Bilgi santral, Bakırköy); arka planda "aday" yerler (place_candidates): İstanbul'un Overture (güven ≥0.6) + Foursquare OS Places (açık, son 2 yılda güncellenmiş) kayıtları, ~91 bin, haritada görünmez; aramada "Haritada yok mu?" ve "Mekan ekle"de "Bu mu?" ile eklenir. Yenileme: backend/scripts/fetch_overture_places.py + fetch_foursquare_places.py (HF_TOKEN .env'de) → import_place_candidates.py; ayda bir yapılmalı
 - Reklam (AdMob): sadece Premium olmayanlara; gerçek uygulama derlemesi (EAS) ile kurulacak: AdMob hesabı ve ödeme/vergi bilgileri (kullanıcı), paket + Premium kontrolü + gizlilik onayı penceresi (ATT/GDPR) + gizlilik politikasına madde (kod)
 - Sponsorlu mekan ödemesi: şimdilik işletme talep eder, yönetici açar (7 gün ₺300 / 30 gün ₺1.000 gösteriliyor); ödeme altyapısı (iyzico vb.) gelince otomatik
 - Uygulama içi ödemeler: Premium ₺79/ay (App Store / Google Play aboneliği), işletme paketi ₺599/ay ve kampanya başı ₺150

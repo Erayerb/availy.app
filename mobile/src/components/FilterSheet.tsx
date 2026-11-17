@@ -82,7 +82,7 @@ export function FilterBar(props: Props) {
             style={[styles.button, active > 0 && styles.buttonOn]}
             accessibilityLabel={active > 0 ? `Filtrele, ${active} filtre açık` : 'Filtrele'}
           >
-            <Icon name="adjustments-horizontal" size={18} color={active > 0 ? colors.onPrimary : colors.text} />
+            <Icon name="adjustments-horizontal" size={20} color={active > 0 ? colors.onPrimary : colors.text} />
             {active > 0 && <Text style={[styles.buttonText, styles.buttonTextOn]}>{active}</Text>}
           </Pressable>
         </ScrollView>
@@ -158,8 +158,8 @@ const styles = themed(() => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingHorizontal: 18,
+    paddingVertical: 6,
     borderRadius: 18,
     backgroundColor: colors.surface,
     borderWidth: 1,

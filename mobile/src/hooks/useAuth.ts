@@ -3,15 +3,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { accountApi, type SocialProvider, ApiError, toUser, type LocalBusiness } from '../lib/accountApi';
 import { accountKey, normalizeUsername, validateUsername, type Role, type User } from '../lib/auth';
 import { moveAccountData } from '../lib/accountData';
-import { isLocalVenueId } from '../lib/localVenues';
 import { KEYS, loadJson, remove, saveJson } from '../lib/storage';
 import { celebrateBadges } from '../lib/badgeEvents';
 
 const asMessage = (e: unknown) => (e instanceof Error ? e.message : 'Bilinmeyen hata');
 
-/** A business's venue on the server; venues added only on this phone are not there. */
+/** A business's venue on the server (an id it does not know is refused there). */
 async function syncVenue(token: string, venueId: number) {
-  if (isLocalVenueId(venueId)) return;
   await accountApi.setVenue(token, venueId).catch(() => {});
 }
 

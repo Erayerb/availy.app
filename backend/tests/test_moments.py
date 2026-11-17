@@ -36,6 +36,10 @@ def test_a_moment_shows_for_24_hours_with_points(client, conn, clock):
     clock.now = NOON + timedelta(minutes=5)
     added = client.post(f"/v1/checkins/{own}/moment", json={"photo": PHOTO}, headers=auth(ali))
     assert added.status_code == 201 and added.json()["points"] == 5 and added.json()["audience"] == "everyone"
+    # A café closes in the evening: the photo goes an hour after that, not a full day later
+    from datetime import datetime
+    life = datetime.fromisoformat(added.json()["expires_at"]) - datetime.fromisoformat(added.json()["created_at"])
+    assert timedelta(hours=1) < life < timedelta(hours=24)
     assert points(conn, "t_ali") == 5
     # One per check-in
     assert client.post(f"/v1/checkins/{own}/moment", json={"photo": PHOTO}, headers=auth(ali)).status_code == 409

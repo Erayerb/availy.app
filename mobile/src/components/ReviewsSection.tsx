@@ -33,25 +33,7 @@ export function ReviewsSection({ venueId, user, reviews, onChange, reload, onReg
   // Businesses do not write reviews; on their own venue they answer them ("İşletme")
   const business = user?.role === 'business';
   const ownerBusiness = business && user?.venueId === venueId;
-  const allowance = reviews.allowance;
-  const [rating, setRating] = useState(0);
-  const [body, setBody] = useState('');
-  const [allowReplies, setAllowReplies] = useState(true);
-  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [showAll, setShowAll] = useState(false);
-
-  const send = async () => {
-    if (!token) return;
-    if (rating < 1) return setNote({ ok: false, text: 'Puan seç (1–5).' });
-    try {
-      onChange(await reviewsApi.write(token, venueId, rating, body, allowReplies));
-      setNote({ ok: true, text: '✓ Yorumun paylaşıldı.' });
-      setBody('');
-      setRating(0);
-    } catch (e) {
-      setNote({ ok: false, text: e instanceof Error ? e.message : 'Gönderilemedi.' });
-    }
-  };
 
   // Stars without words count in the average only, mine too; only reviews with words are listed
   const written = reviews.items.filter((r) => r.body?.trim());
@@ -69,50 +51,9 @@ export function ReviewsSection({ venueId, user, reviews, onChange, reload, onReg
         )}
       </Text>
 
-      {business ? (
-        <Text style={styles.muted}>
-          {ownerBusiness
-            ? 'Müşterilerinin yorumlarına "Yanıtla" ile işletme olarak cevap verebilirsin.'
-            : 'İşletme hesapları yorum yazamaz.'}
-        </Text>
-      ) : registered && allowance && allowance.checkins === 0 ? (
-        <Text style={styles.muted}>Puan vermek için önce buraya check-in yap. Her check-in'de bir kez puan verebilirsin.</Text>
-      ) : registered && allowance && allowance.left <= 0 ? (
-        <Text style={styles.muted}>Bu check-in için puanını verdin. Tekrar check-in yapınca yeniden puan verebilirsin.</Text>
-      ) : registered ? (
-        <View style={styles.form}>
-          <View style={styles.starsRow}>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <Pressable key={n} onPress={() => setRating(n)} hitSlop={6} accessibilityLabel={`${n} yıldız`}>
-                <Text style={[styles.star, n <= rating && styles.starOn]}>{n <= rating ? '★' : '☆'}</Text>
-              </Pressable>
-            ))}
-          </View>
-          <TextInput
-            value={body}
-            onChangeText={setBody}
-            placeholder="Yorumun (isteğe bağlı)"
-            placeholderTextColor={colors.placeholder}
-            maxLength={MAX_REVIEW}
-            multiline
-            style={styles.input}
-          />
-          <View style={styles.switchRow}>
-            <Text style={[styles.muted, styles.flex]}>Başkaları yorumuma yanıt verebilsin</Text>
-            <ThemedSwitch value={allowReplies} onValueChange={setAllowReplies} />
-          </View>
-          {note && <Text style={note.ok ? styles.success : styles.error}>{note.text}</Text>}
-          <Pressable style={styles.secondary} onPress={send}>
-            <Text style={styles.secondaryText}>Paylaş</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <Pressable onPress={onRegister}>
-          <Text style={styles.link}>Yorum yazmak ve yanıtlamak için kayıt ol</Text>
-        </Pressable>
-      )}
-
-      {reviews.count === 0 && <Text style={styles.muted}>Henüz yorum yok. İlk yorumu sen yaz!</Text>}
+      {/* Rating is given right after a check-in (in the check-in box); here only what people wrote */}
+      {ownerBusiness && <Text style={styles.muted}>Müşterilerinin yorumlarına "Yanıtla" ile işletme olarak cevap verebilirsin.</Text>}
+      {reviews.count === 0 && <Text style={styles.muted}>Henüz yorum yok. Check-in yapınca puan verip yorum yazabilirsin.</Text>}
       {shown.map((review) => (
         <ReviewItem
           key={review.id}

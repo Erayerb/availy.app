@@ -1,5 +1,4 @@
 import { reportConnection } from './connection.ts';
-import { isLocalVenueId } from './localVenues';
 import type { Crowd } from './crowd';
 
 export type Venue = {
@@ -57,10 +56,8 @@ export async function searchVenues(
 }
 
 export async function fetchVenuesByIds(ids: number[], signal?: AbortSignal): Promise<Venue[]> {
-  // Venues added only on a phone in v1 have no server record
-  const remoteIds = ids.filter((id) => !isLocalVenueId(id));
-  if (remoteIds.length === 0) return [];
-  const params = new URLSearchParams({ ids: remoteIds.join(',') });
+  if (ids.length === 0) return [];
+  const params = new URLSearchParams({ ids: ids.join(',') });
   return (await getJson<Venue[]>(`/v1/venues/search?${params}`, signal)).sort(byName);
 }
 

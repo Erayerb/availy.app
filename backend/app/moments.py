@@ -1,4 +1,5 @@
-"""'Şu an burada' photos: taken with the camera at check-in, shown on the venue page for 24 hours.
+"""'Şu an burada' photos: taken with the camera at check-in, shown on the venue page until an hour after
+the venue closes (24 hours for places open all day).
 
 Rules: only for one's own fresh check-in at the venue (the check-in itself proved the person was there),
 one photo per check-in, at most MAX_PER_DAY a day. 'friends' photos are seen only by the author's friends.
@@ -10,11 +11,13 @@ from datetime import datetime, timedelta
 
 import psycopg
 
+from app.hours import next_closing, venue_hours
 from app.moderation import require_admin
 from app.safety import BLOCKED
 from app.venue_profiles import MAX_PHOTO_BYTES, PHOTO_PATTERN
 
-LIFETIME = timedelta(hours=24)
+LIFETIME = timedelta(hours=24)  # places open all day
+AFTER_CLOSING = timedelta(hours=1)
 # The photo belongs to the moment of the check-in: it has to be sent soon after
 CHECKIN_WINDOW = timedelta(minutes=30)
 MAX_PER_DAY = 5
@@ -59,6 +62,12 @@ def save_moment(conn: psycopg.Connection, user: dict, checkin_id: int, data_uri:
     if audience not in ("everyone", "friends"):
         audience = conn.execute("SELECT moment_audience FROM users WHERE id = %s", (user["id"],)).fetchone()["moment_audience"]
     delete_expired(conn, now)
+    # Gone an hour after the venue closes today (a photo of the room means nothing the next day)
+    venue = conn.execute(
+        "SELECT category, open_hour, close_hour, always_busy FROM venues WHERE id = %s", (checkin["venue_id"],)
+    ).fetchone()
+    closing = next_closing(venue_hours(venue), now)
+    expires = min(now + LIFETIME, closing + AFTER_CLOSING) if closing else now + LIFETIME
     try:
         with conn.transaction():
             row = conn.execute(
@@ -66,7 +75,7 @@ def save_moment(conn: psycopg.Connection, user: dict, checkin_id: int, data_uri:
                 INSERT INTO moment_photos (checkin_id, venue_id, user_id, photo, audience, created_at, expires_at)
                 VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id, created_at, expires_at, audience
                 """,
-                (checkin_id, checkin["venue_id"], user["id"], data_uri.strip(), audience, now, now + LIFETIME),
+                (checkin_id, checkin["venue_id"], user["id"], data_uri.strip(), audience, now, expires),
             ).fetchone()
     except psycopg.errors.UniqueViolation:
         raise MomentError("Bu check-in'e zaten fotoğraf ekledin.", 409) from None

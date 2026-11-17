@@ -219,7 +219,9 @@ def friend_feed(
                    rv.id AS review_id, COALESCE(rv.allow_replies, false) AS allow_replies, c.id AS checkin_id,
                    c.level AS reported,
                    EXISTS (SELECT 1 FROM moment_photos m WHERE m.checkin_id = c.id AND m.expires_at > now()
-                           AND m.hidden_at IS NULL) AS has_moment
+                           AND m.hidden_at IS NULL) AS has_moment,
+                   ARRAY(SELECT u2.username FROM checkin_together t JOIN checkins c2 ON c2.id = t.other_checkin_id
+                         JOIN users u2 ON u2.id = c2.user_id WHERE t.checkin_id = c.id ORDER BY u2.username) AS together
             FROM checkins c JOIN users u ON u.id = c.user_id JOIN venues v ON v.id = c.venue_id
             LEFT JOIN LATERAL (
                 SELECT r.id, r.rating, r.body, r.allow_replies FROM reviews r
@@ -228,7 +230,7 @@ def friend_feed(
             WHERE {checkin_who} AND NOT c.is_demo AND c.created_at > %(since)s AND {plain}
             UNION ALL
             SELECT 'review', r.created_at, u.username, v.id, v.name, v.category, false, 0, r.rating, r.body, NULL,
-                   r.id, r.allow_replies, NULL::bigint, NULL, false
+                   r.id, r.allow_replies, NULL::bigint, NULL, false, ARRAY[]::text[]
             FROM reviews r JOIN users u ON u.id = r.user_id JOIN venues v ON v.id = r.venue_id
             WHERE r.user_id {author_in} AND r.created_at > %(since)s AND NOT {hidden_review("r")}
               -- Already shown with its check-in
@@ -238,7 +240,7 @@ def friend_feed(
               )
             UNION ALL
             SELECT 'reply', p.created_at, u.username, v.id, v.name, v.category, false, 0, NULL, p.body, a.username,
-                   r.id, r.allow_replies, NULL::bigint, NULL, false
+                   r.id, r.allow_replies, NULL::bigint, NULL, false, ARRAY[]::text[]
             FROM review_replies p JOIN users u ON u.id = p.user_id JOIN reviews r ON r.id = p.review_id
             JOIN users a ON a.id = r.user_id JOIN venues v ON v.id = r.venue_id
             WHERE p.user_id {author_in} AND p.created_at > %(since)s AND NOT {hidden_reply("p")}

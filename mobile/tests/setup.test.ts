@@ -21,3 +21,8 @@ test('Nominatim address: district from town, neighbourhood without "Mahallesi"',
   assert.equal(parseNominatimAddress(undefined), null);
 });
 
+
+test('the mahalle beats the wider area name (Trump Towers is Mecidiyeköy, not Osmanbey)', () => {
+  const address = parseNominatimAddress({ neighbourhood: 'Mecidiyeköy Mahallesi', quarter: 'Osmanbey', town: 'Şişli' });
+  assert.equal(address?.neighborhood, 'Mecidiyeköy');
+});

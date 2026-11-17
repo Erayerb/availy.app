@@ -411,7 +411,25 @@ export function SocialScreen({
               scrollEnabled={lists.friends.length > 4}
             >
               {lists.friends.map((p) => (
-                <PersonRow key={p.id} person={p} onOpen={onOpenUser}>
+                <PersonRow key={p.id} person={p} onOpen={onOpenUser} streak={p.streak} atRisk={p.at_risk}>
+                  {/* Seri kurtarma: their streak ends on Sunday without a check-in; I may cover the week once a month */}
+                  {p.can_save && (
+                    <Action
+                      label="🔥 Kurtar"
+                      onPress={() =>
+                        confirmAction(
+                          `@${p.username} serisini kurtar`,
+                          `Bu hafta check-in yapmadı; ${p.streak} haftalık serisi pazar gecesi bitecek. Kurtarırsan bu hafta sayılır. Ayda bir kurtarabilirsin.`,
+                          'Kurtar',
+                          () =>
+                            friendsApi
+                              .saveStreak(token, p.username)
+                              .then(() => friendsApi.list(token).then(setLists))
+                              .catch(() => {}),
+                        )
+                      }
+                    />
+                  )}
                   <Action
                     label="Çıkar"
                     quiet
@@ -511,13 +529,28 @@ export function SocialScreen({
   );
 }
 
-function PersonRow({ person, children, onOpen }: { person: Person; children: React.ReactNode; onOpen: (username: string) => void }) {
+function PersonRow({
+  person,
+  children,
+  onOpen,
+  streak = 0,
+  atRisk = false,
+}: {
+  person: Person;
+  children: React.ReactNode;
+  onOpen: (username: string) => void;
+  streak?: number;
+  atRisk?: boolean;
+}) {
   return (
     <View style={styles.person}>
       {/* Name and picture open the profile */}
       <Pressable onPress={() => onOpen(person.username)} style={[styles.person, styles.flex]} accessibilityLabel={`@${person.username} profili`}>
         <Avatar username={person.username} />
-        <Text style={[styles.text, styles.flex]}>@{person.username}</Text>
+        <Text style={[styles.text, styles.flex]} numberOfLines={1}>
+          @{person.username}
+          {streak > 0 && <Text style={[styles.streak, atRisk && styles.streakRisk]}>  🔥{streak}{atRisk ? ' · bitmek üzere' : ''}</Text>}
+        </Text>
       </Pressable>
       {children}
     </View>
@@ -533,6 +566,9 @@ function Action({ label, onPress, quiet = false }: { label: string; onPress: () 
 }
 
 const styles = themed(() => StyleSheet.create({
+  streak: { fontSize: 13, fontWeight: '800', color: colors.primary },
+  streakRisk: { color: colors.gold },
+  together: { fontSize: 13, fontWeight: '600', color: colors.primary },
   page: { flex: 1, backgroundColor: colors.background },
   replyBar: { flexDirection: 'row', alignItems: 'center', gap: 18 },
   feedAction: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 2 },
@@ -689,6 +725,9 @@ function Post({
           {what} · {time}
           {item.points > 0 && <Text style={styles.points}> · +{item.points} puan</Text>}
         </Text>
+        {item.together?.length ? (
+          <Text style={styles.together}><InlineIcon name="users" /> {item.together.map((u) => `@${u}`).join(', ')} ile birlikte</Text>
+        ) : null}
         <Pressable onPress={() => onOpenVenue({ id: item.venue_id })} style={({ pressed }) => [styles.postVenue, pressed && styles.postVenuePressed]}>
           <VenuePhoto venueId={item.venue_id} category={item.venue_category ?? ''} size={26} height={26} radius={7} centered />
           <Text style={[styles.postVenueText, item.is_first && styles.discovered]} numberOfLines={1}>

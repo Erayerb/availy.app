@@ -172,5 +172,23 @@ def venue_stats(conn: psycopg.Connection, user: dict, venue_id: int, now: dateti
         "weekday": weekday,
         "quiet_slot": quiet_slot,
         "total_checkins": total,
+        **month_comparison(conn, venue_id, now),
         "discovered_by": discoverer,
     }
+
+
+def month_comparison(conn: psycopg.Connection, venue_id: int, now: datetime) -> dict:
+    """This month so far against the same days of last month ("geçen aya göre +%20"), Istanbul time."""
+    local = now.astimezone(ISTANBUL)
+    month_start = local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    last_start = (month_start - timedelta(days=1)).replace(day=1)
+    # The same span of last month (to the same day and hour; a shorter month ends at its last day)
+    span = local - month_start
+    last_end = min(last_start + span, month_start)
+    count = lambda a, b: conn.execute(  # noqa: E731
+        "SELECT count(*)::int AS n FROM checkins WHERE venue_id = %s AND NOT is_demo AND created_at >= %s AND created_at < %s",
+        (venue_id, a, b),
+    ).fetchone()["n"]
+    this_month, last_month = count(month_start, now), count(last_start, last_end)
+    change = None if last_month == 0 else round((this_month - last_month) * 100 / last_month)
+    return {"month_checkins": this_month, "last_month_checkins": last_month, "month_change_pct": change}

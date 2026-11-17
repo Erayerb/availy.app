@@ -5,7 +5,7 @@ A closing hour <= opening hour means the venue closes after midnight
 """
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from app.config import settings
@@ -95,3 +95,16 @@ def parse_opening_hours(text: str | None) -> tuple[int, int] | None:
 
 def local_hour(at: datetime, tz: str = settings.dummy_timezone) -> int:
     return at.astimezone(ZoneInfo(tz)).hour
+
+
+def next_closing(hours: OpeningHours, now: datetime, tz: str = settings.dummy_timezone) -> datetime | None:
+    """When an open venue closes next (None: open all day). Hours past midnight (e.g. 10–02) close tomorrow."""
+    from zoneinfo import ZoneInfo
+
+    if hours.all_day:
+        return None
+    local = now.astimezone(ZoneInfo(tz))
+    close = local.replace(hour=hours.close_hour % 24, minute=0, second=0, microsecond=0)
+    if close <= local:
+        close += timedelta(days=1)
+    return close

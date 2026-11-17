@@ -144,7 +144,11 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
         <View style={styles.head}>
           <Avatar username={profile.username} size={56} version={profile.photo_at} framed={profile.level?.id === 'ambassador'} />
           <View style={styles.flex}>
-            <Text style={styles.name}>@{profile.username}</Text>
+            <Text style={styles.name}>
+              @{profile.username}
+              {/* The weekly streak ("🔥 4": weeks in a row with a check-in) beside the name */}
+              {!profile.stats_hidden && (profile.weekly_streak ?? 0) >= 1 && <Text style={styles.flame}>  🔥 {profile.weekly_streak}</Text>}
+            </Text>
             <Text style={styles.muted}>
               {me ? 'Bu senin profilin' : profile.relation === 'friend' ? 'Arkadaşın' : profile.relation === 'incoming' ? 'Seni eklemek istiyor' : profile.relation === 'outgoing' ? 'İstek gönderildi' : 'Arkadaşın değil'}
               {profile.muted ? ' · sessizde' : ''}
@@ -162,8 +166,6 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
             <Stat value={profile.points ?? 0} label="Puan" />
             <Stat value={profile.checkins ?? 0} label="Check-in" />
             <Stat value={profile.discoveries ?? 0} label="Keşif" />
-            {/* Weeks in a row with a check-in */}
-            <Stat value={profile.weekly_streak ?? 0} label="Haftalık seri" />
           </View>
         )}
 
@@ -330,6 +332,7 @@ function Action({ label, onPress, primary, danger }: { label: string; onPress: (
 }
 
 const styles = themed(() => StyleSheet.create({
+  flame: { fontSize: 17, fontWeight: '800', color: colors.primary },
   page: { flex: 1, backgroundColor: colors.background },
   winner: { fontSize: 14, fontWeight: '700', color: colors.gold },
   venueChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

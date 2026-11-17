@@ -328,6 +328,19 @@ class PrivacyIn(BaseModel):
     moment_audience: Literal["everyone", "friends"] | None = None
 
 
+class PlanIn(BaseModel):
+    premium: bool
+
+
+@router.put("/me/plan", status_code=204)
+def set_plan(body: PlanIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    """Bireysel Premium (demo until payments: the app switches it on). Businesses keep their own plans."""
+    if user["role"] == "business":
+        raise HTTPException(status_code=403, detail="İşletme hesapları için değil.")
+    conn.execute("UPDATE users SET plan = %s WHERE id = %s", ("premium" if body.premium else None, user["id"]))
+    return Response(status_code=204)
+
+
 @router.patch("/me/privacy", response_model=PrivacyOut)
 def privacy(body: PrivacyIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
     """Gizlilik ayarları: only the fields sent are changed."""

@@ -10,6 +10,7 @@ from app.auth_api import current_user
 from app.db import get_conn
 from app.contacts import ContactsError, match_contacts, remove_phone, set_phone
 from app.checkins_api import get_clock
+from app.social_streaks import StreakError, friend_streaks, save_streak
 from app.friends import FriendError, add_friend, friends_here, list_friends, remove_friend, search_users
 
 router = APIRouter(prefix="/v1")
@@ -35,6 +36,9 @@ class FriendCheckin(BaseModel):
 
 class Friend(Person):
     last_checkin: FriendCheckin | None  # newest public check-in; no live location
+    streak: int = 0  # "🔥 4": weeks in a row with a check-in
+    at_risk: bool = False  # no check-in this week yet: the streak ends on Sunday
+    can_save: bool = False  # I may save it ("Seri kurtarma", once a month)
 
 
 class FriendsOut(BaseModel):
@@ -57,8 +61,25 @@ def search(q: str = Query(..., max_length=40), user: dict = Depends(current_user
 
 
 @router.get("/friends", response_model=FriendsOut)
-def friends(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
-    return list_friends(conn, user)
+def friends(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn), now: datetime = Depends(get_clock)):
+    lists = list_friends(conn, user)
+    streaks = friend_streaks(conn, user, [f["id"] for f in lists["friends"]], now)
+    lists["friends"] = [{**f, **streaks.get(f["id"], {})} for f in lists["friends"]]
+    return lists
+
+
+class SavedOut(BaseModel):
+    username: str
+    streak: int
+
+
+@router.post("/friends/{username}/save-streak", response_model=SavedOut)
+def save(username: str, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn), now: datetime = Depends(get_clock)):
+    """Seri kurtarma: cover a friend's week without a check-in (once a month)."""
+    try:
+        return save_streak(conn, user, username, now)
+    except StreakError as e:
+        raise HTTPException(status_code=e.status, detail=e.message) from None
 
 
 @router.post("/friends", response_model=PersonWithRelation)

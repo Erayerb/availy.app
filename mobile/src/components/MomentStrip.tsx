@@ -202,7 +202,9 @@ function Viewer({
   const { look } = useSettings();
   const now = new Date();
   // How much of its 24 hours is left: the thin bar at the top
-  const left = Math.max(0, (new Date(moment.expires_at).getTime() - now.getTime()) / (24 * 3_600_000));
+  // How much of its life is left (until an hour after the venue closes)
+  const life = new Date(moment.expires_at).getTime() - new Date(moment.created_at).getTime();
+  const left = life > 0 ? Math.max(0, (new Date(moment.expires_at).getTime() - now.getTime()) / life) : 0;
 
   // While a photo is open: no screenshots or screen recordings (Android; iOS 13+). A browser cannot stop them.
   useEffect(() => {

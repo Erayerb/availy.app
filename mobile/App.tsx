@@ -59,7 +59,6 @@ import { useVisits } from './src/hooks/useVisits';
 import { accountKey, isBusiness, isRegistered, type Role } from './src/lib/auth';
 import { DEFAULT_PLAN } from './src/lib/plans';
 import { removeOldData } from './src/lib/cleanup';
-import { isLocalVenueId } from './src/lib/localVenues';
 import type { Region } from './src/lib/bbox';
 import { toggleSingle, type Tag } from './src/lib/filters';
 import type { Side } from './src/lib/istanbul';
@@ -222,7 +221,7 @@ function Main() {
   }, []);
 
   // A venue kept only on this phone (before venues were on the server) has to be chosen / added again
-  const needsVenue = isBusiness(auth.user) && (!auth.user?.venueId || isLocalVenueId(auth.user.venueId));
+  const needsVenue = isBusiness(auth.user) && !auth.user?.venueId;
   const gate: Gate = authForm ?? (!entered ? 'welcome' : needsVenue ? 'venueSetup' : null);
 
   const enterApp = (as: Role = 'personal') => {
@@ -755,7 +754,15 @@ function Main() {
               onOpenSettings={() => goTo('settings')}
             />
           )}
-          {screen === 'checkin' && <CheckinScreen onBack={goBack} onOpenVenue={openDetails} onAddVenue={() => goTo('addVenue')} visits={visits} />}
+          {screen === 'checkin' && (
+            <CheckinScreen
+              onBack={goBack}
+              onOpenVenue={openDetails}
+              onAddVenue={() => goTo('addVenue')}
+              visits={visits}
+              token={isRegistered(auth.user) && !isBusiness(auth.user) ? (auth.user?.token ?? null) : null}
+            />
+          )}
           {screen === 'addVenue' && (
             <AddVenueScreen
               user={auth.user}
@@ -790,6 +797,7 @@ function Main() {
           {screen === 'subscription' && (
             <SubscriptionScreen
               signedIn={isRegistered(auth.user)}
+              token={isRegistered(auth.user) && !isBusiness(auth.user) ? (auth.user?.token ?? null) : null}
               onBack={goBack}
               onLogin={() => setAuthForm('login')}
               business={

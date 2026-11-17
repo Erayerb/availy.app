@@ -11,7 +11,11 @@ export type Group = {
   members: number;
 };
 
+export type GroupStreak = { weeks: number; missing: string[]; days_left: number };
+
 export const groupsApi = {
+  // "Grup serisi": weeks in a row in which every member checked in; who is still missing this week
+  streak: (token: string, id: number) => send<GroupStreak>('GET', `/v1/groups/${id}/streak`, undefined, token),
   mine: (token: string) => send<Group[]>('GET', '/v1/groups', undefined, token),
   create: (token: string, name: string, usernames: string[]) =>
     send<{ id: number; invited: string[] }>('POST', '/v1/groups', { name, usernames }, token),

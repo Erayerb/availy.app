@@ -38,6 +38,7 @@ export type FeedItem = {
   venue_name: string;
   venue_category?: string; // for the card's thumbnail
   has_moment?: boolean; // check-in with a live "Şu an burada" photo
+  together?: string[]; // friends who were there within the hour
   is_first: boolean;
   points: number;
   rating: number | null;

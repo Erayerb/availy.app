@@ -142,7 +142,7 @@ export function PrivacyScreen({ token, onBack, onOpenPermissions, onOpenLegal }:
 
           <SettingsSection
             title="“Şu an burada” fotoğraflarım"
-            footer="Check-in'de çektiğin fotoğraflar 24 saat mekan sayfasında görünür. Paylaşırken her seferinde değiştirebilirsin."
+            footer="Check-in'de çektiğin fotoğraflar mekan kapanana kadar sayfasında görünür, kapanıştan 1 saat sonra silinir. Paylaşırken her seferinde değiştirebilirsin."
           >
             <SettingsLink
               icon="world"

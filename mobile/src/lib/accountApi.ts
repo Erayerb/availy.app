@@ -107,6 +107,8 @@ export const accountApi = {
   // `login` is the e-mail or the user name
   login: (login: string, password: string, role: Role) => send<Session>('POST', '/v1/auth/login', { login, password, role }),
   guest: () => send<Session>('POST', '/v1/auth/guest'),
+  // Bireysel Premium on the server too (demo, no payment yet): e.g. three streak saves a month
+  setPlan: (token: string, premium: boolean) => send<void>('PUT', '/v1/me/plan', { premium }, token),
   // "Google / Apple ile devam et": which ones the server has set up, and signing in with the provider's token
   providers: () => send<{ providers: SocialProvider[] }>('GET', '/v1/auth/providers'),
   oauth: (provider: SocialProvider, idToken: string, name = '', invitedBy: string | null = null) =>

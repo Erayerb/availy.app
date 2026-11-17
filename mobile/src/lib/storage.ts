@@ -5,7 +5,6 @@ export const KEYS = {
   businessProfiles: 'availy.businessProfiles', // account id -> venue / plan kept on this phone (v2: server later)
   favorites: 'availy.favorites',
   settings: 'availy.settings',
-  friendsPlacesCollapsed: 'availy.friendsPlacesCollapsed', // Ana sayfa: "Arkadaşlarının gittiği yerler" folded
   seenMoments: 'availy.seenMoments', // "Şu an burada" photos already opened (each is seen once)
   watches: 'availy.watches',
   photos: 'availy.photos', // venueId -> one photo (data URI) shown on the home tile

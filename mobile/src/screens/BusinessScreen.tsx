@@ -21,7 +21,7 @@ import { DEFAULT_PLAN } from '../lib/plans';
 import { useSettings } from '../context/SettingsContext';
 import { fetchVenues, fetchVenuesByIds, type Venue } from '../lib/api';
 import type { User } from '../lib/auth';
-import { busiestHour, businessApi, MAX_REWARD, quietestWeekday, quietSlotLabel, quietSlotSchedule, WEEKDAY_NAMES, type VenueStats } from '../lib/business';
+import { busiestHour, businessApi, MAX_REWARD, quietestWeekday, quietSlotLabel, quietSlotSchedule, WEEKDAY_NAMES, type VenueStats, monthChangeText } from '../lib/business';
 import { deadHour, deadHourSuggestion, QUIET_HOURS, timeLeft } from '../lib/campaigns';
 import { crowdRatioText, crowdSummary, crowdYesterday } from '../lib/crowd';
 import { categoryLabel } from '../lib/filters';
@@ -234,6 +234,15 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
           <Stat value={stats?.week_people ?? 0} label="Kişi" />
           <Stat value={stats?.week_returning ?? 0} label="Tekrar gelen" />
         </View>
+        {/* This month so far against the same days of last month */}
+        {stats && (
+          <Text style={styles.monthLine}>
+            Bu ay {stats.month_checkins ?? 0} check-in
+            {monthChangeText(stats.month_change_pct) && (
+              <Text style={(stats.month_change_pct ?? 0) >= 0 ? styles.up : styles.down}> · {monthChangeText(stats.month_change_pct)}</Text>
+            )}
+          </Text>
+        )}
         <Text style={styles.muted}>Toplam {stats?.total_checkins ?? 0} check-in.</Text>
       </View>
 
@@ -401,6 +410,9 @@ function Stat({ value, label }: { value: number; label: string }) {
 }
 
 const styles = themed(() => StyleSheet.create({
+  monthLine: { fontSize: 15, fontWeight: '700', color: colors.text },
+  up: { color: colors.success },
+  down: { color: colors.danger },
   hero: { borderRadius: 20, overflow: 'hidden' },
   heroText: { position: 'absolute', left: 14, right: 14, bottom: 14, gap: 5 },
   heroName: { fontSize: 23, fontWeight: '800', color: '#fff' },

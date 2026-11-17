@@ -56,7 +56,7 @@ export const PRIVACY_POLICY: LegalDoc = {
       paragraphs: [
         'Hesabın açık olduğu sürece. Hesabını sildiğinde hesabın, yorumların, yanıtların, arkadaşlıkların ve puanların silinir; check-in\'lerin yalnızca kim olduğun bilinmeden doluluk istatistiği olarak kalır.',
         'Oturum anahtarları en fazla 30 gün (misafirde 365 gün) geçerlidir.',
-        "“Şu an burada” fotoğrafları 24 saat sonra silinir. Fotoğraftaki konum ve cihaz bilgileri gönderilmeden önce telefonda temizlenir.",
+        "“Şu an burada” fotoğrafları mekan kapandıktan 1 saat sonra (24 saat açık yerlerde 24 saat sonra) silinir. Fotoğraftaki konum ve cihaz bilgileri gönderilmeden önce telefonda temizlenir.",
       ],
     },
     {
@@ -94,7 +94,7 @@ export const TERMS: LegalDoc = {
       title: "Check-in'ler",
       paragraphs: [
         "Check-in yalnızca mekandayken yapılır. Sahte check-in, mekanda olmadan konum değiştiren uygulamalar ya da puan toplamak için otomatik araçlar yasaktır; bu durumda puanların silinebilir, hesabın kapatılabilir.",
-        "Check-in'de çektiğin “Şu an burada” fotoğrafı 24 saat mekan sayfasında görünür, sonra silinir. Yalnızca o anki ortamı çek; başkalarını izinsiz ve tanınacak şekilde çekme, uygunsuz ya da alakasız fotoğraf paylaşma. Şikâyet edilen fotoğraflar gizlenir; kurallara aykırı bulunursa silinir ve verilen puan geri alınır.",
+        "Check-in'de çektiğin “Şu an burada” fotoğrafı mekan kapanana kadar sayfasında görünür, kapanıştan 1 saat sonra silinir. Yalnızca o anki ortamı çek; başkalarını izinsiz ve tanınacak şekilde çekme, uygunsuz ya da alakasız fotoğraf paylaşma. Şikâyet edilen fotoğraflar gizlenir; kurallara aykırı bulunursa silinir ve verilen puan geri alınır.",
       ],
     },
     {

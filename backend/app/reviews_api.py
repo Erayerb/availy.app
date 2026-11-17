@@ -98,6 +98,7 @@ class FeedItem(BaseModel):
     venue_name: str
     venue_category: str  # for the card's thumbnail
     has_moment: bool = False  # check-in: a live "Şu an burada" photo (the 📷 in the feed)
+    together: list[str] = []  # check-in: friends who were there within the hour ("birlikte")
     is_first: bool  # check-in: the venue's first ("keşfetti")
     points: int  # check-in: points earned
     rating: int | None  # review

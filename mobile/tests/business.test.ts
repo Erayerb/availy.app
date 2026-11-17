@@ -66,3 +66,11 @@ test('"Profilin %60 dolu": the venue page steps', async () => {
   const steps = profileSteps({ photo_at: '2026-10-29', address: 'Moda Cd. 1', instagram: '', phone: null, amenity_keys: [] });
   assert.deepEqual(steps.filter((s) => !s.done).map((s) => s.key), ['instagram', 'phone', 'amenities']);
 });
+
+test('this month against last month', async () => {
+  const { monthChangeText } = await import('../src/lib/business.ts');
+  assert.equal(monthChangeText(20), 'geçen aya göre +%20');
+  assert.equal(monthChangeText(-10), 'geçen aya göre −%10');
+  assert.equal(monthChangeText(0), 'geçen ayla aynı');
+  assert.equal(monthChangeText(null), null);
+});

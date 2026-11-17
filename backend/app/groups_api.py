@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from app.auth_api import current_user
 from app.checkins_api import get_clock
 from app.db import get_conn
+from app.social_streaks import StreakError, group_streak
 from app.groups import MAX_MEMBERS, GroupError, create_group, invite, join, leave, my_groups
 
 router = APIRouter(prefix="/v1")
@@ -86,3 +87,17 @@ def leave_group(group_id: int, user: dict = Depends(current_user), conn: psycopg
     """Leave the group, or turn the invitation down."""
     leave(conn, user, group_id)
     return Response(status_code=204)
+
+
+class GroupStreakOut(BaseModel):
+    weeks: int  # "🔥 3 hafta": every member checked in each week
+    missing: list[str]  # members without a check-in this week yet
+    days_left: int  # until Sunday night
+
+
+@router.get("/groups/{group_id}/streak", response_model=GroupStreakOut)
+def streak(group_id: int, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn), now: datetime = Depends(get_clock)):
+    try:
+        return group_streak(conn, group_id, user, now)
+    except StreakError as e:
+        raise HTTPException(status_code=e.status, detail=e.message) from None

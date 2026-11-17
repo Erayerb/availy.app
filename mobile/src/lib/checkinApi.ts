@@ -21,6 +21,8 @@ export type CheckinResult = {
   is_private: boolean;
   points_earned: number;
   new_badges?: NewBadge[]; // earned with this check-in: the celebration pop-up
+  streak_up?: boolean; // the week's first check-in made the streak longer
+  together?: string[]; // friends here within the hour: +10 each ("Birlikte check-in")
   first_today?: boolean; // the day's first check-in here (not its discovery): double points
   // Why it earned no points: a check-in at another venue in the last 30 minutes, or 8 already today
   points_note?: 'too_soon' | 'daily_limit' | null;
@@ -37,6 +39,18 @@ export const fetchVisits = (token: string) => send<Visit[]>('GET', '/v1/me/visit
 
 /** Message after a check-in: points, and the explorer note for a venue's first one. */
 export function checkinMessage(
+  result: Pick<CheckinResult, 'is_first' | 'points_earned' | 'visitor_rank' | 'my_visits' | 'points_note' | 'first_today'> & {
+    together?: string[];
+  },
+): string {
+  // Friends here within the hour: both got +10 ("Birlikte check-in")
+  const together = result.together?.length
+    ? `\n${result.together.map((u) => `@${u}`).join(', ')} ile birliktesiniz · +${10 * result.together.length} puan`
+    : '';
+  return baseMessage(result) + together;
+}
+
+function baseMessage(
   result: Pick<CheckinResult, 'is_first' | 'points_earned' | 'visitor_rank' | 'my_visits' | 'points_note' | 'first_today'>,
 ): string {
   // Counted for the occupancy, but no points (against farming points in cafes side by side)

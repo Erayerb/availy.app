@@ -41,6 +41,11 @@ PILOT_AREAS = [
     Area("nisantasi", "41.045,28.983,41.057,29.000", "Nişantaşı", "Şişli"),
     Area("caddebostan", "40.958,29.053,40.973,29.077", "Caddebostan", "Kadıköy"),
     Area("yeditepe", "40.964,29.138,40.981,29.166", "Kayışdağı", "Ataşehir"),
+    Area("etiler", "41.074,29.020,41.090,29.042", "Etiler", "Beşiktaş"),
+    Area("besiktas", "41.038,28.995,41.050,29.012", "Sinanpaşa", "Beşiktaş"),
+    # İstanbul Bilgi Üniversitesi, santralistanbul kampüsü
+    Area("bilgi", "41.058,28.938,41.074,28.958", "Silahtarağa", "Eyüpsultan"),
+    Area("bakirkoy", "40.972,28.862,40.986,28.886", "Zeytinlik", "Bakırköy"),
 ]
 
 # OSM tag -> (availo category, purposes)

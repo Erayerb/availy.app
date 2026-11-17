@@ -1,3 +1,5 @@
+import { CandidateResults } from './CandidateResults';
+import { TAB_BAR_SPACE } from './TabBar';
 import { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { Text, TextInput } from './Text';
@@ -17,10 +19,17 @@ import { Icon } from './Icon';
 const MAX_PLACES = 4;
 const PLACE_WAIT_MS = 500;
 
-type Props = { onClose: () => void; onChoose: (venue: Venue) => void; onChoosePlace: (place: Place) => void };
+type Props = {
+  onClose: () => void;
+  onChoose: (venue: Venue) => void;
+  onChoosePlace: (place: Place) => void;
+  // "Haritada yok mu?": a place from open data, added and opened
+  token?: string | null;
+  onAddedCandidate?: (venue: { id: number }) => void;
+};
 
 /** The map's 🔍: venues by name / neighbourhood and places ("Teşvikiye Mahallesi"); choosing one moves the map to it. */
-export function MapSearch({ onClose, onChoose, onChoosePlace }: Props) {
+export function MapSearch({ onClose, onChoose, onChoosePlace, token = null, onAddedCandidate }: Props) {
   const { point } = useLocation();
   const { crowdLook } = useSettings();
   const [query, setQuery] = useState('');
@@ -106,6 +115,9 @@ export function MapSearch({ onClose, onChoose, onChoosePlace }: Props) {
             ))}
           </>
         }
+        ListFooterComponent={
+          onAddedCandidate && query.trim().length >= 2 ? <CandidateResults query={query} token={token} onAdded={onAddedCandidate} /> : undefined
+        }
         ListEmptyComponent={
           query.trim().length >= 2 ? (
             places.length > 0 ? undefined : <Text style={styles.muted}>{loading ? 'Aranıyor…' : 'Bu adla bir yer bulunamadı.'}</Text>
@@ -145,7 +157,7 @@ const styles = themed(() => StyleSheet.create({
     color: colors.text,
   },
   cancel: { color: colors.primary, fontWeight: '700', fontSize: 15 },
-  list: { paddingHorizontal: 16, paddingBottom: 40 },
+  list: { paddingHorizontal: 16, paddingBottom: TAB_BAR_SPACE },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

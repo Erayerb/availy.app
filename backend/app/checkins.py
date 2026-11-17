@@ -166,7 +166,8 @@ def create_checkin(
     ).fetchone()
     from app.automation import after_checkin
     from app.campaigns import coupons_for_checkin
-    from app.streaks import weekly_streak
+    from app.social_streaks import together_bonus
+    from app.streaks import _week_start, weekly_streak
 
     after_checkin(conn, venue_id, now)  # a quiet venue tells its business (and may send its campaign)
 
@@ -181,6 +182,13 @@ def create_checkin(
         "visitor_rank": visits["people"] if visits["mine"] == 1 else None,
         "my_visits": visits["mine"],
         "weekly_streak": weekly_streak(conn, user["id"], now),  # "🔥 3. hafta üst üste"
+        # The week's first check-in made the streak longer: celebrated like a badge
+        "streak_up": conn.execute(
+            "SELECT count(*) AS n FROM checkins WHERE user_id = %s AND NOT is_demo AND created_at >= %s",
+            (user["id"], _week_start(now)),
+        ).fetchone()["n"] == 1,
+        # Friends here within the hour: +10 each ("Birlikte check-in")
+        "together": together_bonus(conn, user, checkin, now),
         "new_badges": reward_badges(conn, user["id"], now),  # celebrated with the check-in
     }
 

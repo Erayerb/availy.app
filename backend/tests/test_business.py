@@ -93,3 +93,19 @@ def test_a_venue_has_one_business(client, conn):
     assert client.put("/v1/me/venue", json={"venue_id": kafe}, headers=auth(first)).status_code == 200  # its own again
     taken_ids = client.get("/v1/venues/taken").json()
     assert kafe in taken_ids
+
+
+def test_this_month_against_last_month(client, conn, clock):
+    from zoneinfo import ZoneInfo
+
+    ISTANBUL_TZ = ZoneInfo("Europe/Istanbul")
+    token, kafe = business_at(client, conn)
+    clock.now = NOON
+    month_start = NOON.astimezone(ISTANBUL_TZ).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    last_month_day = (month_start - timedelta(days=1)).replace(day=1, hour=10)
+    this_month_day = month_start.replace(hour=10)
+    for at, n in ((last_month_day, 5), (this_month_day, 6)):
+        for _ in range(n):
+            conn.execute("INSERT INTO checkins (venue_id, level, created_at) VALUES (%s, 'low', %s)", (kafe, at))
+    stats = client.get(f"/v1/venues/{kafe}/stats", headers=auth(token)).json()
+    assert (stats["month_checkins"], stats["last_month_checkins"], stats["month_change_pct"]) == (6, 5, 20)

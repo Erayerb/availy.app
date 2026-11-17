@@ -1,7 +1,7 @@
 """v2: coming back. "🔥 4 haftalık seri" (weeks in a row with a check-in) and a venue's regular
 ("müdavim": the one with the most check-ins there lately, among the people I may see as one).
 """
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 import psycopg
@@ -28,6 +28,11 @@ def weekly_streak(conn: psycopg.Connection, user_id: int, now: datetime) -> int:
             "SELECT created_at FROM checkins WHERE user_id = %s AND NOT is_demo AND created_at <= %s AND created_at > %s",
             (user_id, now, now - timedelta(weeks=104)),
         )
+    }
+    # Weeks a friend saved ("Seri kurtarma") count as weeks with a check-in
+    weeks |= {
+        datetime.combine(r["week_start"], time(0), ISTANBUL)
+        for r in conn.execute("SELECT week_start FROM streak_saves WHERE user_id = %s", (user_id,))
     }
     week = _week_start(now)
     if week not in weeks:

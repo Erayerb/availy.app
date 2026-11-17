@@ -7,7 +7,12 @@ export type Person = { id: number; username: string; name: string };
 export type Relation = 'friend' | 'outgoing' | 'incoming' | 'none';
 // A friend's newest public check-in: only the venue and the time, never a live location
 export type FriendCheckin = { venue_id: number; venue_name: string; at: string; is_first: boolean; points: number };
-export type Friend = Person & { last_checkin: FriendCheckin | null };
+export type Friend = Person & {
+  last_checkin: FriendCheckin | null;
+  streak?: number; // "🔥 4": weeks in a row with a check-in
+  at_risk?: boolean; // no check-in this week yet: the streak ends on Sunday
+  can_save?: boolean; // I may save it ("Seri kurtarma", once a month)
+};
 export type FriendLists = { friends: Friend[]; incoming: Person[]; outgoing: Person[] };
 
 const QR_PREFIX = 'availy:friend:';
@@ -49,6 +54,9 @@ export const friendsApi = {
   add: (token: string, username: string) =>
     send<Person & { relation: Relation }>('POST', '/v1/friends', { username }, token),
   remove: (token: string, id: number) => send<void>('DELETE', `/v1/friends/${id}`, undefined, token),
+  // Seri kurtarma: cover a friend's week without a check-in (once a month)
+  saveStreak: (token: string, username: string) =>
+    send<{ username: string; streak: number }>('POST', `/v1/friends/${encodeURIComponent(username)}/save-streak`, undefined, token),
   // "Rehberden bul": my number (kept only as a hash), then the contacts' numbers (compared, not stored)
   setPhone: (token: string, phone: string) => send<void>('PUT', '/v1/me/phone', { phone }, token),
   removePhone: (token: string) => send<void>('DELETE', '/v1/me/phone', undefined, token),

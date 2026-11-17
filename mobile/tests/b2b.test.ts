@@ -16,7 +16,6 @@ import {
   type Campaign,
 } from '../src/lib/campaigns.ts';
 import { distanceKm, formatDistance, sortByDistance } from '../src/lib/geo.ts';
-import { isLocalVenueId, LOCAL_ID_START } from '../src/lib/localVenues.ts';
 import { campaignCostNote } from '../src/lib/plans.ts';
 import { formatHour, nearbyCompetitors } from '../src/lib/stats.ts';
 
@@ -117,9 +116,6 @@ test('sortByDistance puts the nearest venue first', () => {
   assert.deepEqual(sortByDistance(venues, MODA).map((v) => v.id), [3, 2, 1]);
 });
 
-test('venues added only on a phone in v1 are told apart by their ids', () => {
-  assert.ok(isLocalVenueId(LOCAL_ID_START) && !isLocalVenueId(38));
-});
 
 test('dead hour: two people saying Sakin or a long silence; one person is only mentioned', () => {
   const now = new Date('2026-11-03T12:00:00Z'); // 15:00 in Istanbul

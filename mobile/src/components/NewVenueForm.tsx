@@ -1,3 +1,5 @@
+import { SameVenueHint } from './SameVenueHint';
+import { TAB_BAR_SPACE } from './TabBar';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { notifyVenuesChanged } from '../lib/venueEvents';
@@ -178,6 +180,8 @@ export function NewVenueForm({ token, business, title, intro, onBack, onAdded }:
           style={styles.input}
           maxLength={60}
         />
+        {/* The same place may be on availo already, or known from open data: offer it before a new one */}
+        {!business && <SameVenueHint name={name} token={token} onOpenVenue={onAdded} />}
         <Text style={styles.label}>Türü</Text>
         <View style={styles.wrap}>
           {VENUE_CATEGORIES.map((c) => (
@@ -237,7 +241,7 @@ export function NewVenueForm({ token, business, title, intro, onBack, onAdded }:
 
 const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: 48, gap: 12 },
+  content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 12 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
   name: { fontSize: 18, fontWeight: '700', color: colors.text },

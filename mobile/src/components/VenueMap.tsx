@@ -44,6 +44,9 @@ const VenueMarker = memo(function VenueMarker({
       coordinate={{ latitude: venue.lat, longitude: venue.lon }}
       // With a name to its right the marker is wider; keep the dot itself on the venue's spot
       anchor={{ x: label ? TOUCH_SIZE / 2 / (TOUCH_SIZE + LABEL_WIDTH) : 0.5, y: 0.5 }}
+      // iOS (Apple Maps) ignores anchor for a custom view and centres it instead: move it right by half the name,
+      // so the dot stays on the spot when the name appears on zooming in
+      centerOffset={{ x: label ? LABEL_WIDTH / 2 : 0, y: 0 }}
       onPress={() => onSelect(venue.id)}
       zIndex={selected ? 10 : own ? 5 : 1}
       tracksViewChanges={false}

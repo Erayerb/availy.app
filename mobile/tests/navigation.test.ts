@@ -84,8 +84,8 @@ test('several districts can be chosen at once', () => {
 
 test('only pilot districts can be picked for now', async () => {
   const { ALL_DISTRICTS, PILOT_DISTRICTS, isPilotDistrict } = await import('../src/lib/istanbul.ts');
-  assert.deepEqual(PILOT_DISTRICTS, ['Ataşehir', 'Kadıköy', 'Şişli']);
+  assert.deepEqual(PILOT_DISTRICTS, ['Ataşehir', 'Bakırköy', 'Beşiktaş', 'Eyüpsultan', 'Kadıköy', 'Şişli']);
   assert.ok(PILOT_DISTRICTS.every((d) => ALL_DISTRICTS.includes(d)));
   assert.ok(isPilotDistrict('Kadıköy'));
-  assert.ok(!isPilotDistrict('Beşiktaş'));
+  assert.ok(isPilotDistrict('Beşiktaş') && !isPilotDistrict('Sarıyer'));
 });

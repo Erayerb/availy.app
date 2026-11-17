@@ -11,18 +11,18 @@ export const lightColors = {
   primaryPressed: '#A10D25',
   onPrimary: '#FFF8EE', // text on red
   background: '#FBF4E8', // cream page background
-  surface: '#FFFCF6', // cards, buttons and panels on top of the map
-  cream: '#F3E7D3', // inputs, inactive chips
-  border: '#E6D6BE',
+  surface: '#FFFFFF', // cards, buttons and panels: white, so they stand out from the cream page
+  cream: '#F0E2CB', // inputs, inactive chips (a step darker than the page)
+  border: '#DCC7A8',
   text: '#2B1D16', // dark brown
-  textMuted: '#7D6A5A',
-  placeholder: '#A8968A',
+  textMuted: '#6A5647', // darker than before: easier to read on cream
+  placeholder: '#94806F',
   disabled: '#D9CBB6',
   danger: '#B42318',
-  success: '#2E7D32',
+  success: '#256B2A',
   successBg: '#DCF0DC', // "İzin verildi" badge
-  discovery: '#7B5EA7', // ✨ "keşfetti"
-  gold: '#B7791F', // leaderboard prize line
+  discovery: '#6A4C96', // ✨ "keşfetti"
+  gold: '#97600F', // leaderboard prize line (darker: readable on cream)
   closedShade: 'rgba(255,255,255,0.45)', // over the photo of a closed venue
   white: '#FFFFFF',
   shadow: '#000000',

@@ -68,8 +68,8 @@ export function AboutScreen({ role, onBack }: { role: Role; onBack: () => void }
       ))}
 
       <Text style={styles.note}>
-        Mekan bilgileri © OpenStreetMap katkıcıları (ODbL lisansı). Doluluk, kullanıcıların check-in'lerinden
-        hesaplanır. Prototip sürüm.
+        Mekan bilgileri © OpenStreetMap katkıcıları (ODbL lisansı), Overture Maps Foundation (CDLA Permissive 2.0) ve
+        Foursquare Open Source Places (Apache 2.0). Doluluk, kullanıcıların check-in'lerinden hesaplanır. Prototip sürüm.
       </Text>
     </ScrollView>
   );

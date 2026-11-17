@@ -1,3 +1,4 @@
+import type { NewBadge } from '../lib/badgeEvents';
 import { InlineStars } from './Stars';
 import { useState } from 'react';
 import { Alert, Platform, Linking, StyleSheet, View } from 'react-native';
@@ -134,7 +135,13 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
       haptics.success();
       notifyVenuesChanged();
       // Badges this check-in earned: their pop-up a moment after the check-in's own celebration
-      if (done.new_badges?.length) setTimeout(() => celebrateBadges(done.new_badges), 1400);
+      // New badges and a longer streak ("🔥 3 hafta üst üste") pop up a moment after the check-in's own celebration
+      const streak: NewBadge[] =
+        done.streak_up && (done.weekly_streak ?? 0) >= 2
+          ? [{ id: 'streak', kind: 'streak', icon: '🔥', name: `${done.weekly_streak} hafta üst üste!`, points: 0 }]
+          : [];
+      const pops = [...streak, ...(done.new_badges ?? [])];
+      if (pops.length) setTimeout(() => celebrateBadges(pops), 1400);
       setResult({ ok: true, text: checkinMessage(done) });
       setShared({ id: done.id, label: look(level).label, first: done.is_first, streak: done.weekly_streak ?? 0, note: null, coupons: done.coupons ?? [] });
       setRating(0);
@@ -296,10 +303,11 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
                       <Text style={styles.saveWordsText}>Vazgeç</Text>
                     </Pressable>
                   )}
+                  {/* "Buradayım, gel" first, then the review's "Paylaş" */}
+                  {!editing && shareButton}
                   <Pressable style={[styles.actionButton, styles.saveWords, rating < 1 && styles.disabled]} onPress={saveReview} disabled={rating < 1}>
                     <Text style={styles.saveWordsText}>{editing ? 'Kaydet' : 'Paylaş'}</Text>
                   </Pressable>
-                  {!editing && shareButton}
                 </View>
               </View>
             )}

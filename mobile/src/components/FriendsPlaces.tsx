@@ -1,5 +1,3 @@
-import { usePersistentState } from '../hooks/usePersistentState';
-import { KEYS } from '../lib/storage';
 import { shareText } from '../lib/shareVenue';
 import { Icon } from './Icon';
 import { Pressable } from './Pressable';
@@ -26,13 +24,10 @@ type Props = {
   inviteName?: string | null; // my user name, for "Davet et"
 };
 
-const parseCollapsed = (raw: unknown) => raw === true;
-
-/** Home: "Arkadaşlarının gittiği yerler", a row of cards; can be folded; with no visits yet, ways to add friends. */
+/** Home: "Arkadaşlarının gittiği yerler", a row of cards; with no visits yet, ways to add friends. */
 export function FriendsPlaces({ token, onOpenVenue, onAddFriends, inviteName = null }: Props) {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [collapsed, setCollapsed] = usePersistentState<boolean>(KEYS.friendsPlacesCollapsed, false, parseCollapsed);
   const [note, setNote] = useState<string | null>(null);
   const load = useCallback(() => {
     if (!token) return;
@@ -55,12 +50,8 @@ export function FriendsPlaces({ token, onOpenVenue, onAddFriends, inviteName = n
 
   return (
     <View style={styles.section}>
-      {/* The title folds the row away (remembered) */}
-      <Pressable onPress={() => setCollapsed((c) => !c)} style={styles.head} accessibilityRole="button" accessibilityState={{ expanded: !collapsed }}>
-        <Text style={[styles.title, styles.flex]}>Arkadaşlarının gittiği yerler</Text>
-        <Text style={[styles.chevron, collapsed && styles.chevronClosed]}>›</Text>
-      </Pressable>
-      {collapsed ? null : empty ? (
+      <Text style={styles.title}>Arkadaşlarının gittiği yerler</Text>
+      {empty ? (
         <View style={styles.empty}>
           <Text style={styles.emptyText}>
             {friends.length === 0 ? 'Arkadaşlarını ekle; gittikleri yerler burada görünür.' : 'Arkadaşların son 7 günde bir yere gitmedi. Daha çok arkadaş ekle.'}
@@ -113,10 +104,6 @@ export function FriendsPlaces({ token, onOpenVenue, onAddFriends, inviteName = n
 const styles = themed(() => StyleSheet.create({
   section: { gap: 10, marginTop: 6 },
   title: { fontSize: 17, fontWeight: '700', color: colors.text },
-  head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  flex: { flex: 1 },
-  chevron: { fontSize: 22, color: colors.textMuted, transform: [{ rotate: '90deg' }] },
-  chevronClosed: { transform: [{ rotate: '0deg' }] },
   empty: { padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 10 },
   emptyText: { fontSize: 14, color: colors.textMuted, lineHeight: 20 },
   emptyButtons: { flexDirection: 'row', gap: 8 },

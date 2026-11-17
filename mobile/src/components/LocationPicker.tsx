@@ -1,3 +1,4 @@
+import { TAB_BAR_HEIGHT } from './TabBar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, ScrollView, StyleSheet, View } from 'react-native';
 import { Text, TextInput } from './Text';
@@ -197,7 +198,8 @@ const styles = themed(() => StyleSheet.create({
     position: 'absolute',
     left: 20,
     right: 20,
-    bottom: 40,
+    // Above the floating tab bar, so it can be pressed
+    bottom: TAB_BAR_HEIGHT + 16,
     paddingVertical: 14,
     borderRadius: 12,
     backgroundColor: colors.primary,

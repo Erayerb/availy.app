@@ -1,3 +1,4 @@
+import { accountApi } from '../lib/accountApi';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { TAB_BAR_SPACE } from '../components/TabBar';
 import { Text } from '../components/Text';
@@ -12,6 +13,7 @@ import { colors, themed } from '../theme';
 import { InlineIcon } from '../components/Icon';
 
 type Props = {
+  token?: string | null; // a signed-in customer: Premium is saved on the server too
   signedIn: boolean;
   onBack: () => void;
   onLogin: () => void;
@@ -20,7 +22,7 @@ type Props = {
 };
 
 /** B2C plans: free with ads or Premium (demo: switched on without payment); B2B: the business package. */
-export function SubscriptionScreen({ signedIn, onBack, onLogin, business }: Props) {
+export function SubscriptionScreen({ signedIn, onBack, onLogin, business, token = null }: Props) {
   const { premium, update } = useSettings();
 
   if (business) {
@@ -50,11 +52,17 @@ export function SubscriptionScreen({ signedIn, onBack, onLogin, business }: Prop
           <Text style={styles.primaryText}>Premium için giriş yap</Text>
         </Pressable>
       ) : premium ? (
-        <Pressable style={styles.secondary} onPress={() => update({ premium: false })}>
+        <Pressable style={styles.secondary} onPress={() => {
+            update({ premium: false });
+            if (token) accountApi.setPlan(token, false).catch(() => {});
+          }}>
           <Text style={styles.secondaryText}>Ücretsiz plana dön</Text>
         </Pressable>
       ) : (
-        <Pressable style={styles.primary} onPress={() => update({ premium: true })}>
+        <Pressable style={styles.primary} onPress={() => {
+            update({ premium: true });
+            if (token) accountApi.setPlan(token, true).catch(() => {});
+          }}>
           <Text style={styles.primaryText}>Premium'a geç</Text>
         </Pressable>
       )}
