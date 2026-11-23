@@ -163,6 +163,17 @@ def coupons(user: dict = Depends(current_user), conn: psycopg.Connection = Depen
         raise _fail(e) from None
 
 
+@router.delete("/me/coupons/{code}", status_code=204)
+def delete_coupon(code: str, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn), now: datetime = Depends(get_clock)):
+    from app.campaigns import hide_coupon
+
+    try:
+        hide_coupon(conn, user, code, now)
+    except CampaignError as e:
+        raise _fail(e) from None
+    return Response(status_code=204)
+
+
 @router.post("/coupons/redeem", response_model=CouponOut)
 def redeem(
     body: CodeIn,

@@ -27,7 +27,8 @@ const ICON_COLORS: Partial<Record<IconName, string>> = {
 const CUSTOMER_ITEMS: Item[] = [
   { screen: 'profile', label: 'Profil ayarları', icon: 'user', hint: 'Kullanıcı adı, e-posta, şifre, hesabı dondurma ve silme' },
   { screen: 'campaigns', label: 'Kampanyalar', icon: 'tag', hint: 'Yakındaki kampanyalar, kuponların ve sadakat kartların' },
-  { screen: 'subscription', label: 'Abonelik', icon: 'crown', hint: 'Ücretsiz ya da Premium (₺79/ay)' },
+  { screen: 'points', label: 'Puanların', icon: 'star', hint: 'Harcanabilir puanın, puanla alabileceklerin, geçmiş' },
+  { screen: 'subscription', label: 'Abonelik', icon: 'crown', hint: 'Ücretsiz ya da availo+ (₺79/ay)' },
   { screen: 'settings', label: 'Bildirim ayarları', icon: 'bell', hint: 'Check-in önerileri, sakinleşince haber ver, arkadaşlık, yorum ve beğeniler' },
   { screen: 'appearance', label: 'Görünüm', icon: 'moon', hint: 'Açık ya da koyu tema, renk körlüğü dostu mod' },
   { screen: 'privacy', label: 'Gizlilik ayarları', icon: 'lock', hint: "Check-in'lerimi kim görür, sıralama, aranabilirlik, engellenenler" },
@@ -46,7 +47,7 @@ const GUEST_ITEMS: Item[] = [
 const BUSINESS_ITEMS: Item[] = [
   { screen: 'profile', label: 'İşletme profili', icon: 'building-store', hint: 'Kapak fotoğrafı, ad, saatler, özellikler, adres ve konum, iletişim' },
   { screen: 'verification', label: 'İşletme doğrulama', icon: 'id', hint: 'Mekan sahipliğini kanıtla', badge: 'Yakında' },
-  { screen: 'subscription', label: 'Abonelik', icon: 'crown', hint: 'Kampanya başı ödeme ya da aylık paket' },
+  { screen: 'subscription', label: 'Abonelik', icon: 'crown', hint: 'Ücretsiz ya da Aylık paket (15 gün ücretsiz dene)' },
   { screen: 'settings', label: 'Ayarlar', icon: 'settings', hint: 'Hesap, ölü saat bildirimi, otomatik kampanya' },
   { screen: 'appearance', label: 'Görünüm', icon: 'moon', hint: 'Açık ya da koyu tema, renk körlüğü dostu mod' },
   { screen: 'permissions', label: 'İzinler', icon: 'camera', hint: 'Kamera ve bildirim izinleri ne için kullanılıyor' },
@@ -155,7 +156,7 @@ export function MoreScreen({ user, onSelect, onLogin, onRegister, onLogout }: Pr
 }
 
 const styles = themed(() => StyleSheet.create({
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', zIndex: 20, elevation: 20 },
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 14 },
   greeting: { fontSize: 14, color: colors.textMuted, marginTop: -6 },

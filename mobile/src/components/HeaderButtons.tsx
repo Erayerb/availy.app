@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text } from './Text';
 import { Pressable } from './Pressable';
+import { Tip } from './Tip';
 
 import { useNotifications } from '../context/NotificationsContext';
 import { colors, themed } from '../theme';
@@ -36,15 +37,24 @@ export function HeaderButtons(props: Partial<Actions>) {
   return (
     <View style={styles.row}>
       {onOpenWallet && (
-        <Pressable
-          onPress={onOpenWallet}
-          style={styles.button}
-          hitSlop={8}
-          accessibilityLabel={ready ? 'Kuponların ve kartların, kullanılabilir var' : 'Kuponların ve kartların'}
+        <Tip
+          id="campaignsButton"
+          placement="below"
+          align="center"
+          shift={-40}
+          radius={22}
+          text="Kampanyalar burada: yakındaki indirimler, aldığın kuponlar, sadakat kartların ve puanla alabileceklerin."
         >
-          <Icon name="ticket" size={21} color={colors.text} />
-          {ready && <View style={styles.dot} />}
-        </Pressable>
+          <Pressable
+            onPress={onOpenWallet}
+            style={styles.button}
+            hitSlop={8}
+            accessibilityLabel={ready ? 'Kuponların ve kartların, kullanılabilir var' : 'Kuponların ve kartların'}
+          >
+            <Icon name="ticket" size={21} color={colors.text} />
+            {ready && <View style={styles.dot} />}
+          </Pressable>
+        </Tip>
       )}
       <Pressable
         onPress={onOpenNotifications}

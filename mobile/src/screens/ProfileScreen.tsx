@@ -103,9 +103,19 @@ export function ProfileScreen({
 
       <View style={styles.card}>
         {!business && user.username && user.token ? (
-          <ProfilePhoto username={user.username} token={user.token} framed={user.level?.id === 'ambassador'} />
-        ) : null}
-        {business && venue && user.token ? (
+          // The profile as others see it, with "Profilini güzelleştir" (cover and frame, availo+) right under it
+          <PlusProfile
+            token={user.token}
+            username={user.username}
+            plus={premium}
+            onUpgrade={onUpgrade ?? (() => {})}
+            framed={user.level?.id === 'ambassador'}
+          >
+            <Text style={styles.muted}>
+              {user.email} · Bireysel hesap
+            </Text>
+          </PlusProfile>
+        ) : business && venue && user.token ? (
           // The venue's name with its cover photo beside it (a tap changes the photo)
           <View style={styles.venueHead}>
             <CoverPhoto venue={venue} token={user.token} onSaved={refreshVenue} />
@@ -141,10 +151,6 @@ export function ProfileScreen({
         )}
         {user.emailVerified && <Text style={styles.success}><InlineIcon name="circle-check" /> E-posta doğrulandı</Text>}
       </View>
-
-      {!business && user.username && user.token && (
-        <PlusProfile token={user.token} username={user.username} plus={premium} onUpgrade={onUpgrade ?? (() => {})} />
-      )}
 
       {user.email && !user.emailVerified && (
         <VerifyEmail email={user.email} onChangeEmail={onChangeEmail} onSend={onSendVerification} onVerify={onVerifyEmail} />

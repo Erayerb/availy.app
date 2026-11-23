@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Switch, View } from 'react-native';
 
 import { businessApi, type StandingReward } from '../../lib/business';
-import { DISCOUNT_STEP, MAX_POINTS, POINTS_STEP } from '../../lib/campaigns';
+import { DISCOUNT_STEP, MAX_POINTS, POINT_STEPS, POINTS_STEP } from '../../lib/campaigns';
 import { colors } from '../../theme';
 import { Pressable } from '../Pressable';
 import { Stepper } from '../Stepper';
@@ -51,7 +51,7 @@ export function RewardSetup({ token }: { token: string }) {
         hakkından düşmez.
       </Text>
       <Text style={panel.label}>Kaç puan?</Text>
-      <Stepper value={points} onChange={setPoints} min={POINTS_STEP} max={MAX_POINTS} step={POINTS_STEP * 5} format={(p) => `${p} puan`} label="Puan" />
+      <Stepper value={points} onChange={setPoints} min={POINTS_STEP} max={MAX_POINTS} step={POINTS_STEP} steps={POINT_STEPS} format={(p) => `${p} puan`} label="Puan" />
       <Text style={panel.label}>Ne kadar indirim?</Text>
       <Stepper value={discount} onChange={setDiscount} min={DISCOUNT_STEP} max={90} step={DISCOUNT_STEP} format={(d) => `%${d}`} label="İndirim" />
       <Text style={panel.muted}>Düzenli bir müşteri haftada ~50-70 puan kazanır: {points} puan yaklaşık {Math.max(1, Math.round(points / 60))} haftalık kullanım.</Text>

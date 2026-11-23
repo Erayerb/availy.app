@@ -26,6 +26,6 @@ export const LEVELS: LevelInfo[] = [
     id: 'ambassador',
     name: 'Semt elçisi',
     needs: '2.000 puan ve bir semtte 10 farklı mekan',
-    perks: ['Yeni özelliklere erken erişim (yakında)', '1 ay ücretsiz Premium (yakında)', 'Profil fotoğrafında çerçeve'],
+    perks: ['Yeni özelliklere erken erişim (yakında)', '1 ay ücretsiz availo+ (yakında)', 'Profil fotoğrafında çerçeve'],
   },
 ];

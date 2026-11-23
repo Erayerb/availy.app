@@ -224,7 +224,7 @@ const styles = themed(() => StyleSheet.create({
   secondary: { paddingVertical: 12, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center' },
   secondaryText: { color: colors.primary, fontWeight: '700', fontSize: 15 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', zIndex: 20, elevation: 20 },
   tabs: { flexDirection: 'row', gap: 8 },
   tab: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 16, backgroundColor: colors.cream },
   tabActive: { backgroundColor: colors.primary },

@@ -1,6 +1,6 @@
 /**
- * "Notify me" watches (on the server for registered users, with a copy on the phone), older venue
- * photos stored on this phone, and the in-app alert banner.
+ * "Notify me" watches (on the server for registered users, with a copy on the phone) and the in-app
+ * alert banner.
  * (Coupons: CampaignsContext, loyalty: LoyaltyContext, both on the server.)
  */
 import * as Notifications from 'expo-notifications';
@@ -17,9 +17,6 @@ import { notificationText, parseWatches, toggleWatch, watchExpired, watchTrigger
 import { useSettings } from './SettingsContext';
 
 const WATCH_CHECK_MS = 60_000;
-
-const asRecord = <T,>(raw: unknown): Record<string, T> =>
-  raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, T>) : {};
 
 // Show phone notifications even while the app is open
 if (Platform.OS !== 'web') {
@@ -41,8 +38,6 @@ type Engagement = {
   alert: string | null;
   dismissAlert: () => void;
   // Photos
-  photos: Record<string, string>;
-  setPhoto: (venueId: number, uri: string) => void;
   // Shows the in-app banner and, on phones, a local notification
   notify: (title: string, body: string, phone: boolean, venueId: number) => void;
 };
@@ -53,7 +48,6 @@ export function EngagementProvider({ userKey, token, children }: { userKey: stri
   const { watchNotifications, premium } = useSettings();
   const { promptUpgrade } = useUpgrade();
   const [watches, setWatches] = usePersistentState<Watch[]>(KEYS.watches, [], parseWatches);
-  const [photos, setPhotos] = usePersistentState<Record<string, string>>(KEYS.photos, {}, asRecord);
   const [alert, setAlert] = useState<string | null>(null);
 
   // Registered: the server's bells; the phone's older ones go up once
@@ -127,11 +121,6 @@ export function EngagementProvider({ userKey, token, children }: { userKey: stri
     return () => clearInterval(timer);
   }, [watches, setWatches, watchNotifications, notify, token]);
 
-  const setPhoto = useCallback(
-    (venueId: number, uri: string) => setPhotos((p) => ({ ...p, [venueId]: uri })),
-    [setPhotos],
-  );
-
   return (
     <EngagementContext.Provider
       value={{
@@ -140,8 +129,6 @@ export function EngagementProvider({ userKey, token, children }: { userKey: stri
         toggleWatchFor,
         alert,
         dismissAlert: () => setAlert(null),
-        photos,
-        setPhoto,
         notify,
       }}
     >

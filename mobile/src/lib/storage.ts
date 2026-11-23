@@ -7,10 +7,10 @@ export const KEYS = {
   settings: 'availy.settings',
   seenMoments: 'availy.seenMoments', // "Şu an burada" photos already opened (each is seen once)
   watches: 'availy.watches',
-  photos: 'availy.photos', // venueId -> one photo (data URI) shown on the home tile
   notificationsSeen: 'availy.notificationsSeen', // account -> when the 🔔 list was last opened (v2)
   suggestionsAsked: 'availy.suggestionsAskedTimes', // venueId -> when "yakınındasın" asked in the last day
   lastLogin: 'availy.lastLogin', // "Beni hatırla": the user name / e-mail typed last
+  tipsSeen: 'availy.tipsSeen', // the one-time tip bubbles already closed
   lastOpened: 'availy.lastOpened', // when the app was last in front: the "Sen yokken" card after a while
 } as const;
 

@@ -32,6 +32,7 @@ import { bboxAround } from '../lib/nearby';
 import { formatHour, nearbyCompetitors } from '../lib/stats';
 import { colors, themed } from '../theme';
 import { Icon, InlineIcon, type IconName } from '../components/Icon';
+import { BusinessSummary } from '../components/business/BusinessSummary';
 import { MonthReport } from '../components/business/MonthReport';
 import { ProfileProgress } from '../components/business/ProfileProgress';
 
@@ -54,6 +55,7 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
   const [nearby, setNearby] = useState<Venue[]>([]);
   const [stats, setStats] = useState<VenueStats | null>(null);
   const [statsLocked, setStatsLocked] = useState(false); // not in the plan (402)
+  const [today, setToday] = useState<{ checkins: number; new_people: number } | null>(null); // the free plan's two numbers
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<{ ok: boolean; text: string } | null>(null);
   const { now, create, activeFor, schedules, addSchedule, access } = useCampaigns();
@@ -78,7 +80,9 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
           })
           .catch((e) => {
             setStats(null);
-            setStatsLocked(e instanceof ApiError && e.status === 402);
+            const locked = e instanceof ApiError && e.status === 402;
+            setStatsLocked(locked);
+            if (locked && user.token) businessApi.today(user.token).then(setToday).catch(() => {});
           });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Yüklenemedi.');
@@ -137,6 +141,7 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
       </View>
 
       {/* Until the venue page is complete: the cover photo first, then what else is missing */}
+      {user.token && <BusinessSummary token={user.token} />}
       {user.token && <MonthReport token={user.token} />}
       {user.token && <ProfileProgress venue={venue} token={user.token} onSaved={load} onEditProfile={onEditProfile} />}
 
@@ -196,15 +201,26 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
       {user.token && <SponsorCard token={user.token} />}
 
       {statsLocked ? (
-        <View style={styles.card}>
-          <PanelTitle icon="chart-bar" tint={TINT.purple}>İstatistikler</PanelTitle>
-          <Text style={styles.muted}>
-            Saat saat bugün, son 7 gün, haftanın günleri, geçen ayla karşılaştırma ve en sakin saatlerin aylık pakette.
-          </Text>
-          <Pressable style={styles.primary} onPress={onUpgrade}>
-            <Text style={styles.primaryText}>Aylık paket'e geç</Text>
-          </Pressable>
-        </View>
+        <>
+          {/* Free plan: today in two numbers; the rest is in the Aylık paket */}
+          <View style={styles.card}>
+            <PanelTitle icon="clock" tint={TINT.orange}>Bugün</PanelTitle>
+            <View style={styles.stats}>
+              <Stat value={today?.checkins ?? 0} label="Check-in" />
+              <Stat value={today?.new_people ?? 0} label="Yeni müşteri" />
+            </View>
+          </View>
+          <View style={styles.card}>
+            <PanelTitle icon="lock" tint={TINT.purple}>Daha detaylı istatistikler</PanelTitle>
+            <Text style={styles.muted}>
+              Son 7 gün (kişi, tekrar gelen), saat saat bugün, haftanın günleri, geçen ayla karşılaştırma ve en sakin saatlerin Aylık
+              pakette.
+            </Text>
+            <Pressable style={styles.primary} onPress={onUpgrade}>
+              <Text style={styles.primaryText}>Aylık paket'e geç</Text>
+            </Pressable>
+          </View>
+        </>
       ) : (
         <>
       <View style={styles.card}>
@@ -366,7 +382,7 @@ const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 14 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, zIndex: 20, elevation: 20 },
   pageTitle: { fontSize: 24, fontWeight: '700', color: colors.text },
   card: {
     padding: 16,

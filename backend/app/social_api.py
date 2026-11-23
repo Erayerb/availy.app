@@ -209,6 +209,7 @@ class SummaryDistrict(BaseModel):
 
 
 class SummaryOut(BaseModel):
+    months_available: int  # the month picker: back to the month the person joined (at most 12)
     month: str  # "2026-11"
     checkins: int
     venues: int
@@ -283,3 +284,69 @@ def my_starter_tasks(user: dict = Depends(current_user), conn: psycopg.Connectio
     from app.starter import starter_tasks
 
     return starter_tasks(conn, user, now)
+
+
+class WalletMove(BaseModel):
+    at: datetime
+    amount: int  # + earned, − spent
+    label: str
+    venue_name: str | None
+
+
+class WalletOut(BaseModel):
+    balance: int  # spendable: earned − spent
+    earned: int  # levels and rankings count this (spending never lowers it)
+    spent: int
+    moves: list[WalletMove]
+
+
+@router.get("/me/wallet", response_model=WalletOut)
+def my_wallet(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    """Puanların: balance and history."""
+    from app.wallet import wallet
+
+    return wallet(conn, user)
+
+
+class OfferOut(BaseModel):
+    campaign_id: int
+    standing: bool  # the venue's standing reward (else a special coupon of a running campaign)
+    points: int
+    discount: int | None
+    message: str
+    venue_id: int
+    venue_name: str
+    district: str | None
+    distance_m: int | None
+
+
+@router.get("/rewards", response_model=list[OfferOut])
+def rewards(lat: float | None = None, lon: float | None = None, conn: psycopg.Connection = Depends(get_conn), now: datetime = Depends(get_clock)):
+    """What points can buy right now (standing rewards and special coupons), nearest first."""
+    from app.wallet import spendable_offers
+
+    return spendable_offers(conn, lat, lon, now)
+
+
+class SeenIn(BaseModel):
+    at: datetime
+
+
+class SeenOut(BaseModel):
+    at: datetime | None
+
+
+@router.get("/me/notifications-seen", response_model=SeenOut)
+def notifications_seen(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    """When the 🔔 list was last opened (on any phone): the unread count starts after it."""
+    return {"at": conn.execute("SELECT notifications_seen_at AS at FROM users WHERE id = %s", (user["id"],)).fetchone()["at"]}
+
+
+@router.put("/me/notifications-seen", status_code=204)
+def save_notifications_seen(body: SeenIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    # Never backwards (an older phone saving late)
+    conn.execute(
+        "UPDATE users SET notifications_seen_at = GREATEST(COALESCE(notifications_seen_at, %s), %s) WHERE id = %s",
+        (body.at, body.at, user["id"]),
+    )
+    return Response(status_code=204)

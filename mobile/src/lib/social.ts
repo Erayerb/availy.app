@@ -94,6 +94,9 @@ export const socialApi = {
   // For an empty Akış: people to add and venues discovered nearby lately
   suggestions: (token: string, point: { lat: number; lon: number } | null) =>
     send<Suggestions>('GET', `/v1/suggestions${point ? `?lat=${point.lat}&lon=${point.lon}` : ''}`, undefined, token),
+  // When the 🔔 list was last opened, on any phone (the unread count starts after it)
+  notificationsSeen: (token: string) => send<{ at: string | null }>('GET', '/v1/me/notifications-seen', undefined, token),
+  saveNotificationsSeen: (token: string, at: string) => send<void>('PUT', '/v1/me/notifications-seen', { at }, token),
   notifications: (token: string) => send<AppNotification[]>('GET', '/v1/notifications', undefined, token),
   dismissNotification: (token: string, key: string) => send<void>('POST', '/v1/notifications/dismiss', { key }, token),
   clearNotifications: (token: string) => send<void>('DELETE', '/v1/notifications', undefined, token),

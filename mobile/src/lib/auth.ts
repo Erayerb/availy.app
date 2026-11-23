@@ -35,7 +35,6 @@ export type User = {
   role?: Role;
   venueId?: number | null;
   plan?: PlanId;
-  venueVerified?: boolean; // business proved it owns the venue
   emailVerified?: boolean; // the code sent to the e-mail was entered (v2)
   customerCode?: string; // "M-123456": the loyalty QR shown at the counter (v2, from the server)
   isAdmin?: boolean; // Daha fazla > Yönetici (reported reviews); set by hand on the server

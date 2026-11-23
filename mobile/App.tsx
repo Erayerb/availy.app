@@ -72,6 +72,7 @@ import type { SortMode } from './src/lib/sort';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { BusinessScreen } from './src/screens/BusinessScreen';
 import { CampaignsScreen, type Tab as CampaignsTab } from './src/screens/CampaignsScreen';
+import { PointsScreen } from './src/screens/PointsScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { VenueDetailScreen } from './src/screens/VenueDetailScreen';
@@ -487,8 +488,8 @@ function Main() {
         <VenueSetupScreen
           token={auth.user?.token ?? null}
           onDone={async (venueId) => {
-            // A newly chosen venue has to be verified again
-            await auth.updateProfile({ venueId, venueVerified: false });
+            // Verification belongs to the venue, on the server (venue_profiles.verified)
+            await auth.updateProfile({ venueId });
             setNav({ current: { name: 'business', id: 0 }, stack: [] });
           }}
           onLogout={async () => {
@@ -674,6 +675,7 @@ function Main() {
           )}
           {screen === 'campaigns' && (
             <CampaignsScreen
+              onOpenPoints={() => goTo('points')}
               initialTab={campaignsTab ?? undefined}
               onTabChange={setCampaignsTab}
               signedIn={isRegistered(auth.user)}
@@ -806,6 +808,9 @@ function Main() {
                 setAuthForm('register');
               }}
             />
+          )}
+          {screen === 'points' && auth.user?.token && (
+            <PointsScreen token={auth.user.token} onBack={goBack} onOpenVenue={openDetails} />
           )}
           {screen === 'subscription' && (
             <SubscriptionScreen

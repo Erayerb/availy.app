@@ -34,7 +34,8 @@ export type Screen =
   | 'appearance'
   | 'venueList'
   | 'admin'
-  | 'detail';
+  | 'detail'
+  | 'points';
 
 type Tab = { screen: Screen; label: string; icon: IconName };
 

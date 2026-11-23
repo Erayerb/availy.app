@@ -60,7 +60,7 @@ export function CampaignBox({ campaign }: { campaign: Campaign }) {
           </Pressable>
           {price > 0 && points !== null && (
             <Text style={styles.codeLabel}>
-              {short ? `${price - points} puan daha gerekiyor; check-in yaparak kazan.` : `Puanın: ${points}`}
+              {short ? `${price - points} puan daha gerekiyor; check-in yaparak kazan.` : `Harcanabilir puanın: ${points}`}
             </Text>
           )}
         </>

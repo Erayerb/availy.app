@@ -1,4 +1,5 @@
 import { Stars } from '../components/Stars';
+import { Tip } from '../components/Tip';
 import { EmptyState } from '../components/EmptyState';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
@@ -187,6 +188,7 @@ export function SocialScreen({
         <HeaderButtons onOpenProfile={onOpenProfile} onOpenNotifications={onOpenNotifications} />
       </View>
 
+
       <View style={styles.tabs}>
         {(
           [
@@ -206,7 +208,14 @@ export function SocialScreen({
           </Pressable>
         ))}
         <View style={styles.flex} />
-        {/* Add a friend, requests, QR; the count of incoming requests */}
+        {/* Add a friend, requests, QR; the count of incoming requests (the Sosyal tip points at it) */}
+        <Tip
+          id="social"
+          placement="below"
+          align="right"
+          radius={18}
+          text="Arkadaşlarını buradan ekle: kimin nerede olduğunu Akış'ta gör, aynı yerde check-in yapınca ikiniz de puan kazanın."
+        >
         <Pressable
           onPress={() => setTab(tab === 'friends' ? 'friendsFeed' : 'friends')}
           style={[styles.addFriend, tab === 'friends' && styles.tabActive]}
@@ -220,6 +229,7 @@ export function SocialScreen({
             </View>
           )}
         </Pressable>
+        </Tip>
       </View>
 
       {(tab === 'feed' || tab === 'friendsFeed') && feedLoading && feed.length === 0 && (
@@ -592,7 +602,7 @@ const styles = themed(() => StyleSheet.create({
   reportedText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
   reportedDot: { width: 9, height: 9, borderRadius: 5 },
   ratingStars: { fontSize: 14, color: '#E0A800', marginTop: 2 },
-  tabs: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  tabs: { flexDirection: 'row', alignItems: 'center', gap: 8, zIndex: 20, elevation: 20 },
   addFriend: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
   badge: {
     position: 'absolute',
@@ -635,7 +645,7 @@ const styles = themed(() => StyleSheet.create({
   older: { alignSelf: 'center', paddingVertical: 10, paddingHorizontal: 18, borderRadius: 14, backgroundColor: colors.cream },
   olderText: { color: colors.text, fontWeight: '700', fontSize: 14 },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 14 },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, zIndex: 20, elevation: 20 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
   card: { padding: 16, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 10 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },

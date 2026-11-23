@@ -17,6 +17,7 @@ type Campaigns = {
   points: number | null; // mine, to spend on coupons
   access: BusinessAccess | null; // business: what its plan gives (statistics, how the next campaign is covered)
   startTrial: () => Promise<string | null>; // "15 gün ücretsiz dene"
+  removeCoupon: (code: string) => void; // "Sil" in Kuponlarım
   now: Date;
   // Each resolves to an error message, or null on success
   create: (input: NewCampaign) => Promise<string | null>;
@@ -107,6 +108,15 @@ export function CampaignsProvider({ token, business, children }: { token: string
       setMine((list) => list.filter((c) => !ids.includes(c.id)));
     },
     [token],
+  );
+
+  const removeCoupon = useCallback(
+    (code: string) => {
+      if (!token) return;
+      setCoupons((list) => list.filter((c) => c.code !== code));
+      campaignApi.removeCoupon(token, code).catch(() => reload());
+    },
+    [token, reload],
   );
 
   const startTrial = useCallback(async () => {
@@ -201,7 +211,7 @@ export function CampaignsProvider({ token, business, children }: { token: string
 
   return (
     <CampaignsContext.Provider
-      value={{ campaigns, coupons, points, access, startTrial, now, create, end, remove, claim, redeem, recordView, reload, activeFor, schedules, addSchedule, setScheduleActive, removeSchedule }}
+      value={{ campaigns, coupons, points, access, startTrial, removeCoupon, now, create, end, remove, claim, redeem, recordView, reload, activeFor, schedules, addSchedule, setScheduleActive, removeSchedule }}
     >
       {children}
     </CampaignsContext.Provider>

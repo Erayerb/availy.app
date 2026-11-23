@@ -1,7 +1,6 @@
 import { useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 
-import { useEngagement } from '../context/EngagementContext';
 import { photoUrl } from '../lib/venueApi';
 import { categoryVisual } from '../lib/visuals';
 import { GradientFill } from './GradientFill';
@@ -23,10 +22,9 @@ type Props = {
 
 /** The venue's cover photo (uploaded by the business), or a coloured card by type: a gradient with the type's icon. */
 export function VenuePhoto({ venueId, category, photoAt = null, size, height, radius = 16, centered = false, noScrim = false }: Props) {
-  // Photos picked before they were kept on the server stay on that phone
-  const local = useEngagement().photos[venueId];
   const fade = useRef(new Animated.Value(0)).current;
-  const uri = photoAt ? photoUrl(venueId, photoAt) : local;
+  // Only the verified business's cover photo (users do not set venue photos)
+  const uri = photoAt ? photoUrl(venueId, photoAt) : null;
   const { icon, gradient } = categoryVisual(category);
   const box = { width: size, height, borderRadius: radius };
   if (uri) {

@@ -16,3 +16,12 @@ test('the poster has the code and a safe venue name', () => {
   const html = doorPosterHtml('Kahve <b>&</b> Co', 'https://a.test/?kapi=1');
   assert.ok(html.includes('Kahve &lt;b&gt;&amp;&lt;/b&gt; Co') && !html.includes('<b>&'));
 });
+
+test('the door sticker: four, in availo colours, with the escaped name', async () => {
+  const { doorStickerHtml } = await import('../src/lib/doorPoster.ts');
+  const html = doorStickerHtml('Kahve <b>&</b> Co', 'https://a.test/?kapi=1');
+  assert.equal(html.split('class="s"').length - 1, 4);
+  assert.match(html, /availo'da/);
+  assert.match(html, /Kahve &lt;b&gt;&amp;&lt;\/b&gt; Co/);
+  assert.ok(!html.includes('<b>&</b>'));
+});

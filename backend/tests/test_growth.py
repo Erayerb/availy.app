@@ -96,3 +96,82 @@ def test_founder_applications(client, conn):
     assert client.post("/v1/waitlist", json=body).status_code == 204
     row = conn.execute("SELECT founder FROM waitlist WHERE contact = 'kafe@example.test'").fetchone()
     assert row["founder"] is True
+
+
+def test_deleting_a_coupon_from_my_list(client, conn, clock):
+    token, _ = business_at(client, conn)
+    ali = account(client, "t_ali")
+    campaign = client.post("/v1/campaigns", json=CAMPAIGN, headers=auth(token)).json()
+    code = client.post(f"/v1/campaigns/{campaign['id']}/coupon", headers=auth(ali)).json()["code"]
+    assert client.delete("/v1/me/coupons/AV-ZZZZ", headers=auth(ali)).status_code == 404
+    assert client.delete(f"/v1/me/coupons/{code}", headers=auth(ali)).status_code == 204
+    assert client.get("/v1/me/coupons", headers=auth(ali)).json() == []
+    assert client.post("/v1/coupons/redeem", json={"code": code}, headers=auth(token)).status_code == 409
+    # Asked for again: the same coupon comes back
+    assert client.post(f"/v1/campaigns/{campaign['id']}/coupon", headers=auth(ali)).json()["code"] == code
+    assert len(client.get("/v1/me/coupons", headers=auth(ali)).json()) == 1
+
+
+def test_free_business_sees_today(client, conn, clock):
+    token, kafe = business_at(client, conn, plan="pay_per_use")
+    checkin(client, account(client, "t_ali"), kafe)
+    assert client.get("/v1/business/today", headers=auth(token)).json() == {"checkins": 1, "people": 1, "new_people": 1}
+
+
+def test_business_monthly_summary_is_in_the_monthly_plan(client, conn, clock):
+    free, _ = business_at(client, conn, "t_bedava", "Test Cowork B", plan="pay_per_use")
+    assert client.get("/v1/business/monthly-summary", headers=auth(free)).status_code == 402
+    token, kafe = business_at(client, conn)
+    checkin(client, account(client, "t_ali"), kafe)
+    summary = client.get("/v1/business/monthly-summary", headers=auth(token)).json()
+    assert (summary["checkins"], summary["new_people"], summary["returning_people"]) == (1, 1, 0)
+    assert summary["busiest_hour"] is not None and summary["busiest_weekday"] in range(1, 8)
+
+
+def test_points_cannot_be_spent_twice(client, conn, clock):
+    """The ranking keeps what was earned, but the spendable balance goes down: no buying past it."""
+    token, kafe = business_at(client, conn)
+    ali = account(client, "t_ali")
+    give_points(conn, "t_ali", 150)
+    first = client.post("/v1/campaigns", json={**CAMPAIGN, "points_price": 100}, headers=auth(token)).json()
+    second = client.post("/v1/campaigns", json={**CAMPAIGN, "points_price": 100}, headers=auth(token)).json()
+    assert client.post(f"/v1/campaigns/{first['id']}/coupon", headers=auth(ali)).status_code == 200
+    refused = client.post(f"/v1/campaigns/{second['id']}/coupon", headers=auth(ali))
+    assert refused.status_code == 402 and "50 puanın var" in refused.json()["detail"]
+    reward = client.put("/v1/business/reward", json={"points": 60, "discount": 10}, headers=auth(token)).json()
+    assert client.post(f"/v1/campaigns/{reward['id']}/coupon", headers=auth(ali)).status_code == 402
+    assert client.get("/v1/me/points", headers=auth(ali)).json() == {"balance": 50}
+
+
+def test_wallet_offers_and_the_map_badge(client, conn, clock):
+    token, kafe = business_at(client, conn)
+    ali = account(client, "t_ali")
+    checkin(client, ali, kafe)
+    reward = client.put("/v1/business/reward", json={"points": 10, "discount": 10}, headers=auth(token)).json()
+    offers = client.get("/v1/rewards", params={"lat": 40.984, "lon": 29.026}).json()
+    assert [(o["venue_id"], o["standing"], o["points"]) for o in offers] == [(kafe, True, 10)] and offers[0]["distance_m"] == 0
+    clock.now += timedelta(minutes=1)
+    client.post(f"/v1/campaigns/{reward['id']}/coupon", headers=auth(ali))
+    wallet = client.get("/v1/me/wallet", headers=auth(ali)).json()
+    assert wallet["balance"] == wallet["earned"] - 10 and wallet["spent"] == 10
+    assert wallet["moves"][0]["amount"] == -10 and wallet["moves"][0]["label"] == "Ödül aldın"
+    assert client.get("/v1/venues/search", params={"ids": str(kafe)}).json()[0]["reward_points"] == 10
+
+
+def test_month_picker_goes_back_to_when_the_person_joined(client, conn, clock):
+    from datetime import timedelta as td
+
+    from app.summary import months_since
+
+    assert months_since(clock.now - td(days=70), clock.now) in (3, 4)
+    assert months_since(clock.now, clock.now) == 1
+    assert months_since(clock.now - td(days=900), clock.now) == 12
+
+
+def test_the_bell_is_read_on_every_phone(client, conn, clock):
+    ali = account(client, "t_ali")
+    assert client.get("/v1/me/notifications-seen", headers=auth(ali)).json() == {"at": None}
+    later, earlier = clock.now.isoformat(), (clock.now - timedelta(hours=1)).isoformat()
+    client.put("/v1/me/notifications-seen", json={"at": later}, headers=auth(ali))
+    client.put("/v1/me/notifications-seen", json={"at": earlier}, headers=auth(ali))  # an older phone, late
+    assert client.get("/v1/me/notifications-seen", headers=auth(ali)).json()["at"].startswith(clock.now.strftime("%Y-%m-%dT%H:%M"))

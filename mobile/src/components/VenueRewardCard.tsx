@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Tip } from './Tip';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useCampaigns } from '../context/CampaignsContext';
@@ -58,9 +59,15 @@ export function VenueRewardCard({ venueId, token, onLogin, style }: { venueId: n
       ) : again ? (
         <Text style={styles.muted}>Bu haftaki ödülünü aldın; tekrar {again.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}.</Text>
       ) : (
+        <Tip
+          id="rewardPoints"
+          radius={12}
+          text="Check-in'lerle topladığın puanlar burada işe yarar: mekanın ödülünü puanla al, kasada kodu göster. Seviyen ve sıralaman düşmez."
+        >
         <Pressable style={[styles.button, short && styles.off]} onPress={take} disabled={short}>
           <Text style={styles.buttonText}>{short ? `${reward.points - (points ?? 0)} puan daha gerekiyor` : `${reward.points} puanla al`}</Text>
         </Pressable>
+        </Tip>
       )}
       {note && <Text style={styles.error}>{note}</Text>}
     </View>

@@ -133,6 +133,7 @@ class Venue(BaseModel):
     pending: bool = False  # added by a user, waiting for approval ("⏳ Onay bekliyor")
     moments: int = 0  # "Şu an burada" photos anyone may see (last 24 hours)
     sponsored: bool = False  # "Sponsorlu": shown first on the home page for a paid period
+    reward_points: int | None = None  # the venue's standing reward ("200 puan = %10"): 🎁 on the map
     # The business's profile: cover photo (GET /v1/venues/{id}/photo), links, "✓ Doğrulanmış işletme"
     photo_at: datetime | None = None
     instagram: str | None = None
@@ -203,6 +204,13 @@ def with_crowds(conn: psycopg.Connection, venues: list[dict]) -> list[dict]:
     profiles = load_profiles(conn, ids)
     moments = load_moment_counts(conn, ids, now)
     sponsored = active_sponsored(conn, ids, now)
+    rewards = {
+        r["venue_id"]: r["points"]
+        for r in conn.execute(
+            "SELECT venue_id, min(points_price) AS points FROM campaigns WHERE standing AND venue_id = ANY(%s) AND ends_at > %s GROUP BY venue_id",
+            (ids, now),
+        ).fetchall()
+    }
     result = []
     for v in venues:
         opening = venue_hours(v)
@@ -215,6 +223,7 @@ def with_crowds(conn: psycopg.Connection, venues: list[dict]) -> list[dict]:
                 "trend": trends.get(v["id"], 0),
                 "moments": moments.get(v["id"], 0),
                 "sponsored": v["id"] in sponsored,
+                "reward_points": rewards.get(v["id"]),
                 "open_now": opening.is_open_at_hour(hour),
                 "hours": opening.label(),
                 "opens_at": opening.opens_at,

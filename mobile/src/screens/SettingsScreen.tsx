@@ -117,8 +117,8 @@ export function SettingsScreen({ onBack, isBusiness, guest, venueId, account }: 
             <SettingsSwitch
               icon="heart"
               tint={TINT.red}
-              title="Favorilerim sakinleşince"
-              subtitle={settings.premium ? 'Zil açmadan: kalabalık bir favorin sakinleşince.' : 'availo+ ile: zil açmadan, kalabalık bir favorin sakinleşince.'}
+              title="Favorilerim sakinleşince (availo+)"
+              subtitle="Zil açmadan: kalabalık bir favorin sakinleşince haber al."
               value={settings.premium && settings.favoriteQuietNotifications}
               onChange={(v) =>
                 settings.premium

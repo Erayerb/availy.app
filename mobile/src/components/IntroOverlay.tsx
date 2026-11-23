@@ -9,7 +9,8 @@ import { BUSINESS_SLIDES, CUSTOMER_SLIDES } from '../lib/intro';
 import { LEVELS } from '../lib/occupancy';
 import { colors, themed } from '../theme';
 import { LevelDot } from './LevelDot';
-import { InlineIcon } from './Icon';
+import { GradientFill } from './GradientFill';
+import { Icon } from './Icon';
 
 const SWIPE = 50;
 
@@ -43,7 +44,10 @@ export function IntroOverlay({ role, onDone }: { role: Role; onDone: () => void 
       </Pressable>
 
       <View style={styles.body} {...swipe.panHandlers}>
-        <Text style={styles.icon}><InlineIcon name={slide.icon} color={colors.primary} /></Text>
+        <View style={styles.badge}>
+          <GradientFill colors={slide.colors ?? ['#7A2E1F', '#C8102E']} />
+          <Icon name={slide.icon} size={44} color="#fff" />
+        </View>
         <Text style={styles.title}>{slide.title}</Text>
         {slide.lines.map((line) => (
           <Text key={line} style={styles.line}>
@@ -98,7 +102,7 @@ const styles = themed(() => StyleSheet.create({
   skip: { alignSelf: 'flex-end' },
   skipText: { fontSize: 15, color: colors.textMuted },
   body: { flex: 1, justifyContent: 'center', gap: 14 },
-  icon: { fontSize: 56, textAlign: 'center' },
+  badge: { width: 104, height: 104, borderRadius: 52, overflow: 'hidden', alignSelf: 'center', alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
   title: { fontSize: 26, fontWeight: '800', color: colors.text, textAlign: 'center' },
   line: { fontSize: 16, lineHeight: 23, color: colors.text, textAlign: 'center' },
   legend: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 14, marginTop: 8 },

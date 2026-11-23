@@ -18,7 +18,7 @@ const PICK_OPTIONS: ImagePicker.ImagePickerOptions = {
 };
 
 /** My profile photo with a ✎ badge: choose one, take one with the camera, or remove it. */
-export function ProfilePhoto({ username, token, size = 72, framed = false }: { username: string; token: string; size?: number; framed?: boolean }) {
+export function ProfilePhoto({ username, token, size = 72, framed = false, frameColor = null }: { username: string; token: string; size?: number; framed?: boolean; frameColor?: string | null }) {
   const [version, setVersion] = useState<string | null>(null);
   const [menu, setMenu] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -80,7 +80,7 @@ export function ProfilePhoto({ username, token, size = 72, framed = false }: { u
   return (
     <View style={styles.wrap}>
       <Pressable onPress={() => setMenu(true)} disabled={busy} accessibilityLabel="Profil fotoğrafını düzenle">
-        <Avatar key={version ?? 'start'} username={username} size={size} version={version} framed={framed} />
+        <Avatar key={version ?? 'start'} username={username} size={size} version={version} framed={framed} frameColor={frameColor} />
         <View style={styles.badge}>
           <Icon name={busy ? 'hourglass' : 'pencil'} size={14} color={colors.onPrimary} />
         </View>

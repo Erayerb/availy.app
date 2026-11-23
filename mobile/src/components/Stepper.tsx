@@ -11,18 +11,22 @@ type Props = {
   min: number;
   max: number;
   step: number;
+  // Uneven steps instead (10, 20 … 100, 150, 200 …): − and + go to the neighbouring value
+  steps?: readonly number[];
   format?: (value: number) => string; // "%20", "200 puan"
   label?: string; // for screen readers
 };
 
 /** − value + : picks a number in steps (a campaign's discount, a coupon's points). */
-export function Stepper({ value, onChange, min, max, step, format = String, label }: Props) {
+export function Stepper({ value, onChange, min, max, step, steps, format = String, label }: Props) {
   const set = (next: number) => onChange(Math.min(max, Math.max(min, next)));
+  const down = () => (steps ? set([...steps].reverse().find((s) => s < value) ?? min) : set(value - step));
+  const up = () => (steps ? set(steps.find((s) => s > value) ?? max) : set(value + step));
   return (
     <View style={styles.row} accessibilityLabel={label}>
       <Pressable
         style={[styles.button, value <= min && styles.off]}
-        onPress={() => set(value - step)}
+        onPress={down}
         disabled={value <= min}
         hitSlop={6}
         accessibilityLabel={`${label ?? ''} azalt`}
@@ -32,7 +36,7 @@ export function Stepper({ value, onChange, min, max, step, format = String, labe
       <Text style={styles.value}>{format(value)}</Text>
       <Pressable
         style={[styles.button, value >= max && styles.off]}
-        onPress={() => set(value + step)}
+        onPress={up}
         disabled={value >= max}
         hitSlop={6}
         accessibilityLabel={`${label ?? ''} artır`}

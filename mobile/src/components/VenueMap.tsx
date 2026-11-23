@@ -77,6 +77,12 @@ const VenueMarker = memo(function VenueMarker({
               {glyph && <Text style={[styles.glyph, { fontSize: size * 0.55 }]}>{glyph}</Text>}
             </View>
           )}
+          {/* A standing reward ("200 puan = %10"): somewhere to spend points */}
+          {!!venue.reward_points && (
+            <View style={styles.reward} collapsable={false}>
+              <Text style={styles.rewardText}>🎁</Text>
+            </View>
+          )}
         </View>
         {(label || own) && (
           // Dark purple is hard to read on the dark map: undiscovered names use the theme's discovery colour
@@ -253,7 +259,7 @@ export function VenueMap({
         return (
           <VenueMarker
             // tracksViewChanges is off, so a new key re-renders the dot when its look changes
-            key={`${venue.id}-${venue.crowd?.state}-${venue.crowd?.level}-${venue.open_now}-${isSelected}-${colorBlind}-${labelled.has(venue.id)}-${scheme}`}
+            key={`${venue.id}-${venue.crowd?.state}-${venue.crowd?.level}-${venue.open_now}-${isSelected}-${colorBlind}-${labelled.has(venue.id)}-${scheme}-${venue.reward_points ?? 0}`}
             venue={venue}
             selected={isSelected}
             label={labelled.has(venue.id)}
@@ -314,6 +320,20 @@ const styles = themed(() => StyleSheet.create({
   },
   markerSelected: { borderColor: colors.text, borderWidth: 4 },
   // Small enough that the corner dot stays inside the marker's area (a marker cuts off what is outside it)
+  reward: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.gold,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rewardText: { fontSize: 10 },
   ownMarker: {
     width: 28,
     height: 28,

@@ -1,4 +1,5 @@
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
+import { Tip } from '../components/Tip';
 import { useCallback, useState, useMemo } from 'react';
 import { Linking, Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import * as Location from 'expo-location';
@@ -182,14 +183,19 @@ export function MapScreen({
         <Icon name="current-location" size={24} color="#1A73E8" />
       </Pressable>
       {/* Check in: nearest venues and a search */}
-      <Pressable
-        style={[styles.checkinButton, { bottom: (showPopup ? popupHeight : legendHeight) + TAB_BAR_HEIGHT + 20 }]}
-        onPress={onOpenCheckin}
-        accessibilityLabel="Check-in yap"
+      <Tip
+        id="checkinButton"
+        after="mapColors"
+        align="right"
+        radius={22}
+        text="Bir mekandaysan Check-in'e bas: 10 saniye sürer, puan kazanırsın ve herkes oranın doluluğunu görür."
+        style={[styles.checkinPlace, { bottom: (showPopup ? popupHeight : legendHeight) + TAB_BAR_HEIGHT + 20 }]}
       >
-        <Icon name="map-pin" size={17} color={colors.onPrimary} />
-        <Text style={styles.checkinText}>Check-in</Text>
-      </Pressable>
+        <Pressable style={styles.checkinButton} onPress={onOpenCheckin} accessibilityLabel="Check-in yap">
+          <Icon name="map-pin" size={17} color={colors.onPrimary} />
+          <Text style={styles.checkinText}>Check-in</Text>
+        </Pressable>
+      </Tip>
       {/* The phone shares only an approximate place: say how to turn on the precise one */}
       {approximate && !locateNote && (
         <Pressable
@@ -269,7 +275,13 @@ export function MapScreen({
           {onlyVisited && visitedIds.size === 0 && (
             <Text style={styles.status}>Henüz check-in yapmadın. Check-in yaptığın mekanlar burada görünür.</Text>
           )}
-          {/* One thin line: the colours, then the time of the last update */}
+          {/* One thin line: the colours, then the time of the last update (the first tip points at it) */}
+          <Tip
+            id="mapColors"
+            radius={10}
+            text="Renkler şu anki doluluğu gösterir: yeşil Sakin, sarı Orta, kırmızı Kalabalık. Gri: güncel bilgi yok · ✨: henüz kimse gitmedi, ilk sen git."
+            style={styles.legendTip}
+          >
           <View style={styles.legendLine}>
             {LEVELS.map((level) => (
               <View key={level} style={styles.legendItem}>
@@ -286,6 +298,7 @@ export function MapScreen({
                 (lastUpdated ? lastUpdated.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '…')}
             </Text>
           </View>
+          </Tip>
         </View>
       )}
 
@@ -423,9 +436,9 @@ const styles = themed(() => StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 5,
   },
+  checkinPlace: { position: 'absolute', right: 14 },
+  legendTip: { width: '100%' },
   checkinButton: {
-    position: 'absolute',
-    right: 14,
     height: 44,
     paddingHorizontal: 14,
     borderRadius: 22,

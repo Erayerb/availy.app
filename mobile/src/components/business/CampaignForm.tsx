@@ -6,12 +6,13 @@ import { Pressable } from '../Pressable';
 import { useCampaigns } from '../../context/CampaignsContext';
 import type { Venue } from '../../lib/api';
 import {
-  CLAIM_LIMIT_OPTIONS,
   DURATION_OPTIONS_HOURS,
   RADIUS_OPTIONS_KM,
   DISCOUNT_STEP,
   MAX_POINTS,
   POINTS_STEP,
+  POINT_STEPS,
+  CLAIM_STEPS,
   deadHourSuggestion,
   validateCampaign,
 } from '../../lib/campaigns';
@@ -108,6 +109,14 @@ export function CampaignForm({ venue, plan }: { venue: Venue; plan: PlanId }) {
       {discount !== null && (
         <Stepper value={discount} onChange={setDiscount} min={DISCOUNT_STEP} max={90} step={DISCOUNT_STEP} format={(d) => `%${d}`} label="İndirim" />
       )}
+      <Text style={panel.label}>Kişi sınırı (kaç kişi kupon alabilir?)</Text>
+      <View style={panel.wrap}>
+        <Chip label="Sınırsız" active={maxClaims === null} onPress={() => setMaxClaims(null)} />
+        <Chip label="Sınırlı" active={maxClaims !== null} onPress={() => setMaxClaims(maxClaims ?? 20)} />
+      </View>
+      {maxClaims !== null && (
+        <Stepper value={maxClaims} onChange={setMaxClaims} min={CLAIM_STEPS[0]} max={CLAIM_STEPS[CLAIM_STEPS.length - 1]} step={5} steps={CLAIM_STEPS} format={(n) => `${n} kişi`} label="Kişi sınırı" />
+      )}
       <Text style={panel.label}>Süre</Text>
       <View style={panel.wrap}>
         {DURATION_OPTIONS_HOURS.map((h) => (
@@ -118,13 +127,6 @@ export function CampaignForm({ venue, plan }: { venue: Venue; plan: PlanId }) {
       <View style={panel.wrap}>
         {RADIUS_OPTIONS_KM.map((r) => (
           <Chip key={r} label={`${r} km içindekiler`} active={radius === r} onPress={() => setRadius(r)} />
-        ))}
-      </View>
-      <Text style={panel.label}>Kişi sınırı (kaç kişi kupon alabilir?)</Text>
-      <View style={panel.wrap}>
-        <Chip label="Sınırsız" active={maxClaims === null} onPress={() => setMaxClaims(null)} />
-        {CLAIM_LIMIT_OPTIONS.map((n) => (
-          <Chip key={n} label={`${n} kişi`} active={maxClaims === n} onPress={() => setMaxClaims(n)} />
         ))}
       </View>
       <Text style={panel.label}>Kupon kimlere?</Text>
@@ -143,7 +145,7 @@ export function CampaignForm({ venue, plan }: { venue: Venue; plan: PlanId }) {
             <Chip label="Puanla açılan özel kupon" active={pointsPrice > 0} onPress={() => setPointsPrice(pointsPrice || 100)} />
           </View>
           {pointsPrice > 0 && (
-            <Stepper value={pointsPrice} onChange={setPointsPrice} min={POINTS_STEP} max={MAX_POINTS} step={POINTS_STEP} format={(p) => `${p} puan`} label="Puan" />
+            <Stepper value={pointsPrice} onChange={setPointsPrice} min={POINTS_STEP} max={MAX_POINTS} step={POINTS_STEP} steps={POINT_STEPS} format={(p) => `${p} puan`} label="Puan" />
           )}
           {pointsPrice > 0 && (
             <Text style={panel.muted}>

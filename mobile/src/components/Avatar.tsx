@@ -24,6 +24,12 @@ export const FRAME_COLORS: Record<string, string> = {
   green: '#2E9E4F',
   purple: '#7B5EA7',
   pink: '#D6487E',
+  orange: '#E8590C',
+  teal: '#0CA678',
+  indigo: '#4C6EF5',
+  silver: '#ADB5BD',
+  brown: '#8D5B3A',
+  black: '#1C1C1C',
 };
 
 /** A person's profile photo, or the first letter of their user name when they have none. */

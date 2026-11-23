@@ -76,6 +76,8 @@ export const businessApi = {
   venueReward: (venueId: number, token: string | null) => send<VenueReward | null>('GET', `/v1/venues/${venueId}/reward`, undefined, token ?? undefined),
   // "availo bu ay size X müşteri getirdi"
   report: (token: string, monthsBack = 0) => send<MonthReport>('GET', `/v1/business/report?months_back=${monthsBack}`, undefined, token),
+  // Every plan: today's check-ins and new customers
+  today: (token: string) => send<{ checkins: number; people: number; new_people: number }>('GET', '/v1/business/today', undefined, token),
   trial: (token: string) => send<BusinessAccess>('POST', '/v1/business/trial', undefined, token),
   // Yönetici: numbers for a venue that has not joined
   pitch: (token: string, venueId: number) => send<SalesPitch>('GET', `/v1/admin/venues/${venueId}/pitch`, undefined, token),

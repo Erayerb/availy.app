@@ -49,6 +49,10 @@ export function createCampaign(input: NewCampaign, now: Date, id: string): Campa
 export const POINTS_STEP = 10;
 export const MAX_POINTS = 2000;
 export const DISCOUNT_STEP = 5;
+// The points a stepper goes through: fine at first, then bigger jumps
+export const POINT_STEPS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 1500, 2000] as const;
+// "Kişi sınırı": how many people can take the coupon
+export const CLAIM_STEPS = [5, 10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200, 300, 500] as const;
 
 export function validateCampaign(message: string): string | null {
   const text = message.trim();

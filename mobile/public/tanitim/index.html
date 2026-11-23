@@ -4,178 +4,53 @@
 <meta charset="utf-8">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2317110E'/%3E%3Cpath d='M18 78 L35.19 35.95 A16 16 0 0 1 64.81 35.95 L82 78' fill='none' stroke='%23FBF4E8' stroke-width='14' stroke-linecap='round'/%3E%3Ccircle cx='50' cy='60' r='8' fill='%23E0263F'/%3E%3C/svg%3E">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>availo · Şu an nerede yer var?</title>
-<meta name="description" content="İstanbul'daki kafe ve mekanların şu anki doluluğu, gidenlerin check-in'lerinden. Moda'da ilk sen dene.">
-<meta property="og:title" content="availo · Şu an nerede yer var?">
-<meta property="og:description" content="Kafeler şu an sakin mi, kalabalık mı? Gidenler söylesin, sen boşuna gitme.">
+<title>availo · İstanbul'da şu an sakin kafe ve mekanlar</title>
+<meta name="description" content="Kafe şu an sakin mi, kalabalık mı? İstanbul'da ders çalışacak, buluşacak ya da kahve içecek sakin bir yeri gitmeden önce gör. Ücretsiz; iPhone ve Android için çok yakında.">
+<link rel="canonical" href="https://erayerb.github.io/availy.app/v2/tanitim/">
+<meta name="theme-color" content="#17110E">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="tr_TR">
+<meta property="og:site_name" content="availo">
+<meta property="og:title" content="availo · İstanbul'da şu an sakin kafe ve mekanlar">
+<meta property="og:description" content="Kafe şu an sakin mi, kalabalık mı? İstanbul'da ders çalışacak, buluşacak ya da kahve içecek sakin bir yeri gitmeden önce gör. Ücretsiz; iPhone ve Android için çok yakında.">
+<meta property="og:url" content="https://erayerb.github.io/availy.app/v2/tanitim/">
+<meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tinos:wght@400;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.50.0/dist/tabler-icons.min.css">
-<style>
-  /* Same palette as the app (mobile/src/theme.ts): red + cream, warm dark brown at night */
-  :root {
-    --primary: #C8102E; --on-primary: #FFF8EE; --bg: #FBF4E8; --surface: #FFFCF6; --cream: #F3E7D3;
-    --border: #E6D6BE; --text: #2B1D16; --muted: #7D6A5A; --low: #2E9E4F; --medium: #E0A800; --high: #D9442F;
-    --discovery: #7B5EA7;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --primary: #E0263F; --bg: #17110E; --surface: #231B17; --cream: #2E241F; --border: #3A2E27;
-      --text: #F5EBDD; --muted: #B3A292; --discovery: #B79CE0;
-    }
-  }
-  * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.6 Figtree, system-ui, sans-serif; }
-  h1, h2, h3 { font-family: Tinos, Georgia, serif; font-weight: 700; line-height: 1.15; margin: 0; }
-  a { color: inherit; }
-  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
-  header { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; }
-  .logo { display: inline-flex; align-items: center; gap: .25em; font-family: Figtree, system-ui, sans-serif; font-size: 30px; font-weight: 600; letter-spacing: -.01em; color: var(--text); text-decoration: none; }
-  .mark { width: 1.05em; height: 1.05em; flex: none; }
-  .mark path { fill: none; stroke: var(--text); stroke-width: 14; stroke-linecap: round; }
-  .mark circle { fill: var(--primary); }
-  .nav-link { font-weight: 600; font-size: 15px; text-decoration: none; padding: 8px 14px; border-radius: 12px; border: 1.5px solid var(--border); }
-
-  .hero { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center; padding: 40px 0 72px; }
-  .eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--primary); background: var(--cream); padding: 6px 12px; border-radius: 20px; }
-  .hero h1 { font-size: clamp(40px, 7vw, 68px); margin: 18px 0 16px; }
-  .hero p.lead { font-size: 19px; color: var(--muted); margin: 0 0 28px; max-width: 34ch; }
-  .hero p.lead.more { font-size: 17px; margin-top: -14px; }
-  .hero p.lead.more b { color: var(--text); font-weight: 600; }
-  .cta { display: inline-flex; align-items: center; gap: 8px; background: var(--primary); color: var(--on-primary); font-weight: 700; font-size: 17px; padding: 15px 22px; border-radius: 14px; text-decoration: none; border: 0; cursor: pointer; font-family: inherit; }
-  .cta:hover { filter: brightness(1.05); }
-  .cta.secondary { background: transparent; color: var(--text); border: 1.5px solid var(--border); }
-  .ctas { display: flex; gap: 12px; flex-wrap: wrap; }
-
-  /* The phone: a small picture of the app, made in CSS */
-  .phone { justify-self: center; width: 290px; border-radius: 40px; padding: 14px; background: #120d0a; box-shadow: 0 30px 60px rgba(43, 29, 22, .25); }
-  .screen { border-radius: 28px; background: var(--bg); padding: 18px 14px 20px; display: flex; flex-direction: column; gap: 10px; }
-  .screen .logo { font-size: 22px; }
-  .screen .title { font: 700 22px Tinos, Georgia, serif; }
-  .screen .q { font-family: Tinos, serif; font-weight: 700; font-size: 17px; }
-  .venue { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 10px 12px; }
-  .venue .icon { width: 36px; height: 36px; border-radius: 10px; background: var(--cream); display: grid; place-items: center; color: var(--primary); font-size: 19px; }
-  .venue .icon.new { color: var(--discovery); }
-  .venue b { display: block; font-size: 14px; }
-  .venue small { color: var(--muted); font-size: 12px; }
-  .venue .state { margin-left: auto; display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; white-space: nowrap; }
-  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-  .dot.low { background: var(--low); box-shadow: 0 0 0 0 rgba(46, 158, 79, .5); animation: pulse 2s infinite; }
-  .dot.medium { background: var(--medium); }
-  .dot.high { background: var(--high); }
-  @keyframes pulse { 70% { box-shadow: 0 0 0 8px rgba(46, 158, 79, 0); } 100% { box-shadow: 0 0 0 0 rgba(46, 158, 79, 0); } }
-  @media (prefers-reduced-motion: reduce) { .dot.low { animation: none; } }
-  .bell { display: flex; align-items: center; gap: 8px; background: var(--primary); color: var(--on-primary); border-radius: 12px; padding: 9px 12px; font-size: 13px; font-weight: 600; }
-
-  section { padding: 64px 0; }
-  section h2 { font-size: clamp(30px, 4.5vw, 42px); margin-bottom: 12px; }
-  .sub { color: var(--muted); margin: 0 0 32px; max-width: 56ch; }
-  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 24px; }
-  .card .ic { width: 46px; height: 46px; border-radius: 14px; background: var(--cream); color: var(--primary); display: grid; place-items: center; font-size: 24px; margin-bottom: 14px; }
-  .card h3 { font-size: 23px; margin-bottom: 6px; }
-  .card p { margin: 0; color: var(--muted); font-size: 16px; }
-  .steps { counter-reset: step; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  .step { position: relative; padding-top: 44px; }
-  .step::before { counter-increment: step; content: counter(step); position: absolute; top: 0; left: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: var(--on-primary); display: grid; place-items: center; font-weight: 700; }
-  .step h3 { font-size: 21px; margin-bottom: 4px; }
-  .step p { margin: 0; color: var(--muted); font-size: 16px; }
-
-  /* Two showcase rows: words next to a phone, the second one mirrored on wide screens */
-  .show { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
-  .show + .show { margin-top: 72px; }
-  .show.flip > .phone { order: -1; }
-  .show ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
-  .show li { display: flex; gap: 12px; align-items: flex-start; color: var(--muted); font-size: 16px; }
-  .show li i { color: var(--primary); font-size: 22px; line-height: 1.2; flex: none; }
-  .show li b { color: var(--text); }
-  .show .sub { margin-bottom: 22px; }
-
-  /* The app's map, made in CSS and SVG */
-  .screen.flush { padding: 0; overflow: hidden; gap: 0; }
-  .map { position: relative; height: 470px; background: var(--cream); overflow: hidden; }
-  .map svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .map .sea { fill: #A9CFE0; }
-  @media (prefers-color-scheme: dark) { .map .sea { fill: #1F3B4A; } }
-  .map .road { fill: none; stroke: var(--surface); stroke-width: 5; stroke-linecap: round; }
-  .map .road.thin { stroke-width: 2.5; }
-  .map-search { position: absolute; top: 14px; left: 12px; right: 12px; display: flex; align-items: center; gap: 8px; background: var(--surface); border-radius: 22px; padding: 9px 14px; font-size: 13px; color: var(--muted); box-shadow: 0 2px 8px rgba(0, 0, 0, .15); }
-  .map-chips { position: absolute; top: 60px; left: 12px; right: 0; display: flex; gap: 6px; overflow: hidden; }
-  .map-chips span { display: inline-flex; align-items: center; gap: 4px; flex: none; background: var(--surface); border-radius: 14px; padding: 5px 10px; font-size: 11.5px; font-weight: 600; }
-  .pin { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; border: 2.5px solid #fff; box-shadow: 0 2px 5px rgba(0, 0, 0, .3); }
-  .pin.low { background: var(--low); }
-  .pin.medium { background: var(--medium); }
-  .pin.high { background: var(--high); }
-  .pin.new { background: var(--discovery); display: grid; place-items: center; font-size: 10px; }
-  .pin.many { width: 40px; height: 40px; margin: -20px 0 0 -20px; background: var(--discovery); color: #fff; display: grid; place-items: center; font-size: 13px; font-weight: 700; }
-  .map-legend { position: absolute; left: 10px; right: 10px; bottom: 10px; background: var(--surface); border-radius: 14px; padding: 9px 10px; display: flex; flex-wrap: wrap; justify-content: center; gap: 5px 11px; font-size: 11.5px; font-weight: 600; box-shadow: 0 2px 8px rgba(0, 0, 0, .15); }
-  .map-legend span { display: inline-flex; align-items: center; gap: 5px; }
-
-  /* The app's Sosyal screen */
-  .tabs { display: flex; gap: 6px; }
-  .tabs span { font-size: 12px; font-weight: 600; padding: 6px 11px; border-radius: 14px; background: var(--cream); }
-  .tabs .on { background: var(--primary); color: var(--on-primary); }
-  .day { font-weight: 700; font-size: 13px; margin-top: 4px; }
-  .post { display: flex; gap: 10px; }
-  .rail { display: flex; flex-direction: column; align-items: center; flex: none; }
-  .rail .face { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: var(--on-primary); background: var(--primary); }
-  .rail .face.b { background: var(--discovery); }
-  .rail .face.c { background: var(--low); }
-  .rail::after { content: ""; flex: 1; width: 2px; margin-top: 4px; background: var(--border); }
-  .post:last-of-type .rail::after { display: none; }
-  .post .body { padding-bottom: 12px; font-size: 13px; line-height: 1.4; min-width: 0; }
-  .post .body small { color: var(--muted); font-size: 11.5px; }
-  .post .body p { margin: 4px 0 0; }
-  .post .acts { display: flex; gap: 12px; margin-top: 5px; color: var(--muted); font-size: 12px; }
-  .post .acts span { display: inline-flex; align-items: center; gap: 3px; }
-  .post .state { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; font-size: 12px; }
-  .post .state .dot { width: 8px; height: 8px; }
-
-  .perks { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-  .perk { display: flex; gap: 14px; align-items: flex-start; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 18px; }
-  .perk > i { font-size: 24px; color: var(--primary); background: var(--cream); width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; flex: none; }
-  .perk b { display: block; font-size: 17px; }
-  .perk span { color: var(--muted); font-size: 15px; }
-  .join { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  form { display: flex; flex-direction: column; gap: 12px; }
-  label { font-size: 14px; font-weight: 600; }
-  input, select { width: 100%; font: inherit; font-size: 16px; color: var(--text); background: var(--cream); border: 1.5px solid transparent; border-radius: 12px; padding: 13px 14px; }
-  input:focus, select:focus { outline: none; border-color: var(--primary); }
-  .note { font-size: 14px; min-height: 1.4em; margin: 0; }
-  .note.ok { color: var(--low); font-weight: 600; }
-  .note.err { color: var(--high); }
-  .fine { font-size: 13px; color: var(--muted); margin: 0; }
-  footer { padding: 36px 0 48px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--border); }
-  footer .row { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-
-  @media (max-width: 820px) {
-    .hero { grid-template-columns: 1fr; gap: 40px; padding-top: 16px; }
-    .features, .steps, .join, .perks, .show { grid-template-columns: 1fr; }
-    .show { gap: 36px; }
-    .show.flip > .phone { order: 0; }
-    section { padding: 48px 0; }
-  }
-  label.check { display: flex; gap: 8px; align-items: center; font-weight: 600; margin-top: 10px; }
-</style>
+<link rel="stylesheet" href="styles.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"MobileApplication","name":"availo","operatingSystem":"iOS, Android","applicationCategory":"LifestyleApplication","inLanguage":"tr","description":"İstanbul'daki kafe, restoran, bar ve kütüphanelerin şu anki doluluğu: sakin mi, kalabalık mı? Oradakilerin check-in'lerinden.","offers":[{"@type":"Offer","price":"0","priceCurrency":"TRY","name":"Ücretsiz"},{"@type":"Offer","price":"79","priceCurrency":"TRY","name":"availo+ (aylık)"}],"areaServed":"İstanbul"}
+</script>
 </head>
 <body>
+<a class="skip" href="#ozellikler">İçeriğe geç</a>
 <div class="wrap">
   <header>
-    <a class="logo" href="#"><svg class="mark" viewBox="0 17 100 70" aria-hidden="true"><path d="M18 78 L35.19 35.95 A16 16 0 0 1 64.81 35.95 L82 78"/><circle cx="50" cy="60" r="8"/></svg>Availo</a>
-    <a class="nav-link" href="#kurucu">İşletmeler için</a>
+    <a class="logo" href="index.html" aria-label="availo ana sayfa"><svg class="mark" viewBox="0 17 100 70" aria-hidden="true"><path d="M18 78 L35.19 35.95 A16 16 0 0 1 64.81 35.95 L82 78"/><circle cx="50" cy="60" r="8"/></svg>Availo</a>
+    <nav class="top" aria-label="Sayfa">
+      <a class="anchor" href="#ozellikler">Özellikler</a>
+      <a class="anchor" href="#fiyatlar">Fiyatlar</a>
+      <a class="anchor" href="#sss">SSS</a>
+      <a class="nav-link" href="isletme.html">İşletmeler için</a>
+    </nav>
   </header>
 
   <div class="hero">
     <div>
       <span class="eyebrow"><i class="ti ti-map-pin"></i> İlk olarak Moda ve Kadıköy'de</span>
       <h1>Şu an nerede yer var?</h1>
-      <p class="lead">Kafeler şu an sakin mi, kalabalık mı? Oradakiler söylesin, sen boşuna yola çıkma.</p>
-      <p class="lead more"><b>Nerede yer var gör, oraya ilk sen git.</b> Sen de söyle: puan topla, mekan keşfet, arkadaşlarını geç.</p>
+      <p class="lead">Kafe sakin mi, kalabalık mı? <b>Gitmeden gör</b>, boşuna yola çıkma.</p>
+      <p class="lead more"><b>Mekandaysan check-in yap, puan kazan. Mekanları önce sen keşfet, geç kalma.</b></p>
       <div class="ctas">
-        <a class="cta" href="#katil"><i class="ti ti-sparkles"></i> Moda'da ilk sen dene</a>
+        <a class="cta" href="#indir"><i class="ti ti-sparkles"></i> Ücretsiz katıl</a>
         <a class="cta secondary" href="#nasil">Nasıl çalışır?</a>
+      </div>
+      <p class="micro"><span><i class="ti ti-check"></i> Tamamen ücretsiz</span><span><i class="ti ti-check"></i> Kayıt 30 saniye</span><span><i class="ti ti-check"></i> Kredi kartı gerekmez</span></p>
+      <div class="stores">
+        <a class="store" data-store="ios" href="#indir" aria-disabled="true"><i class="ti ti-brand-apple"></i><span><small>Çok yakında</small><b>App Store</b></span><span class="soon">Yakında</span></a>
+        <a class="store" data-store="android" href="#indir" aria-disabled="true"><i class="ti ti-brand-google-play"></i><span><small>Çok yakında</small><b>Google Play</b></span><span class="soon">Yakında</span></a>
       </div>
     </div>
     <div class="phone" aria-hidden="true">
@@ -193,14 +68,60 @@
   </div>
 </div>
 
-<section>
+<section id="arkadaslar">
+  <div class="wrap">
+    <div class="show flip" id="sosyal">
+      <div>
+        <h2>Arkadaşların nereye gidiyor?</h2>
+        <p class="sub">Kim nerede, gör; <b>aynı yere sen de git</b>. Birlikte check-in yapınca ikiniz de puan kazanırsınız.</p>
+        <ul>
+          <li><i class="ti ti-bell-ringing"></i><span><b>"Sen de katıl!"</b> Arkadaşın bir yere gidince haber gelir.</span></li>
+          <li><i class="ti ti-timeline"></i><span><b>Akış.</b> Check-in'leri ve yorumları gör; beğen, cevap yaz.</span></li>
+          <li><i class="ti ti-trophy"></i><span><b>Arkadaşlarını geç.</b> Haftalık sıralamada yüksel, Semt elçisi ol.</span></li>
+          <li><i class="ti ti-lock"></i><span><b>Kontrol sende.</b> Konumun paylaşılmaz; gizli check-in'lerini kimse görmez.</span></li>
+        </ul>
+      </div>
+      <div class="phone" aria-hidden="true">
+        <div class="screen">
+          <span class="title">Sosyal</span>
+          <div class="tabs"><span>Akış</span><span class="on">Arkadaşlarım</span><span>Sıralama</span></div>
+          <span class="day">Bugün</span>
+          <div class="post">
+            <div class="rail"><span class="face">Z</span></div>
+            <div class="body"><b>@zeynep</b> check-in yaptı <small>· 14:20</small><br><b>Moda Kahve Evi</b>
+              <div class="state"><span class="dot low" style="animation:none"></span>Sakin</div>
+              <p>Pencere kenarı boş, ders çalışmak için ideal.</p>
+              <div class="acts"><span><i class="ti ti-heart"></i> 3</span><span><i class="ti ti-message-circle"></i> Yanıtla</span></div>
+            </div>
+          </div>
+          <div class="post">
+            <div class="rail"><span class="face b">C</span></div>
+            <div class="body"><b>@can</b> keşfetti <small>· 11:05</small><br><b>Kitaplı Köşe</b>
+              <div class="acts"><span><i class="ti ti-heart"></i> 5</span><span><i class="ti ti-message-circle"></i> Yanıtla</span></div>
+            </div>
+          </div>
+          <div class="post">
+            <div class="rail"><span class="face c">E</span></div>
+            <div class="body"><b>@elif</b> yorum yaptı <small>· 09:40</small><br><b>Bahariye Aşevi</b>
+              <p>Öğle saatinde yer buldum, servis hızlı.</p>
+              <div class="acts"><span><i class="ti ti-heart"></i> 2</span><span><i class="ti ti-message-circle"></i> Yanıtla</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="ozellikler">
   <div class="wrap">
     <h2>Gitmeden önce bil</h2>
-    <p class="sub">Yarım saat yol gidip kapıdan dönme. Mekanda olanların son bildirimlerine bak, ona göre çık.</p>
-    <div class="features">
-      <div class="card"><div class="ic"><i class="ti ti-activity"></i></div><h3>Canlı doluluk</h3><p>Ders çalışacak, buluşacak ya da kahve içecek yer ararken kalabalığı önceden gör. En az 5 kişi bildirdiyse yaklaşık yüzdesi de görünür: ~%60.</p></div>
-      <div class="card"><div class="ic"><i class="ti ti-users"></i></div><h3>Arkadaşların nerede</h3><p>Arkadaşlarının check-in'lerini, yorumlarını ve favori mekanlarını gör; aynı yere sen de uğra.</p></div>
-      <div class="card"><div class="ic"><i class="ti ti-bell"></i></div><h3>Sakin olunca haber ver</h3><p>Sevdiğin mekan şu an doluysa zile dokun; sakinleşince telefonuna bildirim gelsin.</p></div>
+    <p class="sub">Yarım saat yol gidip <b>kapıdan dönme</b>.</p>
+    <div class="features four">
+      <div class="card"><div class="ic"><i class="ti ti-activity"></i></div><h3>Boşuna yola çıkma</h3><p>Ders çalışacak ya da kahve içecek yerin <b>şu an</b> sakin mi, gitmeden gör.</p></div>
+      <div class="card"><div class="ic"><i class="ti ti-users"></i></div><h3>Arkadaşlarınla buluş</h3><p>Arkadaşın bir yere gidince <b>"Sen de katıl!"</b> bildirimi gelir.</p></div>
+      <div class="card"><div class="ic"><i class="ti ti-gift"></i></div><h3>Puanını indirime çevir</h3><p>Check-in yap, puan topla. <b>200 puan = %10 indirim</b> gibi ödüller al.</p></div>
+      <div class="card"><div class="ic"><i class="ti ti-bell"></i></div><h3>Sakinleşince haber al</h3><p>Mekan doluysa zile dokun; <b>yer açılınca</b> telefonuna haber gelsin.</p></div>
     </div>
   </div>
 </section>
@@ -253,84 +174,84 @@
       </div>
     </div>
 
-    <div class="show flip" id="sosyal">
-      <div>
-        <h2>Arkadaşların nereye gidiyor?</h2>
-        <p class="sub">Arkadaşlarının gittiği yerleri ve ne düşündüklerini gör; sen de aynı yere uğra.</p>
-        <ul>
-          <li><i class="ti ti-timeline"></i><span><b>Arkadaş akışı.</b> Check-in'ler ve yorumlar tarih sırasıyla önüne gelir; beğen, cevap yaz.</span></li>
-          <li><i class="ti ti-trophy"></i><span><b>Sıralama ve seviyeler.</b> Check-in yaptıkça puan topla, Yeni gelen'den Semt elçisi'ne yüksel.</span></li>
-          <li><i class="ti ti-lock"></i><span><b>Kontrol sende.</b> Canlı konumun paylaşılmaz, yalnızca check-in yaptığın mekan görünür. Gizli check-in'lerini kimse görmez.</span></li>
-        </ul>
-      </div>
-      <div class="phone" aria-hidden="true">
-        <div class="screen">
-          <span class="title">Sosyal</span>
-          <div class="tabs"><span>Akış</span><span class="on">Arkadaşlarım</span><span>Sıralama</span></div>
-          <span class="day">Bugün</span>
-          <div class="post">
-            <div class="rail"><span class="face">Z</span></div>
-            <div class="body"><b>@zeynep</b> check-in yaptı <small>· 14:20</small><br><b>Moda Kahve Evi</b>
-              <div class="state"><span class="dot low" style="animation:none"></span>Sakin</div>
-              <p>Pencere kenarı boş, ders çalışmak için ideal.</p>
-              <div class="acts"><span><i class="ti ti-heart"></i> 3</span><span><i class="ti ti-message-circle"></i> Yanıtla</span></div>
-            </div>
-          </div>
-          <div class="post">
-            <div class="rail"><span class="face b">C</span></div>
-            <div class="body"><b>@can</b> keşfetti <small>· 11:05</small><br><b>Kitaplı Köşe</b>
-              <div class="acts"><span><i class="ti ti-heart"></i> 5</span><span><i class="ti ti-message-circle"></i> Yanıtla</span></div>
-            </div>
-          </div>
-          <div class="post">
-            <div class="rail"><span class="face c">E</span></div>
-            <div class="body"><b>@elif</b> yorum yaptı <small>· 09:40</small><br><b>Bahariye Aşevi</b>
-              <p>Öğle saatinde yer buldum, servis hızlı.</p>
-              <div class="acts"><span><i class="ti ti-heart"></i> 2</span><span><i class="ti ti-message-circle"></i> Yanıtla</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+
   </div>
 </section>
 
 <section id="nasil">
   <div class="wrap">
     <h2>Nasıl çalışır?</h2>
-    <p class="sub">Herkes biraz bilgi verir, herkes doğru yere gider.</p>
+    <p class="sub">Herkes biraz söyler, <b>herkes doğru yere gider</b>.</p>
     <div class="steps">
-      <div class="step"><h3>Mekandayken söyle</h3><p>"Şu an burası nasıl?" sorusuna tek dokunuşla cevap ver: sakin, orta, kalabalık.</p></div>
-      <div class="step"><h3>Puan kazan, keşfet</h3><p>Her check-in puan kazandırır. Bir mekanın ilk bilgisini veren orayı keşfetmiş olur.</p></div>
-      <div class="step"><h3>Boşuna gitme</h3><p>Çıkmadan önce bak, sakin yere git; kalabalıksa sakinleşince haber al.</p></div>
+      <div class="step"><h3>Check-in yap</h3><p>Mekandayken tek dokunuşla söyle: sakin, orta, kalabalık. 10 saniye.</p></div>
+      <div class="step"><h3>Puan kazan, keşfet</h3><p>Her check-in puan getirir. Bir mekana <b>ilk sen gidersen</b> orayı keşfetmiş olursun.</p></div>
+      <div class="step"><h3>Sakin yere git</h3><p>Çıkmadan bak; doluysa sakinleşince haber al.</p></div>
     </div>
   </div>
 </section>
 
-<section id="kurucu">
+<section id="puan">
   <div class="wrap">
-    <span class="eyebrow"><i class="ti ti-building-store"></i> Yalnızca ilk 10 mekan</span>
-    <h2 style="margin-top:14px">Kurucu mekan ol</h2>
-    <p class="sub">Moda ve Kadıköy'de availo'ya katılan ilk 10 mekan, açılışta en görünür yerde olur ve şu avantajlardan yararlanır.</p>
-    <div class="perks">
-      <div class="perk"><i class="ti ti-gift"></i><div><b>3 ay ücretsiz Aylık paket</b><span>Zamanlanmış ve otomatik kampanyalar, sadakat kartı, müşteri istatistikleri.</span></div></div>
-      <div class="perk"><i class="ti ti-rosette"></i><div><b>"Kurucu mekan" rozeti</b><span>Mekan sayfanda ve haritada kalıcı olarak görünür.</span></div></div>
-      <div class="perk"><i class="ti ti-qrcode"></i><div><b>Kapı çıkartması</b><span>"availo'da · QR ile check-in": müşterilerin tek dokunuşla doluluk bildirir.</span></div></div>
-      <div class="perk"><i class="ti ti-camera"></i><div><b>Ücretsiz fotoğraf çekimi</b><span>Ekibimiz gelip mekanının kapak fotoğrafını çeker.</span></div></div>
-      <div class="perk"><i class="ti ti-speakerphone"></i><div><b>Açılışta öne çıkma</b><span>Uygulamada ve Instagram'da "Moda'nın kurucu mekanları" tanıtımında yer alırsın.</span></div></div>
-      <div class="perk"><i class="ti ti-clock-hour-4"></i><div><b>Ölü saatlerini doldur</b><span>Mekanın sakinleşince haber al, tek dokunuşla yakındakilere kampanya gönder.</span></div></div>
+    <h2>Puanların işe yarasın</h2>
+    <p class="sub">Puan topla, <b>indirime çevir</b>. Harcadığın puanlar sıralamanı ve seviyeni etkilemez.</p>
+    <div class="features">
+      <div class="card"><div class="ic"><i class="ti ti-gift"></i></div><h3>Mekan ödülleri</h3><p>"200 puan = %10 indirim" gibi ödüller mekan sayfasında hep durur. Puanla al, kasada kodu göster; haftada bir.</p></div>
+      <div class="card"><div class="ic"><i class="ti ti-ticket"></i></div><h3>Kuponlar ve özel kuponlar</h3><p>Kampanya kuponları ücretsiz. Mekanlar bazen daha büyük indirimi puanla açılan özel kupon yapar.</p></div>
+      <div class="card"><div class="ic"><i class="ti ti-rocket"></i></div><h3>İlk adımlar</h3><p>İlk check-in, ilk liste, bir arkadaş, profil fotoğrafı: her biri puan, hepsi "Hızlı başlangıç" rozeti.</p></div>
     </div>
-    <a class="cta" href="#isletme" style="margin-top:24px"><i class="ti ti-building-store"></i> Kurucu mekan olmak istiyorum</a>
   </div>
 </section>
 
-<section id="katil">
+<section id="fiyatlar">
   <div class="wrap">
-    <h2>İlk denemeye katıl</h2>
-    <p class="sub">Uygulama önce Moda ve Kadıköy'de açılıyor. Yazıl, açıldığında ilk sana haber verelim.</p>
-    <div class="join">
-      <form class="card" data-kind="user">
-        <h3>Kullanıcı olarak</h3>
+    <h2>Ücretsiz ya da availo+</h2>
+    <p class="sub">availo'nun her şeyi ücretsiz. availo+ birkaç güzellik ekler; istediğin zaman iptal edersin.</p>
+    <table class="compare">
+      <thead><tr><th scope="col"><span class="sr">Özellik</span></th><th scope="col">Ücretsiz<small>₺0</small></th><th scope="col" class="plus">availo+<small>₺79 / ay</small></th></tr></thead>
+      <tbody>
+        <tr><td>Canlı doluluk, harita ve filtreler</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+        <tr><td>Check-in, puan, rozet, seviye ve sıralama</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+        <tr><td>Arkadaşlar, akış, "Sen de katıl" bildirimleri</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+        <tr><td>Kuponlar ve mekan ödülleri</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+        <tr><td>Sakinleşince haber al</td><td class="val">1 mekan</td><td class="val plus">Sınırsız</td></tr>
+        <tr><td>Serini kurtar</td><td class="val">Ayda 1</td><td class="val plus">Ayda 3</td></tr>
+        <tr><td>Favorilerin sakinleşince haber al (zil açmadan)</td><td class="no">—</td><td class="yes">✓</td></tr>
+        <tr><td>Aylık özetini gör: en çok gittiğin yerler, semtlerin, arkadaşlarınla kıyas</td><td class="no">—</td><td class="yes">✓</td></tr>
+        <tr><td>Profilini güzelleştir: kapak fotoğrafı, 12 renkten çerçeve, availo+ rozeti</td><td class="no">—</td><td class="yes">✓</td></tr>
+        <tr><td>Reklamsız</td><td class="no">—</td><td class="yes">✓</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="sss">
+  <div class="wrap">
+    <h2>Sıkça sorulanlar</h2>
+    <div class="faq">
+      <details><summary>availo ücretsiz mi?</summary><p>Evet. Doluluğu görmek, check-in yapmak, puan toplamak, kuponlar ve mekan ödülleri ücretsiz. availo+ (₺79/ay) yalnızca birkaç ekstra sunar: profil süsleri, aylık özet, sınırsız "sakinleşince haber ver".</p></details>
+      <details><summary>availo+ aboneliğimi nasıl iptal ederim?</summary><p>Abonelik App Store ya da Google Play üzerinden alınır ve oradan tek dokunuşla iptal edilir; dönem sonuna kadar availo+ açık kalır. (Uygulama henüz deneme aşamasında, ödeme alınmıyor.)</p></details>
+      <details><summary>Doluluk bilgisi nereden geliyor, ne kadar doğru?</summary><p>O sırada mekanda olan kullanıcıların check-in'lerinden: "Sakin / Orta / Kalabalık". Son 90 dakikanın bildirimleri sayılır, yenisi eskisinden ağır basar. Bilgi yoksa uygulama bunu açıkça söyler; uydurma doluluk göstermez.</p></details>
+      <details><summary>Konumum paylaşılıyor mu?</summary><p>Hayır. Konumun yalnızca check-in anında mekana yakın olduğunu doğrulamak için kullanılır ve saklanmaz. Arkadaşların yalnızca check-in yaptığın mekanı görür; gizli check-in'leri kimse görmez.</p></details>
+      <details><summary>Hangi telefonlarda çalışır?</summary><p>iPhone (iOS) ve Android telefonlarda. Uygulama mağazalara çok yakında geliyor; açılınca haber almak için listeye yazılabilirsin.</p></details>
+      <details><summary>Hangi şehirlerde var?</summary><p>İlk olarak İstanbul'da, Moda ve Kadıköy'den başlıyoruz; Beşiktaş, Etiler, Nişantaşı ve Bakırköy de haritada.</p></details>
+      <details><summary>Verilerimi silebilir miyim?</summary><p>Evet. Uygulamada Profil ayarları'ndan verilerinin kopyasını indirebilir, hesabını dondurabilir ya da kalıcı olarak silebilirsin.</p></details>
+      <details><summary>Puanlarım ne işe yarıyor?</summary><p>Puanla seviye atlarsın, haftalık sıralamaya girersin ve mekanların ödüllerini (ör. 200 puan = %10 indirim) alırsın. Harcadığın puan seviyeni ve sıralamanı düşürmez.</p></details>
+    </div>
+  </div>
+</section>
+
+<section id="indir">
+  <div class="wrap">
+    <h2>availo'yu indir</h2>
+    <p class="sub">iPhone ve Android için <b>çok yakında</b>. Yazıl, açılınca ilk sen haberdar ol.</p>
+    <div class="download">
+      <div>
+        <div class="stores">
+        <a class="store" data-store="ios" href="#indir" aria-disabled="true"><i class="ti ti-brand-apple"></i><span><small>Çok yakında</small><b>App Store</b></span><span class="soon">Yakında</span></a>
+        <a class="store" data-store="android" href="#indir" aria-disabled="true"><i class="ti ti-brand-google-play"></i><span><small>Çok yakında</small><b>Google Play</b></span><span class="soon">Yakında</span></a>
+      </div>
+        <form class="card" data-kind="user" style="margin-top:20px">
+        <h3>Açılınca haber ver</h3>
         <label for="u-contact">E-posta ya da Instagram kullanıcı adı</label>
         <input id="u-contact" name="contact" autocomplete="email" placeholder="ornek@mail.com ya da @kullaniciadi" required>
         <label for="u-district">En çok nerede vakit geçirirsin?</label>
@@ -340,30 +261,32 @@
         <button class="cta" type="submit"><i class="ti ti-sparkles"></i> Beni listeye ekle</button>
         <p class="note" role="status"></p>
       </form>
-      <form class="card" id="isletme" data-kind="business">
-        <h3>İşletme olarak</h3>
-        <label for="b-venue">Mekanının adı</label>
-        <input id="b-venue" name="venue_name" placeholder="ör. Moda Kahve Evi" required>
-        <label for="b-contact">E-posta ya da Instagram</label>
-        <input id="b-contact" name="contact" placeholder="isletme@mail.com ya da @mekan" required>
-        <label for="b-district">Semt</label>
-        <select id="b-district" name="district">
-          <option>Kadıköy</option><option>Beşiktaş</option><option>Üsküdar</option><option>Şişli</option><option>Beyoğlu</option><option>Ataşehir</option><option>Diğer</option>
-        </select>
-        <label class="check"><input type="checkbox" name="founder" value="1" checked> Kurucu mekan programına başvuruyorum</label>
-        <button class="cta" type="submit"><i class="ti ti-building-store"></i> Mekanımı ekleyin</button>
-        <p class="note" role="status"></p>
-        <p class="fine">İlk 10 mekan kurucu mekan olur: 3 ay ücretsiz Aylık paket (istatistikler, sınırsız kampanya), "Kurucu mekan" rozeti, kapıya "availo'da · QR ile check-in" çıkartması, fotoğraf çekimi ve açılışta öne çıkma.</p>
-      </form>
+        <p class="fine">Bilgini yalnızca uygulama açıldığında haber vermek için kullanırız; kimseyle paylaşmayız.</p>
+      </div>
+      <div class="qr" aria-hidden="true">
+        <div class="qr-box"></div>
+        <b>Telefonunla okut</b>
+        <p class="fine">Bu sayfa telefonunda açılır; uygulama çıkınca buradan indirirsin.</p>
+      </div>
     </div>
-    <p class="fine" style="margin-top:16px">Bilgini yalnızca uygulama açıldığında haber vermek için kullanırız; kimseyle paylaşmayız. Silinmesini istersen bize yazman yeterli.</p>
   </div>
 </section>
 
 <footer>
-  <div class="wrap row">
-    <span><span class="logo" style="font-size:20px"><svg class="mark" viewBox="0 17 100 70" aria-hidden="true"><path d="M18 78 L35.19 35.95 A16 16 0 0 1 64.81 35.95 L82 78"/><circle cx="50" cy="60" r="8"/></svg>Availo</span> · İstanbul</span>
-    <span>Mekan bilgileri © OpenStreetMap katkıcıları</span>
+  <div class="wrap">
+    <div class="row">
+      <span><span class="logo" style="font-size:20px"><svg class="mark" viewBox="0 17 100 70" aria-hidden="true"><path d="M18 78 L35.19 35.95 A16 16 0 0 1 64.81 35.95 L82 78"/><circle cx="50" cy="60" r="8"/></svg>Availo</span> · İstanbul</span>
+      <span>Mekan verileri: Foursquare OS Places, Overture Maps, © OpenStreetMap katkıcıları</span>
+    </div>
+    <nav class="links" aria-label="Yasal ve iletişim">
+      <a href="isletme.html">İşletmeler için</a>
+      <a href="hazirlaniyor.html?belge=gizlilik">Gizlilik Politikası</a>
+      <a href="hazirlaniyor.html?belge=kosullar">Kullanım Koşulları</a>
+      <a href="hazirlaniyor.html?belge=kvkk">KVKK Aydınlatma Metni</a>
+      <a href="#sss">Sıkça sorulanlar</a>
+      <span>İletişim: uygulamada Daha fazla › Hata bildir ve iletişim</span>
+    </nav>
+    <p class="fine" style="margin-top:14px">© 2026 availo</p>
   </div>
 </footer>
 
@@ -404,6 +327,26 @@
       }
     });
   });
+</script>
+<script>
+  // App store links: when set, the "Yakında" badges become real buttons (and the QR opens this page on a phone)
+  const STORES = { ios: null, android: null };
+  document.querySelectorAll('.store').forEach((a) => {
+    const url = STORES[a.dataset.store];
+    if (!url) return;
+    a.href = url;
+    a.removeAttribute('aria-disabled');
+    a.querySelector('.soon')?.remove();
+    a.querySelector('small').textContent = a.dataset.store === 'ios' ? "App Store'dan" : "Google Play'den";
+  });
+  // Computers: a QR code to open this page on the phone (the library loads only there)
+  const qrBox = document.querySelector('.qr-box');
+  if (qrBox && matchMedia('(min-width: 821px)').matches) {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+    s.onload = () => { const q = qrcode(0, 'M'); q.addData(location.href.split('#')[0]); q.make(); qrBox.outerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); };
+    document.head.append(s);
+  }
 </script>
 </body>
 </html>

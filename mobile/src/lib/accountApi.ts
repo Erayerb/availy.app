@@ -40,7 +40,7 @@ export type ServerUser = {
 type Session = { token: string; user: ServerUser };
 
 // Business details that still live on this phone (v2 moves the business side to the server later)
-export type LocalBusiness = Pick<User, 'venueId' | 'plan' | 'venueVerified'>;
+export type LocalBusiness = Pick<User, 'venueId' | 'plan'>;
 
 /** Turkish message from a failed response: the server's `detail` text, or a general one. */
 export function errorMessage(status: number, data: unknown): string {
@@ -63,7 +63,6 @@ export function toUser(server: ServerUser, token: string, local: LocalBusiness =
     venueId: server.venue_id ?? local.venueId ?? null,
     // A business's plan is the server's (statistics and schedules are checked there)
     plan: server.role === 'business' ? (server.plan === 'saas' ? 'saas' : 'pay_per_use') : ((server.plan as User['plan']) ?? local.plan),
-    venueVerified: local.venueVerified,
     emailVerified: server.email_verified ?? false,
     isAdmin: server.is_admin ?? false,
     customerCode: server.customer_code ?? undefined,

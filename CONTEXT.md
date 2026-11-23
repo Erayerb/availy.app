@@ -14,7 +14,7 @@ v2 `v2-checkin` dalında geliştirilir ve `main`'e hiç alınmaz. v1 (sahte dolu
 dalında ve `v1` etiketinde olduğu gibi durur (bkz. en alttaki "v1" bölümü).
 
 ## Teknoloji
-- Mobil: React Native 0.88 + Expo SDK 58 (TypeScript); telefonda Expo Go ile çalışır, aynı kod web'e de derlenir
+- Mobil: React Native 0.88 + Expo SDK 58 (TypeScript); telefonda Expo Go ile çalışır. Uygulama yalnızca mobil (iOS / Android) yayınlanacak; web derlemesi yalnızca geliştirmede önizleme için, web'e özel iş yapılmaz (tanıtım sitesi ayrı)
   - Harita: telefonda react-native-maps (Apple Haritalar), web'de Leaflet + OpenStreetMap (VenueMap.web.tsx)
   - Tema: açık / koyu (mobile/src/theme.ts: `colors` ve `themed(...)` o anki temayı okur)
   - Telefonda saklanan küçük veriler: AsyncStorage (web'de localStorage)
@@ -53,6 +53,7 @@ dalında ve `v1` etiketinde olduğu gibi durur (bkz. en alttaki "v1" bölümü).
 - Commit ve push yalnızca istendiğinde
 - Kullanıcı verisi silinmez (gerçek hesaplar eray, availo, isletme ve onların check-in / yorumları; test hesapları availy_deneme, availy_isletme). Kullanılmayan veri silinmeden önce sorulur
 - Gizli anahtarlar (.env, Render ayarları) koda ve sohbete yazılmaz
+- Mekan kapak fotoğrafını yalnızca o mekanın doğrulanmış (ya da kurucu) işletmesi yükler; kullanıcılar mekan fotoğrafı seçemez
 - Bildirimler olay olunca gelir (zamanlı bildirim yok). Tek istisna (istendi, 2026-11-23): 4 gün check-in yapmayana bir kez, gündüz (10:00–21:00) "Arkadaşların bu arada N yere gitti" hatırlatması (backend/app/reminders.py)
 - Kod yorumları ve değişken adları İngilizce, açıklamalar ve arayüz Türkçe; her değişikliğe kısa test
 - Emin olunmayan paket / sürüm bilgisi varsayılmaz, kontrol edilir
@@ -64,6 +65,7 @@ dalında ve `v1` etiketinde olduğu gibi durur (bkz. en alttaki "v1" bölümü).
 **Bireysel**
 - Ücretsiz: harita, anlık doluluk, filtreler; check-in, puan, seviye, rozet, sıralama; "İlk adımlar" kartı (ilk check-in, liste, arkadaş, profil fotoğrafı; her biri +10, hepsi "Hızlı başlangıç" rozeti +20); ilk check-in kutlaması; mekanların kalıcı ödülleri (ör. 200 puan = %10, haftada bir); arkadaşlar, akış, beğeni (yalnızca sayı), yorum, tüm bildirimler (uygulama kapalıyken de); "Şu an burada" fotoğrafları, listeler; kampanya kuponları (ücretsiz; işletme isterse "puanla açılan özel kupon": 50/100/200/400 puan), sadakat damga kartı; "Sakin olunca haber ver" aynı anda 1 mekan; ayda 1 seri kurtarma; konuma göre reklam (henüz yok)
 - availo+ (Premium, ₺79/ay): availo+ rozeti; reklamsız; "Sakin olunca haber ver" sınırsız; favoriler sakinleşince zil açmadan haber (açılıp kapanır); aylık özet (en çok gidilen mekanlar ve semtler, geçen ayla ve arkadaşlarla kıyas); profilde kapak fotoğrafı ve renkli çerçeve; ayda 3 seri kurtarma
+- Puanların sayfası (Daha fazla ve Kampanyalar'ın üstü): harcanabilir puan (kazanılan − harcanan; seviye ve sıralama kazanılan toplamla), yakında puanla alınabilecekler (GET /v1/rewards), puan geçmişi (GET /v1/me/wallet). Haritada kalıcı ödülü olan mekanın noktasında 🎁
 - Puan: kazanılır (check-in 10, günün ilki 20, keşif 50, rozet, fotoğraf 5, birlikte check-in 10, davet 50, mekan onayı 50); düzenli kullanıcı haftada ~50–70. Yalnızca özel kuponlarda harcanır (point_spends; seviye ve sıralama harcamadan etkilenmez; kampanya erken biterse kullanılmamış kuponun puanı geri gelir)
 
 **İşletme**
@@ -266,6 +268,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Planlar: Render Starter (~7 $/ay, uyumaz), Neon ücretli plan (~19 $/ay; 7–30 gün yedek)
 - Hata takibi: Sentry (backend + uygulama)
 - Mağaza sürümü: Expo EAS Build ile App Store / Google Play (Expo Go geliştirme modunda çalışır; yavaş sayfa geçişleri gerçek sürümde büyük ölçüde düzelir)
+- Android harita anahtarı: Android'de harita Google Haritalar (iPhone'da Apple Haritalar, ücretsiz). Google Cloud'da faturalandırması açık bir proje aç, "Maps SDK for Android"i etkinleştir, Android'e kısıtlı bir API anahtarı oluştur ve app.json'a `android.config.googleMaps.apiKey` olarak ekle (anahtar gizli: EAS secret / ortam değişkeni, koda yazılmaz). Telefondaki harita gösterimi ücretsiz ve sınırsız; yalnızca map ID (Google panelinden özel stil) kullanılırsa ayda 10.000 açılıştan sonra ücretli olur, kullanma. Derlemeden önce resmi fiyat sayfasını bir kez kontrol et (developers.google.com/maps/billing-and-pricing/pricing)
 - Ödeme: Aylık paket, availo+ ve "Öne çık" için ödeme altyapısı yok; ekranlarda "Prototip" yazıyor (bkz. Paketler)
 - E-posta: Resend hesabı açıldı, anahtar Render'da (`resend` ortam grubu, RESEND_API_KEY). Alan adı olmadan Resend yalnızca hesap sahibinin adresine gönderir; herkese gidebilmesi için alan adı al (ör. availy.app), Resend → Domains'te doğrula (DNS: SPF, DKIM) ve Render'da MAIL_FROM = "availo <no-reply@alanadı>" yap
 
@@ -295,7 +298,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Seviyelere göre kazançlar: ör. Kâşif'e hoş geldin kuponu, Mahalleli'ye kurucu kafelerde ikram / indirim, Semt elçisi'ne erken erişim ve aylık Premium; seviye atlayınca kutlama ve bildirim
 
 **Tanıtım (reklam)**
-- Tanıtım sayfası: mobile/public/tanitim (yayında https://erayerb.github.io/availy.app/v2/tanitim/); bekleme listesi (kullanıcı / işletme, POST /v1/waitlist, Yönetici > Bekleme listesi). İsim kesinleşince alan adı ve kök adrese taşıma; haritadan kısa video / gif eklenebilir
+- Tanıtım sitesi: mobile/public/tanitim (yayında https://erayerb.github.io/availy.app/v2/tanitim/): index.html (kullanıcılar: hero, özellikler, nasıl çalışır, puanlar, Ücretsiz/availo+ tablosu, SSS, indirme), isletme.html (işletmeler: paketler tablosu, kurucu program, SSS, başvuru), hazirlaniyor.html (yasal metinler hukukçu onayına kadar), ortak styles.css. Mağaza linkleri gelince index.html'deki `STORES` doldurulur ("Yakında" rozetleri gerçek butona döner); masaüstünde sayfanın QR'ı; bekleme listesi (kullanıcı / işletme, POST /v1/waitlist, Yönetici > Bekleme listesi). İsim kesinleşince alan adı ve kök adrese taşıma; haritadan kısa video / gif eklenebilir
 - Instagram ve TikTok serileri (haftada 2–3): "Moda'nın en sakin 5 kafesi" (her kafe 3 sn, "Salı 15:00 · sakin · priz var", sonda "Şu an hangisi sakin? Uygulamada canlı"); gün içinde "Kadıköy'de şu an sakin 3 yer" hikâyeleri (uygulamadan ekran görüntüsü); "Çalışmaya uygun" ve "Sınav haftası" listeleri (priz, Wi-Fi, sessizlik; uygulamadaki listelerden); kurucu kafelerin kısa tanıtımları; haftanın kâşifi ve "Burayı sen keşfettin" paylaşımları (paylaşana bonus puan)
 - Kurucu mekan programı (tanıtım sayfasında): ilk 10 mekana 3 ay ücretsiz Aylık paket, "Kurucu mekan" rozeti, kapıya "availo'da · QR ile check-in" çıkartması, ekipten biri fotoğraf çeker, açılışta öne çıkma
 - Tek semtte yoğun başlangıç (Moda / Kadıköy): ekip ve elçi kullanıcılar ilk haftalarda düzenli bildirim
@@ -349,6 +352,8 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Ek kazanım: yorum yazmak, Sakin saatte gitmek
 
 **Fikirler (karar bekliyor)**
+- Ana sayfa sağa kaydırmalı satırlar (sıradaki iş; beğenilmezse şimdiki listeye dönülür): "Şu an sakin, yakınında", "Arkadaşlarının gittiği yerler", "Puanla alabileceklerin", "Keşfedilmeyi bekleyenler", "Trend olanlar"; en fazla 4–5 satır, boşlar gizlenir, her satırda "Tümü", en altta filtreli "Tüm mekanlar"
+- Ödeme altyapısı: availo+ App Store / Google Play aboneliği (RevenueCat); işletme paketi ve "Öne çık" web sitesinden kartla (iyzico / PayTR / Param) + sunucuya "ödendi" bildirimi. Şirket, e-arşiv / e-fatura, mesafeli satış sözleşmesi gerekir
 - Öneri şeridinden tek dokunuşla bildirim: şeritte Sakin / Orta / Kalabalık, basınca check-in ve "Geri al"
 - Check-in sonrası tek soru: priz, Wi-Fi, sessizlik; özellikleri kullanıcılar doldurur, çalışma filtresini besler
 - Kullanıcı fotoğrafı: check-in'de mekan fotoğrafı; 24 saat görünen "şu an burası" fikri (galeriden seçilemez), şikâyet ve kaldırma gerekir (bkz. KVKK)
@@ -371,7 +376,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 
 ### Kaldırılan kalıntılar
 - v1'in sahte doluluğu (backend `occupancy` alanı, /hourly, /history, /forecast, demo_data.py, seed.py; uygulamada gömülü demo veri, statik mod, telefonda mekan ekleme ve mekan düzenlemeleri), `device_accounts` tablosu ve `checkins.counts` sütunu (migration 003). v1 web demosu `main` dalından derlendiği için etkilenmez
-- Telefonda kalan eski işletme verileri (availy.venueOverrides, availy.schedules, availy.localVenues) artık okunmuyor ama silinmedi; sahibine sorulmadan silinmez
+- Telefonda kalan v1 verileri (availy.venueOverrides, availy.schedules, availy.localVenues, availy.photos, eski ortak favori listesi) uygulama açılınca siliniyor (mobile/src/lib/cleanup.ts; istendi, 2026-11-23)
 
 ---
 

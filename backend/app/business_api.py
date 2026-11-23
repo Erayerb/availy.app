@@ -240,3 +240,46 @@ def venue_reward_view(
     from app.campaigns import venue_reward
 
     return venue_reward(conn, venue_id, user, now)
+
+
+class TodayOut(BaseModel):
+    checkins: int
+    people: int
+    new_people: int  # first time at the venue
+
+
+@router.get("/business/today", response_model=TodayOut)
+def today(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn), now: datetime = Depends(get_clock)):
+    """Every plan: today's check-ins and new customers."""
+    from app.business import today_basics
+
+    try:
+        return today_basics(conn, user, now)
+    except BusinessError as e:
+        raise _fail(e) from None
+
+
+class BusinessSummaryOut(ReportOut):
+    months_available: int  # the month picker: back to the month the business joined
+    returning_people: int
+    previous_checkins: int
+    previous_people: int
+    busiest_weekday: int | None  # 1 = Monday
+    busiest_hour: int | None
+    regulars: int  # came on 3+ days this month
+
+
+@router.get("/business/monthly-summary", response_model=BusinessSummaryOut)
+def business_summary(
+    months_back: int = 0,
+    user: dict = Depends(current_user),
+    conn: psycopg.Connection = Depends(get_conn),
+    now: datetime = Depends(get_clock),
+):
+    """Aylık paket: the month, visual (the app shows it as pages)."""
+    from app.business import business_monthly_summary
+
+    try:
+        return business_monthly_summary(conn, user, now, months_back)
+    except BusinessError as e:
+        raise _fail(e) from None

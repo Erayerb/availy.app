@@ -1,4 +1,5 @@
 import { StatusPill } from '../components/StatusPill';
+import { Tip } from '../components/Tip';
 import { GradientFill } from '../components/GradientFill';
 import { InlineStars } from '../components/Stars';
 import { MomentStack } from '../components/MomentStrip';
@@ -272,7 +273,12 @@ export function VenueDetailScreen({
           </Text>
         ))}
         {/* Busy: "Sakin olunca haber ver" as a button with its words (stays on for 6 hours) */}
-        {!owner && <WatchButton venue={venue} labeled />}
+        {!owner && !canWatch(venue) && <WatchButton venue={venue} labeled />}
+        {!owner && canWatch(venue) && (
+          <Tip id="watchBell" placement="above" align="left" text="Burası şu an kalabalık. Zile bas: sakinleşince sana haber verelim." style={styles.tipLeft}>
+            <WatchButton venue={venue} labeled />
+          </Tip>
+        )}
       </View>
 
       <CheckinPanel
@@ -395,6 +401,7 @@ export function VenueDetailScreen({
 }
 
 const styles = themed(() => StyleSheet.create({
+  tipLeft: { alignSelf: 'flex-start' },
   underCover: { minHeight: 26, gap: 4 },
   wrongInfo: { position: 'absolute', top: 0, right: 0, zIndex: 1 },
   quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

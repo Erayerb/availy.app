@@ -205,7 +205,8 @@ def claim_coupon(conn: psycopg.Connection, user: dict, campaign_id: int, now: da
         raise CampaignError("Kampanya bulunamadı.", 404)
     if row["standing"]:
         unused = conn.execute(
-            COUPON_SELECT + " WHERE k.campaign_id = %s AND k.user_id = %s AND k.redeemed_at IS NULL", (campaign_id, user["id"])
+            COUPON_SELECT + " WHERE k.campaign_id = %s AND k.user_id = %s AND k.redeemed_at IS NULL AND k.hidden_at IS NULL",
+            (campaign_id, user["id"]),
         ).fetchone()
         if unused:
             return unused
@@ -218,6 +219,8 @@ def claim_coupon(conn: psycopg.Connection, user: dict, campaign_id: int, now: da
     else:
         mine = conn.execute(COUPON_SELECT + " WHERE k.campaign_id = %s AND k.user_id = %s", (campaign_id, user["id"])).fetchone()
         if mine:
+            # Deleted from Kuponlarım and asked for again: back in the list (still one per person)
+            conn.execute("UPDATE coupons SET hidden_at = NULL WHERE code = %s", (mine["code"],))
             return mine
     if not row["starts_at"] <= now < row["ends_at"]:
         raise CampaignError("Bu kampanya bitti.", 409)
@@ -258,7 +261,20 @@ def claim_coupon(conn: psycopg.Connection, user: dict, campaign_id: int, now: da
 
 
 def my_coupons(conn: psycopg.Connection, user: dict) -> list[dict]:
-    return conn.execute(COUPON_SELECT + " WHERE k.user_id = %s ORDER BY k.claimed_at DESC LIMIT 200", (user["id"],)).fetchall()
+    return conn.execute(
+        COUPON_SELECT + " WHERE k.user_id = %s AND k.hidden_at IS NULL ORDER BY k.claimed_at DESC LIMIT 200", (user["id"],)
+    ).fetchall()
+
+
+def hide_coupon(conn: psycopg.Connection, user: dict, code: str, now: datetime) -> None:
+    """"Sil" in Kuponlarım: gone from my list; the business still counts it, and a coupon not used yet cannot
+    be used any more (its points do not come back)."""
+    done = conn.execute(
+        "UPDATE coupons SET hidden_at = %s WHERE code = %s AND user_id = %s AND hidden_at IS NULL",
+        (now, normalize_code(code), user["id"]),
+    ).rowcount
+    if not done:
+        raise CampaignError("Kupon bulunamadı.", 404)
 
 
 def venue_coupons(conn: psycopg.Connection, user: dict) -> list[dict]:
@@ -285,6 +301,8 @@ def redeem_coupon(conn: psycopg.Connection, user: dict, raw_code: str, now: date
         raise CampaignError("Bu kod başka bir mekana ait.", 403)
     if coupon["redeemed_at"] is not None:
         raise CampaignError("Bu kod zaten kullanılmış.", 409)
+    if conn.execute("SELECT hidden_at FROM coupons WHERE code = %s", (code,)).fetchone()["hidden_at"] is not None:
+        raise CampaignError("Müşteri bu kuponu silmiş.", 409)
     # The customer's app says "Süresi doldu" then too
     if coupon["ends_at"] <= now:
         raise CampaignError("Bu kuponun kampanyası bitti.", 409)
@@ -380,7 +398,8 @@ def venue_reward(conn: psycopg.Connection, venue_id: int, viewer: dict | None, n
     next_at = None
     if viewer is not None:
         last = conn.execute(
-            "SELECT max(claimed_at) AS at, bool_or(redeemed_at IS NULL) AS unused FROM coupons WHERE campaign_id = %s AND user_id = %s",
+            "SELECT max(claimed_at) AS at, bool_or(redeemed_at IS NULL AND hidden_at IS NULL) AS unused FROM coupons"
+            " WHERE campaign_id = %s AND user_id = %s",
             (row["id"], viewer["id"]),
         ).fetchone()
         if last["at"] is not None and not last["unused"] and now - last["at"] < REWARD_EVERY:

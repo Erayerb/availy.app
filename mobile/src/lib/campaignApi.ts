@@ -88,6 +88,8 @@ export const campaignApi = {
   end: (token: string, id: string) => send<ServerCampaign>('POST', `/v1/campaigns/${id}/end`, undefined, token),
   hide: (token: string, ids: string[]) => send<void>('POST', '/v1/campaigns/hide', { ids: ids.map(Number) }, token),
   view: (token: string, id: string) => send<void>('POST', `/v1/campaigns/${id}/view`, undefined, token),
+  // "Sil" in Kuponlarım
+  removeCoupon: (token: string, code: string) => send<void>('DELETE', `/v1/me/coupons/${encodeURIComponent(code)}`, undefined, token),
   // Points left to spend on coupons (earned minus spent)
   points: async (token: string) => (await send<{ balance: number }>('GET', '/v1/me/points', undefined, token)).balance,
   claim: async (token: string, id: string) => toCoupon(await send<ServerCoupon>('POST', `/v1/campaigns/${id}/coupon`, undefined, token)),

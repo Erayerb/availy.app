@@ -59,7 +59,11 @@ def save_links(conn: psycopg.Connection, user: dict, venue_id: int, instagram: s
 
 
 def save_photo(conn: psycopg.Connection, user: dict, venue_id: int, data_uri: str, now: datetime) -> datetime:
+    """The venue's cover photo: only its verified business (or a founder venue's) sets it; users never do."""
     _own_venue(user, venue_id)
+    profile = conn.execute("SELECT verified, founder FROM venue_profiles WHERE venue_id = %s", (venue_id,)).fetchone()
+    if not profile or not (profile["verified"] or profile["founder"]):
+        raise ProfileError("Kapak fotoğrafını mekanını doğruladıktan sonra ekleyebilirsin.", 403)
     match = PHOTO_PATTERN.match(data_uri.strip())
     if not match:
         raise ProfileError("Fotoğraf okunamadı (JPEG ya da PNG olmalı).")

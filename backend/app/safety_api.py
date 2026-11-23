@@ -102,7 +102,7 @@ def remove_my_cover(user: dict = Depends(current_user), conn: psycopg.Connection
 
 
 class FrameIn(BaseModel):
-    color: str | None  # gold / red / blue / green / purple / pink; None: no frame
+    color: str | None  # app/user_photos.py FRAME_COLORS; None: no frame
 
 
 @router.put("/me/frame", status_code=204)

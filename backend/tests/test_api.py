@@ -25,7 +25,7 @@ def test_venue_fields(client):
         "id", "name", "category", "capacity", "lat", "lon",
         "neighborhood", "district", "tags",
         "open_now", "hours", "opens_at", "crowd", "discovery", "trend",
-        "pending", "moments", "sponsored", "photo_at", "instagram", "phone", "verified", "founder", "address", "description", "amenity_keys",
+        "pending", "moments", "sponsored", "reward_points", "photo_at", "instagram", "phone", "verified", "founder", "address", "description", "amenity_keys",
     }
     # No hours in the data: never "Kapalı", says so instead
     assert venue["hours"] == "Saat bilgisi yok"

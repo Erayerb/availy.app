@@ -240,3 +240,59 @@ def sales_pitch(conn: psycopg.Connection, admin: dict, venue_id: int, now: datet
         "busiest_hour": week["busiest_hour"],
         **other,
     }
+
+
+def today_basics(conn: psycopg.Connection, user: dict, now: datetime) -> dict:
+    """Every plan: today's check-ins and how many people came for the first time (the rest is in the Aylık paket)."""
+    if user.get("role") != "business" or not user.get("venue_id"):
+        raise BusinessError("Yalnızca mekanı olan işletme hesapları için.", 403)
+    day = now.astimezone(ISTANBUL).replace(hour=0, minute=0, second=0, microsecond=0)
+    return conn.execute(
+        """
+        SELECT count(*)::int AS checkins, count(DISTINCT c.user_id)::int AS people,
+               count(DISTINCT c.user_id) FILTER (
+                   WHERE NOT EXISTS (SELECT 1 FROM checkins o WHERE o.venue_id = c.venue_id AND o.user_id = c.user_id
+                                     AND o.created_at < %(day)s))::int AS new_people
+        FROM checkins c WHERE c.venue_id = %(v)s AND c.created_at >= %(day)s AND c.created_at <= %(now)s
+        """,
+        {"v": user["venue_id"], "day": day, "now": now},
+    ).fetchone()
+
+
+def business_monthly_summary(conn: psycopg.Connection, user: dict, now: datetime, months_back: int = 0) -> dict:
+    """Aylık paket "Aylık özet": the month report, compared with the month before, with the busiest weekday and
+    hour, people who came back, and the most loyal customers (count only)."""
+    from app.plans import business_access
+    from app.summary import month_bounds
+
+    if user.get("role") != "business" or not user.get("venue_id"):
+        raise BusinessError("Yalnızca mekanı olan işletme hesapları için.", 403)
+    if not business_access(conn, user, now)["stats"]:
+        raise BusinessError("Aylık özet Aylık pakette.", 402)
+    report = month_report(conn, user["venue_id"], now, months_back)
+    previous = month_report(conn, user["venue_id"], now, months_back + 1)
+    start, end = month_bounds(now, months_back)
+    end = min(end, now + timedelta(seconds=1))
+    extra = conn.execute(
+        """
+        SELECT
+            (SELECT extract(isodow FROM created_at AT TIME ZONE 'Europe/Istanbul')::int FROM checkins
+             WHERE venue_id = %(v)s AND created_at >= %(s)s AND created_at < %(e)s GROUP BY 1 ORDER BY count(*) DESC, 1 LIMIT 1) AS busiest_weekday,
+            (SELECT extract(hour FROM created_at AT TIME ZONE 'Europe/Istanbul')::int FROM checkins
+             WHERE venue_id = %(v)s AND created_at >= %(s)s AND created_at < %(e)s GROUP BY 1 ORDER BY count(*) DESC, 1 LIMIT 1) AS busiest_hour,
+            (SELECT count(*) FROM (SELECT user_id FROM checkins WHERE venue_id = %(v)s AND created_at >= %(s)s AND created_at < %(e)s
+                                   AND user_id IS NOT NULL GROUP BY user_id HAVING count(DISTINCT created_at::date) >= 3) r)::int AS regulars
+        """,
+        {"v": user["venue_id"], "s": start, "e": end},
+    ).fetchone()
+    from app.summary import months_since
+
+    created = conn.execute("SELECT created_at FROM users WHERE id = %s", (user["id"],)).fetchone()["created_at"]
+    return {
+        **report,
+        "months_available": months_since(created, now),
+        "returning_people": report["people"] - report["new_people"],
+        "previous_checkins": previous["checkins"],
+        "previous_people": previous["people"],
+        **extra,
+    }

@@ -112,8 +112,17 @@ export function NotificationsProvider({ token, accountKey, children }: Props) {
     setItems([]);
     announced.current = null;
     if (!accountKey) return setLastSeen(null);
-    loadJson<Record<string, string>>(KEYS.notificationsSeen).then((all) => setLastSeen(all?.[accountKey] ?? null));
-  }, [accountKey]);
+    // This phone's copy first, then the server's (the list opened on another phone counts too): the later one
+    loadJson<Record<string, string>>(KEYS.notificationsSeen).then((all) => {
+      const local = all?.[accountKey] ?? null;
+      setLastSeen(local);
+      if (!token) return;
+      socialApi
+        .notificationsSeen(token)
+        .then(({ at }) => at && setLastSeen((now) => (!now || isAfter(at, now) ? at : now)))
+        .catch(() => {});
+    });
+  }, [accountKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const reload = useCallback(() => {
     if (!token) return;
@@ -148,7 +157,8 @@ export function NotificationsProvider({ token, accountKey, children }: Props) {
     loadJson<Record<string, string>>(KEYS.notificationsSeen).then((all) =>
       saveJson(KEYS.notificationsSeen, { ...(all ?? {}), [accountKey]: now }),
     );
-  }, [accountKey]);
+    if (token) socialApi.saveNotificationsSeen(token, now).catch(() => {});
+  }, [accountKey, token]);
 
   const dismiss = useCallback(
     (key: string) => {

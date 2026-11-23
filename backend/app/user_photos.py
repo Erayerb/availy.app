@@ -18,7 +18,7 @@ class PhotoError(Exception):
 
 
 TABLES = ("user_photos", "user_covers")  # the profile photo, and the availo+ cover photo
-FRAME_COLORS = ("gold", "red", "blue", "green", "purple", "pink")  # availo+: the frame round the photo
+FRAME_COLORS = ("gold", "red", "blue", "green", "purple", "pink", "orange", "teal", "indigo", "silver", "brown", "black")  # availo+: the frame round the photo
 
 
 def _is_plus(conn: psycopg.Connection, user: dict) -> bool:

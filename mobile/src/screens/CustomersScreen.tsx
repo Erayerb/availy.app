@@ -113,7 +113,7 @@ function Stat({ value, label }: { value: number; label: string }) {
 const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 14 },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', zIndex: 20, elevation: 20 },
   title: { fontSize: 24, fontWeight: '700', color: colors.text },
   card: { padding: 16, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 10 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },

@@ -27,6 +27,13 @@ def month_bounds(now: datetime, months_back: int = 0) -> tuple[datetime, datetim
     return start, end
 
 
+def months_since(start: datetime, now: datetime, cap: int = 12) -> int:
+    """How many months to offer in the month picker: this one back to the month the person (or business)
+    started, at most `cap`."""
+    a, b = start.astimezone(ISTANBUL), now.astimezone(ISTANBUL)
+    return max(1, min(cap, (b.year - a.year) * 12 + b.month - a.month + 1))
+
+
 def _counts(conn: psycopg.Connection, user_ids: list[int], start: datetime, end: datetime) -> dict[int, int]:
     rows = conn.execute(
         """
@@ -89,7 +96,9 @@ def monthly_summary(conn: psycopg.Connection, me: dict, now: datetime, months_ba
     ]
     counts = _counts(conn, friends, start, end)
     ranked = sorted([totals["checkins"], *(counts.get(f, 0) for f in friends)], reverse=True)
+    created = conn.execute("SELECT created_at FROM users WHERE id = %s", (me["id"],)).fetchone()["created_at"]
     return {
+        "months_available": months_since(created, now),
         "month": start.strftime("%Y-%m"),
         **totals,
         "previous_checkins": previous,

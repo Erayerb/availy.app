@@ -45,11 +45,11 @@ export function SubscriptionScreen({ signedIn, onBack, onLogin, business, token 
       </View>
 
       <Plan name="Ücretsiz" price="₺0" features={FREE_FEATURES} current={!premium} />
-      <Plan name="Premium" price={PREMIUM_PRICE} features={PREMIUM_FEATURES} current={premium} highlight />
+      <Plan name="availo+" price={PREMIUM_PRICE} features={PREMIUM_FEATURES} current={premium} highlight />
 
       {!signedIn ? (
         <Pressable style={styles.primary} onPress={onLogin}>
-          <Text style={styles.primaryText}>Premium için giriş yap</Text>
+          <Text style={styles.primaryText}>availo+ için giriş yap</Text>
         </Pressable>
       ) : premium ? (
         <Pressable style={styles.secondary} onPress={() => {
@@ -63,10 +63,10 @@ export function SubscriptionScreen({ signedIn, onBack, onLogin, business, token 
             update({ premium: true });
             if (token) accountApi.setPlan(token, true).catch(() => {});
           }}>
-          <Text style={styles.primaryText}>Premium'a geç</Text>
+          <Text style={styles.primaryText}>availo+'ya geç</Text>
         </Pressable>
       )}
-      <Text style={styles.note}>Prototip: ödeme alınmaz, Premium tek dokunuşla açılır.</Text>
+      <Text style={styles.note}>Prototip: ödeme alınmaz, availo+ tek dokunuşla açılır.</Text>
     </ScrollView>
   );
 }

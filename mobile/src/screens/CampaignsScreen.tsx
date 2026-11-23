@@ -1,4 +1,6 @@
 import { BackButton } from '../components/BackButton';
+import { Tip } from '../components/Tip';
+import { confirmAction } from '../lib/confirm';
 import { RewardSetup } from '../components/business/RewardSetup';
 import { useUpgrade } from '../context/UpgradeContext';
 import { HeaderButtons } from '../components/HeaderButtons';
@@ -64,13 +66,15 @@ type Props = {
   business: BusinessInfo | null; // set for business accounts
   onLogin: () => void;
   onOpenVenue: (campaign: Pick<Campaign, 'venueId' | 'lat' | 'lon'>) => void;
+  onOpenPoints?: () => void; // customers: Puanların
   // Set when opened from "Daha fazla" (customers); businesses have it as a tab
   onBack?: () => void;
   initialTab?: Tab; // e.g. "myPrograms" from Müşteriler
   onTabChange?: (tab: Tab) => void; // remembered, so back from a venue returns to this tab
 };
 
-export function CampaignsScreen({ signedIn, serverPoints, customerCode, business, onLogin, onOpenVenue, onBack, initialTab, onTabChange }: Props) {
+export function CampaignsScreen({ signedIn, serverPoints, customerCode, business, onLogin, onOpenVenue, onBack, initialTab, onTabChange, onOpenPoints }: Props) {
+  const { points } = useCampaigns();
   const tabs = business ? BUSINESS_TABS : CUSTOMER_TABS;
   const [tab, setTabState] = useState<Tab>(initialTab && tabs.some((t) => t.tab === initialTab) ? initialTab : tabs[0].tab);
   const top = usePageTop();
@@ -91,11 +95,41 @@ export function CampaignsScreen({ signedIn, serverPoints, customerCode, business
         <Text style={[styles.title, styles.flex]}>Kampanyalar</Text>
         {!onBack && <HeaderButtons />}
       </View>
+      {/* Customers: the spendable balance, a tap to Puanların (what it buys, the history) */}
+      {!business && signedIn && onOpenPoints && (
+        <Tip
+          id="pointsCard"
+          placement="below"
+          radius={16}
+          text="Check-in'lerle kazandığın puanları burada harcarsın: mekanların ödüllerini ve özel kuponları puanla al."
+        >
+        <Pressable style={styles.walletCard} onPress={onOpenPoints} accessibilityRole="button">
+          <Text style={styles.pointsEmoji}>🪙</Text>
+          <View style={styles.flex}>
+            <Text style={styles.pointsTitle}>Harcanabilir puanın: {points ?? '…'}</Text>
+            <Text style={styles.muted}>Neyle alabileceğini ve geçmişini gör</Text>
+          </View>
+          <Text style={styles.pointsChevron}>›</Text>
+        </Pressable>
+        </Tip>
+      )}
+      <Tip
+        id="couponsTab"
+        after={!business && signedIn && onOpenPoints ? 'pointsCard' : undefined}
+        placement="below"
+        radius={16}
+        text={
+          business
+            ? 'Kampanyalarım: yeni kampanya ve kalıcı ödül. Kuponlar: kasada müşterinin kodunu ya da QR\'ını okut. Rakipler: yakındaki mekanların kampanyaları.'
+            : 'Kampanyalar: yakındaki indirimler. Kuponlarım: aldığın kuponlar, kasada QR\'ı göster. Sadakat: damga kartların.'
+        }
+      >
       <View style={styles.tabs}>
         {tabs.map(({ tab: t, label }) => (
           <Chip key={t} label={label} active={tab === t} onPress={() => setTab(t)} />
         ))}
       </View>
+      </Tip>
       {tab === 'campaigns' && <CampaignList onOpenVenue={onOpenVenue} />}
       {tab === 'coupons' && <MyCoupons />}
       {tab === 'loyalty' && <Loyalty signedIn={signedIn} serverPoints={serverPoints} customerCode={customerCode} onLogin={onLogin} />}
@@ -155,7 +189,7 @@ function CampaignList({ onOpenVenue }: Pick<Props, 'onOpenVenue'>) {
 }
 
 function MyCoupons() {
-  const { coupons: mine, now } = useCampaigns();
+  const { coupons: mine, now, removeCoupon } = useCampaigns();
 
   return (
     <View style={styles.list}>
@@ -182,6 +216,22 @@ function MyCoupons() {
               <Text style={styles.code}>{coupon.code}</Text>
               <Text style={styles.muted}>{status}</Text>
             </View>
+            <Pressable
+              hitSlop={8}
+              style={styles.deleteCoupon}
+              onPress={() =>
+                confirmAction(
+                  'Kupon silinsin mi?',
+                  status === 'Geçerli · kasada göster'
+                    ? 'Listenden çıkar ve artık kullanılamaz; puanla aldıysan puan geri gelmez.'
+                    : 'Listenden çıkar.',
+                  'Sil',
+                  () => removeCoupon(coupon.code),
+                )
+              }
+            >
+              <Text style={styles.deleteCouponText}>Sil</Text>
+            </Pressable>
           </View>
         );
       })}
@@ -221,10 +271,11 @@ function Loyalty({
   return (
     <View style={styles.list}>
       <View style={styles.pointsCard}>
-        <Text style={styles.pointsLabel}>availo puanın</Text>
+        <Text style={styles.pointsLabel}>Kazandığın toplam puan</Text>
         <Text style={styles.points}>{serverPoints}</Text>
         <Text style={styles.muted}>
-          Her damga 5, kullandığın her kupon 10 puan.
+          Her damga 5, kullandığın her kupon 10 puan. Seviyen ve sıralaman bu toplamla hesaplanır; harcanabilir puanın üstteki
+          "Puanların" kartında.
         </Text>
         {customerCode && (
           <>
@@ -421,10 +472,16 @@ function VenueCoupons({ venueId }: { venueId: number }) {
 }
 
 const styles = themed(() => StyleSheet.create({
+  walletCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.gold },
+  pointsEmoji: { fontSize: 26 },
+  pointsTitle: { fontSize: 16, fontWeight: '800', color: colors.text },
+  pointsChevron: { fontSize: 24, color: colors.placeholder },
+  deleteCoupon: { alignSelf: 'flex-end' },
+  deleteCouponText: { fontSize: 13.5, fontWeight: '700', color: colors.danger },
   flex: { flex: 1 },
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 12 },
-  topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  topRow: { flexDirection: 'row', alignItems: 'center', gap: 12, zIndex: 20, elevation: 20 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
   tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   list: { gap: 12 },

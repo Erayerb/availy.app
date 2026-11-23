@@ -67,15 +67,22 @@ export function AboutScreen({ role, onBack }: { role: Role; onBack: () => void }
         </View>
       ))}
 
-      <Text style={styles.note}>
-        Mekan bilgileri © OpenStreetMap katkıcıları (ODbL lisansı), Overture Maps Foundation (CDLA Permissive 2.0) ve
-        Foursquare Open Source Places (Apache 2.0). Doluluk, kullanıcıların check-in'lerinden hesaplanır. Prototip sürüm.
-      </Text>
+      {/* Required by the data licences: name every source of venue data */}
+      <View style={styles.sources}>
+        <Text style={styles.sourcesTitle}>Veri kaynakları</Text>
+        <Text style={styles.sourceLine}>• Foursquare OS Places (Apache 2.0)</Text>
+        <Text style={styles.sourceLine}>• Overture Maps Foundation (CDLA Permissive 2.0)</Text>
+        <Text style={styles.sourceLine}>• © OpenStreetMap katkıcıları (ODbL)</Text>
+        <Text style={styles.note}>Doluluk yalnızca kullanıcıların check-in'lerinden hesaplanır. Prototip sürüm.</Text>
+      </View>
     </ScrollView>
   );
 }
 
 const styles = themed(() => StyleSheet.create({
+  sources: { padding: 14, borderRadius: 14, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 4 },
+  sourcesTitle: { fontSize: 15, fontWeight: '800', color: colors.text, marginBottom: 2 },
+  sourceLine: { fontSize: 14, color: colors.text },
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 14 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },

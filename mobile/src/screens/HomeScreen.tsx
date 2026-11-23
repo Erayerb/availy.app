@@ -282,7 +282,7 @@ function placeLabel(sides: Side[], districts: string[]): string {
 
 const styles = themed(() => StyleSheet.create({
   header: { gap: 10 },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6 },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6, zIndex: 20, elevation: 20 },
   row: { gap: 8 },
   hint: { fontSize: 13, color: colors.textMuted },
   place: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, backgroundColor: colors.cream, maxWidth: 140 },

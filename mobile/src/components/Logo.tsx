@@ -6,10 +6,10 @@ import { colors } from '../theme';
 export const LOGO_PATH = 'M18 78 L35.19 35.95 A16 16 0 0 1 64.81 35.95 L82 78';
 
 /** The Availo mark: the arch in the text color of the theme, the dot in its accent. */
-export function Logo({ size = 96 }: { size?: number }) {
+export function Logo({ size = 96, color }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 17 100 70" accessibilityLabel="Availo">
-      <Path d={LOGO_PATH} stroke={colors.text} strokeWidth={14} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <Path d={LOGO_PATH} stroke={color ?? colors.text} strokeWidth={14} strokeLinecap="round" strokeLinejoin="round" fill="none" />
       <Circle cx={50} cy={60} r={8} fill={colors.primary} />
     </Svg>
   );

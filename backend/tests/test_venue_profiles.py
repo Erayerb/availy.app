@@ -19,6 +19,10 @@ def test_business_profile_on_the_venue_page(client, conn):
     assert saved.status_code == 200 and saved.json() == {"instagram": "testkafe", "phone": "0216 123 45 67"}
     assert client.put(f"/v1/venues/{kafe}/profile", json={"phone": "12"}, headers=auth(token)).status_code == 400
     assert client.put(f"/v1/venues/{kafe}/profile", json={"instagram": "kötü ad"}, headers=auth(token)).status_code == 400
+    # The cover photo: only once the venue is verified (users never set venue photos)
+    unverified = client.put(f"/v1/venues/{kafe}/photo", json={"photo": PIXEL}, headers=auth(token))
+    assert unverified.status_code == 403 and "doğrula" in unverified.json()["detail"]
+    conn.execute("UPDATE venue_profiles SET verified = true WHERE venue_id = %s", (kafe,))
     assert client.put(f"/v1/venues/{kafe}/photo", json={"photo": PIXEL}, headers=auth(token)).status_code == 200
     assert client.put(f"/v1/venues/{kafe}/photo", json={"photo": "data:text/html;base64,PGI+"}, headers=auth(token)).status_code == 400
     shown = kafe_out(client)

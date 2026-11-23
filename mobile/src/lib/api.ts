@@ -21,6 +21,7 @@ export type Venue = {
   pending?: boolean; // v2: added by a user, waiting for approval ("⏳ Onay bekliyor")
   moments?: number; // "Şu an burada" photos from the last 24 hours (the 📷 on cards)
   sponsored?: boolean; // "Sponsorlu": shown first on the home page
+  reward_points?: number | null; // a standing reward ("200 puan = %10"): 🎁 on the map
   // v2: the business's profile, from the server (cover photo: venueApi.photoUrl)
   photo_at?: string | null;
   instagram?: string | null;
