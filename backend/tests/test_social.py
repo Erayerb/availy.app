@@ -91,10 +91,12 @@ def test_notifications(client, conn, visit):
     assert [(n["kind"], n["username"]) for n in items] == [("reply", "t_ayse"), ("friend_accepted", "t_ayse")]
     assert items[0]["body"] == "Katılıyorum" and items[0]["venue_name"] == "Test Kafe A"
     # The request stays in Ayşe's list (accepted now) until she deletes it
-    request = client.get("/v1/notifications", headers=auth(ayse)).json()
+    listed = client.get("/v1/notifications", headers=auth(ayse)).json()
+    assert [n["kind"] for n in listed] == ["friend_review", "friend_request"]  # Ali's review is news to his friend
+    request = [n for n in listed if n["kind"] == "friend_request"]
     assert [(n["kind"], n["done"]) for n in request] == [("friend_request", True)]
     assert client.post("/v1/notifications/dismiss", json={"key": request[0]["key"]}, headers=auth(ayse)).status_code == 204
-    assert client.get("/v1/notifications", headers=auth(ayse)).json() == []
+    assert [n["kind"] for n in client.get("/v1/notifications", headers=auth(ayse)).json()] == ["friend_review"]
     # "Temizle": all of Ali's go
     assert client.delete("/v1/notifications", headers=auth(ali)).status_code == 204
     assert client.get("/v1/notifications", headers=auth(ali)).json() == []

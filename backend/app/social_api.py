@@ -48,6 +48,30 @@ class NotificationOut(BaseModel):
         "dead_hour",
         "auto_campaign",
         "come_here",
+        "friend_checkin",
+        "together",
+        "venue_approved",
+        "invite_joined",
+        "loyalty_reward",
+        "weekly_winner",
+        "support_reply",
+        "moment_removed",
+        "moment_report_result",
+        "report_result",
+        "watch_quiet",
+        "new_review",
+        "sponsor_started",
+        "sponsor_ended",
+        "venue_issue",
+        "friend_review",
+        "favorite_quiet",
+        "coupon_redeemed",
+        "coupon_limit",
+        "campaign_ended",
+        "comeback",
+        "monthly_report",
+        "trial_ended",
+        "founder_ended",
     ]
     at: datetime
     username: str | None
@@ -146,3 +170,116 @@ def suggestions(
 ):
     """For an empty Akış: "Önerilen kişiler" and "Yakında yeni keşfedilen mekanlar"."""
     return {"people": suggested_people(conn, user, now), "venues": discovered_venues(conn, lat, lon, now)}
+
+
+class PushTokenIn(BaseModel):
+    token: str
+    platform: str | None = None
+
+
+@router.put("/me/push-token", status_code=204)
+def save_push_token(body: PushTokenIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    """The phone's Expo push address: new 🔔 items reach it while the app is closed."""
+    from app.push import save_token
+
+    if not body.token.startswith(("ExponentPushToken[", "ExpoPushToken[")):
+        raise HTTPException(status_code=400, detail="Geçersiz bildirim adresi.")
+    save_token(conn, user, body.token, body.platform)
+    return Response(status_code=204)
+
+
+@router.delete("/me/push-token", status_code=204)
+def delete_push_token(body: PushTokenIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    from app.push import remove_token
+
+    remove_token(conn, user, body.token)
+    return Response(status_code=204)
+
+
+class SummaryVenue(BaseModel):
+    id: int
+    name: str
+    district: str | None
+    visits: int
+
+
+class SummaryDistrict(BaseModel):
+    district: str
+    visits: int
+
+
+class SummaryOut(BaseModel):
+    month: str  # "2026-11"
+    checkins: int
+    venues: int
+    discoveries: int
+    points: int
+    previous_checkins: int  # the month before
+    top_venues: list[SummaryVenue]
+    top_districts: list[SummaryDistrict]
+    friends: int
+    rank_among_friends: int | None  # among me and my friends, by check-ins (None: no friends)
+    friends_average: float | None
+
+
+@router.get("/me/monthly-summary", response_model=SummaryOut)
+def my_monthly_summary(
+    months_back: int = 0,
+    user: dict = Depends(current_user),
+    conn: psycopg.Connection = Depends(get_conn),
+    now: datetime = Depends(get_clock),
+):
+    """availo+ "Aylık özet" (0: this month so far, 1: last month...)."""
+    from app.summary import SummaryError, monthly_summary
+
+    try:
+        return monthly_summary(conn, user, now, months_back)
+    except SummaryError as e:
+        raise HTTPException(status_code=e.status, detail=e.message) from None
+
+
+class AwayVenue(BaseModel):
+    id: int
+    name: str
+
+
+class WhileAwayOut(BaseModel):
+    friend_checkins: int
+    friend_places: list[str]  # where friends went most (up to 3)
+    notifications: int  # new 🔔 items
+    quiet_favorites: list[AwayVenue]  # favourites that are Sakin right now
+
+
+@router.get("/me/while-away", response_model=WhileAwayOut)
+def my_while_away(
+    since: datetime,
+    user: dict = Depends(current_user),
+    conn: psycopg.Connection = Depends(get_conn),
+    now: datetime = Depends(get_clock),
+):
+    """"Sen yokken neler oldu": shown when the app is opened after a while (`since`: when it was last open)."""
+    from app.reminders import while_away
+
+    return while_away(conn, user, since, now)
+
+
+class StarterTask(BaseModel):
+    key: str
+    title: str
+    hint: str
+    done: bool
+
+
+class StarterOut(BaseModel):
+    tasks: list[StarterTask]
+    done: int
+    points_each: int
+    new_points: int  # paid just now (the app says "+10 puan")
+
+
+@router.get("/me/starter-tasks", response_model=StarterOut)
+def my_starter_tasks(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn), now: datetime = Depends(get_clock)):
+    """İlk hafta görevleri: check-in, liste, arkadaş, fotoğraf (each pays once)."""
+    from app.starter import starter_tasks
+
+    return starter_tasks(conn, user, now)

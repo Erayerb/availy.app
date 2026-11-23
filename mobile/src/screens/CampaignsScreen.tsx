@@ -1,4 +1,6 @@
 import { BackButton } from '../components/BackButton';
+import { RewardSetup } from '../components/business/RewardSetup';
+import { useUpgrade } from '../context/UpgradeContext';
 import { HeaderButtons } from '../components/HeaderButtons';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -52,6 +54,7 @@ export type BusinessInfo = {
   venueId: number;
   plan: PlanId;
   onPlanChange: (plan: PlanId) => void;
+  token?: string | null; // for the standing reward
 };
 
 type Props = {
@@ -283,6 +286,7 @@ function Loyalty({
 
 /** Business: new campaign, scheduled campaigns and results of its own campaigns. */
 function MyCampaigns({ business }: { business: BusinessInfo }) {
+  const { promptUpgrade } = useUpgrade();
   const { campaigns, now, end, remove, create } = useCampaigns();
   const { venues } = useVenuesByIds([business.venueId]);
   const venue = venues[0];
@@ -301,10 +305,11 @@ function MyCampaigns({ business }: { business: BusinessInfo }) {
       {venue && (
         <>
           <CampaignForm venue={venue} plan={business.plan} />
+          {business.token && <RewardSetup token={business.token} />}
           <ScheduleSection
             venue={venue}
             plan={business.plan}
-            onUpgrade={() => business.onPlanChange('saas')}
+            onUpgrade={() => promptUpgrade('Zamanlanmış haftalık kampanyalar Aylık pakette.')}
           />
         </>
       )}

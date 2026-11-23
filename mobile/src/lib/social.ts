@@ -20,7 +20,33 @@ export type AppNotification = {
     | 'dead_hour'
     | 'auto_campaign'
     // A friend after a check-in: "Buradayım, gel"
-    | 'come_here';
+    | 'come_here'
+    | 'friend_checkin' // a friend checked in
+    | 'friend_review' // a friend reviewed a venue; body: "4★ text"
+    | 'favorite_quiet' // availo+: a busy favourite turned quiet
+    | 'comeback' // 4 days without a check-in (the one reminder that is not an event); body: the text
+    // The business: a coupon used, 80% of the coupons taken (body "8/10"), a campaign over (body "seen,taken,used")
+    | 'coupon_redeemed'
+    | 'coupon_limit'
+    | 'campaign_ended'
+    | 'monthly_report' // the business, from the 1st: last month with availo (body "people,new,coupons")
+    | 'trial_ended' // the 15-day trial of the Aylık paket
+    | 'founder_ended' // kurucu mekan: the 3 free months
+    | 'together' // a friend checked in where I was: points for both
+    | 'venue_approved' // a venue I added
+    | 'invite_joined' // signed up through my link
+    | 'loyalty_reward' // a stamp card filled up (done: used)
+    | 'weekly_winner' // body: the points
+    | 'support_reply' // body: the answer
+    | 'moment_removed'
+    | 'moment_report_result' // body: kept / removed
+    | 'report_result' // a review or reply I reported; body: kept / removed
+    | 'watch_quiet' // "Sakin olunca haber ver"
+    // The business
+    | 'new_review' // body: "4★ text"
+    | 'sponsor_started'
+    | 'sponsor_ended'
+    | 'venue_issue'; // body: closed / hours / location / name / offensive_name
   at: string;
   username: string | null;
   venue_id: number | null;
@@ -71,6 +97,10 @@ export const socialApi = {
   notifications: (token: string) => send<AppNotification[]>('GET', '/v1/notifications', undefined, token),
   dismissNotification: (token: string, key: string) => send<void>('POST', '/v1/notifications/dismiss', { key }, token),
   clearNotifications: (token: string) => send<void>('DELETE', '/v1/notifications', undefined, token),
+  // The phone's Expo push address: 🔔 items reach it while the app is closed
+  savePushToken: (token: string, pushToken: string, platform: string) =>
+    send<void>('PUT', '/v1/me/push-token', { token: pushToken, platform }, token),
+  removePushToken: (token: string, pushToken: string) => send<void>('DELETE', '/v1/me/push-token', { token: pushToken }, token),
   privacy: (token: string) => send<Privacy & Record<string, unknown>>('GET', '/v1/me', undefined, token),
   setPrivacy: (token: string, patch: Partial<Privacy>) => send<Privacy>('PATCH', '/v1/me/privacy', patch, token),
 };
@@ -95,6 +125,38 @@ export const NOTIFICATION_ICONS: Record<AppNotification['kind'], string> = {
   dead_hour: '🌙',
   auto_campaign: '📣',
   come_here: '📍',
+  friend_checkin: '📍',
+  friend_review: '⭐',
+  favorite_quiet: '♥',
+  comeback: '👋',
+  coupon_redeemed: '🎟️',
+  coupon_limit: '⏳',
+  campaign_ended: '📊',
+  monthly_report: '📈',
+  trial_ended: '⏰',
+  founder_ended: '⏰',
+  together: '👯',
+  venue_approved: '✅',
+  invite_joined: '🎉',
+  loyalty_reward: '🎁',
+  weekly_winner: '🏆',
+  support_reply: '💬',
+  moment_removed: '📷',
+  moment_report_result: '🛡️',
+  report_result: '🛡️',
+  watch_quiet: '🔔',
+  new_review: '⭐',
+  sponsor_started: '📣',
+  sponsor_ended: '📣',
+  venue_issue: '⚠️',
+};
+
+const ISSUES: Record<string, string> = {
+  closed: 'kapandığı',
+  hours: 'saatlerinin yanlış olduğu',
+  location: 'konumunun yanlış olduğu',
+  name: 'adının yanlış olduğu',
+  offensive_name: 'adının uygunsuz olduğu',
 };
 
 /** One line for a notification (the 🔔 list shows its icon next to it). */
@@ -110,8 +172,48 @@ export function notificationText(n: AppNotification): string {
     return `Check-in yaptığın ${n.venue_name} sadakat programı başlattı: ${n.body}.${n.done ? ' Katıldın.' : ' Katılmak için dokun.'}`;
   if (n.kind === 'group_invite')
     return n.done ? `"${n.body}" grubuna katıldın.` : `${who} seni "${n.body}" grubuna davet etti. Katılmak için dokun.`;
-  if (n.kind === 'dead_hour') return `${n.venue_name} şu an sakin: müşterilerin Sakin bildiriyor. Kampanya göndermek için iyi bir zaman.`;
+  if (n.kind === 'dead_hour') return `${n.venue_name} şu an sakin görünüyor. Kampanya başlat, yakındakilere ulaş!`;
+  if (n.kind === 'comeback') return n.body ?? 'Bir süredir check-in yapmadın.';
+  if (n.kind === 'coupon_redeemed') return `Kuponun kullanıldı: "${n.body}"`;
+  if (n.kind === 'coupon_limit') return `Kampanyanın kuponları dolmak üzere (${n.body}).`;
+  if (n.kind === 'monthly_report') {
+    const [people, fresh, used] = (n.body ?? '').split(',');
+    return used !== undefined ? `Geçen ay availo ile ${people} kişi geldi, ${fresh}'i ilk kez; ${used} kupon kullanıldı.` : "Geçen ayın availo raporu hazır.";
+  }
+  if (n.kind === 'trial_ended') return "Aylık paket denemen bitti. Sınırsız kampanya ve istatistikler için Aylık paket'e geç.";
+  if (n.kind === 'founder_ended') return "Kurucu mekan olarak 3 aylık ücretsiz Aylık paketin bitti. Devam etmek için Abonelik'e bak; rozetin kalıyor.";
+  if (n.kind === 'campaign_ended') {
+    const [seen, taken, used] = (n.body ?? '').split(',');
+    return used !== undefined ? `Kampanyan bitti: ${seen} kişi gördü, ${taken} kupon alındı, ${used} kullanıldı.` : 'Kampanyan bitti.';
+  }
   if (n.kind === 'auto_campaign') return `Ölü saat için otomatik kampanya gönderildi: "${n.body}"`;
+  // Fresh (a check-in's own life): "Sen de katıl!"; older ones only say where they went
+  if (n.kind === 'friend_checkin')
+    return Date.now() - new Date(n.at).getTime() < 90 * 60_000
+      ? `${who} şu an ${n.venue_name} mekanında. Sen de katıl!`
+      : `${who} ${n.venue_name} mekanında check-in yaptı.`;
+  if (n.kind === 'friend_review') return `${who} ${n.venue_name} için yorum yazdı: ${n.body}`;
+  if (n.kind === 'favorite_quiet') return `Favorin ${n.venue_name} şu an sakin. Gitmek için iyi bir zaman.`;
+  if (n.kind === 'together') return `${who} de ${n.venue_name} mekanına geldi: birlikte check-in, ikiniz de puan kazandınız.`;
+  if (n.kind === 'venue_approved') return `Eklediğin ${n.venue_name} onaylandı, artık herkes görüyor. Puanın hesabında.`;
+  if (n.kind === 'invite_joined') return `${who} davetinle katıldı; artık arkadaşsınız.`;
+  if (n.kind === 'loyalty_reward')
+    return n.done ? `${n.venue_name} ödülünü kullandın.` : `${n.venue_name} damga kartın doldu! Ödülün hazır: ${n.body}. Kasada göster.`;
+  if (n.kind === 'weekly_winner') return `Tebrikler! Geçen haftanın 1.'si sensin (${n.body} puan).`;
+  if (n.kind === 'support_reply') return `Destek ekibi yanıtladı: "${n.body}"`;
+  if (n.kind === 'moment_removed') return `${n.venue_name} fotoğrafın kurallara uymadığı için kaldırıldı.`;
+  if (n.kind === 'moment_report_result' || n.kind === 'report_result') {
+    const what = n.kind === 'moment_report_result' ? 'fotoğraf' : 'yorum';
+    return n.body === 'removed'
+      ? `Bildirdiğin ${what} (${n.venue_name}) incelendi ve kaldırıldı. Teşekkürler.`
+      : `Bildirdiğin ${what} (${n.venue_name}) incelendi; kurallara aykırı bulunmadı.`;
+  }
+  if (n.kind === 'watch_quiet') return `${n.venue_name} sakinleşti. Gitmek için iyi bir zaman.`;
+  if (n.kind === 'new_review') return `${who} ${n.venue_name} için yorum yazdı: ${n.body}`;
+  if (n.kind === 'sponsor_started') return `"Öne çık" yayında: ${n.venue_name} ana sayfada en üstte görünüyor.`;
+  if (n.kind === 'sponsor_ended') return `"Öne çık" süren bitti. Yeniden öne çıkmak için İşletme paneline bak.`;
+  if (n.kind === 'venue_issue')
+    return `Biri ${n.venue_name} mekanının ${ISSUES[n.body ?? ''] ?? 'bilgisinin yanlış olduğu'}nu bildirdi.${n.done ? ' Düzeltildi.' : ' Bilgileri kontrol et.'}`;
   if (n.kind === 'reward') return `${n.venue_name} keşfettiğin için sana ödül verdi: "${n.body}" Kasada bu bildirimi göster.`;
   return `${who} yorumunu yanıtladı (${n.venue_name}): "${n.body}"`;
 }

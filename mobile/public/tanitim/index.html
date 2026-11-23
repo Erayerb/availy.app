@@ -157,6 +157,7 @@
     .show.flip > .phone { order: 0; }
     section { padding: 48px 0; }
   }
+  label.check { display: flex; gap: 8px; align-items: center; font-weight: 600; margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -349,9 +350,10 @@
         <select id="b-district" name="district">
           <option>Kadıköy</option><option>Beşiktaş</option><option>Üsküdar</option><option>Şişli</option><option>Beyoğlu</option><option>Ataşehir</option><option>Diğer</option>
         </select>
+        <label class="check"><input type="checkbox" name="founder" value="1" checked> Kurucu mekan programına başvuruyorum</label>
         <button class="cta" type="submit"><i class="ti ti-building-store"></i> Mekanımı ekleyin</button>
         <p class="note" role="status"></p>
-        <p class="fine">İlk 10 mekan kurucu mekan olur: 3 ay ücretsiz Aylık paket, rozet, kapı çıkartması ve fotoğraf çekimi.</p>
+        <p class="fine">İlk 10 mekan kurucu mekan olur: 3 ay ücretsiz Aylık paket (istatistikler, sınırsız kampanya), "Kurucu mekan" rozeti, kapıya "availo'da · QR ile check-in" çıkartması, fotoğraf çekimi ve açılışta öne çıkma.</p>
       </form>
     </div>
     <p class="fine" style="margin-top:16px">Bilgini yalnızca uygulama açıldığında haber vermek için kullanırız; kimseyle paylaşmayız. Silinmesini istersen bize yazman yeterli.</p>
@@ -376,6 +378,7 @@
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       const data = Object.fromEntries(new FormData(form));
+      if (form.dataset.kind === 'business') data.founder = data.founder === '1';
       note.className = 'note';
       note.textContent = 'Gönderiliyor…';
       button.disabled = true;

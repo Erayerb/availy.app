@@ -32,6 +32,7 @@ def points(conn, username):
 
 def test_a_moment_shows_for_24_hours_with_points(client, conn, clock):
     kafe, ali = venue(conn), account(client, "t_ali")
+    conn.execute("UPDATE venues SET open_hour = 8, close_hour = 23 WHERE id = %s", (kafe,))
     own = checkin(conn, "t_ali", kafe, NOON)
     clock.now = NOON + timedelta(minutes=5)
     added = client.post(f"/v1/checkins/{own}/moment", json={"photo": PHOTO}, headers=auth(ali))
@@ -110,9 +111,12 @@ def test_two_reports_hide_it_and_removal_takes_the_points(client, conn, clock):
     # Restored: back on the page
     client.post(f"/v1/admin/moments/{photo}", json={"keep": True}, headers=auth(admin))
     assert len(client.get(f"/v1/venues/{kafe}/moments").json()) == 1
-    # Removed: the photo and its points go
+    told = [n for n in client.get("/v1/notifications", headers=auth(a)).json() if n["kind"] == "moment_report_result"]
+    assert [n["body"] for n in told] == ["kept"]
+    # Removed: the photo and its points go, and its owner is told
     client.post(f"/v1/admin/moments/{photo}", json={"keep": False}, headers=auth(admin))
     assert client.get(f"/v1/venues/{kafe}/moments").json() == [] and points(conn, "t_ali") == 0
+    assert "moment_removed" in [n["kind"] for n in client.get("/v1/notifications", headers=auth(ali)).json()]
 
 
 def test_the_author_deletes_and_the_daily_limit(client, conn, clock):

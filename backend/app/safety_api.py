@@ -40,6 +40,9 @@ class ProfileOut(BaseModel):
     stats_hidden: bool = False
     level: LevelOut | None = None  # shown even when the statistics are hidden (a status, like a badge)
     photo_at: datetime | None = None  # profile photo: GET /v1/users/{username}/photo?v=<photo_at>
+    plus: bool = False  # Premium: the "availo+" badge
+    cover_at: datetime | None = None  # availo+ cover photo: GET /v1/users/{username}/cover?v=<cover_at>
+    frame_color: str | None = None  # availo+ frame round the photo
 
 
 class PhotoIn(BaseModel):
@@ -69,6 +72,47 @@ def set_my_photo(
 @router.delete("/me/photo", status_code=204)
 def remove_my_photo(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
     delete_user_photo(conn, user)
+    return Response(status_code=204)
+
+
+@router.get("/users/{username}/cover")
+def user_cover(username: str, conn: psycopg.Connection = Depends(get_conn)):
+    """availo+ cover photo; with ?v=<cover_at> it never changes."""
+    found = load_user_photo(conn, username, "user_covers")
+    if found is None:
+        raise HTTPException(status_code=404, detail="Kapak fotoğrafı yok.")
+    media_type, data = found
+    return Response(content=data, media_type=media_type, headers={"Cache-Control": "public, max-age=86400"})
+
+
+@router.put("/me/cover")
+def set_my_cover(
+    body: PhotoIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn), now: datetime = Depends(get_clock)
+):
+    try:
+        return {"cover_at": save_user_photo(conn, user, body.photo, now, "user_covers")}
+    except PhotoError as e:
+        raise HTTPException(status_code=e.status, detail=e.message) from None
+
+
+@router.delete("/me/cover", status_code=204)
+def remove_my_cover(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    delete_user_photo(conn, user, "user_covers")
+    return Response(status_code=204)
+
+
+class FrameIn(BaseModel):
+    color: str | None  # gold / red / blue / green / purple / pink; None: no frame
+
+
+@router.put("/me/frame", status_code=204)
+def set_my_frame(body: FrameIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    from app.user_photos import set_frame
+
+    try:
+        set_frame(conn, user, body.color)
+    except PhotoError as e:
+        raise HTTPException(status_code=e.status, detail=e.message) from None
     return Response(status_code=204)
 
 

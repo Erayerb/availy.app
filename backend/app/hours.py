@@ -26,6 +26,7 @@ ALL_DAY = (0, 24)
 class OpeningHours:
     open_hour: int
     close_hour: int
+    known: bool = True  # False: the data source has no hours; treated as open, shown as "Saat bilgisi yok"
 
     @property
     def all_day(self) -> bool:
@@ -41,6 +42,8 @@ class OpeningHours:
         return hour >= self.open_hour or hour < close
 
     def label(self) -> str:
+        if not self.known:
+            return "Saat bilgisi yok"
         if self.all_day:
             return "24 saat açık"
         return f"{self.open_hour:02d}:00–{self.close_hour % 24:02d}:00"
@@ -55,11 +58,21 @@ def hours_for(category: str, always_busy: bool = False) -> OpeningHours:
     return OpeningHours(*(ALL_DAY if always_busy else HOURS_BY_CATEGORY.get(category, DEFAULT_HOURS)))
 
 
-def venue_hours(venue: dict) -> OpeningHours:
-    """The venue's own hours when the data source has them (e.g. OpenStreetMap), else the category's."""
+UNKNOWN = OpeningHours(*ALL_DAY, known=False)
+
+
+def venue_hours(venue: dict, guess: bool = False) -> OpeningHours:
+    """The venue's own hours when the data source has them (e.g. OpenStreetMap or the business).
+
+    Without them the venue is never shown as closed (a wrong "Kapalı" sends people away): open, with
+    "Saat bilgisi yok". `guess=True` uses the category's usual hours instead, for the business's own
+    statistics (quiet slots, "Ölü saat"), where a guess is better than the whole day.
+    """
     if venue.get("open_hour") is not None and venue.get("close_hour") is not None:
         return OpeningHours(venue["open_hour"], venue["close_hour"])
-    return hours_for(venue["category"], venue.get("always_busy", False))
+    if guess or venue.get("always_busy") or venue.get("category") == "park":
+        return hours_for(venue["category"], venue.get("always_busy", False))
+    return UNKNOWN
 
 
 _RANGE = re.compile(r"^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$")

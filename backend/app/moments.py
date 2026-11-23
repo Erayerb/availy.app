@@ -163,6 +163,22 @@ def reported_moments(conn: psycopg.Connection, admin: dict, now: datetime) -> li
 def decide_moment(conn: psycopg.Connection, admin: dict, photo_id: int, keep: bool) -> None:
     """Restore (reports cleared) or remove (the photo and its points go)."""
     require_admin(admin)
+    photo = conn.execute("SELECT user_id, venue_id FROM moment_photos WHERE id = %s", (photo_id,)).fetchone()
+    if photo is None:
+        return
+    # 🔔 for whoever reported it (kept / removed) and, when it goes, for its owner
+    conn.execute(
+        """
+        INSERT INTO user_notices (user_id, kind, venue_id, body)
+        SELECT user_id, 'moment_report_result', %s, %s FROM moment_reports WHERE photo_id = %s
+        """,
+        (photo["venue_id"], "kept" if keep else "removed", photo_id),
+    )
+    if not keep and photo["user_id"] is not None:
+        conn.execute(
+            "INSERT INTO user_notices (user_id, kind, venue_id) VALUES (%s, 'moment_removed', %s)",
+            (photo["user_id"], photo["venue_id"]),
+        )
     if keep:
         conn.execute("UPDATE moment_photos SET hidden_at = NULL WHERE id = %s", (photo_id,))
         conn.execute("DELETE FROM moment_reports WHERE photo_id = %s", (photo_id,))

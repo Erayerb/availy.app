@@ -32,6 +32,7 @@ class CampaignIn(BaseModel):
     max_claims: int | None = None
     duration_hours: int
     checkin_only: bool = False  # "Check-in yapana kupon"
+    points_price: int = 0  # "Puanla açılan özel kupon": 50 / 100 / 200 / 400 (0: free, the usual)
 
 
 class CampaignOut(BaseModel):
@@ -48,6 +49,7 @@ class CampaignOut(BaseModel):
     starts_at: datetime
     ends_at: datetime
     checkin_only: bool = False
+    points_price: int = 0  # what a coupon costs (0: free)
     claims: int
     redemptions: int
     views: int
@@ -92,7 +94,7 @@ def create(
     try:
         return create_campaign(
             conn, user, body.message, body.discount, body.radius_km, body.max_claims, body.duration_hours, now,
-            body.checkin_only,
+            body.checkin_only, body.points_price,
         )
     except CampaignError as e:
         raise _fail(e) from None
@@ -172,3 +174,14 @@ def redeem(
         return redeem_coupon(conn, user, body.code, now)
     except CampaignError as e:
         raise _fail(e) from None
+
+
+class PointsOut(BaseModel):
+    balance: int  # earned minus spent on coupons
+
+
+@router.get("/me/points", response_model=PointsOut)
+def my_points(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    from app.campaigns import spendable_points
+
+    return {"balance": spendable_points(conn, user["id"])}

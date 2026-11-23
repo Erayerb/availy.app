@@ -96,6 +96,7 @@ def test_too_far_from_the_venue(client, conn, clock):
 
 def test_closed_venue(client, conn, clock):
     bar = venue_id(conn, "Test Bar Uzak")
+    conn.execute("UPDATE venues SET open_hour = 17, close_hour = 3 WHERE id = %s", (bar,))
     lat, lon = conn.execute(
         "SELECT ST_Y(location::geometry) AS lat, ST_X(location::geometry) AS lon FROM venues WHERE id = %s", (bar,)
     ).fetchone().values()

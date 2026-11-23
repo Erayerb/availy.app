@@ -9,6 +9,7 @@ import type { Screen } from '../components/TabBar';
 import { HeaderButtons } from '../components/HeaderButtons';
 import { Wordmark } from '../components/Wordmark';
 import { ProfileCompletion } from '../components/ProfileCompletion';
+import { StarterTasks } from '../components/StarterTasks';
 import { isBusiness, type User } from '../lib/auth';
 import { SUPPORT_SITE_URL } from '../lib/share';
 import { colors, themed } from '../theme';
@@ -114,6 +115,7 @@ export function MoreScreen({ user, onSelect, onLogin, onRegister, onLogout }: Pr
       )}
 
       {/* Personal accounts: until the profile is complete (Tam profil badge) */}
+      {user && !user.isGuest && !isBusiness(user) && <StarterTasks token={user.token ?? null} onOpen={onSelect} />}
       {user && !user.isGuest && !isBusiness(user) && user.profile && <ProfileCompletion steps={user.profile} onOpen={onSelect} />}
 
       {groups.map((items, g) => (

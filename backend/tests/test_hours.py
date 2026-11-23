@@ -52,4 +52,7 @@ def test_parse_opening_hours(text, expected):
 
 def test_venue_hours_prefers_the_venues_own_hours():
     assert venue_hours({"category": "cafe", "open_hour": 10, "close_hour": 2}).label() == "10:00–02:00"
-    assert venue_hours({"category": "cafe", "open_hour": None, "close_hour": None}).label() == "08:00–23:00"
+    unknown = venue_hours({"category": "cafe", "open_hour": None, "close_hour": None})
+    assert unknown.label() == "Saat bilgisi yok" and unknown.is_open_at_hour(4)
+    # The business's statistics guess from the category
+    assert venue_hours({"category": "cafe", "open_hour": None, "close_hour": None}, guess=True).label() == "08:00–23:00"

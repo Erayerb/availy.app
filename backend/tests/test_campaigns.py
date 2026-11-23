@@ -3,6 +3,12 @@ from datetime import timedelta
 from tests.test_business import account, auth, business_at
 from tests.test_checkins import NOON, clock  # noqa: F401 (clock is a fixture)
 
+def give_points(conn, username, amount=500):
+    conn.execute(
+        "INSERT INTO points (user_id, amount, reason) SELECT id, %s, 'checkin' FROM users WHERE username = %s", (amount, username)
+    )
+
+
 CAMPAIGN = {"message": "Önümüzdeki 2 saat tüm kahvelerde %20 indirim", "discount": 20, "radius_km": 2, "duration_hours": 2}
 
 
@@ -15,6 +21,7 @@ def test_business_campaign_reaches_every_customer(client, conn, clock):
     running = client.get("/v1/campaigns").json()
     assert [c["id"] for c in running] == [campaign_id] and running[0]["claims"] == 0
     ali, ayse = account(client, "t_ali"), account(client, "t_ayse")
+    give_points(conn, "t_ali")
     client.post(f"/v1/campaigns/{campaign_id}/view", headers=auth(ali))
     client.post(f"/v1/campaigns/{campaign_id}/view", headers=auth(ali))  # once per person
     coupon = client.post(f"/v1/campaigns/{campaign_id}/coupon", headers=auth(ali)).json()
@@ -39,6 +46,7 @@ def test_business_campaign_reaches_every_customer(client, conn, clock):
 def test_end_hide_and_rules(client, conn, clock):
     token, kafe = business_at(client, conn)
     ali = account(client, "t_ali")
+    give_points(conn, "t_ali")
     assert client.post("/v1/campaigns", json=CAMPAIGN, headers=auth(ali)).status_code == 403
     assert client.post("/v1/campaigns", json={**CAMPAIGN, "message": "kısa"}, headers=auth(token)).status_code == 400
     assert client.post("/v1/campaigns", json={**CAMPAIGN, "radius_km": 50}, headers=auth(token)).status_code == 400
@@ -98,3 +106,27 @@ def test_business_request(client, conn):
     assert client.get(f"/v1/venues/{cowork}/business-request").json()["count"] == 10
     _, kafe = business_at(client, conn)
     assert client.post(f"/v1/venues/{kafe}/business-request", headers=auth(people[0])).status_code == 409
+
+
+def test_coupons_are_free_unless_the_business_makes_them_special(client, conn, clock):
+    token, _ = business_at(client, conn)
+    ali = account(client, "t_ali")
+    usual = client.post("/v1/campaigns", json=CAMPAIGN, headers=auth(token)).json()
+    assert usual["points_price"] == 0
+    assert client.post(f"/v1/campaigns/{usual['id']}/coupon", headers=auth(ali)).status_code == 200
+    assert client.get("/v1/me/points", headers=auth(ali)).json() == {"balance": 0}
+    # "Puanla açılan özel kupon": only the set prices, never for check-in coupons
+    assert client.post("/v1/campaigns", json={**CAMPAIGN, "points_price": 77}, headers=auth(token)).status_code == 400
+    assert client.post("/v1/campaigns", json={**CAMPAIGN, "points_price": 100, "checkin_only": True}, headers=auth(token)).status_code == 400
+    special = client.post("/v1/campaigns", json={**CAMPAIGN, "discount": 40, "points_price": 100}, headers=auth(token)).json()
+    poor = client.post(f"/v1/campaigns/{special['id']}/coupon", headers=auth(ali))
+    assert poor.status_code == 402 and "100 puan" in poor.json()["detail"]
+    give_points(conn, "t_ali", 150)
+    assert client.post(f"/v1/campaigns/{special['id']}/coupon", headers=auth(ali)).status_code == 200
+    client.post(f"/v1/campaigns/{special['id']}/coupon", headers=auth(ali))  # the same coupon, not paid twice
+    assert client.get("/v1/me/points", headers=auth(ali)).json() == {"balance": 50}
+    # Spending does not lower the level or the ranking: those count what was earned
+    assert conn.execute("SELECT sum(amount)::int AS n FROM points p JOIN users u ON u.id = p.user_id WHERE u.username = 't_ali'").fetchone()["n"] == 150
+    # The business ends it early: the unused coupon's points come back
+    client.post(f"/v1/campaigns/{special['id']}/end", headers=auth(token))
+    assert client.get("/v1/me/points", headers=auth(ali)).json() == {"balance": 150}

@@ -120,7 +120,7 @@ def report(conn: psycopg.Connection, me: dict, reason: str, review_id: int | Non
 def profile(conn: psycopg.Connection, me: dict, username: str, now: datetime) -> dict:
     """A person's profile: stats, earned badges, and (for me and my friends) the venues they checked in at."""
     other = conn.execute(
-        "SELECT id, username, share_checkins, frozen, stats_visibility FROM users WHERE lower(username) = %s AND NOT is_guest",
+        "SELECT id, username, share_checkins, frozen, stats_visibility, plan, frame_color FROM users WHERE lower(username) = %s AND NOT is_guest",
         (normalize_username(username),),
     ).fetchone()
     hidden = other is not None and other["id"] != me["id"] and (other["frozen"] or is_blocked_between(conn, me["id"], other["id"]))
@@ -158,6 +158,10 @@ def profile(conn: psycopg.Connection, me: dict, username: str, now: datetime) ->
     return {
         "id": other["id"],
         "username": other["username"],
+        "plus": other["plan"] == "premium",  # "availo+" next to the name
+        # availo+ profile: shown while the person has it (kept when it ends, for coming back)
+        "cover_at": photo_time(conn, other["id"], "user_covers") if other["plan"] == "premium" else None,
+        "frame_color": other["frame_color"] if other["plan"] == "premium" else None,
         "relation": rel,
         "muted": muted,
         "points": stats["points"] if stats else None,

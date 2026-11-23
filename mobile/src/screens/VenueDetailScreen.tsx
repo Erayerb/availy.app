@@ -12,6 +12,8 @@ import { Pressable } from '../components/Pressable';
 import { BackButton } from '../components/BackButton';
 import { BusinessRequest } from '../components/BusinessRequest';
 import { CampaignBox } from '../components/CampaignBox';
+import { SalesPitch } from '../components/SalesPitch';
+import { VenueRewardCard } from '../components/VenueRewardCard';
 import { FriendsHere, VenueRegular } from '../components/FriendsHere';
 import { AddToList } from '../components/AddToList';
 import { Icon, InlineIcon } from '../components/Icon';
@@ -207,6 +209,7 @@ export function VenueDetailScreen({
             <Text style={styles.link}>{venue.founder ? 'Kurucu mekanlıktan çıkar' : 'Kurucu mekan yap'}</Text>
           </Pressable>
         )}
+        {user?.isAdmin && user.token && <SalesPitch token={user.token} venueId={venue.id} />}
         {venue.pending && (
           <Text style={styles.pending}><InlineIcon name="hourglass" /> Onay bekliyor (kullanıcı tarafından eklendi; 3 check-in yapılırsa onaylanır)</Text>
         )}
@@ -312,6 +315,8 @@ export function VenueDetailScreen({
           <CampaignBox campaign={campaign} />
         </View>
       )}
+      {/* Renders nothing (no empty section) when the venue has no standing reward */}
+      {user?.role !== 'business' && <VenueRewardCard venueId={venue.id} token={herePerson} onLogin={onLogin} style={styles.section} />}
 
       {program && (
         <View style={styles.section}>

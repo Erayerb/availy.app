@@ -52,7 +52,13 @@
           "cameraPermission": "Profil fotoğrafı çekmek ve sadakat QR kodunu okutmak için kamerayı kullanırız."
         }
       ],
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "expo-notifications",
+        {
+          "color": "#C8102E"
+        }
+      ]
     ],
     "scheme": "availo"
   }

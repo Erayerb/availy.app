@@ -6,6 +6,8 @@ import { Text } from '../components/Text';
 import { BackButton } from '../components/BackButton';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
 import { useSettings } from '../context/SettingsContext';
+import { useUpgrade } from '../context/UpgradeContext';
+import { ApiError } from '../lib/accountApi';
 import { automationApi, type Automation } from '../lib/schedules';
 import { colors, themed } from '../theme';
 import { SettingsSection, SettingsSwitch, TINT } from '../components/Settings';
@@ -26,10 +28,12 @@ export function SettingsScreen({ onBack, isBusiness, guest, venueId, account }: 
   const { venues } = useVenuesByIds(venueId ? [venueId] : []);
   const venue = venues[0];
   const settings = useSettings();
+  const { promptUpgrade } = useUpgrade();
   const { watchNotifications, update } = settings;
   // Business: ölü saat bildirimi and otomatik kampanya, kept (and run) on the server
   const token = isBusiness ? (account?.user.token ?? null) : null;
   const [automation, setAutomation] = useState<Automation | null>(null);
+  const [automationNote, setAutomationNote] = useState<string | null>(null);
   useEffect(() => {
     if (token) automationApi.settings(token).then(setAutomation).catch(() => {});
   }, [token]);
@@ -37,7 +41,14 @@ export function SettingsScreen({ onBack, isBusiness, guest, venueId, account }: 
     if (!token || !automation) return;
     const next = { ...automation, ...patch };
     setAutomation(next);
-    automationApi.saveSettings(token, next).catch(() => setAutomation(automation));
+    setAutomationNote(null);
+    automationApi.saveSettings(token, next).catch((e) => {
+      setAutomation(automation);
+      const message = e instanceof Error ? e.message : 'Kaydedilemedi.';
+      // "Otomatik ölü saat kampanyası aylık pakette.": offer the plan
+      if (e instanceof ApiError && e.status === 402) promptUpgrade(message);
+      else setAutomationNote(message);
+    });
   };
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
@@ -56,7 +67,7 @@ export function SettingsScreen({ onBack, isBusiness, guest, venueId, account }: 
 
 
       {isBusiness ? (
-        <SettingsSection footer="Uygulaman kapalı olsa da çalışır.">
+        <SettingsSection footer={automationNote ?? 'Uygulaman kapalı olsa da çalışır. Otomatik kampanya aylık pakette.'}>
           <SettingsSwitch
             icon="moon"
             tint={TINT.purple}
@@ -81,7 +92,7 @@ export function SettingsScreen({ onBack, isBusiness, guest, venueId, account }: 
           <Text style={styles.muted}>Hangi durumlarda telefonuna bildirim gelsin? Kapattıkların yine de <InlineIcon name="bell" /> listesinde görünür.</Text>
           <SettingsSection
             title="Mekanlar"
-            footer="Şimdilik bildirimler uygulama açıkken gelir; kapalıyken gelmesi yayın sürümüyle eklenecek."
+            footer="Uygulama kapalıyken de gelir (yayın sürümünde, telefonun bildirim izniyle)."
           >
             <SettingsSwitch
               icon="map-pin"
@@ -103,6 +114,18 @@ export function SettingsScreen({ onBack, isBusiness, guest, venueId, account }: 
               value={watchNotifications}
               onChange={(v) => update({ watchNotifications: v })}
             />
+            <SettingsSwitch
+              icon="heart"
+              tint={TINT.red}
+              title="Favorilerim sakinleşince"
+              subtitle={settings.premium ? 'Zil açmadan: kalabalık bir favorin sakinleşince.' : 'availo+ ile: zil açmadan, kalabalık bir favorin sakinleşince.'}
+              value={settings.premium && settings.favoriteQuietNotifications}
+              onChange={(v) =>
+                settings.premium
+                  ? update({ favoriteQuietNotifications: v })
+                  : promptUpgrade('Favorilerin sakinleşince zil açmadan haber almak availo+ ile.')
+              }
+            />
             <SettingsSwitch icon="tag" tint={TINT.orange} title="Kampanya bildirimleri" subtitle="Yakında" value={false} disabled />
           </SettingsSection>
           {!guest && (
@@ -114,6 +137,14 @@ export function SettingsScreen({ onBack, isBusiness, guest, venueId, account }: 
                 subtitle="İstekler, kabuller ve 'Buradayım, gel'."
                 value={settings.friendNotifications}
                 onChange={(v) => update({ friendNotifications: v, friendAcceptedNotifications: v })}
+              />
+              <SettingsSwitch
+                icon="map-pin"
+                tint={TINT.green}
+                title="Arkadaşların check-in yaptı"
+                subtitle="Gizli check-in'ler ve sessize aldıkların hariç."
+                value={settings.friendCheckinNotifications}
+                onChange={(v) => update({ friendCheckinNotifications: v })}
               />
               <SettingsSwitch
                 icon="message-circle"

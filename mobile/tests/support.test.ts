@@ -36,7 +36,7 @@ test('"Tekrar gönder" copies the campaign with its planned length', async () =>
   const first = createCampaign({ ...base, durationHours: 3 }, new Date('2026-10-14T10:00:00Z'), 'a');
   // Ended early, after 10 minutes
   const ended = { ...first, endsAt: '2026-10-14T10:10:00Z' };
-  assert.deepEqual(repeatCampaign(ended), { ...base, checkinOnly: false, durationHours: 3 });
+  assert.deepEqual(repeatCampaign(ended), { ...base, checkinOnly: false, pointsPrice: 0, durationHours: 3 });
   // Older campaigns without the field fall back to start..end (at least 1 hour)
   const { durationHours: _, ...old } = ended;
   assert.equal(repeatCampaign(old).durationHours, 1);

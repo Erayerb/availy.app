@@ -40,6 +40,8 @@ def test_customers_join_and_get_stamped(client, conn, clock):
 def test_only_customers_who_checked_in_are_notified(client, conn, clock):
     token, kafe = business_at(client, conn)
     stranger = account(client, "t_yabanci")
-    client.put("/v1/me/loyalty", json={"kind": "membership", "price": 149, "perk": "Her kahvede %15"}, headers=auth(token))
+    gone = client.put("/v1/me/loyalty", json={"kind": "membership", "price": 149, "perk": "Her kahvede %15"}, headers=auth(token))
+    assert gone.status_code == 400 and "üyelik" in gone.json()["detail"]
+    client.put("/v1/me/loyalty", json={"kind": "stamps", "stamps_required": 5, "reward": "1 kahve bedava"}, headers=auth(token))
     assert client.get("/v1/notifications", headers=auth(stranger)).json() == []
     assert client.post(f"/v1/loyalty/{kafe}/join", headers=auth(token)).status_code == 403

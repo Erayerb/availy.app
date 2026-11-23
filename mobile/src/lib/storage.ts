@@ -11,6 +11,7 @@ export const KEYS = {
   notificationsSeen: 'availy.notificationsSeen', // account -> when the 🔔 list was last opened (v2)
   suggestionsAsked: 'availy.suggestionsAskedTimes', // venueId -> when "yakınındasın" asked in the last day
   lastLogin: 'availy.lastLogin', // "Beni hatırla": the user name / e-mail typed last
+  lastOpened: 'availy.lastOpened', // when the app was last in front: the "Sen yokken" card after a while
 } as const;
 
 export async function loadJson<T>(key: string): Promise<T | null> {

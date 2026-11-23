@@ -53,10 +53,26 @@ dalında ve `v1` etiketinde olduğu gibi durur (bkz. en alttaki "v1" bölümü).
 - Commit ve push yalnızca istendiğinde
 - Kullanıcı verisi silinmez (gerçek hesaplar eray, availo, isletme ve onların check-in / yorumları; test hesapları availy_deneme, availy_isletme). Kullanılmayan veri silinmeden önce sorulur
 - Gizli anahtarlar (.env, Render ayarları) koda ve sohbete yazılmaz
-- Bildirimler olay olunca gelir (zamanlı bildirim yok)
+- Bildirimler olay olunca gelir (zamanlı bildirim yok). Tek istisna (istendi, 2026-11-23): 4 gün check-in yapmayana bir kez, gündüz (10:00–21:00) "Arkadaşların bu arada N yere gitti" hatırlatması (backend/app/reminders.py)
 - Kod yorumları ve değişken adları İngilizce, açıklamalar ve arayüz Türkçe; her değişikliğe kısa test
 - Emin olunmayan paket / sürüm bilgisi varsayılmaz, kontrol edilir
 - ⚠️ GEÇİCİ: check-in mesafesi denemeler için 1 km (backend/app/checkins.py `CHECKIN_RADIUS_M`, mobile/src/lib/nearby.ts `CHECKIN_RADIUS_KM`); yayından önce 150 m'ye geri alınacak
+
+## Paketler: ücretsiz ve ücretli (son hali)
+Ödeme altyapısı yok: paketler seçilince açılır ("Prototip"). Sunucu sınırları kendisi kontrol eder (backend/app/plans.py, users.plan); Premium bir şey denenince uygulama uyarı gösterip Abonelik'e yönlendirir (mobile/src/context/UpgradeContext.tsx).
+
+**Bireysel**
+- Ücretsiz: harita, anlık doluluk, filtreler; check-in, puan, seviye, rozet, sıralama; "İlk adımlar" kartı (ilk check-in, liste, arkadaş, profil fotoğrafı; her biri +10, hepsi "Hızlı başlangıç" rozeti +20); ilk check-in kutlaması; mekanların kalıcı ödülleri (ör. 200 puan = %10, haftada bir); arkadaşlar, akış, beğeni (yalnızca sayı), yorum, tüm bildirimler (uygulama kapalıyken de); "Şu an burada" fotoğrafları, listeler; kampanya kuponları (ücretsiz; işletme isterse "puanla açılan özel kupon": 50/100/200/400 puan), sadakat damga kartı; "Sakin olunca haber ver" aynı anda 1 mekan; ayda 1 seri kurtarma; konuma göre reklam (henüz yok)
+- availo+ (Premium, ₺79/ay): availo+ rozeti; reklamsız; "Sakin olunca haber ver" sınırsız; favoriler sakinleşince zil açmadan haber (açılıp kapanır); aylık özet (en çok gidilen mekanlar ve semtler, geçen ayla ve arkadaşlarla kıyas); profilde kapak fotoğrafı ve renkli çerçeve; ayda 3 seri kurtarma
+- Puan: kazanılır (check-in 10, günün ilki 20, keşif 50, rozet, fotoğraf 5, birlikte check-in 10, davet 50, mekan onayı 50); düzenli kullanıcı haftada ~50–70. Yalnızca özel kuponlarda harcanır (point_spends; seviye ve sıralama harcamadan etkilenmez; kampanya erken biterse kullanılmamış kuponun puanı geri gelir)
+
+**İşletme**
+- Ücretsiz: mekan doğrulanınca (ücretsiz) ayda 3 kampanya, doğrulanmadan kampanya yok; kalıcı ödül ("200 puan = %10 indirim", mekan sayfasında hep durur, kişi başı haftada bir, kampanya hakkından düşmez); "Bu ay availo ile" raporu (kişi, ilk kez gelen, kupon) ve ayın 1'inde geçen ayın rapor bildirimi; mekan profili, fotoğraf, saatler; doğrulama (ücretsiz); yorumlara yanıt ve şikâyet; sadakat damga kartı; kupon doğrulama; ölü saat bildirimi ("Mekanın sakin görünüyor, kampanya başlat"); bildirimler (yeni yorum, "Bilgi yanlış mı?", kupon kullanıldı, kuponların %80'i doldu, kampanya bitti ve sonuçları, "Öne çık" başladı / bitti); yakındaki benzer mekanlar
+- Aylık paket (₺599/ay): sınırsız kampanya; istatistikler (saat saat bugün, son 7 gün, haftanın günleri, geçen ayla karşılaştırma, en sakin saatler); zamanlanmış haftalık kampanyalar; otomatik ölü saat kampanyası
+- Ayrıca ücretli: "Öne çık" (sponsorlu, ₺300/hafta, ₺1.000/ay; yönetici açar)
+- Aylık paket 15 gün ücretsiz denenebilir (mekan başına bir kez; bitince bildirim)
+- Kurucu mekanlar: Aylık paket 3 ay ücretsiz (venue_profiles.founder_until; bitince bildirim, rozet kalır; "Öne çık" hariç). Başvuru: tanıtım sayfasındaki işletme formunda "Kurucu mekan programına başvuruyorum" (Yönetici > Bekleme listesinde ⭐)
+- Yönetici: mekan sayfasında "Satış özeti" (son 7 gün kişi ve check-in, en kalabalık saat, favori, yorum, 1 km'de availo'daki mekan sayısı): henüz katılmamış mekana gösterilecek rakamlar
 
 ## Doluluk modeli
 Kod: backend/app/crowd.py (`crowd_from_checkins`, `report_score`, `age_weight`), backend/app/checkins.py (`update_trust`, `load_crowds`).
@@ -151,7 +167,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Akış (GET /v1/feed): arkadaşların ve kendi son 7 gündeki check-in'leri (keşif + puan + not), yorumları ve yanıtları, kişi başına ayrı bloklarda; Akış'tan yanıt. Check-in'lere ♡ beğeni ve yorum (checkin_likes, checkin_comments; kişi başı 5 yorum; yorumu yazan ya da check-in sahibi silebilir; yalnızca arkadaşlar) Akış boşken (arkadaşı yoksa en üstte "📨 Arkadaşlarını davet et") "Arkadaş ekle / Mekan keşfet / Check-in yap" kartları, "Önerilen kişiler" (ortak arkadaşı olanlar, aynı mekanlara gidenler (ikisi de izin verdiyse: Gizlilik > "Arkadaş olarak önerilmeye izin ver", users.suggest_by_venues, gizli check-in sayılmaz), sonra bu hafta en çok puan alanlar; Ekle) ve "✨ Yakında yeni keşfedilen mekanlar" (son 14 günün ilk check-in'leri, yakından uzağa) (GET /v1/suggestions)
 - "👥 @ayse ve @can burada · 20 dk önce check-in": mekan sayfasında ve haritadaki kartta, son 60 dakikada orada (gizli olmayan) check-in yapan arkadaşlar (GET /v1/venues/{id}/friends-here; check-in'lerini paylaşmayanlar görünmez). Arkadaşın profilinde en üstte son check-in'i ("📍 X'de check-in yaptı · 20 dk önce"). Haritada arkadaş işareti yok (istenmedi)
 - Kullanıcı profili: puan, check-in, keşif, rozetler, mekanlar (yalnızca kendin ve paylaşan arkadaşların); Arkadaş ekle / Sessize al / Arkadaşlıktan çıkar / Engelle
-- 🔔 Bildirimler (GET /v1/notifications, uygulama açıkken dakikada bir): arkadaşlık isteği, kabul, yorumuna yanıt, check-in'ine beğeni ve yorum (dokununca Akış), keşif ödülü, sadakat programı. Ayarlar'da "Bildirimler" (check-in önerileri, sakin olunca haber ver) ve "Sosyal bildirimler" (arkadaşlık istekleri, arkadaşlık onayları, check-in yorumları, check-in beğenileri, yorumlarıma yanıtlar) ayrı; yenileri telefona bildirim olarak da gelir
+- 🔔 Bildirimler (GET /v1/notifications, uygulama açıkken dakikada bir): arkadaşlık isteği, kabul, yorumuna yanıt, check-in'ine beğeni ve yorum (dokununca Akış), sadakat programı; arkadaşın check-in yaptı ("Sen de katıl!", son 24 saat) / yorum yazdı, birlikte check-in, eklediğin mekan onaylandı, davetinle katıldı, damga kartın doldu, haftanın 1.'si, destek yanıtı, fotoğraf / şikâyet kararları, sakinleşen takip ve (availo+) favori mekanlar, 4 gün check-in yapmayana hatırlatma; işletmeye yeni yorum, "Bilgi yanlış mı?", kupon kullanıldı / %80 doldu, kampanya bitti, "Öne çık", ölü saat. Uygulama 6 saatten uzun aradan sonra açılınca ana sayfada "Sen yokken" kartı (GET /v1/me/while-away). Ayarlar'da "Bildirimler" (check-in önerileri, sakin olunca haber ver) ve "Sosyal bildirimler" (arkadaşlık istekleri, arkadaşlık onayları, check-in yorumları, check-in beğenileri, yorumlarıma yanıtlar) ayrı; yenileri telefona bildirim olarak da gelir
 
 **Yorumlar**
 - 1–5 yıldız + en fazla 280 karakter; her check-in o mekana 2 yorum hakkı verir; bir yoruma kişi başı en fazla 2 yanıt (check-in yoksa yorum yok); "Başkaları yanıt verebilsin" anahtarı; kendi yorumunu / yanıtını silme
@@ -209,7 +225,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - İşletme hesabı: kayıtta mekan seçer (sunucuda: PUT /v1/me/venue; bir mekana tek işletme hesabı, başkasına bağlı mekanlar listede soluk; GET /v1/venues/taken) ya da listede yoksa aynı formla kendi mekanını ekler (her yerden, onay bekler, hesaba hemen bağlanır); check-in ve yorum yapamaz, aramada ve herkese açık sıralamada görünmez
 - Alt sekmeler: Panel (açılış), Müşteriler, Harita, Kampanyalar, Daha fazla (Ana sayfa yok)
 - Müşteriler: son 30 gün farklı kişi, müdavim (3+ check-in), en sık gelenlerin check-in sayıları (adsız), sadakat üye ve damga sayısı (program yoksa "Sadakat programı oluştur", varsa "Programı yönet" → Kampanyalar > Sadakat programım), "💬 N yorum yanıt bekliyor" ve yorumlar ("İşletme" etiketiyle yanıt)
-- Panel (GET /v1/venues/{id}/stats, check-in verisinden): şu an, bugün saat saat, son 7 gün (check-in, kişi, tekrar gelen), son 30 gün hafta günleri, yakındaki benzer mekanlar; ölü saat uyarısı (müşteriler açık mekanı Sakin bildiriyor) + hazır kampanya; keşfedene "🎁 Ödül ver" (mekan başına bir kez, bildirim olarak gider)
+- Panel (GET /v1/venues/{id}/stats, check-in verisinden): şu an, bugün saat saat, son 7 gün (check-in, kişi, tekrar gelen), son 30 gün hafta günleri, yakındaki benzer mekanlar; ölü saat uyarısı (müşteriler açık mekanı Sakin bildiriyor) + hazır kampanya. İstatistikler Aylık pakette (Ücretsiz pakette kilitli kart). Keşfedene ödül kaldırıldı (2026-11-23; eski discoverer_rewards kayıtları duruyor)
 - Kendi mekanının yorumlarına "İşletme" etiketiyle yanıt (yanıtlar kapalı olsa da)
 - İşletme profili'nde üstte kalın "E-posta henüz doğrulanmadı" ve "Doğrulanmamış işletme" kartları, yanlarında Doğrula (ikincisi İşletme doğrulama'ya gider)
 - İşletme profili = mekan sayfası: sağ üstteki profil ikonu kendi mekan sayfasını "👁 Müşteriler mekanını böyle görüyor" olarak açar; sağ üstte "✏️ Düzenle" → Daha fazla > İşletme profili. Orada düzenlenenler sunucuda, herkese görünür: kapak fotoğrafı, adres ve konum (açık adres, mahalle, semt; yol tarifi noktası adresten bulunur ya da "Mekandayım: konumum"; en fazla 1 km kaydırılabilir, check-in mesafesi de bu noktaya göre; OSM yeniden içe aktarılınca korunur: `venues.edited_by_business`), Instagram, telefon. ✓ rozeti `venue_profiles.verified` ile (doğrulama henüz yok; elle açılır)
@@ -250,7 +266,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Planlar: Render Starter (~7 $/ay, uyumaz), Neon ücretli plan (~19 $/ay; 7–30 gün yedek)
 - Hata takibi: Sentry (backend + uygulama)
 - Mağaza sürümü: Expo EAS Build ile App Store / Google Play (Expo Go geliştirme modunda çalışır; yavaş sayfa geçişleri gerçek sürümde büyük ölçüde düzelir)
-- Ödeme: kampanya ücreti (₺150), Aylık paket ve Premium için ödeme altyapısı yok; ekranlarda "Prototip" yazıyor
+- Ödeme: Aylık paket, availo+ ve "Öne çık" için ödeme altyapısı yok; ekranlarda "Prototip" yazıyor (bkz. Paketler)
 - E-posta: Resend hesabı açıldı, anahtar Render'da (`resend` ortam grubu, RESEND_API_KEY). Alan adı olmadan Resend yalnızca hesap sahibinin adresine gönderir; herkese gidebilmesi için alan adı al (ör. availy.app), Resend → Domains'te doğrula (DNS: SPF, DKIM) ve Render'da MAIL_FROM = "availo <no-reply@alanadı>" yap
 
 **KVKK ve hukuk** (hepsi hukukçuya sorulacak)
@@ -296,7 +312,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 
 **Bildirimler** (olay olunca, uygulama kapalıyken de)
 - Yakındaki kampanya bildirimi: push ile birlikte, isteğe bağlı. Son konum yaklaşık 1 km'ye yuvarlanıp tutulur, 24 saatte silinir (bkz. KVKK). Favori ve gidilen mekanların kampanyası izinsiz gelir
-- Telefon bildirimi (push): uygulama bildirim adresini sunucuya kaydeder, sunucu olay olunca Expo push ile gönderir: arkadaşlık, yanıt, keşif ödülü, "Sakin olunca haber ver", yakında kampanya; işletmeye ölü saat
+- Telefon bildirimi (push): kod hazır. Uygulama bildirim adresini kaydeder (PUT /v1/me/push-token, push_tokens), sunucu yeni 🔔 öğelerini ~30 sn'de bir Expo push ile gönderir (backend/app/push.py; PUSH_INTERVAL_SECONDS, 0 = kapalı), Bildirim ayarlarına uyar. Çalışması için: `eas login` → `eas init` (projectId) → `eas build:configure`; iPhone: Apple Developer + `eas build -p ios`; Android: Firebase projesi, google-services.json, `eas credentials` ile FCM V1 anahtarı. Bildirim metinleri iki yerde: backend/app/push.py `text` ve mobile/src/lib/social.ts `notificationText` (birlikte değişmeli)
 - Kısıt: iPhone'da Expo Go ile çalışmaz; EAS Build ve Apple Developer hesabı (yıllık 99 $) gerekir. Android'de Expo Go ile de denenebilir
 - Uygulama kapalıyken check-in önerisi: geofencing (expo-location + TaskManager, "Her zaman" konum izni, en fazla ~20 bölge); Konum ve izinler metni o zaman güncellenmeli. Son konumla olmaz (kişinin şu anki yerini göstermez); sonraya
 - Olaya bağlı toplu bildirim: "Moda'da 3 kafe şu an sakinleşti" (favori semt / favori mekanlar sakinleşince; push gerekir)
@@ -306,7 +322,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Mekan verisi: haritada OSM (pilot: Nişantaşı, Caddebostan, Kayışdağı, Etiler, Beşiktaş, Bilgi santral, Bakırköy); arka planda "aday" yerler (place_candidates): İstanbul'un Overture (güven ≥0.6) + Foursquare OS Places (açık, son 2 yılda güncellenmiş) kayıtları, ~91 bin, haritada görünmez; aramada "Haritada yok mu?" ve "Mekan ekle"de "Bu mu?" ile eklenir. Yenileme: backend/scripts/fetch_overture_places.py + fetch_foursquare_places.py (HF_TOKEN .env'de) → import_place_candidates.py; ayda bir yapılmalı
 - Reklam (AdMob): sadece Premium olmayanlara; gerçek uygulama derlemesi (EAS) ile kurulacak: AdMob hesabı ve ödeme/vergi bilgileri (kullanıcı), paket + Premium kontrolü + gizlilik onayı penceresi (ATT/GDPR) + gizlilik politikasına madde (kod)
 - Sponsorlu mekan ödemesi: şimdilik işletme talep eder, yönetici açar (7 gün ₺300 / 30 gün ₺1.000 gösteriliyor); ödeme altyapısı (iyzico vb.) gelince otomatik
-- Uygulama içi ödemeler: Premium ₺79/ay (App Store / Google Play aboneliği), işletme paketi ₺599/ay ve kampanya başı ₺150
+- Uygulama içi ödemeler: availo+ ₺79/ay (App Store / Google Play aboneliği), işletme Aylık paketi ₺599/ay
 - Google / Apple ile giriş: kod hazır (POST /v1/auth/oauth, user_identities); kimlikler girilince butonlar görünür. Kurulum: docs/social-sign-in.md
 - Onay bekleyen mekan sınırı (kişi başı 3) şimdilik kaldırıldı; yayından önce yeniden düşün (sahte mekan yağmuru)
 - Aynı IP'den çok sayıda giriş denemesine sınır (hesap kilidi var, IP sınırı yok)
@@ -344,6 +360,10 @@ Testler: backend 217, mobil 124 (son ölçüm).
 **İşletmeye haber ver / işletme bildirimi**
 - Mekanların e-postasını (ve telefonunu) OpenStreetMap'ten içe aktarmak (venues.contact_email); yoksa ekip arar
 - İşletme katılınca haber veren müşterilere bildirim
+
+**Belki yaparız**
+- Mekanların aylık üyelik programı (ör. "₺300/ay → her gün bir filtre kahve"): kaldırıldı (ücret hiç tahsil edilmiyordu). Geri gelirse availo ödemeyi alıp komisyon keser (iyzico vb., hukuk) ya da ödeme mekanda kalır. Tablo ve alanlar duruyor (loyalty_programs.kind = 'membership', price, perk); sunucu yeni üyelik programını kabul etmiyor
+- Kuponun parayla satılması (Groupon gibi): ödeme, iade, fatura ve hukuk yükü; şimdilik yok
 
 **Belki (v1'de vardı, sahte veriye dayanıyordu)**
 - Tahmini boşalma ("~15:20"), geçmiş haftaların check-in'lerine göre

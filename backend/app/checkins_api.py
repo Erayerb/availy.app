@@ -56,6 +56,7 @@ class CheckinOut(BaseModel):
     points_note: str | None = None  # no points: "too_soon" (30 min since the last) or "daily_limit"
     visitor_rank: int | None  # "Burayı keşfeden 12. kişisin" (first visit only)
     my_visits: int
+    first_ever: bool = False  # the person's very first check-in
     coupons: list[CheckinCoupon] = []  # from "Check-in yapana kupon" campaigns
     weekly_streak: int = 0  # weeks in a row with a check-in, this one included
     streak_up: bool = False  # this week's first check-in: the streak grew

@@ -17,11 +17,12 @@ import { HeaderButtons } from '../components/HeaderButtons';
 import { CrowdDot } from '../components/CrowdDot';
 import { useCampaigns } from '../context/CampaignsContext';
 import { confirmAction } from '../lib/confirm';
+import { ApiError } from '../lib/accountApi';
 import { DEFAULT_PLAN } from '../lib/plans';
 import { useSettings } from '../context/SettingsContext';
 import { fetchVenues, fetchVenuesByIds, type Venue } from '../lib/api';
 import type { User } from '../lib/auth';
-import { busiestHour, businessApi, MAX_REWARD, quietestWeekday, quietSlotLabel, quietSlotSchedule, WEEKDAY_NAMES, type VenueStats, monthChangeText } from '../lib/business';
+import { busiestHour, businessApi, quietestWeekday, quietSlotLabel, quietSlotSchedule, WEEKDAY_NAMES, type VenueStats, monthChangeText } from '../lib/business';
 import { deadHour, deadHourSuggestion, QUIET_HOURS, timeLeft } from '../lib/campaigns';
 import { crowdRatioText, crowdSummary, crowdYesterday } from '../lib/crowd';
 import { categoryLabel } from '../lib/filters';
@@ -31,6 +32,7 @@ import { bboxAround } from '../lib/nearby';
 import { formatHour, nearbyCompetitors } from '../lib/stats';
 import { colors, themed } from '../theme';
 import { Icon, InlineIcon, type IconName } from '../components/Icon';
+import { MonthReport } from '../components/business/MonthReport';
 import { ProfileProgress } from '../components/business/ProfileProgress';
 
 const REFRESH_MS = 30_000;
@@ -51,10 +53,12 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
   const [venue, setVenue] = useState<Venue | null>(null);
   const [nearby, setNearby] = useState<Venue[]>([]);
   const [stats, setStats] = useState<VenueStats | null>(null);
+  const [statsLocked, setStatsLocked] = useState(false); // not in the plan (402)
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<{ ok: boolean; text: string } | null>(null);
-  const { now, create, activeFor, schedules, addSchedule } = useCampaigns();
-  const plan = user.plan ?? DEFAULT_PLAN;
+  const { now, create, activeFor, schedules, addSchedule, access } = useCampaigns();
+  // The server's plan wins (a running 15-day trial counts as the Aylık paket)
+  const plan = access?.plan ?? user.plan ?? DEFAULT_PLAN;
   const [slotNote, setSlotNote] = useState<{ ok: boolean; text: string } | null>(null);
   const { crowdLook } = useSettings();
 
@@ -65,11 +69,21 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
       setVenue(mine);
       setError(null);
       fetchVenues(bboxAround(mine, 0.02), []).then(setNearby).catch(() => {});
-      if (user.token) businessApi.stats(user.token, venueId).then(setStats).catch(() => setStats(null));
+      if (user.token)
+        businessApi
+          .stats(user.token, venueId)
+          .then((s) => {
+            setStats(s);
+            setStatsLocked(false);
+          })
+          .catch((e) => {
+            setStats(null);
+            setStatsLocked(e instanceof ApiError && e.status === 402);
+          });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Yüklenemedi.');
     }
-  }, [venueId, user.token]);
+  }, [venueId, user.token, user.plan]);
   const pull = usePullRefresh(load);
   useOnPageFocus(load);
   const top = usePageTop();
@@ -123,6 +137,7 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
       </View>
 
       {/* Until the venue page is complete: the cover photo first, then what else is missing */}
+      {user.token && <MonthReport token={user.token} />}
       {user.token && <ProfileProgress venue={venue} token={user.token} onSaved={load} onEditProfile={onEditProfile} />}
 
       {/* The venue as customers see it: cover, name and the crowd now */}
@@ -175,21 +190,23 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
         )}
         {active && <Text style={styles.activeNote}><InlineIcon name="tag" /> Aktif kampanyan var · {timeLeft(active, now)}</Text>}
         {sent && <Text style={sent.ok ? styles.success : styles.error}>{sent.text}</Text>}
-        {/* Who found the venue first: part of what customers see */}
-        {stats?.discovered_by && user.token && (
-          <Discoverer
-            discoverer={stats.discovered_by}
-            token={user.token}
-            venueId={venue.id}
-            onOpenUser={onOpenUser}
-            onSent={load}
-          />
-        )}
       </View>
 
       {/* Today */}
       {user.token && <SponsorCard token={user.token} />}
 
+      {statsLocked ? (
+        <View style={styles.card}>
+          <PanelTitle icon="chart-bar" tint={TINT.purple}>İstatistikler</PanelTitle>
+          <Text style={styles.muted}>
+            Saat saat bugün, son 7 gün, haftanın günleri, geçen ayla karşılaştırma ve en sakin saatlerin aylık pakette.
+          </Text>
+          <Pressable style={styles.primary} onPress={onUpgrade}>
+            <Text style={styles.primaryText}>Aylık paket'e geç</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <>
       <View style={styles.card}>
         <PanelTitle icon="clock" tint={TINT.orange}>Bugün · {stats?.today_checkins ?? 0} check-in</PanelTitle>
         {!stats || stats.today_checkins === 0 ? (
@@ -297,6 +314,8 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
           </>
         )}
       </View>
+        </>
+      )}
 
       {/* Nearby similar venues, as customers see them now */}
       <View style={styles.card}>
@@ -317,86 +336,6 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegis
       </View>
 
     </ScrollView>
-  );
-}
-
-const REWARD_SUGGESTION = 'Mekanımızı keşfettiğin için teşekkürler! Bir sonraki siparişin bizden.';
-
-/** "✨ Mekanını @x keşfetti" ("anonim bir kullanıcı" after a gizli check-in) and "Ödül ver": a thank-you sent once, as a notification. */
-function Discoverer({
-  discoverer,
-  token,
-  venueId,
-  onOpenUser,
-  onSent,
-}: {
-  discoverer: NonNullable<VenueStats['discovered_by']>;
-  token: string;
-  venueId: number;
-  onOpenUser: (username: string) => void;
-  onSent: () => void;
-}) {
-  const [writing, setWriting] = useState(false);
-  const [message, setMessage] = useState(REWARD_SUGGESTION);
-  const [error, setError] = useState<string | null>(null);
-  const name = discoverer.username;
-
-  const send = async () => {
-    try {
-      await businessApi.rewardDiscoverer(token, venueId, message);
-      setWriting(false);
-      setError(null);
-      onSent();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Gönderilemedi.');
-    }
-  };
-
-  return (
-    <View style={styles.discoverer}>
-      <View style={styles.levelRow}>
-        <Text style={[styles.discovery, styles.flex]}>
-          <InlineIcon name="sparkles" /> Mekanını{' '}
-          {name ? (
-            <Text style={styles.discoveryName} onPress={() => onOpenUser(name)}>
-              @{name}
-            </Text>
-          ) : (
-            'anonim bir kullanıcı'
-          )}{' '}
-          keşfetti
-        </Text>
-        {discoverer.can_reward && !discoverer.reward && !writing && (
-          <Pressable style={styles.rewardButton} onPress={() => setWriting(true)}>
-            <Text style={styles.rewardButtonText}><InlineIcon name="gift" /> Ödül ver</Text>
-          </Pressable>
-        )}
-      </View>
-      {discoverer.reward && <Text style={styles.muted}><InlineIcon name="gift" /> Ödül gönderildi: “{discoverer.reward}”</Text>}
-      {writing && (
-        <>
-          <Text style={styles.muted}>Keşfedene bildirim olarak gider; kasada gösterir. Bir kez gönderilebilir.</Text>
-          <TextInput
-            style={styles.input}
-            value={message}
-            onChangeText={setMessage}
-            maxLength={MAX_REWARD}
-            multiline
-            placeholder="Ör. Bir sonraki kahven bizden"
-            placeholderTextColor={colors.placeholder}
-          />
-          <View style={styles.levelRow}>
-            <Pressable style={[styles.primary, styles.flex]} onPress={send}>
-              <Text style={styles.primaryText}>Gönder</Text>
-            </Pressable>
-            <Pressable onPress={() => setWriting(false)} hitSlop={8}>
-              <Text style={styles.muted}>Vazgeç</Text>
-            </Pressable>
-          </View>
-          {error && <Text style={styles.error}>{error}</Text>}
-        </>
-      )}
-    </View>
   );
 }
 

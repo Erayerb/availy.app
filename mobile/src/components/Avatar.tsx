@@ -12,12 +12,29 @@ type Props = {
   version?: string | null;
   // Semt elçisi: a gold frame around the photo
   framed?: boolean;
+  // availo+: the frame colour the person chose (wins over the gold one)
+  frameColor?: string | null;
+};
+
+// availo+ frame colours (the names the server keeps)
+export const FRAME_COLORS: Record<string, string> = {
+  gold: '#C9962B',
+  red: '#C8102E',
+  blue: '#2F6AA3',
+  green: '#2E9E4F',
+  purple: '#7B5EA7',
+  pink: '#D6487E',
 };
 
 /** A person's profile photo, or the first letter of their user name when they have none. */
-export function Avatar({ username, size = 38, version, framed = false }: Props) {
+export function Avatar({ username, size = 38, version, framed = false, frameColor = null }: Props) {
   const [failed, setFailed] = useState<string | null>(null);
-  const circle = [{ width: size, height: size, borderRadius: size / 2 }, framed && styles.frame];
+  const chosen = frameColor ? FRAME_COLORS[frameColor] : undefined;
+  const circle = [
+    { width: size, height: size, borderRadius: size / 2 },
+    framed && styles.frame,
+    chosen && { borderWidth: 3, borderColor: chosen },
+  ];
   const uri = username ? userPhotoUrl(username, version) : null;
   if (uri && failed !== uri) {
     return <Image source={{ uri }} style={[...circle, styles.image]} onError={() => setFailed(uri)} />;

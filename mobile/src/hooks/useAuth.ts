@@ -144,10 +144,11 @@ export function useAuth() {
     }
   }, [signIn]);
 
-  /** Save business profile changes (claimed venue, plan); kept on this phone for now. */
+  /** Save business profile changes (claimed venue, plan); the plan also on the server. */
   const updateProfile = useCallback(
     async (patch: Partial<LocalBusiness>) => {
       if (!user) return;
+      if (patch.plan && user.token && user.role === 'business') await accountApi.setBusinessPlan(user.token, patch.plan).catch(() => {});
       await signIn({ ...user, ...patch });
       if (patch.venueId && user.token && user.role === 'business') await syncVenue(user.token, patch.venueId);
       if (user.id === undefined) return;

@@ -65,22 +65,38 @@ def parse_tags(raw: str | None) -> list[str]:
     return tags
 
 
+GRID = 8  # the box is split 8 × 8; each cell gets its turn before any cell gets a second venue
+
+
 def find_venues_in_bbox(
     conn: psycopg.Connection, bbox: BBox, limit: int, tags: list[str] | None = None
 ) -> list[dict]:
-    """Venues inside bbox; with tags, only venues having at least one of them."""
+    """Venues inside bbox; with tags, only venues having at least one of them.
+
+    When the box holds more than `limit`, the venues are spread over it: the box is split into a grid and
+    the cells take turns (user-added first, then the most popular in each cell), so a zoomed-out map shows
+    every part of what is on screen, not only its busiest neighbourhood.
+    """
     return conn.execute(
         f"""
         SELECT id, name, category, capacity, neighborhood, district, tags, popularity, always_busy,
-               open_hour, close_hour, address, {PENDING},
-               ST_Y(location::geometry) AS lat,
-               ST_X(location::geometry) AS lon
-        FROM venues
-        WHERE location && ST_MakeEnvelope(%(min_lon)s, %(min_lat)s, %(max_lon)s, %(max_lat)s, 4326)::geography
-          AND (cardinality(%(tags)s::text[]) = 0 OR tags && %(tags)s::text[])
-          AND {VISIBLE}
-        -- When the area has more venues than the limit, user-added venues must not be the ones cut
-        ORDER BY (source = 'user') DESC, popularity DESC NULLS LAST, id
+               open_hour, close_hour, address, pending, lat, lon
+        FROM (
+            SELECT id, name, category, capacity, neighborhood, district, tags, popularity, always_busy,
+                   open_hour, close_hour, address, {PENDING}, source,
+                   ST_Y(location::geometry) AS lat, ST_X(location::geometry) AS lon,
+                   row_number() OVER (
+                       PARTITION BY
+                           floor((ST_X(location::geometry) - %(min_lon)s) / GREATEST(%(max_lon)s - %(min_lon)s, 1e-9) * {GRID}),
+                           floor((ST_Y(location::geometry) - %(min_lat)s) / GREATEST(%(max_lat)s - %(min_lat)s, 1e-9) * {GRID})
+                       ORDER BY (source = 'user') DESC, popularity DESC NULLS LAST, id
+                   ) AS turn
+            FROM venues
+            WHERE location && ST_MakeEnvelope(%(min_lon)s, %(min_lat)s, %(max_lon)s, %(max_lat)s, 4326)::geography
+              AND (cardinality(%(tags)s::text[]) = 0 OR tags && %(tags)s::text[])
+              AND {VISIBLE}
+        ) spread
+        ORDER BY turn, (source = 'user') DESC, popularity DESC NULLS LAST, id
         LIMIT %(limit)s
         """,
         {

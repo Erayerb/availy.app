@@ -25,7 +25,9 @@ test('a business keeps the venue chosen on this phone', () => {
   const business = { ...server, is_guest: false, email: 'kafe@example.test', role: 'business' as const };
   const user = toUser(business, 'tok', { venueId: 7, plan: 'saas' });
   assert.equal(user.venueId, 7);
-  assert.equal(user.plan, 'saas');
+  // The plan is the server's (it checks statistics and schedules), not what this phone remembers
+  assert.equal(user.plan, 'pay_per_use');
+  assert.equal(toUser({ ...business, plan: 'saas' }, 'tok').plan, 'saas');
   assert.equal(isRegistered(user), true);
   assert.equal(accountKey(user), 'kafe@example.test');
 });

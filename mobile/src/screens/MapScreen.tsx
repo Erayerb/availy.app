@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+import { useVenuesByIds } from '../hooks/useVenuesByIds';
+import { useCallback, useState, useMemo } from 'react';
 import { Linking, Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import * as Location from 'expo-location';
 import { TAB_BAR_HEIGHT } from '../components/TabBar';
@@ -92,7 +93,15 @@ export function MapScreen({
   const [cardHeight, setCardHeight] = useState(0);
   // Bottom edge of the back button + filter card; the venue card must stay below it
   const [headerBottom, setHeaderBottom] = useState(120);
-  const { venues, error, lastUpdated } = useVenues(formatBBox(queryBounds), tags);
+  const { venues: inBox, error, lastUpdated } = useVenues(formatBBox(queryBounds), tags);
+  // A venue opened from search may not be among the ones loaded for this view (a zoomed-out map shows a
+  // sample): load it on its own, so its dot and card are there
+  const missing = selectedId !== null && !inBox.some((v) => v.id === selectedId);
+  const { venues: extra } = useVenuesByIds(missing ? [selectedId] : []);
+  const venues = useMemo(
+    () => (missing ? [...inBox, ...extra.filter((v) => v.id === selectedId)] : inBox),
+    [inBox, extra, missing, selectedId],
+  );
   const selected = venues.find((v) => v.id === selectedId);
   const [focus, setFocus] = useState<{ lat: number; lon: number; key: number; zoom?: number } | null>(null);
   // Venue whose "Daha boş alternatifler" button was pressed; the pop-up hides when another venue is selected

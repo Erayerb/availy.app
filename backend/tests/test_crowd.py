@@ -48,6 +48,16 @@ def test_one_person_counts_once():
     assert crowd.reporters == 1 and crowd.level == "low"
 
 
+def test_insiders_together_count_for_half_a_person():
+    staff = [Report(i, "low", None, None, NOW - timedelta(minutes=1), insider=True) for i in range(10)]
+    customer = report(99, "high", 1)
+    plain = [Report(r.user_id, r.level, None, None, r.created_at) for r in staff]
+    # As ordinary people ten Sakin bury one Kalabalık; as insiders they are half a person, whatever their number
+    assert crowd_from_checkins([*plain, customer], NOW, NOW).level == "low"
+    assert crowd_from_checkins([*staff, customer], NOW, NOW).level == "medium"
+    assert crowd_from_checkins([*staff, customer, report(98, "high", 1)], NOW, NOW).level == "high"
+
+
 def test_low_trust_counts_less():
     # A doubtful user says Kalabalık, two trusted users say Sakin
     reports = [report(1, "high", 0, trust=0.2), report(2, "low", 0), report(3, "low", 0)]
@@ -118,3 +128,43 @@ def test_one_report_alone_lasts_60_minutes_two_people_90():
     assert crowd(report(1, 80), report(2, 70)).level == "high"
     # A new report outweighs the old one
     assert crowd(report(1, 80), report(2, 0, "low")).level == "low"
+
+
+def test_insiders_are_people_who_check_in_here_and_hardly_anywhere_else():
+    from app.crowd import is_insider
+
+    assert is_insider(5, 6)  # five days here, one elsewhere: works here
+    assert not is_insider(3, 3)  # not enough days
+    assert not is_insider(5, 12)  # goes to many places: a regular, counted in full
+
+
+def test_staff_cannot_outvote_customers(conn):
+    """Ten people who are at the café every day say Sakin; three customers say Kalabalık: Kalabalık wins,
+    and the customers' trust does not drop for disagreeing with the staff."""
+    from app.checkins import load_crowds, update_trust
+
+    now = datetime(2026, 6, 10, 15, 0, tzinfo=timezone.utc)
+    kafe = conn.execute("SELECT id FROM venues WHERE name = 'Test Kafe A'").fetchone()["id"]
+
+    def user(name):
+        return conn.execute(
+            "INSERT INTO users (email, username, name, role) VALUES (%s, %s, %s, 'personal') RETURNING id, is_guest",
+            (f"{name}@example.test", name, name),
+        ).fetchone()
+
+    def check_in(uid, level, at):
+        conn.execute("INSERT INTO checkins (venue_id, user_id, level, created_at) VALUES (%s, %s, %s, %s)", (kafe, uid, level, at))
+
+    staff = [user(f"t_garson{i}") for i in range(10)]
+    customers = [user(f"t_musteri{i}") for i in range(3)]
+    for s in staff:
+        for day in range(1, 6):
+            check_in(s["id"], "low", now - timedelta(days=day))
+        check_in(s["id"], "low", now - timedelta(minutes=10))
+    for c in customers:
+        check_in(c["id"], "high", now - timedelta(minutes=5))
+    assert load_crowds(conn, [kafe], now)[kafe].level == "high"
+    # Judged only by the other customers (who agree), not by the staff
+    assert update_trust(conn, dict(customers[0]), kafe, "high", now) == 1.0
+    # A waiter agreeing with the other waiters earns no trust here
+    assert update_trust(conn, dict(staff[0]), kafe, "low", now) is None

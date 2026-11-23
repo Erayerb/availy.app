@@ -23,6 +23,7 @@ class WaitlistIn(BaseModel):
     contact: str = Field(..., max_length=120)
     district: str | None = Field(None, max_length=60)
     venue_name: str | None = Field(None, max_length=120)
+    founder: bool = False  # "Kurucu mekan ol" (business)
 
 
 @router.post("/waitlist", status_code=204)
@@ -37,10 +38,11 @@ def join(body: WaitlistIn, conn: psycopg.Connection = Depends(get_conn), now: da
         contact = f"@{contact}"
     conn.execute(
         """
-        INSERT INTO waitlist (kind, contact, district, venue_name, created_at) VALUES (%s, %s, %s, %s, %s)
-        ON CONFLICT (kind, lower(contact)) DO NOTHING
+        INSERT INTO waitlist (kind, contact, district, venue_name, founder, created_at) VALUES (%s, %s, %s, %s, %s, %s)
+        ON CONFLICT (kind, lower(contact)) DO UPDATE SET founder = waitlist.founder OR EXCLUDED.founder
         """,
-        (body.kind, contact, (body.district or "").strip() or None, (body.venue_name or "").strip() or None, now),
+        (body.kind, contact, (body.district or "").strip() or None, (body.venue_name or "").strip() or None,
+         body.kind == "business" and body.founder, now),
     )
     return Response(status_code=204)
 
@@ -50,6 +52,7 @@ class WaitlistOut(BaseModel):
     contact: str
     district: str | None
     venue_name: str | None
+    founder: bool = False  # applied to the kurucu mekan programme
     created_at: datetime
 
 
@@ -61,5 +64,5 @@ def waitlist(user: dict = Depends(current_user), conn: psycopg.Connection = Depe
     except ModerationError as e:
         raise HTTPException(status_code=e.status, detail=e.message) from None
     return conn.execute(
-        "SELECT kind, contact, district, venue_name, created_at FROM waitlist ORDER BY created_at DESC LIMIT 500"
+        "SELECT kind, contact, district, venue_name, founder, created_at FROM waitlist ORDER BY founder DESC, created_at DESC LIMIT 500"
     ).fetchall()

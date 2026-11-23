@@ -18,13 +18,13 @@ import { panel } from './panelStyles';
 import { ThemedSwitch } from '../ThemedSwitch';
 import { InlineIcon } from '../Icon';
 
-/** Business side of loyalty (on the server): set up a stamp card or a paid membership, then stamp members. */
+/** Business side of loyalty (on the server): set up a stamp card, then stamp members (Aylık üyelik was taken out). */
 export function LoyaltySetup() {
   const { mine, saveProgram, removeProgram, giveStamp, redeemReward } = useLoyalty();
   const program = mine?.program ?? null;
   // The form opens only when the business asks for it, and can always be cancelled
   const [editing, setEditing] = useState(false);
-  const [kind, setKind] = useState<LoyaltyProgram['kind']>(program?.kind ?? 'stamps');
+  const [kind, setKind] = useState<LoyaltyProgram['kind']>('stamps');
   const [stamps, setStamps] = useState(String(program?.stampsRequired ?? 5));
   const [reward, setReward] = useState(program?.reward ?? '1 kahve bedava');
   const [price, setPrice] = useState(String(program?.price || 149));
@@ -44,7 +44,7 @@ export function LoyaltySetup() {
 
   // Drop unsaved changes and go back to what is stored
   const cancel = () => {
-    setKind(program?.kind ?? 'stamps');
+    setKind('stamps');
     setStamps(String(program?.stampsRequired ?? 5));
     setReward(program?.reward ?? '1 kahve bedava');
     setPrice(String(program?.price || 149));
@@ -160,7 +160,7 @@ export function LoyaltySetup() {
       ) : !editing ? (
         <>
           <Text style={panel.muted}>
-            Müdavimlerini ödüllendir: damga kartı ücretsizdir, üyelik ücretli olabilir.
+            Müdavimlerini ödüllendir: her gelişte bir damga, kart dolunca ödül.
           </Text>
           <Pressable style={panel.primary} onPress={() => setEditing(true)}>
             <Text style={panel.primaryText}>Sadakat programı oluştur</Text>
@@ -169,41 +169,12 @@ export function LoyaltySetup() {
       ) : (
         <>
           <Text style={panel.muted}>
-            Müdavimlerini ödüllendir: damga kartı ücretsizdir, üyelik ücretli olabilir.
+            Müdavimlerini ödüllendir: her gelişte bir damga, kart dolunca ödül.
           </Text>
-          <View style={panel.wrap}>
-            <Chip label="Damga kartı" active={kind === 'stamps'} onPress={() => setKind('stamps')} />
-            <Chip
-              label="Ücretli üyelik"
-              active={kind === 'membership'}
-              onPress={() => setKind('membership')}
-            />
-          </View>
-          {kind === 'stamps' ? (
-            <>
-              <Text style={panel.label}>Kaç damgada ödül?</Text>
-              <TextInput
-                value={stamps}
-                onChangeText={setStamps}
-                keyboardType="number-pad"
-                style={panel.input}
-              />
-              <Text style={panel.label}>Ödül</Text>
-              <TextInput value={reward} onChangeText={setReward} style={panel.input} />
-            </>
-          ) : (
-            <>
-              <Text style={panel.label}>Aylık ücret (₺)</Text>
-              <TextInput
-                value={price}
-                onChangeText={setPrice}
-                keyboardType="number-pad"
-                style={panel.input}
-              />
-              <Text style={panel.label}>Üyelere sunduğun</Text>
-              <TextInput value={perk} onChangeText={setPerk} style={panel.input} />
-            </>
-          )}
+          <Text style={panel.label}>Kaç damgada ödül?</Text>
+          <TextInput value={stamps} onChangeText={setStamps} keyboardType="number-pad" style={panel.input} />
+          <Text style={panel.label}>Ödül</Text>
+          <TextInput value={reward} onChangeText={setReward} style={panel.input} />
           {formError && <Text style={panel.error}>{formError}</Text>}
           <View style={panel.row}>
             <Pressable style={[panel.secondary, { flex: 1 }]} onPress={cancel}>

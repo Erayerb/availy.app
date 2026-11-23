@@ -5,6 +5,7 @@ customers take a coupon code, show it at the counter and the business marks it u
 """
 import secrets
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 import psycopg
 
@@ -13,9 +14,33 @@ RADIUS_KM = (1, 2, 5)
 # No 0/O, 1/I or 8/B, so codes are easy to read aloud and type
 ALPHABET = "ACDEFGHJKLMNPQRSTUVWXYZ234679"
 
+# Coupons are free. The business may make a campaign a "puanla açılan özel kupon" (e.g. a bigger discount
+# for people who use the app a lot): then a coupon costs that many points. A regular earns ~50-70 a week.
+ISTANBUL = ZoneInfo("Europe/Istanbul")
+POINTS_STEP = 10  # special coupons and the standing reward: any multiple of 10, up to MAX_POINTS
+MAX_POINTS = 2000
+REWARD_EVERY = timedelta(days=7)  # the standing reward: once a week per person
+REWARD_YEARS = 10  # a standing reward "ends" this far away (until the business turns it off)
+
+
+def valid_points(points: int) -> bool:
+    return POINTS_STEP <= points <= MAX_POINTS and points % POINTS_STEP == 0
+
+
+def spendable_points(conn: psycopg.Connection, user_id: int) -> int:
+    """Everything earned minus what was spent (levels and rankings use only what was earned)."""
+    return conn.execute(
+        """
+        SELECT (SELECT COALESCE(sum(amount), 0) FROM points WHERE user_id = %(id)s)
+             - (SELECT COALESCE(sum(amount), 0) FROM point_spends WHERE user_id = %(id)s) AS n
+        """,
+        {"id": user_id},
+    ).fetchone()["n"]
+
+
 # Everything a list needs, with the coupon counts
 CAMPAIGN_SELECT = """
-    SELECT c.id, c.venue_id, v.name AS venue_name, ST_Y(v.location::geometry) AS lat, ST_X(v.location::geometry) AS lon,
+    SELECT c.points_price, c.id, c.venue_id, v.name AS venue_name, ST_Y(v.location::geometry) AS lat, ST_X(v.location::geometry) AS lon,
            c.message, c.discount, c.radius_km::float AS radius_km, c.max_claims, c.duration_hours, c.starts_at, c.ends_at, c.checkin_only,
            (SELECT count(*) FROM coupons k WHERE k.campaign_id = c.id)::int AS claims,
            (SELECT count(*) FROM coupons k WHERE k.campaign_id = c.id AND k.redeemed_at IS NOT NULL)::int AS redemptions,
@@ -46,8 +71,13 @@ def create_campaign(
     duration_hours: int,
     now: datetime,
     checkin_only: bool = False,
+    points_price: int = 0,
 ) -> dict:
     venue_id = _business_venue(user)
+    if points_price and not valid_points(points_price):
+        raise CampaignError(f"Özel kupon {POINTS_STEP} ile {MAX_POINTS} arası, {POINTS_STEP}'un katı puan olabilir.")
+    if points_price and checkin_only:
+        raise CampaignError("Check-in yapana kupon puanla açılamaz.")
     text = " ".join(message.split())
     if len(text) < 5:
         raise CampaignError("Kampanya mesajını yaz.")
@@ -61,15 +91,28 @@ def create_campaign(
         raise CampaignError("İndirim %1 ile %90 arasında olmalı.")
     if max_claims is not None and max_claims < 1:
         raise CampaignError("Kişi sınırı en az 1 olmalı.")
+    from app.plans import business_access
+
+    access = business_access(conn, user, now)
+    if access["next_campaign"] == "unverified":
+        raise CampaignError(
+            f"Kampanya göndermek için mekanını doğrula (ücretsiz): ayda {access['free_campaigns_per_month']} kampanya hakkın olur. "
+            "Sınırsız kampanya Aylık pakette.", 402
+        )
+    if access["next_campaign"] == "blocked":
+        raise CampaignError(
+            f"Bu ay {access['free_campaigns_per_month']} ücretsiz kampanyanı kullandın. Sınırsız kampanya için Aylık paket'e geç.", 402
+        )
+    paid_with = access["next_campaign"]
     row = conn.execute(
         """
         INSERT INTO campaigns (venue_id, business_id, message, discount, radius_km, max_claims, duration_hours, starts_at, ends_at,
-                               checkin_only)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+                               checkin_only, paid_with, points_price)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
         """,
         (
             venue_id, user["id"], text, discount, radius_km, max_claims, duration_hours, now,
-            now + timedelta(hours=duration_hours), checkin_only,
+            now + timedelta(hours=duration_hours), checkin_only, paid_with, points_price,
         ),
     ).fetchone()
     return campaign(conn, row["id"])
@@ -85,7 +128,7 @@ def active_campaigns(conn: psycopg.Connection, now: datetime) -> list[dict]:
 
     run_due_schedules(conn, now)  # scheduled campaigns whose time has come
     return conn.execute(
-        CAMPAIGN_SELECT + " WHERE c.starts_at <= %s AND c.ends_at > %s ORDER BY c.ends_at LIMIT 500", (now, now)
+        CAMPAIGN_SELECT + " WHERE c.starts_at <= %s AND c.ends_at > %s AND NOT c.standing ORDER BY c.ends_at LIMIT 500", (now, now)
     ).fetchall()
 
 
@@ -96,7 +139,7 @@ def my_campaigns(conn: psycopg.Connection, user: dict) -> list[dict]:
     venue_id = _business_venue(user)
     run_due_schedules(conn, datetime.now(timezone.utc))
     return conn.execute(
-        CAMPAIGN_SELECT + " WHERE c.venue_id = %s AND NOT c.hidden ORDER BY c.starts_at DESC LIMIT 200", (venue_id,)
+        CAMPAIGN_SELECT + " WHERE c.venue_id = %s AND NOT c.hidden AND NOT c.standing ORDER BY c.starts_at DESC LIMIT 200", (venue_id,)
     ).fetchall()
 
 
@@ -110,6 +153,14 @@ def _own_campaign(conn: psycopg.Connection, user: dict, campaign_id: int) -> Non
 def end_campaign(conn: psycopg.Connection, user: dict, campaign_id: int, now: datetime) -> dict:
     _own_campaign(conn, user, campaign_id)
     conn.execute("UPDATE campaigns SET ends_at = LEAST(ends_at, %s) WHERE id = %s", (now, campaign_id))
+    # Ended early: coupons bought and not used yet cannot be used any more, so their points come back
+    conn.execute(
+        """
+        DELETE FROM point_spends s USING coupons k
+        WHERE s.coupon_code = k.code AND k.campaign_id = %s AND k.redeemed_at IS NULL
+        """,
+        (campaign_id,),
+    )
     return campaign(conn, campaign_id)
 
 
@@ -141,19 +192,33 @@ COUPON_SELECT = """
 
 
 def claim_coupon(conn: psycopg.Connection, user: dict, campaign_id: int, now: datetime) -> dict:
-    """One coupon per campaign and person; asking again returns the same code."""
+    """One coupon per campaign and person; asking again returns the same code. The standing reward: a coupon
+    not used yet is returned again; a new one once a week."""
     if user.get("role") == "business":
         raise CampaignError("İşletme hesapları kupon alamaz.", 403)
     # Locks the campaign so two people cannot take the last coupon at once
     row = conn.execute(
-        "SELECT venue_id, max_claims, starts_at, ends_at, checkin_only FROM campaigns WHERE id = %s FOR UPDATE",
+        "SELECT venue_id, max_claims, starts_at, ends_at, checkin_only, points_price, standing FROM campaigns WHERE id = %s FOR UPDATE",
         (campaign_id,),
     ).fetchone()
     if row is None:
         raise CampaignError("Kampanya bulunamadı.", 404)
-    mine = conn.execute(COUPON_SELECT + " WHERE k.campaign_id = %s AND k.user_id = %s", (campaign_id, user["id"])).fetchone()
-    if mine:
-        return mine
+    if row["standing"]:
+        unused = conn.execute(
+            COUPON_SELECT + " WHERE k.campaign_id = %s AND k.user_id = %s AND k.redeemed_at IS NULL", (campaign_id, user["id"])
+        ).fetchone()
+        if unused:
+            return unused
+        last = conn.execute(
+            "SELECT max(claimed_at) AS at FROM coupons WHERE campaign_id = %s AND user_id = %s", (campaign_id, user["id"])
+        ).fetchone()["at"]
+        if last is not None and now - last < REWARD_EVERY:
+            again = (last + REWARD_EVERY).astimezone(ISTANBUL)
+            raise CampaignError(f"Bu ödülü haftada bir alabilirsin; tekrar {again.day}.{again.month:02d} {again:%H:%M}'den sonra.", 409)
+    else:
+        mine = conn.execute(COUPON_SELECT + " WHERE k.campaign_id = %s AND k.user_id = %s", (campaign_id, user["id"])).fetchone()
+        if mine:
+            return mine
     if not row["starts_at"] <= now < row["ends_at"]:
         raise CampaignError("Bu kampanya bitti.", 409)
     # "Check-in yapana kupon": only people who checked in there since the campaign started
@@ -165,6 +230,14 @@ def claim_coupon(conn: psycopg.Connection, user: dict, campaign_id: int, now: da
     taken = conn.execute("SELECT count(*)::int AS n FROM coupons WHERE campaign_id = %s", (campaign_id,)).fetchone()["n"]
     if row["max_claims"] is not None and taken >= row["max_claims"]:
         raise CampaignError("Bu kampanyanın kupon sınırı doldu.", 409)
+    price = 0 if row["checkin_only"] else row["points_price"]
+    if price:
+        # Locks the person, so two taps cannot spend the same points twice
+        conn.execute("SELECT id FROM users WHERE id = %s FOR UPDATE", (user["id"],))
+        have = spendable_points(conn, user["id"])
+        if have < price:
+            what = "ödül" if row["standing"] else "özel kupon"
+            raise CampaignError(f"Bu {what} {price} puan; {have} puanın var. Check-in yaparak puan kazan.", 402)
     for _ in range(10):
         code = "AV-" + "".join(secrets.choice(ALPHABET) for _ in range(4))
         inserted = conn.execute(
@@ -175,6 +248,11 @@ def claim_coupon(conn: psycopg.Connection, user: dict, campaign_id: int, now: da
             (code, campaign_id, user["id"], now),
         ).fetchone()
         if inserted:
+            if price:
+                conn.execute(
+                    "INSERT INTO point_spends (user_id, amount, coupon_code, created_at) VALUES (%s, %s, %s, %s)",
+                    (user["id"], price, code, now),
+                )
             return conn.execute(COUPON_SELECT + " WHERE k.code = %s", (code,)).fetchone()
     raise CampaignError("Kupon oluşturulamadı, tekrar dene.", 503)
 
@@ -239,3 +317,72 @@ def coupons_for_checkin(conn: psycopg.Connection, user: dict, venue_id: int, now
         except CampaignError:
             pass  # e.g. the limit was reached
     return coupons
+
+
+# ---- the standing reward ("200 puan = %10 indirim", always on the venue page) ----
+
+
+def _reward_row(conn: psycopg.Connection, venue_id: int, now: datetime) -> dict | None:
+    return conn.execute(
+        """
+        SELECT id, points_price AS points, discount, ends_at > %s AS active FROM campaigns
+        WHERE venue_id = %s AND standing ORDER BY id DESC LIMIT 1
+        """,
+        (now, venue_id),
+    ).fetchone()
+
+
+def my_reward(conn: psycopg.Connection, user: dict, now: datetime) -> dict | None:
+    return _reward_row(conn, _business_venue(user), now)
+
+
+def save_reward(conn: psycopg.Connection, user: dict, points: int, discount: int, active: bool, now: datetime) -> dict:
+    """The business's standing reward: points for a discount, once a week per person (free in every plan; it
+    does not use the month's campaigns). Turned off: coupons not used yet give their points back."""
+    venue_id = _business_venue(user)
+    if not valid_points(points):
+        raise CampaignError(f"Puan {POINTS_STEP} ile {MAX_POINTS} arası, {POINTS_STEP}'un katı olmalı.")
+    if not 1 <= discount <= 90:
+        raise CampaignError("İndirim %1 ile %90 arasında olmalı.")
+    message = f"availo ödülü: {points} puan = %{discount} indirim"
+    current = _reward_row(conn, venue_id, now)
+    ends = now + timedelta(days=365 * REWARD_YEARS) if active else now
+    if current is None:
+        conn.execute(
+            """
+            INSERT INTO campaigns (venue_id, business_id, message, discount, radius_km, max_claims, duration_hours,
+                                   starts_at, ends_at, standing, points_price, paid_with)
+            VALUES (%s, %s, %s, %s, 10, NULL, 24, %s, %s, true, %s, 'standing')
+            """,
+            (venue_id, user["id"], message, discount, now, ends, points),
+        )
+    else:
+        conn.execute(
+            "UPDATE campaigns SET message = %s, discount = %s, points_price = %s, ends_at = %s WHERE id = %s",
+            (message, discount, points, ends, current["id"]),
+        )
+        if not active:
+            conn.execute(
+                """
+                DELETE FROM point_spends s USING coupons k
+                WHERE s.coupon_code = k.code AND k.campaign_id = %s AND k.redeemed_at IS NULL
+                """,
+                (current["id"],),
+            )
+    return _reward_row(conn, venue_id, now)
+
+
+def venue_reward(conn: psycopg.Connection, venue_id: int, viewer: dict | None, now: datetime) -> dict | None:
+    """On the venue page: the standing reward, and for me when I may take it again (None: now)."""
+    row = _reward_row(conn, venue_id, now)
+    if row is None or not row["active"]:
+        return None
+    next_at = None
+    if viewer is not None:
+        last = conn.execute(
+            "SELECT max(claimed_at) AS at, bool_or(redeemed_at IS NULL) AS unused FROM coupons WHERE campaign_id = %s AND user_id = %s",
+            (row["id"], viewer["id"]),
+        ).fetchone()
+        if last["at"] is not None and not last["unused"] and now - last["at"] < REWARD_EVERY:
+            next_at = last["at"] + REWARD_EVERY
+    return {"campaign_id": row["id"], "points": row["points"], "discount": row["discount"], "next_at": next_at}

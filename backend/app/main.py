@@ -50,10 +50,15 @@ TAGS_DESCRIPTION = "Comma-separated: socializing,coworking,entertainment,quiet,f
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from app import push
+
     pool.open()
     with pool.connection() as conn:
         apply_schema(conn)
+    stop_push = push.start(pool)  # phone notifications while the app is closed
     yield
+    if stop_push:
+        stop_push.set()
     pool.close()
 
 

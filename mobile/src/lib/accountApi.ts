@@ -61,7 +61,8 @@ export function toUser(server: ServerUser, token: string, local: LocalBusiness =
     username: server.username,
     role: server.role,
     venueId: server.venue_id ?? local.venueId ?? null,
-    plan: (server.plan as User['plan']) ?? local.plan,
+    // A business's plan is the server's (statistics and schedules are checked there)
+    plan: server.role === 'business' ? (server.plan === 'saas' ? 'saas' : 'pay_per_use') : ((server.plan as User['plan']) ?? local.plan),
     venueVerified: local.venueVerified,
     emailVerified: server.email_verified ?? false,
     isAdmin: server.is_admin ?? false,
@@ -109,6 +110,8 @@ export const accountApi = {
   guest: () => send<Session>('POST', '/v1/auth/guest'),
   // Bireysel Premium on the server too (demo, no payment yet): e.g. three streak saves a month
   setPlan: (token: string, premium: boolean) => send<void>('PUT', '/v1/me/plan', { premium }, token),
+  // İşletme paketi (prototype: choosing it switches it, no payment yet)
+  setBusinessPlan: (token: string, plan: 'saas' | 'pay_per_use') => send<unknown>('PUT', '/v1/business/plan', { plan }, token),
   // "Google / Apple ile devam et": which ones the server has set up, and signing in with the provider's token
   providers: () => send<{ providers: SocialProvider[] }>('GET', '/v1/auth/providers'),
   oauth: (provider: SocialProvider, idToken: string, name = '', invitedBy: string | null = null) =>

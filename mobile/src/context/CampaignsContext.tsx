@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
+import { businessApi, type BusinessAccess } from '../lib/business';
 import { campaignApi } from '../lib/campaignApi';
 import { activeCampaignForVenue, type Campaign, type NewCampaign } from '../lib/campaigns';
 import type { Coupon } from '../lib/coupons';
@@ -13,6 +14,9 @@ const RELOAD_MS = 60_000;
 type Campaigns = {
   campaigns: Campaign[]; // running ones, plus the business's own (also ended)
   coupons: Coupon[]; // mine; for a business, the coupons taken for its campaigns
+  points: number | null; // mine, to spend on coupons
+  access: BusinessAccess | null; // business: what its plan gives (statistics, how the next campaign is covered)
+  startTrial: () => Promise<string | null>; // "15 gün ücretsiz dene"
   now: Date;
   // Each resolves to an error message, or null on success
   create: (input: NewCampaign) => Promise<string | null>;
@@ -39,14 +43,21 @@ export function CampaignsProvider({ token, business, children }: { token: string
   const [running, setRunning] = useState<Campaign[]>([]);
   const [mine, setMine] = useState<Campaign[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [points, setPoints] = useState<number | null>(null);
+  const [access, setAccess] = useState<BusinessAccess | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [schedules, setSchedules] = useState<ScheduledCampaign[]>([]);
 
   const reload = useCallback(async () => {
     campaignApi.running().then(setRunning).catch(() => {});
-    if (!token) return setCoupons([]);
+    if (!token) {
+      setPoints(null);
+      return setCoupons([]);
+    }
     campaignApi.coupons(token).then(setCoupons).catch(() => {});
+    if (!business) campaignApi.points(token).then(setPoints).catch(() => {});
     if (business) {
+      businessApi.access(token).then(setAccess).catch(() => {});
       campaignApi.mine(token).then(setMine).catch(() => {});
       automationApi.schedules(token).then(setSchedules).catch(() => {});
     }
@@ -97,6 +108,16 @@ export function CampaignsProvider({ token, business, children }: { token: string
     },
     [token],
   );
+
+  const startTrial = useCallback(async () => {
+    if (!token) return 'Önce giriş yap.';
+    try {
+      setAccess(await businessApi.trial(token));
+      return null;
+    } catch (e) {
+      return asMessage(e);
+    }
+  }, [token]);
 
   const claim = useCallback(
     async (campaign: Campaign) => {
@@ -180,7 +201,7 @@ export function CampaignsProvider({ token, business, children }: { token: string
 
   return (
     <CampaignsContext.Provider
-      value={{ campaigns, coupons, now, create, end, remove, claim, redeem, recordView, reload, activeFor, schedules, addSchedule, setScheduleActive, removeSchedule }}
+      value={{ campaigns, coupons, points, access, startTrial, now, create, end, remove, claim, redeem, recordView, reload, activeFor, schedules, addSchedule, setScheduleActive, removeSchedule }}
     >
       {children}
     </CampaignsContext.Provider>

@@ -2,15 +2,33 @@ import { View } from 'react-native';
 import { Text } from '../Text';
 import { Pressable } from '../Pressable';
 
+import { useState } from 'react';
+
+import { useCampaigns } from '../../context/CampaignsContext';
 import { PLANS, type PlanId } from '../../lib/plans';
 import { colors } from '../../theme';
 import { panel } from './panelStyles';
 
 /** The business's package (pay per campaign or monthly SaaS); no payment in the prototype. */
 export function PlanSection({ plan, onPlanChange }: { plan: PlanId; onPlanChange: (plan: PlanId) => void }) {
+  const { access, startTrial } = useCampaigns();
+  const [note, setNote] = useState<string | null>(null);
+  const day = (iso: string) => new Date(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
   return (
     <View style={panel.card}>
       <Text style={panel.sectionTitle}>Paketin</Text>
+      {access?.trial_until && (
+        <Text style={panel.success}>Aylık paket denemen sürüyor: {day(access.trial_until)} tarihine kadar ücretsiz.</Text>
+      )}
+      {access?.founder_until && (
+        <Text style={panel.success}>Kurucu mekan: Aylık paket {day(access.founder_until)} tarihine kadar ücretsiz.</Text>
+      )}
+      {access?.trial_available && plan !== 'saas' && (
+        <Pressable style={panel.primary} onPress={async () => setNote(await startTrial())}>
+          <Text style={panel.primaryText}>Aylık paketi 15 gün ücretsiz dene</Text>
+        </Pressable>
+      )}
+      {note && <Text style={panel.error}>{note}</Text>}
       {(Object.keys(PLANS) as PlanId[]).map((id) => {
         const p = PLANS[id];
         const selected = id === plan;

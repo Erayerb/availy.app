@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { TAB_BAR_SPACE } from '../components/TabBar';
 import { useSettings } from '../context/SettingsContext';
+import { useUpgrade } from '../context/UpgradeContext';
 import { useOnPageFocus, usePageTop } from '../context/PageContext';
 import { usePullRefresh } from '../hooks/usePullRefresh';
 import { Text, TextInput } from '../components/Text';
@@ -64,6 +65,8 @@ export function SocialScreen({
   initialTab = 'friendsFeed',
   onTabChange,
 }: Props) {
+  const { premium } = useSettings();
+  const { promptUpgrade } = useUpgrade();
   const token = user?.token;
   const [lists, setLists] = useState<FriendLists>(EMPTY);
   const [query, setQuery] = useState('');
@@ -413,6 +416,13 @@ export function SocialScreen({
               {lists.friends.map((p) => (
                 <PersonRow key={p.id} person={p} onOpen={onOpenUser} streak={p.streak} atRisk={p.at_risk}>
                   {/* Seri kurtarma: their streak ends on Sunday without a check-in; I may cover the week once a month */}
+                  {/* No save left this month: availo+ has three */}
+                  {p.at_risk && !p.can_save && !premium && (
+                    <Action
+                      label="🔥 Kurtar"
+                      onPress={() => promptUpgrade('Bu ayki seri kurtarma hakkını kullandın. availo+ ile ayda 3 kez kurtarabilirsin.')}
+                    />
+                  )}
                   {p.can_save && (
                     <Action
                       label="🔥 Kurtar"
@@ -777,13 +787,11 @@ function Thread({
   onChanged: () => void;
 }) {
   const [all, setAll] = useState(false);
-  const likes = item.likes ?? 0;
-  const likers = item.likers ?? [];
   const notes = [
     ...(item.comments ?? []).map((c) => ({ ...c, remove: owner || c.mine ? () => checkinSocialApi.removeComment(token, c.id) : null })),
     ...(item.replies ?? []).map((c) => ({ ...c, remove: c.mine ? () => reviewsApi.removeReply(token, c.id) : null })),
   ].sort((a, b) => a.at.localeCompare(b.at));
-  if (likes === 0 && notes.length === 0) return null;
+  if (notes.length === 0) return null;
   const shown = all ? notes : notes.slice(-3);
   return (
     <View style={styles.thread}>
@@ -815,16 +823,6 @@ function Thread({
           </View>
         </View>
       ))}
-      {likes > 0 && (
-        <View style={styles.threadRow}>
-          <Icon name="corner-down-right" size={16} color={colors.textMuted} />
-          <Text style={[styles.threadText, styles.flex]}>
-            <InlineIcon name="heart" color={colors.primary} />{' '}
-            {likers.length ? likers.map((u) => `@${u}`).join(', ') : `${likes} kişi`}
-            {likes > likers.length && likers.length ? ` ve ${likes - likers.length} kişi` : ''} beğendi
-          </Text>
-        </View>
-      )}
     </View>
   );
 }
@@ -875,7 +873,15 @@ function CheckinActions({
   return (
     <View style={styles.checkinActions}>
       <View style={styles.replyBar}>
-        {!own && (
+        {/* My own check-in: just how many liked it */}
+        {own ? (
+          likes > 0 && (
+            <View style={styles.feedAction} accessibilityLabel={`${likes} beğeni`}>
+              <Icon name="heart" size={17} color={colors.textMuted} />
+              <Text style={styles.actionCount}>{likes}</Text>
+            </View>
+          )
+        ) : (
           <Pressable onPress={toggleLike} hitSlop={8} style={styles.feedAction} accessibilityLabel={liked ? 'Beğeniyi geri al' : 'Beğen'}>
             <Icon name="heart" size={17} filled={liked} color={liked ? colors.primary : colors.textMuted} />
             {likes > 0 && <Text style={[styles.actionCount, liked && styles.likedText]}>{likes}</Text>}

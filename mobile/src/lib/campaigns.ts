@@ -28,6 +28,7 @@ export type Campaign = {
   // From the server: shown to how many people, coupons taken and used
   stats?: { views: number; claims: number; redemptions: number };
   checkinOnly?: boolean; // "Check-in yapana kupon": the coupon comes with a check-in there
+  pointsPrice?: number; // "Puanla açılan özel kupon": what a coupon costs in points (0: free, the usual)
 };
 
 export type NewCampaign = Omit<Campaign, 'id' | 'startsAt' | 'endsAt' | 'durationHours' | 'stats'> & { durationHours: number };
@@ -42,6 +43,12 @@ export function createCampaign(input: NewCampaign, now: Date, id: string): Campa
     endsAt: new Date(now.getTime() + durationHours * 3_600_000).toISOString(),
   };
 }
+
+// "Puanla açılan özel kupon" and the standing reward: points in steps of 10 (the server's rule); a regular
+// earns ~50-70 points a week
+export const POINTS_STEP = 10;
+export const MAX_POINTS = 2000;
+export const DISCOUNT_STEP = 5;
 
 export function validateCampaign(message: string): string | null {
   const text = message.trim();
@@ -66,6 +73,7 @@ export function repeatCampaign(c: Campaign): NewCampaign {
     radiusKm: c.radiusKm,
     maxClaims: c.maxClaims ?? null,
     checkinOnly: c.checkinOnly ?? false,
+    pointsPrice: c.pointsPrice ?? 0,
     durationHours: Math.min(Math.max(planned, 1), 24),
   };
 }

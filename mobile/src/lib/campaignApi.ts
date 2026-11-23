@@ -17,6 +17,7 @@ type ServerCampaign = {
   starts_at: string;
   ends_at: string;
   checkin_only?: boolean;
+  points_price?: number;
   claims: number;
   redemptions: number;
   views: number;
@@ -49,6 +50,7 @@ export const toCampaign = (c: ServerCampaign): Campaign => ({
   endsAt: c.ends_at,
   stats: { views: c.views, claims: c.claims, redemptions: c.redemptions },
   checkinOnly: c.checkin_only ?? false,
+  pointsPrice: c.points_price ?? 0,
 });
 
 export const toCoupon = (c: ServerCoupon): Coupon => ({
@@ -78,6 +80,7 @@ export const campaignApi = {
           max_claims: c.maxClaims ?? null,
           duration_hours: c.durationHours,
           checkin_only: c.checkinOnly ?? false,
+          points_price: c.checkinOnly ? 0 : (c.pointsPrice ?? 0),
         },
         token,
       ),
@@ -85,6 +88,8 @@ export const campaignApi = {
   end: (token: string, id: string) => send<ServerCampaign>('POST', `/v1/campaigns/${id}/end`, undefined, token),
   hide: (token: string, ids: string[]) => send<void>('POST', '/v1/campaigns/hide', { ids: ids.map(Number) }, token),
   view: (token: string, id: string) => send<void>('POST', `/v1/campaigns/${id}/view`, undefined, token),
+  // Points left to spend on coupons (earned minus spent)
+  points: async (token: string) => (await send<{ balance: number }>('GET', '/v1/me/points', undefined, token)).balance,
   claim: async (token: string, id: string) => toCoupon(await send<ServerCoupon>('POST', `/v1/campaigns/${id}/coupon`, undefined, token)),
   // A customer's coupons; for a business, those taken for its campaigns
   coupons: async (token: string) => (await send<ServerCoupon[]>('GET', '/v1/me/coupons', undefined, token)).map(toCoupon),

@@ -110,10 +110,8 @@ def save_program(
         if len(reward) < 3:
             raise LoyaltyError("Ödülü yaz (ör. 1 kahve bedava).")
     elif kind == "membership":
-        if price <= 0:
-            raise LoyaltyError("Aylık ücreti yaz.")
-        if len(perk) < 3:
-            raise LoyaltyError("Üyelere ne sunduğunu yaz (ör. her kahvede %15 indirim).")
+        # Aylık üyelik was taken out (the fee was never collected; maybe later, see CONTEXT.md)
+        raise LoyaltyError("Aylık üyelik programı şimdilik yok; damga kartı kurabilirsin.")
     else:
         raise LoyaltyError("Program türünü seç.")
     conn.execute(
@@ -188,10 +186,11 @@ def give_stamp(conn: psycopg.Connection, user: dict, code: str) -> str:
     full = stamps >= program["stamps_required"]
     conn.execute(
         """
-        UPDATE loyalty_members SET stamps = %s, rewards = rewards + %s, total_stamps = total_stamps + 1
+        UPDATE loyalty_members SET stamps = %s, rewards = rewards + %s, total_stamps = total_stamps + 1,
+               reward_at = CASE WHEN %s THEN now() ELSE reward_at END
         WHERE venue_id = %s AND user_id = %s
         """,
-        (0 if full else stamps, 1 if full else 0, venue_id, member["user_id"]),
+        (0 if full else stamps, 1 if full else 0, full, venue_id, member["user_id"]),
     )
     _stamp_points(conn, member["user_id"])
     if full:

@@ -33,35 +33,11 @@ def set_business_venue(conn: psycopg.Connection, user: dict, venue_id: int) -> d
     return conn.execute("UPDATE users SET venue_id = %s WHERE id = %s RETURNING venue_id", (venue_id, user["id"])).fetchone()
 
 
-MAX_REWARD = 120
 
 
 def _own_venue(user: dict, venue_id: int) -> None:
     if user.get("role") != "business" or user.get("venue_id") != venue_id:
         raise BusinessError("Bu mekan yalnızca işletmesine açık.", 403)
-
-
-def reward_discoverer(conn: psycopg.Connection, user: dict, venue_id: int, message: str, now: datetime) -> dict:
-    """The venue's business sends a reward to whoever made its first check-in (once)."""
-    _own_venue(user, venue_id)
-    text = " ".join(message.split())
-    if not text:
-        raise BusinessError("Ödülü yaz (ör. Bir sonraki kahven bizden).")
-    if len(text) > MAX_REWARD:
-        raise BusinessError(f"En fazla {MAX_REWARD} karakter yazabilirsin.")
-    first = conn.execute("SELECT user_id FROM checkins WHERE venue_id = %s AND is_first", (venue_id,)).fetchone()
-    if first is None or first["user_id"] is None:
-        raise BusinessError("Mekanını keşfeden kişi bulunamadı.", 404)
-    row = conn.execute(
-        """
-        INSERT INTO discoverer_rewards (venue_id, user_id, message, created_at) VALUES (%s, %s, %s, %s)
-        ON CONFLICT (venue_id) DO NOTHING RETURNING message
-        """,
-        (venue_id, first["user_id"], text, now),
-    ).fetchone()
-    if row is None:
-        raise BusinessError("Keşfedene ödülü zaten gönderdin.", 409)
-    return row
 
 
 REGULAR_VISITS = 3  # check-ins in 30 days that make a regular ("müdavim")
@@ -98,13 +74,17 @@ def quietest_slot(check_ins: list[datetime], open_hour: int, close_hour: int) ->
 
 def _quiet_slot(conn: psycopg.Connection, venue_id: int, check_ins: list[datetime]) -> dict | None:
     venue = conn.execute("SELECT category, open_hour, close_hour FROM venues WHERE id = %s", (venue_id,)).fetchone()
-    hours = venue_hours(venue)
+    hours = venue_hours(venue, guess=True)
     return quietest_slot(check_ins, hours.open_hour, hours.close_hour)
 
 
 def venue_stats(conn: psycopg.Connection, user: dict, venue_id: int, now: datetime) -> dict:
     """Today by hour, the last 7 days (people, new / returning) and the last 30 days by weekday."""
+    from app.plans import business_access
+
     _own_venue(user, venue_id)
+    if not business_access(conn, user)["stats"]:
+        raise BusinessError("İstatistikler aylık pakette. Abonelik > Aylık paket.", 402)
     local = now.astimezone(ISTANBUL)
     day_start = local.replace(hour=0, minute=0, second=0, microsecond=0)
     rows = conn.execute(
@@ -192,3 +172,71 @@ def month_comparison(conn: psycopg.Connection, venue_id: int, now: datetime) -> 
     this_month, last_month = count(month_start, now), count(last_start, last_end)
     change = None if last_month == 0 else round((this_month - last_month) * 100 / last_month)
     return {"month_checkins": this_month, "last_month_checkins": last_month, "month_change_pct": change}
+
+
+def month_report(conn: psycopg.Connection, venue_id: int, now: datetime, months_back: int = 0) -> dict:
+    """"availo bu ay size 14 müşteri getirdi": a month at the venue, for every plan (the detailed statistics
+    are in the Aylık paket). New people: their first check-in there was this month."""
+    from app.summary import month_bounds
+
+    start, end = month_bounds(now, months_back)
+    end = min(end, now + timedelta(seconds=1))
+    return conn.execute(
+        """
+        SELECT %(month)s AS month,
+               count(*)::int AS checkins,
+               count(DISTINCT c.user_id)::int AS people,
+               count(DISTINCT c.user_id) FILTER (
+                   WHERE NOT EXISTS (SELECT 1 FROM checkins o WHERE o.venue_id = c.venue_id AND o.user_id = c.user_id
+                                     AND o.created_at < %(start)s))::int AS new_people,
+               (SELECT count(*) FROM coupons k JOIN campaigns m ON m.id = k.campaign_id
+                WHERE m.venue_id = %(venue)s AND k.redeemed_at >= %(start)s AND k.redeemed_at < %(end)s)::int AS coupons_used,
+               (SELECT count(*) FROM campaigns m WHERE m.venue_id = %(venue)s AND NOT m.standing
+                AND m.starts_at >= %(start)s AND m.starts_at < %(end)s)::int AS campaigns
+        FROM checkins c
+        WHERE c.venue_id = %(venue)s AND c.created_at >= %(start)s AND c.created_at < %(end)s
+        """,
+        {"venue": venue_id, "start": start, "end": end, "month": start.strftime("%Y-%m")},
+    ).fetchone()
+
+
+def business_report(conn: psycopg.Connection, user: dict, now: datetime, months_back: int = 0) -> dict:
+    if user.get("role") != "business" or not user.get("venue_id"):
+        raise BusinessError("Yalnızca mekanı olan işletme hesapları için.", 403)
+    return month_report(conn, user["venue_id"], now, months_back)
+
+
+def sales_pitch(conn: psycopg.Connection, admin: dict, venue_id: int, now: datetime) -> dict:
+    """Yönetici: numbers to take to a venue that has not joined ("Geçen hafta 35 kişi check-in yaptı, en
+    kalabalık saatiniz 15:00")."""
+    from app.moderation import require_admin
+
+    require_admin(admin)
+    week = conn.execute(
+        """
+        SELECT count(*)::int AS checkins, count(DISTINCT user_id)::int AS people,
+               (SELECT extract(hour FROM created_at AT TIME ZONE 'Europe/Istanbul')::int FROM checkins
+                WHERE venue_id = %(v)s AND created_at > %(since)s GROUP BY 1 ORDER BY count(*) DESC, 1 LIMIT 1) AS busiest_hour
+        FROM checkins WHERE venue_id = %(v)s AND created_at > %(since)s AND created_at <= %(now)s
+        """,
+        {"v": venue_id, "since": now - timedelta(days=7), "now": now},
+    ).fetchone()
+    other = conn.execute(
+        """
+        SELECT (SELECT count(*) FROM favorites WHERE venue_id = %(v)s)::int AS favorites,
+               (SELECT count(*) FROM checkins WHERE venue_id = %(v)s AND created_at > %(month)s)::int AS month_checkins,
+               (SELECT count(*) FROM reviews WHERE venue_id = %(v)s AND removed_at IS NULL)::int AS reviews,
+               (SELECT round(avg(rating)::numeric, 1)::float FROM reviews WHERE venue_id = %(v)s AND removed_at IS NULL) AS rating,
+               EXISTS (SELECT 1 FROM users WHERE venue_id = %(v)s AND role = 'business') AS joined,
+               (SELECT count(*) FROM venues o JOIN users b ON b.venue_id = o.id AND b.role = 'business'
+                JOIN venues me ON me.id = %(v)s
+                WHERE o.id <> me.id AND ST_DWithin(o.location, me.location, 1000))::int AS nearby_joined
+        """,
+        {"v": venue_id, "month": now - timedelta(days=30)},
+    ).fetchone()
+    return {
+        "week_checkins": week["checkins"],
+        "week_people": week["people"],
+        "busiest_hour": week["busiest_hour"],
+        **other,
+    }

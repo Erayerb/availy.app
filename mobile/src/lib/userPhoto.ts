@@ -11,3 +11,14 @@ export const userPhotoApi = {
   save: (token: string, dataUri: string) => send<{ photo_at: string }>('PUT', '/v1/me/photo', { photo: dataUri }, token),
   remove: (token: string) => send<void>('DELETE', '/v1/me/photo', undefined, token),
 };
+
+/** availo+ cover photo; `version` is the person's cover_at. */
+export const userCoverUrl = (username: string, version?: string | null) =>
+  `${API_URL}/v1/users/${encodeURIComponent(username)}/cover${version ? `?v=${encodeURIComponent(version)}` : ''}`;
+
+export const plusProfileApi = {
+  saveCover: (token: string, dataUri: string) => send<{ cover_at: string }>('PUT', '/v1/me/cover', { photo: dataUri }, token),
+  removeCover: (token: string) => send<void>('DELETE', '/v1/me/cover', undefined, token),
+  // null: no frame
+  setFrame: (token: string, color: string | null) => send<void>('PUT', '/v1/me/frame', { color }, token),
+};

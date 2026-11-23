@@ -107,6 +107,18 @@ export function MomentCapture({ token, checkinId }: Props) {
         <Text style={styles.label}>Kimler görsün?</Text>
         {audienceChips}
         <View style={styles.buttons}>
+          {/* Vazgeç: the photo is thrown away, nothing is shared */}
+          <Pressable
+            onPress={() => {
+              setShot(null);
+              setMessage(null);
+            }}
+            disabled={state === 'sending'}
+            style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
+            accessibilityLabel="Fotoğrafı sil, paylaşma"
+          >
+            <Text style={styles.secondaryText}>Vazgeç</Text>
+          </Pressable>
           <Pressable onPress={take} disabled={state === 'sending'} style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}>
             <Text style={styles.secondaryText}>Yeniden çek</Text>
           </Pressable>

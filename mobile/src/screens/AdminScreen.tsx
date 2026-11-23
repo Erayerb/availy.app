@@ -28,13 +28,27 @@ type Reported = {
   from_business: boolean;
 };
 
-type SignUp = { kind: 'user' | 'business'; contact: string; district: string | null; venue_name: string | null; created_at: string };
+type SupportMessage = {
+  id: number;
+  kind: 'bug' | 'contact';
+  topic: string;
+  body: string;
+  email: string | null;
+  username: string | null;
+  created_at: string;
+  reply: string | null;
+  replied_at: string | null;
+};
+
+type SignUp = { kind: 'user' | 'business'; contact: string; district: string | null; venue_name: string | null; founder?: boolean; created_at: string };
 
 const adminApi = {
   waitlist: (token: string) => send<SignUp[]>('GET', '/v1/admin/waitlist', undefined, token),
   reports: (token: string) => send<Reported[]>('GET', '/v1/admin/reports', undefined, token),
   remove: (token: string, kind: Reported['kind'], id: number) => send<void>('POST', `/v1/admin/${kind}/${id}/remove`, undefined, token),
   dismiss: (token: string, kind: Reported['kind'], id: number) => send<void>('POST', `/v1/admin/${kind}/${id}/dismiss`, undefined, token),
+  support: (token: string) => send<SupportMessage[]>('GET', '/v1/admin/support', undefined, token),
+  reply: (token: string, id: number, text: string) => send<void>('POST', `/v1/admin/support/${id}/reply`, { text }, token),
 };
 
 const reasonLabel = (reason: string) => REPORT_REASONS.find((r) => r.reason === reason)?.label ?? reason;
@@ -50,6 +64,7 @@ export function AdminScreen({ token, onBack, onOpenVenue }: { token: string; onB
   const [error, setError] = useState<string | null>(null);
   const [photos, setPhotos] = useState<ReportedMoment[]>([]);
   const [sponsors, setSponsors] = useState<SponsorOverview | null>(null);
+  const [support, setSupport] = useState<SupportMessage[]>([]);
 
   const load = useCallback(() => {
     venueIssuesApi.open(token).then(setIssues).catch(() => {});
@@ -57,6 +72,7 @@ export function AdminScreen({ token, onBack, onOpenVenue }: { token: string; onB
     adminApi.waitlist(token).then(setSignUps).catch(() => {});
     momentsApi.reported(token).then(setPhotos).catch(() => {});
     sponsorsApi.overview(token).then(setSponsors).catch(() => {});
+    adminApi.support(token).then(setSupport).catch(() => {});
     adminApi
       .reports(token)
       .then((list) => {
@@ -85,6 +101,7 @@ export function AdminScreen({ token, onBack, onOpenVenue }: { token: string; onB
       </Text>
       {(allSignUps ? signUps : signUps.slice(0, 5)).map((s) => (
         <Text key={`${s.kind}-${s.contact}`} style={styles.body}>
+          {s.founder ? '⭐ Kurucu başvurusu · ' : ''}
           {s.kind === 'business' ? `${s.venue_name} · ` : ''}
           {s.contact}
           {s.district ? ` · ${s.district}` : ''}
@@ -95,6 +112,13 @@ export function AdminScreen({ token, onBack, onOpenVenue }: { token: string; onB
           <Text style={styles.venue}>Tümünü gör ({signUps.length})</Text>
         </Pressable>
       )}
+
+      <Text style={styles.heading}>Destek mesajları</Text>
+      <Text style={styles.muted}>Yanıt, gönderenin bildirimlerine düşer; e-posta bıraktıysa e-postayla da gider.</Text>
+      {support.length === 0 && <Text style={styles.muted}>Mesaj yok.</Text>}
+      {support.map((m) => (
+        <SupportCard key={m.id} message={m} onReply={(text) => adminApi.reply(token, m.id, text).then(load).catch(load)} />
+      ))}
 
       <Text style={styles.heading}>Onay bekleyen mekanlar</Text>
       <Text style={styles.muted}>Kullanıcıların eklediği mekanlar; herkese görünüyorlar. Adı uygunsuzsa düzelt ya da kaldır.</Text>
@@ -248,6 +272,34 @@ export function AdminScreen({ token, onBack, onOpenVenue }: { token: string; onB
 }
 
 /** One venue to check: close it (off the map), save the right name / hours, or dismiss the reports. */
+function SupportCard({ message, onReply }: { message: SupportMessage; onReply: (text: string) => void }) {
+  const [text, setText] = useState('');
+  return (
+    <View style={styles.card}>
+      <Text style={styles.venue}>
+        {message.kind === 'bug' ? 'Hata' : 'İletişim'} · {message.topic}
+      </Text>
+      <Text style={styles.muted}>
+        {message.username ? `@${message.username}` : 'Giriş yapmamış'}
+        {message.email ? ` · ${message.email}` : ''}
+      </Text>
+      <Text style={styles.body}>{message.body}</Text>
+      {message.reply ? (
+        <Text style={styles.muted}>Yanıtın: {message.reply}</Text>
+      ) : message.username || message.email ? (
+        <>
+          <TextInput value={text} onChangeText={setText} maxLength={1000} multiline placeholder="Yanıt yaz" placeholderTextColor={colors.placeholder} style={styles.input} />
+          <Pressable style={[styles.keep, text.trim().length < 2 && styles.disabled]} disabled={text.trim().length < 2} onPress={() => onReply(text.trim())}>
+            <Text style={styles.keepText}>Yanıtla</Text>
+          </Pressable>
+        </>
+      ) : (
+        <Text style={styles.muted}>Yanıtlanamaz: hesap ya da e-posta yok.</Text>
+      )}
+    </View>
+  );
+}
+
 function PendingCard({ venue, onOpenVenue, onRename, onRemove }: { venue: PendingVenue; onOpenVenue: () => void; onRename: (name: string) => void; onRemove: () => void }) {
   const [name, setName] = useState(venue.name);
   const changed = name.trim().length > 0 && name.trim() !== venue.name;

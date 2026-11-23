@@ -27,8 +27,9 @@ def test_venue_fields(client):
         "open_now", "hours", "opens_at", "crowd", "discovery", "trend",
         "pending", "moments", "sponsored", "photo_at", "instagram", "phone", "verified", "founder", "address", "description", "amenity_keys",
     }
-    assert venue["hours"] == "08:00–23:00"  # cafe
-    assert venue["opens_at"] == "08:00"
+    # No hours in the data: never "Kapalı", says so instead
+    assert venue["hours"] == "Saat bilgisi yok"
+    assert venue["open_now"] is True
     assert (venue["lat"], venue["lon"]) == (40.984, 29.026)
     assert (venue["neighborhood"], venue["district"]) == ("Moda", "Kadıköy")
     assert venue["tags"] == ["socializing"]

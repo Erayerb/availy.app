@@ -1,4 +1,7 @@
 import { useDeferredValue, useMemo, useState } from 'react';
+import { StarterTasks } from '../components/StarterTasks';
+import type { Screen } from '../components/TabBar';
+import { WhileAway } from '../components/WhileAway';
 import { Modal, Platform, StyleSheet, View } from 'react-native';
 import { useOnPageFocus } from '../context/PageContext';
 import { Text, TextInput } from '../components/Text';
@@ -59,6 +62,7 @@ type Props = {
   // 🔔 and profile icons at the top right
   onOpenProfile: () => void;
   onOpenNotifications: () => void;
+  onOpenScreen?: (screen: Screen) => void; // "İlk adımlar": where each task is done
 };
 
 export function HomeScreen({
@@ -80,6 +84,7 @@ export function HomeScreen({
   inviteName,
   onOpenProfile,
   onOpenNotifications,
+  onOpenScreen,
 }: Props) {
   const visibleDistricts = districtsForSides(useDistricts(), sides);
   const { venues: found, loading, error, refreshing, refresh, update, updatedAt } = useSearch(query, null, tags);
@@ -148,6 +153,9 @@ export function HomeScreen({
           </Pressable>
         )}
       </View>
+
+      {!searching && <StarterTasks token={token} onOpen={onOpenScreen} />}
+      {!searching && <WhileAway token={token} onOpenVenue={onOpenVenue} onOpenNotifications={onOpenNotifications} />}
 
       {!searching && <FriendsPlaces token={token} onOpenVenue={onOpenVenue} onAddFriends={onOpenFriends} inviteName={inviteName} />}
 

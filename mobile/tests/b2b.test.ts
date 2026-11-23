@@ -16,7 +16,7 @@ import {
   type Campaign,
 } from '../src/lib/campaigns.ts';
 import { distanceKm, formatDistance, sortByDistance } from '../src/lib/geo.ts';
-import { campaignCostNote } from '../src/lib/plans.ts';
+import { campaignCostText, type BusinessAccess } from '../src/lib/business.ts';
 import { formatHour, nearbyCompetitors } from '../src/lib/stats.ts';
 
 const NOW = new Date('2026-10-13T10:00:00Z'); // 13:00 in Istanbul
@@ -99,9 +99,16 @@ test('competitors: the same kind of venue within 2 km, nearest first', () => {
   assert.deepEqual(nearbyCompetitors(me, all).map((c) => c.venue.id), [2]);
 });
 
-test('campaign cost note depends on the plan', () => {
-  assert.equal(campaignCostNote('saas'), 'Paketine dahil (sınırsız).');
-  assert.equal(campaignCostNote('pay_per_use'), 'Bu kampanyanın ücreti ₺150.');
+test('campaign cost note says how the next campaign is covered', () => {
+  const access = (over: Partial<BusinessAccess>): BusinessAccess => ({
+    plan: 'pay_per_use', founder: false, verified: false, stats: false, free_campaigns_per_month: 3,
+    free_campaigns_left: 2, next_campaign: 'free', ...over,
+  });
+  assert.equal(campaignCostText(access({ plan: 'saas', next_campaign: 'saas' })), 'Aylık paketine dahil (sınırsız).');
+  assert.equal(campaignCostText(access({ founder: true, next_campaign: 'founder' })), 'Kurucu mekan: sınırsız ve ücretsiz.');
+  assert.equal(campaignCostText(access({})), 'Ücretsiz · bu ay 2 kampanya hakkın kaldı.');
+  assert.match(campaignCostText(access({ free_campaigns_left: 0, next_campaign: 'blocked' })), /Aylık pakette/);
+  assert.match(campaignCostText(access({ verified: false, free_campaigns_left: 0, next_campaign: 'unverified' })), /doğrula/);
 });
 
 test('without a location every active campaign is visible', () => {

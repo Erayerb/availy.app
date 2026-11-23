@@ -12,10 +12,12 @@ def auth(token):
     return {"Authorization": f"Bearer {token}"}
 
 
-def business_at(client, conn, username="t_isletme", venue="Test Kafe A"):
+def business_at(client, conn, username="t_isletme", venue="Test Kafe A", plan="saas"):
+    """A business at the venue; on the monthly plan unless told (statistics and schedules need it)."""
     token = account(client, username, "business")
     vid = venue_id(conn, venue)
     assert client.put("/v1/me/venue", json={"venue_id": vid}, headers=auth(token)).status_code == 200
+    assert client.put("/v1/business/plan", json={"plan": plan}, headers=auth(token)).status_code == 200
     return token, vid
 
 
@@ -64,25 +66,6 @@ def test_panel_stats_from_check_ins(client, conn, clock):
     # Only the venue's own business sees them
     assert client.get(f"/v1/venues/{kafe}/stats", headers=auth(regular)).status_code == 403
     assert client.put("/v1/me/venue", json={"venue_id": kafe}, headers=auth(regular)).status_code == 403
-
-
-def test_reward_for_the_discoverer_once(client, conn, clock):
-    token, kafe = business_at(client, conn)
-    other_token, _ = business_at(client, conn, "t_rakip", "Test Cowork B")
-    kasif = account(client, "t_kasif")
-    url = f"/v1/venues/{kafe}/discoverer-reward"
-    assert client.post(url, json={"message": "Kahve bizden"}, headers=auth(token)).status_code == 404  # nobody yet
-    checkin(client, kasif, kafe)
-    assert client.post(url, json={"message": "  "}, headers=auth(token)).status_code == 400
-    assert client.post(url, json={"message": "Kahve bizden"}, headers=auth(other_token)).status_code == 403
-    assert client.post(url, json={"message": "Kahve bizden"}, headers=auth(kasif)).status_code == 403
-    assert client.post(url, json={"message": " Bir sonraki  kahven bizden "}, headers=auth(token)).status_code == 201
-    assert client.post(url, json={"message": "Bir tane daha"}, headers=auth(token)).status_code == 409
-    discoverer = client.get(f"/v1/venues/{kafe}/stats", headers=auth(token)).json()["discovered_by"]
-    assert discoverer["reward"] == "Bir sonraki kahven bizden" and discoverer["can_reward"] is True
-    note = client.get("/v1/notifications", headers=auth(kasif)).json()[0]
-    assert note["kind"] == "reward" and note["venue_name"] == "Test Kafe A" and note["body"] == "Bir sonraki kahven bizden"
-
 
 
 def test_a_venue_has_one_business(client, conn):

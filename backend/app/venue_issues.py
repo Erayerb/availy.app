@@ -97,7 +97,9 @@ def resolve_issue(
 
 
 def set_founder(conn: psycopg.Connection, user: dict, venue_id: int, founder: bool) -> None:
-    """"Kurucu mekan": set by an admin, for at most MAX_FOUNDERS venues."""
+    """"Kurucu mekan": set by an admin, for at most MAX_FOUNDERS venues. The badge stays; the free Aylık paket
+    that comes with it ends after FOUNDER_MONTHS (app/plans.py)."""
+    from app.plans import FOUNDER_DAYS
     require_admin(user)
     if conn.execute("SELECT 1 FROM venues WHERE id = %s", (venue_id,)).fetchone() is None:
         raise ModerationError("Mekan bulunamadı.", 404)
@@ -109,10 +111,12 @@ def set_founder(conn: psycopg.Connection, user: dict, venue_id: int, founder: bo
             raise ModerationError(f"En fazla {MAX_FOUNDERS} kurucu mekan olabilir.", 409)
     conn.execute(
         """
-        INSERT INTO venue_profiles (venue_id, founder) VALUES (%s, %s)
-        ON CONFLICT (venue_id) DO UPDATE SET founder = EXCLUDED.founder
+        INSERT INTO venue_profiles (venue_id, founder, founder_until)
+        VALUES (%s, %s, CASE WHEN %s THEN now() + make_interval(days => %s) END)
+        ON CONFLICT (venue_id) DO UPDATE SET founder = EXCLUDED.founder,
+            founder_until = CASE WHEN EXCLUDED.founder THEN COALESCE(venue_profiles.founder_until, EXCLUDED.founder_until) END
         """,
-        (venue_id, founder),
+        (venue_id, founder, founder, FOUNDER_DAYS),
     )
 
 

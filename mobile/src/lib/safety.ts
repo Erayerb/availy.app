@@ -27,6 +27,9 @@ export type Profile = {
   stats_hidden?: boolean;
   level?: Level | null; // shown even when the statistics are hidden
   photo_at?: string | null; // profile photo (userPhotoUrl)
+  plus?: boolean; // Premium: "availo+" beside the name
+  cover_at?: string | null; // availo+ cover photo (userCoverUrl)
+  frame_color?: string | null; // availo+ frame round the photo (Avatar FRAME_COLORS)
 };
 
 /** Yeni gelen → Kâşif → Mahalleli → Semt elçisi; `next` (what is left) only on my own profile. */

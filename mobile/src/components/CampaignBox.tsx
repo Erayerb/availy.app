@@ -12,7 +12,9 @@ import { Icon, InlineIcon } from './Icon';
 
 /** Campaign line with "Kuponu al"; after claiming, the code to show at the counter. */
 export function CampaignBox({ campaign }: { campaign: Campaign }) {
-  const { now, coupons, claim } = useCampaigns();
+  const { now, coupons, points, claim } = useCampaigns();
+  const price = campaign.pointsPrice ?? 0;
+  const short = price > 0 && points !== null && points < price;
   const coupon = coupons.find((c) => c.campaignId === campaign.id);
   const remaining = remainingCoupons(campaign);
   const [error, setError] = useState<string | null>(null);
@@ -44,17 +46,24 @@ export function CampaignBox({ campaign }: { campaign: Campaign }) {
       ) : campaign.checkinOnly ? (
         <Text style={styles.checkin}><InlineIcon name="map-pin" /> Check-in yap, kuponu kap</Text>
       ) : (
-        <Pressable
-          style={({ pressed }) => [styles.button, (pressed || taking) && styles.pressed]}
-          disabled={taking}
-          onPress={async () => {
-            setTaking(true);
-            setError(await claim(campaign));
-            setTaking(false);
-          }}
-        >
-          <Text style={styles.buttonText}>Kuponu al</Text>
-        </Pressable>
+        <>
+          <Pressable
+            style={({ pressed }) => [styles.button, (pressed || taking) && styles.pressed, short && styles.short]}
+            disabled={taking || short}
+            onPress={async () => {
+              setTaking(true);
+              setError(await claim(campaign));
+              setTaking(false);
+            }}
+          >
+            <Text style={styles.buttonText}>{price > 0 ? `Kuponu al · ${price} puan` : 'Kuponu al'}</Text>
+          </Pressable>
+          {price > 0 && points !== null && (
+            <Text style={styles.codeLabel}>
+              {short ? `${price - points} puan daha gerekiyor; check-in yaparak kazan.` : `Puanın: ${points}`}
+            </Text>
+          )}
+        </>
       )}
       {error && <Text style={styles.full}>{error}</Text>}
     </View>
@@ -71,6 +80,7 @@ const styles = themed(() => StyleSheet.create({
   pill: { fontSize: 12, fontWeight: '600', color: colors.text, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, overflow: 'hidden', backgroundColor: colors.cream },
   button: { paddingVertical: 10, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center' },
   pressed: { opacity: 0.8 },
+  short: { opacity: 0.45 },
   buttonText: { color: colors.onPrimary, fontWeight: '700', fontSize: 15 },
   code: { alignItems: 'center', gap: 4, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.primary },
   codeText: { fontSize: 20, fontWeight: '800', letterSpacing: 2, color: colors.text },

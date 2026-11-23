@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 import psycopg
 
 from app.levels import level_ids
-from app.safety import BLOCKED, hidden_reply
+from app.safety import BLOCKED, hidden_reply, hidden_review
 
 ISTANBUL = ZoneInfo("Europe/Istanbul")
 LEADERBOARD_LIMIT = 50
@@ -112,6 +112,7 @@ def notifications(conn: psycopg.Connection, me: dict, now: datetime) -> list[dic
             SELECT 'friend_accepted', f.accepted_at, u.username, NULL, NULL, NULL, false
             FROM friendships f JOIN users u ON u.id = f.addressee_id
             WHERE f.requester_id = %(me)s AND f.status = 'accepted' AND f.accepted_at > %(since)s AND NOT u.frozen
+              AND u.invited_by IS DISTINCT FROM %(me)s  -- joined through my invite: "invite_joined" says it
             UNION ALL
             SELECT 'reply', p.created_at, u.username, v.id, v.name, p.body, false
             FROM review_replies p JOIN reviews r ON r.id = p.review_id JOIN users u ON u.id = p.user_id
@@ -162,6 +163,123 @@ def notifications(conn: psycopg.Connection, me: dict, now: datetime) -> list[dic
             FROM loyalty_programs p JOIN venues v ON v.id = p.venue_id
             WHERE p.active AND p.activated_at > %(since)s
               AND EXISTS (SELECT 1 FROM checkins c WHERE c.venue_id = p.venue_id AND c.user_id = %(me)s)
+            UNION ALL
+            -- A friend checked in (not a private one, not the ones I muted; "Buradayım, gel" says it already).
+            -- Only the last day: older ones are news no more, and would bury everything else
+            SELECT 'friend_checkin', c.created_at, u.username, v.id, v.name, NULL, false
+            FROM checkins c JOIN users u ON u.id = c.user_id JOIN venues v ON v.id = c.venue_id
+            WHERE c.created_at > GREATEST(%(since)s, %(now)s - interval '1 day') AND c.created_at <= %(now)s AND NOT c.is_private AND u.share_checkins
+              AND NOT u.frozen AND c.user_id NOT IN {BLOCKED}
+              AND c.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id = %(me)s)
+              AND NOT EXISTS (SELECT 1 FROM come_calls k WHERE k.checkin_id = c.id)
+              AND c.user_id IN (
+                  SELECT CASE WHEN requester_id = %(me)s THEN addressee_id ELSE requester_id END
+                  FROM friendships WHERE status = 'accepted' AND %(me)s IN (requester_id, addressee_id)
+              )
+            UNION ALL
+            -- A friend reviewed a venue (last day, like their check-ins)
+            SELECT 'friend_review', r.created_at, u.username, v.id, v.name, r.rating || '★ ' || r.body, false
+            FROM reviews r JOIN users u ON u.id = r.user_id JOIN venues v ON v.id = r.venue_id
+            WHERE r.created_at > GREATEST(%(since)s, %(now)s - interval '1 day') AND r.created_at <= %(now)s
+              AND NOT {hidden_review("r")} AND NOT u.frozen AND r.user_id NOT IN {BLOCKED}
+              AND r.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id = %(me)s)
+              AND r.user_id IN (
+                  SELECT CASE WHEN requester_id = %(me)s THEN addressee_id ELSE requester_id END
+                  FROM friendships WHERE status = 'accepted' AND %(me)s IN (requester_id, addressee_id)
+              )
+            UNION ALL
+            -- A friend checked in where I already was: "birlikte", points for both (told to the one who came first)
+            SELECT 'together', c2.created_at, u.username, v.id, v.name, NULL, false
+            FROM checkin_together t JOIN checkins c1 ON c1.id = t.checkin_id JOIN checkins c2 ON c2.id = t.other_checkin_id
+            JOIN users u ON u.id = c2.user_id JOIN venues v ON v.id = c1.venue_id
+            WHERE c1.user_id = %(me)s AND c2.created_at > c1.created_at AND c2.created_at > %(since)s
+            UNION ALL
+            -- A venue I added was approved (enough check-ins, or an admin)
+            SELECT 'venue_approved', v.approved_at, NULL, v.id, v.name, NULL, false
+            FROM venues v WHERE v.added_by = %(me)s AND v.source = 'user' AND v.approved_at > %(since)s
+            UNION ALL
+            -- Someone signed up through my invite link
+            SELECT 'invite_joined', u.created_at, u.username, NULL, NULL, NULL, false
+            FROM users u WHERE u.invited_by = %(me)s AND u.created_at > %(since)s AND NOT u.frozen
+            UNION ALL
+            -- A stamp card filled up (done: the reward was used)
+            SELECT 'loyalty_reward', m.reward_at, NULL, v.id, v.name, p.reward, m.rewards = 0
+            FROM loyalty_members m JOIN loyalty_programs p ON p.venue_id = m.venue_id JOIN venues v ON v.id = m.venue_id
+            WHERE m.user_id = %(me)s AND m.reward_at > %(since)s
+            UNION ALL
+            -- First of the week (written down when the week is over)
+            SELECT 'weekly_winner', (w.week_start + 7)::timestamp AT TIME ZONE 'Europe/Istanbul', NULL, NULL, NULL,
+                   w.points::text, false
+            FROM weekly_winners w
+            WHERE w.user_id = %(me)s AND (w.week_start + 7)::timestamp AT TIME ZONE 'Europe/Istanbul' > %(since)s
+            UNION ALL
+            -- The answer to my message to support
+            SELECT 'support_reply', s.replied_at, NULL, NULL, NULL, s.reply, false
+            FROM support_messages s WHERE s.user_id = %(me)s AND s.replied_at > %(since)s
+            UNION ALL
+            -- Kept lines: a photo removed, the decision on a photo I reported
+            SELECT n.kind, n.created_at, NULL, v.id, v.name, n.body, false
+            FROM user_notices n LEFT JOIN venues v ON v.id = n.venue_id
+            WHERE n.user_id = %(me)s AND n.created_at > %(since)s
+            UNION ALL
+            -- The decision on a review or reply I reported (body: kept / removed)
+            SELECT 'report_result', COALESCE(rp.dismissed_at, r.removed_at, p.removed_at), NULL, v.id, v.name,
+                   CASE WHEN rp.dismissed_at IS NOT NULL THEN 'kept' ELSE 'removed' END, false
+            FROM reports rp LEFT JOIN reviews r ON r.id = rp.review_id
+            LEFT JOIN review_replies p ON p.id = rp.reply_id LEFT JOIN reviews pr ON pr.id = p.review_id
+            JOIN venues v ON v.id = COALESCE(r.venue_id, pr.venue_id)
+            WHERE rp.reporter_id = %(me)s AND COALESCE(rp.dismissed_at, r.removed_at, p.removed_at) > %(since)s
+            UNION ALL
+            -- The business: a new review of its venue
+            SELECT 'new_review', r.created_at, u.username, v.id, v.name, r.rating || '★ ' || r.body, false
+            FROM reviews r JOIN users u ON u.id = r.user_id JOIN venues v ON v.id = r.venue_id
+            WHERE r.venue_id = %(venue)s AND r.removed_at IS NULL AND r.created_at > %(since)s
+            UNION ALL
+            -- The business: a coupon used at the counter
+            SELECT 'coupon_redeemed', k.redeemed_at, NULL, v.id, v.name, c.message, false
+            FROM coupons k JOIN campaigns c ON c.id = k.campaign_id JOIN venues v ON v.id = c.venue_id
+            WHERE c.venue_id = %(venue)s AND k.redeemed_at > %(since)s AND k.redeemed_at <= %(now)s
+            UNION ALL
+            -- The business: four fifths of a campaign's coupons are taken (body: "8/10")
+            SELECT 'coupon_limit', k.claimed_at, NULL, v.id, v.name,
+                   ceil(c.max_claims * 0.8)::int || '/' || c.max_claims, false
+            FROM campaigns c JOIN venues v ON v.id = c.venue_id
+            JOIN LATERAL (
+                SELECT claimed_at FROM coupons WHERE campaign_id = c.id ORDER BY claimed_at
+                OFFSET ceil(c.max_claims * 0.8)::int - 1 LIMIT 1
+            ) k ON true
+            WHERE c.venue_id = %(venue)s AND c.max_claims >= 2 AND k.claimed_at > %(since)s
+            UNION ALL
+            -- The business: a campaign ended (body: "seen,taken,used")
+            SELECT 'campaign_ended', c.ends_at, NULL, v.id, v.name,
+                   (SELECT count(*) FROM campaign_views w WHERE w.campaign_id = c.id) || ','
+                   || (SELECT count(*) FROM coupons k WHERE k.campaign_id = c.id) || ','
+                   || (SELECT count(*) FROM coupons k WHERE k.campaign_id = c.id AND k.redeemed_at IS NOT NULL), false
+            FROM campaigns c JOIN venues v ON v.id = c.venue_id
+            WHERE c.venue_id = %(venue)s AND c.ends_at > %(since)s AND c.ends_at <= %(now)s AND NOT c.standing
+            UNION ALL
+            -- The business: the free trial of the Aylık paket, and the kurucu mekan's free months, ended
+            SELECT 'trial_ended', p.trial_until, NULL, v.id, v.name, NULL, false
+            FROM venue_profiles p JOIN venues v ON v.id = p.venue_id
+            WHERE p.venue_id = %(venue)s AND p.trial_until > %(since)s AND p.trial_until <= %(now)s
+            UNION ALL
+            SELECT 'founder_ended', p.founder_until, NULL, v.id, v.name, NULL, false
+            FROM venue_profiles p JOIN venues v ON v.id = p.venue_id
+            WHERE p.venue_id = %(venue)s AND p.founder AND p.founder_until > %(since)s AND p.founder_until <= %(now)s
+            UNION ALL
+            -- The business: "Öne çık" went live, and ended
+            SELECT 'sponsor_started', s.starts_at, NULL, v.id, v.name, NULL, false
+            FROM sponsorships s JOIN venues v ON v.id = s.venue_id
+            WHERE s.venue_id = %(venue)s AND s.starts_at > %(since)s AND s.starts_at <= %(now)s
+            UNION ALL
+            SELECT 'sponsor_ended', s.ends_at, NULL, v.id, v.name, NULL, false
+            FROM sponsorships s JOIN venues v ON v.id = s.venue_id
+            WHERE s.venue_id = %(venue)s AND s.ends_at > %(since)s AND s.ends_at <= %(now)s
+            UNION ALL
+            -- The business: someone said the venue's information is wrong ("Bilgi yanlış mı?")
+            SELECT 'venue_issue', i.created_at, NULL, v.id, v.name, i.kind, i.resolved_at IS NOT NULL
+            FROM venue_issues i JOIN venues v ON v.id = i.venue_id
+            WHERE i.venue_id = %(venue)s AND i.created_at > %(since)s
         ) items
         WHERE %(cleared)s::timestamptz IS NULL OR at > %(cleared)s
         ORDER BY at DESC LIMIT 100
@@ -170,12 +288,91 @@ def notifications(conn: psycopg.Connection, me: dict, now: datetime) -> list[dic
             "me": me["id"],
             "venue": me.get("venue_id") if me.get("role") == "business" else None,
             "since": now - timedelta(days=NOTIFICATION_DAYS),
+            "now": now,
             "cleared": _cleared_at(conn, me["id"]),
         },
     ).fetchall()
+    cleared = _cleared_at(conn, me["id"])
+    quiet = [*quiet_watches(conn, me, now), *quiet_favorites(conn, me, now), *monthly_report_item(conn, me, now)]
+    rows = sorted([*rows, *(w for w in quiet if cleared is None or w["at"] > cleared)],
+                  key=lambda r: r["at"], reverse=True)
     dismissed = {r["key"] for r in conn.execute("SELECT key FROM notification_dismissals WHERE user_id = %s", (me["id"],))}
     items = [{**r, "key": notification_key(r)} for r in rows]
     return [i for i in items if i["key"] not in dismissed][:50]
+
+
+WATCH_HOURS = 6  # as on the phone: the bell turns itself off after this long
+
+
+def quiet_watches(conn: psycopg.Connection, me: dict, now: datetime) -> list[dict]:
+    """"Sakin olunca haber ver": a watched venue reported Sakin by check-ins made after the bell was turned on."""
+    from app.checkins import load_crowds
+
+    watches = conn.execute(
+        """
+        SELECT w.venue_id, w.created_at, v.name FROM watches w JOIN venues v ON v.id = w.venue_id
+        WHERE w.user_id = %s AND w.created_at > %s
+        """,
+        (me["id"], now - timedelta(hours=WATCH_HOURS)),
+    ).fetchall()
+    if not watches:
+        return []
+    crowds = load_crowds(conn, [w["venue_id"] for w in watches], now)
+    return [
+        {"kind": "watch_quiet", "at": crowd.last_report_at, "username": None, "venue_id": w["venue_id"],
+         "venue_name": w["name"], "body": None, "done": False}
+        for w in watches
+        if (crowd := crowds[w["venue_id"]]).state == "live" and crowd.level == "low" and crowd.last_report_at > w["created_at"]
+    ]
+
+
+def monthly_report_item(conn: psycopg.Connection, me: dict, now: datetime) -> list[dict]:
+    """The business, from the 1st of the month: "Geçen ay availo ile 23 kişi geldi, 9'u ilk kez" (body:
+    "people,new,coupons used"). Only when the month had check-ins."""
+    from app.business import month_report
+    from app.summary import month_bounds
+
+    if me.get("role") != "business" or not me.get("venue_id"):
+        return []
+    report = month_report(conn, me["venue_id"], now, 1)
+    if not report["checkins"]:
+        return []
+    start, _ = month_bounds(now)
+    venue = conn.execute("SELECT name FROM venues WHERE id = %s", (me["venue_id"],)).fetchone()
+    return [{"kind": "monthly_report", "at": start, "username": None, "venue_id": me["venue_id"], "venue_name": venue["name"],
+             "body": f"{report['people']},{report['new_people']},{report['coupons_used']}", "done": False}]
+
+
+FAVORITE_BUSY_BEFORE = timedelta(hours=3)
+
+
+def quiet_favorites(conn: psycopg.Connection, me: dict, now: datetime) -> list[dict]:
+    """availo+: a favourite venue that was busy in the last three hours is now reported Sakin, without
+    turning a bell on (Bildirim ayarları > "Favorilerim sakinleşince"). Watched venues tell it already."""
+    from app.checkins import load_crowds
+
+    person = conn.execute("SELECT plan, app_settings FROM users WHERE id = %s", (me["id"],)).fetchone()
+    if person["plan"] != "premium" or not (person["app_settings"] or {}).get("favoriteQuietNotifications"):
+        return []
+    favorites = conn.execute(
+        """
+        SELECT f.venue_id, v.name FROM favorites f JOIN venues v ON v.id = f.venue_id
+        WHERE f.user_id = %(me)s
+          AND NOT EXISTS (SELECT 1 FROM watches w WHERE w.user_id = %(me)s AND w.venue_id = f.venue_id AND w.created_at > %(watch)s)
+          AND EXISTS (SELECT 1 FROM checkins c WHERE c.venue_id = f.venue_id AND c.level IN ('medium', 'high')
+                      AND c.created_at > %(busy)s AND c.created_at <= %(now)s)
+        """,
+        {"me": me["id"], "watch": now - timedelta(hours=WATCH_HOURS), "busy": now - FAVORITE_BUSY_BEFORE, "now": now},
+    ).fetchall()
+    if not favorites:
+        return []
+    crowds = load_crowds(conn, [f["venue_id"] for f in favorites], now)
+    return [
+        {"kind": "favorite_quiet", "at": crowd.last_report_at, "username": None, "venue_id": f["venue_id"],
+         "venue_name": f["name"], "body": None, "done": False}
+        for f in favorites
+        if (crowd := crowds[f["venue_id"]]).state == "live" and crowd.level == "low"
+    ]
 
 
 class CallError(Exception):

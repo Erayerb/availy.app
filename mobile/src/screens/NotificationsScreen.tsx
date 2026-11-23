@@ -23,6 +23,7 @@ type Props = {
   onOpenFriends: () => void; // Sosyal > Arkadaşlar, to accept a request
   onOpenFeed: () => void; // Sosyal > Akış: likes and comments under my check-in
   onOpenRanking: () => void; // Sosyal > Sıralama: a group invitation
+  onOpenCampaigns?: () => void; // business: "Kampanya başlat", coupons and campaign results
   onOpenSettings: () => void;
 };
 
@@ -38,6 +39,30 @@ const ICONS: Record<AppNotification['kind'], IconName> = {
   dead_hour: 'moon',
   auto_campaign: 'speakerphone',
   come_here: 'map-pin',
+  friend_checkin: 'map-pin',
+  friend_review: 'star',
+  favorite_quiet: 'heart',
+  comeback: 'map-pin',
+  coupon_redeemed: 'ticket',
+  coupon_limit: 'hourglass',
+  campaign_ended: 'chart-bar',
+  monthly_report: 'chart-line',
+  trial_ended: 'clock',
+  founder_ended: 'clock',
+  together: 'users',
+  venue_approved: 'circle-check',
+  invite_joined: 'user-plus',
+  loyalty_reward: 'gift',
+  weekly_winner: 'trophy',
+  support_reply: 'message-dots',
+  moment_removed: 'photo',
+  moment_report_result: 'shield-check',
+  report_result: 'shield-check',
+  watch_quiet: 'bell-ringing',
+  new_review: 'star',
+  sponsor_started: 'speakerphone',
+  sponsor_ended: 'speakerphone',
+  venue_issue: 'alert-triangle',
 };
 
 // Each kind its own colour, so the list reads at a glance: people blue, rewards gold, likes red…
@@ -53,10 +78,45 @@ const TINTS: Record<AppNotification['kind'], [string, string]> = {
   dead_hour: ['#3A3F47', '#6B7280'],
   auto_campaign: ['#7A2E1F', '#D9480F'],
   come_here: ['#123A2A', '#2E9E4F'],
+  friend_checkin: ['#123A2A', '#2E9E4F'],
+  friend_review: ['#2B2350', '#7B5EA7'],
+  favorite_quiet: ['#7A2E1F', '#C8102E'],
+  comeback: ['#123A2A', '#2E9E4F'],
+  coupon_redeemed: ['#7A2E1F', '#D9480F'],
+  coupon_limit: ['#5A3A12', '#C9962B'],
+  campaign_ended: ['#2B2350', '#7B5EA7'],
+  monthly_report: ['#13304F', '#2F6AA3'],
+  trial_ended: ['#5A3A12', '#C9962B'],
+  founder_ended: ['#5A3A12', '#C9962B'],
+  together: ['#13304F', '#2F6AA3'],
+  venue_approved: ['#123A2A', '#2E9E4F'],
+  invite_joined: ['#13304F', '#2F6AA3'],
+  loyalty_reward: ['#5A3A12', '#C9962B'],
+  weekly_winner: ['#5A3A12', '#C9962B'],
+  support_reply: ['#2B2350', '#7B5EA7'],
+  moment_removed: ['#3A3F47', '#6B7280'],
+  moment_report_result: ['#3A3F47', '#6B7280'],
+  report_result: ['#3A3F47', '#6B7280'],
+  watch_quiet: ['#123A2A', '#2E9E4F'],
+  new_review: ['#5A3A12', '#C9962B'],
+  sponsor_started: ['#7A2E1F', '#D9480F'],
+  sponsor_ended: ['#3A3F47', '#6B7280'],
+  venue_issue: ['#7A2E1F', '#D9480F'],
 };
 
+// The business: these open Kampanyalar (the dead hour one to start a campaign)
+const CAMPAIGN_KINDS = new Set<AppNotification['kind']>([
+  'dead_hour', 'auto_campaign', 'coupon_redeemed', 'coupon_limit', 'campaign_ended', 'monthly_report', 'trial_ended', 'founder_ended',
+]);
+
+// Tapping opens the venue (when there is one) for these
+const OPENS_VENUE = new Set<AppNotification['kind']>([
+  'reply', 'reward', 'loyalty', 'come_here', 'friend_checkin', 'friend_review', 'favorite_quiet', 'together', 'venue_approved', 'loyalty_reward',
+  'moment_removed', 'moment_report_result', 'report_result', 'watch_quiet', 'new_review', 'sponsor_started', 'venue_issue',
+]);
+
 /** v2 🔔 list: friend requests, accepted requests and replies to my reviews (last 30 days); kept until deleted. */
-export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue, onOpenFriends, onOpenFeed, onOpenRanking, onOpenSettings }: Props) {
+export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue, onOpenFriends, onOpenFeed, onOpenRanking, onOpenSettings, onOpenCampaigns }: Props) {
   const { items, markSeen, reload, dismiss, clear } = useNotifications();
   const pull = usePullRefresh(reload);
   useOnPageFocus(() => {
@@ -105,8 +165,14 @@ export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue,
                   ? onOpenFeed()
                   : n.kind === 'group_invite'
                     ? onOpenRanking()
-                  : (n.kind === 'reply' || n.kind === 'reward' || n.kind === 'loyalty' || n.kind === 'come_here') && n.venue_id
+                  : CAMPAIGN_KINDS.has(n.kind) && onOpenCampaigns
+                    ? onOpenCampaigns()
+                  : n.kind === 'weekly_winner'
+                    ? onOpenRanking()
+                  : OPENS_VENUE.has(n.kind) && n.venue_id
                     ? onOpenVenue({ id: n.venue_id })
+                  : n.kind === 'support_reply' || n.kind === 'sponsor_ended'
+                    ? undefined
                     : onOpenFriends()
               }
               style={({ pressed }) => [styles.row, i > 0 && styles.divider, pressed && styles.pressed]}

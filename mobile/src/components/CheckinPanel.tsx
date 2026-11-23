@@ -140,7 +140,10 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
         done.streak_up && (done.weekly_streak ?? 0) >= 2
           ? [{ id: 'streak', kind: 'streak', icon: '🔥', name: `${done.weekly_streak} hafta üst üste!`, points: 0 }]
           : [];
-      const pops = [...streak, ...(done.new_badges ?? [])];
+      const first: NewBadge[] = done.first_ever
+        ? [{ id: 'first_ever', kind: 'first', icon: '🎉', name: "İlk check-in'in!", points: done.points_earned ?? 0 }]
+        : [];
+      const pops = [...first, ...streak, ...(done.new_badges ?? [])];
       if (pops.length) setTimeout(() => celebrateBadges(pops), 1400);
       setResult({ ok: true, text: checkinMessage(done) });
       setShared({ id: done.id, label: look(level).label, first: done.is_first, streak: done.weekly_streak ?? 0, note: null, coupons: done.coupons ?? [] });

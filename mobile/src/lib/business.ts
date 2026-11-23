@@ -26,15 +26,61 @@ export type VenueStats = {
   month_change_pct?: number | null; // +20 = 20% more than last month
 };
 
-export const MAX_REWARD = 120;
-
 export const WEEKDAY_NAMES = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 
+/** What the business's plan and venue give it (GET /v1/business/plan). */
+export type BusinessAccess = {
+  plan: 'saas' | 'pay_per_use'; // pay_per_use: the free plan (old name)
+  founder: boolean;
+  verified: boolean;
+  stats: boolean;
+  free_campaigns_per_month: number;
+  free_campaigns_left: number; // this month (verified venues)
+  next_campaign: 'saas' | 'founder' | 'free' | 'unverified' | 'blocked';
+  trial_until?: string | null; // the 15-day trial, running
+  trial_available?: boolean;
+  founder_until?: string | null; // kurucu mekan: the free Aylık paket ends then
+};
+
+/** Under the campaign form: how this campaign is covered. */
+export function campaignCostText(access: BusinessAccess | null): string {
+  if (!access) return '';
+  if (access.next_campaign === 'saas') return 'Aylık paketine dahil (sınırsız).';
+  if (access.next_campaign === 'founder') return 'Kurucu mekan: sınırsız ve ücretsiz.';
+  if (access.next_campaign === 'free') return `Ücretsiz · bu ay ${access.free_campaigns_left} kampanya hakkın kaldı.`;
+  if (access.next_campaign === 'unverified')
+    return `Mekanını doğrula (ücretsiz): ayda ${access.free_campaigns_per_month} kampanya hakkın olur. Sınırsız kampanya Aylık pakette.`;
+  return `Bu ayki ${access.free_campaigns_per_month} ücretsiz kampanyanı kullandın. Sınırsız kampanya Aylık pakette.`;
+}
+
+export type StandingReward = { id: number; points: number; discount: number; active: boolean };
+export type VenueReward = { campaign_id: number; points: number; discount: number; next_at: string | null };
+export type MonthReport = { month: string; checkins: number; people: number; new_people: number; coupons_used: number; campaigns: number };
+export type SalesPitch = {
+  week_checkins: number;
+  week_people: number;
+  busiest_hour: number | null;
+  favorites: number;
+  month_checkins: number;
+  reviews: number;
+  rating: number | null;
+  joined: boolean;
+  nearby_joined: number;
+};
+
 export const businessApi = {
+  // Kalıcı ödül ("200 puan = %10"): the business's own, and a venue's for customers
+  reward: (token: string) => send<StandingReward | null>('GET', '/v1/business/reward', undefined, token),
+  saveReward: (token: string, points: number, discount: number, active: boolean) =>
+    send<StandingReward>('PUT', '/v1/business/reward', { points, discount, active }, token),
+  venueReward: (venueId: number, token: string | null) => send<VenueReward | null>('GET', `/v1/venues/${venueId}/reward`, undefined, token ?? undefined),
+  // "availo bu ay size X müşteri getirdi"
+  report: (token: string, monthsBack = 0) => send<MonthReport>('GET', `/v1/business/report?months_back=${monthsBack}`, undefined, token),
+  trial: (token: string) => send<BusinessAccess>('POST', '/v1/business/trial', undefined, token),
+  // Yönetici: numbers for a venue that has not joined
+  pitch: (token: string, venueId: number) => send<SalesPitch>('GET', `/v1/admin/venues/${venueId}/pitch`, undefined, token),
+  access: (token: string) => send<BusinessAccess>('GET', '/v1/business/plan', undefined, token),
   stats: (token: string, venueId: number) => send<VenueStats>('GET', `/v1/venues/${venueId}/stats`, undefined, token),
-  // "Ödül ver": once per venue, the discoverer gets it as a notification
-  rewardDiscoverer: (token: string, venueId: number, message: string) =>
-    send<{ message: string }>('POST', `/v1/venues/${venueId}/discoverer-reward`, { message }, token),
 };
 
 /** "En çok check-in 14:00'te" — the busiest hour today, or null without check-ins. */

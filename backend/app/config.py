@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     database_url: str
-    max_venues_per_request: int = 200
+    max_venues_per_request: int = 400
     # Sign in with Google / Apple: our app's ids there (empty: the button stays hidden)
     google_client_ids: list[str] = []  # web, iOS and Android OAuth client ids
     apple_audiences: list[str] = []  # the iOS bundle id (and a Services ID for the web)
@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     mail_from: str = "availo <onboarding@resend.dev>"
     # Bug reports and contact messages are also e-mailed here (empty: only kept in the database)
     support_email: str = ""
+
+    # Phone notifications while the app is closed: new 🔔 items go to Expo's push service this often
+    # (0: off, e.g. in tests). The items themselves come from events; this only delivers them.
+    push_interval_seconds: int = 30
 
     # Local time of the venues (opening hours, "today", weekly rankings)
     dummy_timezone: str = "Europe/Istanbul"

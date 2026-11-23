@@ -54,6 +54,7 @@ BADGES = [
     ("night_owl", "Gece kuşu", "🦉", "22:00'den sonra check-in yap", "night", 1),
     ("helper", "Yardımsever", "🤝", "25 check-in yap", "checkins", 25),
     ("weekly_winner", "Haftanın 1.si", "🏆", "Bir haftayı genel sıralamada 1. bitir", "weeks_won", 1),
+    ("starter", "Hızlı başlangıç", "🚀", "İlk hafta görevlerini bitir: check-in, liste, arkadaş, fotoğraf", "starter_tasks", 4),
 ]
 # Points for a new badge, once, by how hard it is (the easiest 5)
 BADGE_POINTS = 5
@@ -67,6 +68,7 @@ BADGE_POINTS_BY_ID = {
     "great_explorer": 40,  # 5 discoveries
     "helper": 50,  # 25 check-ins
     "weekly_winner": 50,  # first of a whole week
+    "starter": 20,  # the four first steps
 }
 
 
@@ -181,6 +183,8 @@ def create_checkin(
         # "Burayı keşfeden 12. kişisin" on the first visit; later the visit count
         "visitor_rank": visits["people"] if visits["mine"] == 1 else None,
         "my_visits": visits["mine"],
+        # The very first check-in: the app celebrates it and says what points are for
+        "first_ever": conn.execute("SELECT count(*) AS n FROM checkins WHERE user_id = %s", (user["id"],)).fetchone()["n"] == 1,
         "weekly_streak": weekly_streak(conn, user["id"], now),  # "🔥 3. hafta üst üste"
         # The week's first check-in made the streak longer: celebrated like a badge
         "streak_up": conn.execute(
@@ -200,12 +204,18 @@ def update_trust(conn: psycopg.Connection, user: dict, venue_id: int, level: str
 
     others = conn.execute(
         """
-        SELECT DISTINCT ON (user_id) level FROM checkins
+        SELECT DISTINCT ON (user_id) user_id, level FROM checkins
         WHERE venue_id = %s AND user_id IS NOT NULL AND user_id <> %s AND created_at > %s AND created_at <= %s
         ORDER BY user_id, created_at DESC
         """,
         (venue_id, user["id"], now - TRUST_WINDOW, now),
     ).fetchall()
+    # The venue's insiders neither judge others (staff saying Sakin must not cost real customers their trust)
+    # nor earn trust here by agreeing with each other
+    insiders = _insiders(conn, [user["id"], *(o["user_id"] for o in others)], now)
+    if (user["id"], venue_id) in insiders:
+        return None
+    others = [o for o in others if (o["user_id"], venue_id) not in insiders]
     if len(others) < TRUST_MIN_OTHERS:
         return None
     consensus = sum(LEVEL_SCORE[o["level"]] for o in others) / len(others)
@@ -294,7 +304,9 @@ def user_stats(conn: psycopg.Connection, user_id: int) -> dict:
         {"id": user_id},
     ).fetchone()
     profile = profile_steps(conn, user_id)
-    row = {**row, "profile_complete": int(all(s["done"] for s in profile))}
+    from app.starter import task_status
+
+    row = {**row, "profile_complete": int(all(s["done"] for s in profile)), "starter_tasks": sum(task_status(conn, user_id).values())}
     badges = [
         {
             "id": badge_id,
@@ -419,7 +431,7 @@ def load_trends(conn: psycopg.Connection, venue_ids: list[int], now: datetime) -
 
 def load_crowds(conn: psycopg.Connection, venue_ids: list[int], now: datetime) -> dict[int, "Crowd"]:
     """Crowd of each venue from its check-ins of the last 90 minutes (unexplored when it has none at all)."""
-    from app.crowd import WINDOW, Crowd, Report, crowd_from_checkins
+    from app.crowd import WINDOW, Crowd, crowd_from_checkins
 
     if not venue_ids:
         return {}
@@ -430,44 +442,69 @@ def load_crowds(conn: psycopg.Connection, venue_ids: list[int], now: datetime) -
             (venue_ids, now),
         ).fetchall()
     }
-    reports: dict[int, list[Report]] = {}
-    for r in conn.execute(
+    reports = _reports(conn, venue_ids, now - WINDOW, now)
+    crowds = {vid: crowd_from_checkins(reports.get(vid, []), last.get(vid), now) for vid in venue_ids}
+    return _with_yesterday(conn, crowds, now)
+
+
+def _reports(conn: psycopg.Connection, venue_ids: list[int], start: datetime, end: datetime) -> dict[int, list["Report"]]:
+    """The venues' check-ins in (start, end], each weighted by its reporter's trust, and much less when the
+    reporter is one of the venue's insiders (works there, or hardly goes anywhere else)."""
+    from app.crowd import Report
+
+    rows = conn.execute(
         """
         SELECT c.venue_id, c.user_id, c.level, c.queue, c.seats, c.created_at, COALESCE(u.trust, 1) AS trust
         FROM checkins c LEFT JOIN users u ON u.id = c.user_id
         WHERE c.venue_id = ANY(%s) AND c.created_at > %s AND c.created_at <= %s
         """,
-        (venue_ids, now - WINDOW, now),
-    ).fetchall():
+        (venue_ids, start, end),
+    ).fetchall()
+    insiders = _insiders(conn, [r["user_id"] for r in rows if r["user_id"] is not None], end)
+    reports: dict[int, list[Report]] = {}
+    for r in rows:
+        insider = (r["user_id"], r["venue_id"]) in insiders
         reports.setdefault(r["venue_id"], []).append(
-            Report(r["user_id"], r["level"], r["queue"], r["seats"], r["created_at"], r["trust"])
+            Report(r["user_id"], r["level"], r["queue"], r["seats"], r["created_at"], r["trust"], insider)
         )
-    crowds = {vid: crowd_from_checkins(reports.get(vid, []), last.get(vid), now) for vid in venue_ids}
-    return _with_yesterday(conn, crowds, now)
+    return reports
+
+
+def _insiders(conn: psycopg.Connection, user_ids: list[int], now: datetime) -> set[tuple[int, int]]:
+    """(user, venue) pairs where the user looks like staff or the venue's own circle: see crowd.is_insider."""
+    from app.crowd import INSIDER_DAYS, is_insider
+
+    if not user_ids:
+        return set()
+    days: dict[int, dict[int, int]] = {}
+    for r in conn.execute(
+        """
+        SELECT user_id, venue_id, count(DISTINCT (created_at AT TIME ZONE 'Europe/Istanbul')::date)::int AS days
+        FROM checkins WHERE user_id = ANY(%s) AND created_at > %s AND created_at <= %s
+        GROUP BY user_id, venue_id
+        """,
+        (list(set(user_ids)), now - INSIDER_DAYS, now),
+    ).fetchall():
+        days.setdefault(r["user_id"], {})[r["venue_id"]] = r["days"]
+    return {
+        (user, venue)
+        for user, venues in days.items()
+        for venue, here in venues.items()
+        if is_insider(here, sum(venues.values()))
+    }
 
 
 def _with_yesterday(conn: psycopg.Connection, crowds: dict[int, "Crowd"], now: datetime) -> dict[int, "Crowd"]:
     """For venues without fresh check-ins: how full they were at this time yesterday ("Dün bu saatlerde")."""
     from dataclasses import replace
 
-    from app.crowd import WINDOW, Report, crowd_from_checkins
+    from app.crowd import WINDOW, crowd_from_checkins
 
     stale = [vid for vid, crowd in crowds.items() if crowd.state == "stale"]
     if not stale:
         return crowds
     then = now - timedelta(days=1)
-    reports: dict[int, list[Report]] = {}
-    for r in conn.execute(
-        """
-        SELECT c.venue_id, c.user_id, c.level, c.queue, c.seats, c.created_at, COALESCE(u.trust, 1) AS trust
-        FROM checkins c LEFT JOIN users u ON u.id = c.user_id
-        WHERE c.venue_id = ANY(%s) AND c.created_at > %s AND c.created_at <= %s
-        """,
-        (stale, then - WINDOW, then),
-    ).fetchall():
-        reports.setdefault(r["venue_id"], []).append(
-            Report(r["user_id"], r["level"], r["queue"], r["seats"], r["created_at"], r["trust"])
-        )
+    reports = _reports(conn, stale, then - WINDOW, then)
     for vid, rows in reports.items():
         past = crowd_from_checkins(rows, max(x.created_at for x in rows), then)
         if past.state == "live":

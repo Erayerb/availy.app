@@ -1,8 +1,9 @@
 /** New badges (from /v1/me or a check-in) for the celebration pop-up; the points are already added. */
 import { useEffect, useState } from 'react';
 
-// kind 'streak': "🔥 3 hafta üst üste" shown the same way as a new badge
-export type NewBadge = { id: string; name: string; icon: string; points: number; kind?: 'badge' | 'streak' };
+// kind 'streak': "🔥 3 hafta üst üste" shown the same way as a new badge; 'first': the very first check-in
+// (what points are for), shown first
+export type NewBadge = { id: string; name: string; icon: string; points: number; kind?: 'badge' | 'streak' | 'first' };
 
 const listeners = new Set<(badges: NewBadge[]) => void>();
 

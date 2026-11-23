@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
+import { MonthlySummary } from '../components/MonthlySummary';
+import { useSettings } from '../context/SettingsContext';
+import { userCoverUrl } from '../lib/userPhoto';
+import { PlusBadge } from '../components/PlusBadge';
+import { Image, ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { TAB_BAR_SPACE } from '../components/TabBar';
 import { useOnPageFocus } from '../context/PageContext';
 import { usePullRefresh } from '../hooks/usePullRefresh';
@@ -32,10 +36,12 @@ type Props = {
   onOpenSettings: () => void; // own profile: "Profil ayarları"
   onOpenList: (id: number) => void; // one of their lists
   onOpenLevels: (level: Level) => void; // Seviyeler page
+  onUpgrade: () => void; // Abonelik (availo+)
 };
 
 /** v2: a person's profile (also mine, from the top-right icon): points, badges, venues and friend actions. */
-export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpenSettings, onOpenList, onOpenLevels }: Props) {
+export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpenSettings, onOpenList, onOpenLevels, onUpgrade }: Props) {
+  const { premium } = useSettings();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -141,11 +147,19 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
       </View>
 
       <View style={styles.card}>
+        {profile.cover_at && <Image source={{ uri: userCoverUrl(profile.username, profile.cover_at) }} style={styles.cover} />}
         <View style={styles.head}>
-          <Avatar username={profile.username} size={56} version={profile.photo_at} framed={profile.level?.id === 'ambassador'} />
+          <Avatar
+            username={profile.username}
+            size={56}
+            version={profile.photo_at}
+            framed={profile.level?.id === 'ambassador'}
+            frameColor={profile.frame_color}
+          />
           <View style={styles.flex}>
             <Text style={styles.name}>
               @{profile.username}
+              {profile.plus && <PlusBadge />}
               {/* The weekly streak ("🔥 4": weeks in a row with a check-in) beside the name */}
               {!profile.stats_hidden && (profile.weekly_streak ?? 0) >= 1 && <Text style={styles.flame}>  🔥 {profile.weekly_streak}</Text>}
             </Text>
@@ -207,6 +221,8 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
         )}
         {note && <Text style={styles.note}>{note}</Text>}
       </View>
+
+      {me && <MonthlySummary token={token} plus={premium} onUpgrade={onUpgrade} onOpenVenue={onOpenVenue} />}
 
       {/* "Az önce X'te check-in yaptı": the newest venue (the list is newest first) */}
       {!me && profile.venues && profile.venues.length > 0 && (
@@ -335,6 +351,7 @@ const styles = themed(() => StyleSheet.create({
   flame: { fontSize: 17, fontWeight: '800', color: colors.primary },
   page: { flex: 1, backgroundColor: colors.background },
   winner: { fontSize: 14, fontWeight: '700', color: colors.gold },
+  cover: { width: '100%', aspectRatio: 3, borderRadius: 12, backgroundColor: colors.cream },
   venueChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 14, backgroundColor: colors.background },
   chipActive: { backgroundColor: colors.primary },

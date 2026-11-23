@@ -23,6 +23,17 @@ ANSWER_SHIFT = {
     ("medium", "seats", True): -0.07,  # 0.48
 }
 DEFAULT_TRUST = 1.0
+# Staff (or a venue's own circle) marking it Sakin / Kalabalık: someone who checks in here on many days and
+# hardly anywhere else counts for a fifth of a person here (still counted: a real regular is not silenced)
+INSIDER_DAYS = timedelta(days=14)
+INSIDER_MIN_DAYS = 4  # days with a check-in here, in the last two weeks
+INSIDER_SHARE = 0.6  # of all their check-in days (venue-days)
+INSIDER_WEIGHT = 0.2
+INSIDER_GROUP_MAX = 0.5  # all of a venue's insiders together count for at most half a person: ten waiters = three
+
+
+def is_insider(days_here: int, days_everywhere: int) -> bool:
+    return days_here >= INSIDER_MIN_DAYS and days_everywhere > 0 and days_here / days_everywhere >= INSIDER_SHARE
 
 State = Literal["live", "stale", "unexplored"]
 
@@ -35,6 +46,7 @@ class Report:
     seats: bool | None
     created_at: datetime
     trust: float = DEFAULT_TRUST
+    insider: bool = False  # staff or the venue's own circle (is_insider)
 
 
 @dataclass(frozen=True)
@@ -97,7 +109,10 @@ def crowd_from_checkins(reports: list[Report], last_report_at: datetime | None, 
     if not recent:
         return Crowd(state="stale", last_report_at=last_report_at)
 
-    weights = [age_weight(r.created_at, now) * r.trust for r in recent]
+    weights = [age_weight(r.created_at, now) * r.trust * (INSIDER_WEIGHT if r.insider else 1) for r in recent]
+    inside = sum(w for r, w in zip(recent, weights) if r.insider)
+    if inside > INSIDER_GROUP_MAX:
+        weights = [w * INSIDER_GROUP_MAX / inside if r.insider else w for r, w in zip(recent, weights)]
     total = sum(weights)
     score = sum(w * report_score(r) for r, w in zip(recent, weights)) / total if total > 0 else 0.5
     level = classify(score).value

@@ -10,6 +10,7 @@ import { Platform } from 'react-native';
 import { usePersistentState } from '../hooks/usePersistentState';
 import { fetchVenuesByIds } from '../lib/api';
 import { canAddWatch, FREE_WATCH_LIMIT } from '../lib/premium';
+import { useUpgrade } from './UpgradeContext';
 import { KEYS, loadJson, saveJson } from '../lib/storage';
 import { userSyncApi } from '../lib/userSync';
 import { notificationText, parseWatches, toggleWatch, watchExpired, watchTriggered, type Watch } from '../lib/watch';
@@ -50,6 +51,7 @@ const EngagementContext = createContext<Engagement | null>(null);
 
 export function EngagementProvider({ userKey, token, children }: { userKey: string; token: string | null; children: ReactNode }) {
   const { watchNotifications, premium } = useSettings();
+  const { promptUpgrade } = useUpgrade();
   const [watches, setWatches] = usePersistentState<Watch[]>(KEYS.watches, [], parseWatches);
   const [photos, setPhotos] = usePersistentState<Record<string, string>>(KEYS.photos, {}, asRecord);
   const [alert, setAlert] = useState<string | null>(null);
@@ -88,14 +90,14 @@ export function EngagementProvider({ userKey, token, children }: { userKey: stri
     (venue: { id: number; name: string }) => {
       const adding = !watches.some((w) => w.venueId === venue.id);
       if (adding && !canAddWatch(watches.length, premium)) {
-        setAlert(`Ücretsiz planda aynı anda ${FREE_WATCH_LIMIT} mekanı takip edebilirsin. Sınırsız takip için Premium: Daha fazla → Abonelik`);
+        promptUpgrade(`Ücretsiz planda aynı anda ${FREE_WATCH_LIMIT} mekanı takip edebilirsin. availo+ ile sınırsız mekan takip edersin.`);
         return;
       }
       setWatches((list) => toggleWatch(list, venue, new Date()));
       if (token) (adding ? userSyncApi.addWatch(token, venue.id) : userSyncApi.removeWatch(token, venue.id)).catch(() => {});
       if (Platform.OS !== 'web' && watchNotifications) Notifications.requestPermissionsAsync().catch(() => {});
     },
-    [setWatches, watchNotifications, watches, premium, token],
+    [setWatches, watchNotifications, watches, premium, token, promptUpgrade],
   );
 
   // While the app is open, check watched venues and notify once new check-ins say Sakin

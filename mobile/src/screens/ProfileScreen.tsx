@@ -1,4 +1,7 @@
 import { InlineIcon } from '../components/Icon';
+import { PlusBadge } from '../components/PlusBadge';
+import { PlusProfile } from '../components/PlusProfile';
+import { useSettings } from '../context/SettingsContext';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { TAB_BAR_SPACE } from '../components/TabBar';
@@ -31,6 +34,7 @@ type Props = {
   onFreezeAccount: () => Promise<void>;
   onOpenMyProfile: () => void;
   onOpenVerification: () => void; // business: Daha fazla > İşletme doğrulama
+  onUpgrade?: () => void; // Abonelik (availo+)
 };
 
 export function ProfileScreen({
@@ -47,8 +51,10 @@ export function ProfileScreen({
   onFreezeAccount,
   onOpenMyProfile,
   onOpenVerification,
+  onUpgrade,
 }: Props) {
   const business = user?.role === 'business';
+  const { premium } = useSettings();
   // Business: its venue, edited from here
   const { venues, refresh: refreshVenue } = useVenuesByIds(business && user?.venueId ? [user.venueId] : []);
   const venue = venues[0];
@@ -111,7 +117,10 @@ export function ProfileScreen({
           </View>
         ) : (
           <>
-            <Text style={styles.name}>{user.username ? `@${user.username}` : user.name}</Text>
+            <Text style={styles.name}>
+              {user.username ? `@${user.username}` : user.name}
+              {premium && !business && <PlusBadge />}
+            </Text>
             <Text style={styles.muted}>
               {user.email} · {user.role === 'business' ? 'İşletme hesabı' : 'Bireysel hesap'}
             </Text>
@@ -132,6 +141,10 @@ export function ProfileScreen({
         )}
         {user.emailVerified && <Text style={styles.success}><InlineIcon name="circle-check" /> E-posta doğrulandı</Text>}
       </View>
+
+      {!business && user.username && user.token && (
+        <PlusProfile token={user.token} username={user.username} plus={premium} onUpgrade={onUpgrade ?? (() => {})} />
+      )}
 
       {user.email && !user.emailVerified && (
         <VerifyEmail email={user.email} onChangeEmail={onChangeEmail} onSend={onSendVerification} onVerify={onVerifyEmail} />

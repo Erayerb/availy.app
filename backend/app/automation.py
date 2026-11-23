@@ -57,8 +57,17 @@ def get_settings(conn: psycopg.Connection, user: dict) -> dict:
     return dict(row) if row else {"dead_hour_alerts": True, "auto_campaign": False}
 
 
+def in_monthly_plan(conn: psycopg.Connection, user: dict) -> bool:
+    """Scheduled and automatic campaigns: the monthly plan (and founder venues)."""
+    from app.plans import business_access
+
+    return business_access(conn, user)["next_campaign"] in ("saas", "founder")
+
+
 def save_settings(conn: psycopg.Connection, user: dict, dead_hour_alerts: bool, auto_campaign: bool, now: datetime) -> dict:
     venue_id = _business_venue(user)
+    if auto_campaign and not in_monthly_plan(conn, user):
+        raise AutomationError("Otomatik ölü saat kampanyası aylık pakette. Abonelik > Aylık paket.", 402)
     conn.execute(
         """
         INSERT INTO venue_profiles (venue_id, dead_hour_alerts, auto_campaign, updated_at) VALUES (%s, %s, %s, %s)
@@ -90,7 +99,7 @@ def after_checkin(conn: psycopg.Connection, venue_id: int, now: datetime) -> Non
     ).fetchone()
     if business is None or not (business["dead_hour_alerts"] or business["auto_campaign"]):
         return
-    if not venue_hours(business).is_open_at_hour(now.astimezone(ISTANBUL).hour):
+    if not venue_hours(business, guess=True).is_open_at_hour(now.astimezone(ISTANBUL).hour):
         return
     crowd = load_crowds(conn, [venue_id], now)[venue_id]
     if crowd.state != "live" or crowd.level != "low" or crowd.reporters < DEAD_HOUR_MIN_PEOPLE:
@@ -106,10 +115,15 @@ def after_checkin(conn: psycopg.Connection, venue_id: int, now: datetime) -> Non
         conn.execute("INSERT INTO business_alerts (venue_id, kind, created_at) VALUES (%s, 'dead_hour', %s)", (venue_id, now))
 
     running = conn.execute(
-        "SELECT 1 FROM campaigns WHERE venue_id = %s AND starts_at <= %s AND ends_at > %s", (venue_id, now, now)
+        "SELECT 1 FROM campaigns WHERE venue_id = %s AND starts_at <= %s AND ends_at > %s AND NOT standing", (venue_id, now, now)
     ).fetchone()
     previous = last("auto_campaign")
-    if business["auto_campaign"] and running is None and (previous is None or now - previous >= AUTO_CAMPAIGN_EVERY):
+    if (
+        business["auto_campaign"]
+        and running is None
+        and (previous is None or now - previous >= AUTO_CAMPAIGN_EVERY)
+        and in_monthly_plan(conn, business)  # the plan may have changed since it was turned on
+    ):
         try:
             sent = create_campaign(
                 conn, business, dead_hour_message(business["category"]), AUTO_DISCOUNT, AUTO_RADIUS_KM, None, AUTO_HOURS, now
@@ -147,6 +161,8 @@ def save_schedule(
     now: datetime,
 ) -> dict:
     venue_id = _business_venue(user)
+    if not in_monthly_plan(conn, user):
+        raise AutomationError("Zamanlanmış kampanyalar aylık pakette. Abonelik > Aylık paket.", 402)
     text = " ".join(message.split())
     if not 5 <= len(text) <= 140:
         raise AutomationError("Kampanya mesajını yaz (en fazla 140 karakter).")

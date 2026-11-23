@@ -63,3 +63,37 @@ def send_support(
             f"{text}\n\nKimden: {who} · {mail or 'e-posta yok'}\nUygulama: {app_info or '-'}",
         )
     return {"id": row["id"]}
+
+
+def support_inbox(conn: psycopg.Connection, admin: dict) -> list[dict]:
+    """Yönetim > Destek: messages not answered yet, oldest first (answered ones from the last week below)."""
+    from app.moderation import require_admin
+
+    require_admin(admin)
+    return conn.execute(
+        """
+        SELECT s.id, s.kind, s.topic, s.body, s.email, s.created_at, s.reply, s.replied_at, u.username
+        FROM support_messages s LEFT JOIN users u ON u.id = s.user_id
+        WHERE s.replied_at IS NULL OR s.replied_at > now() - interval '7 days'
+        ORDER BY s.replied_at IS NOT NULL, s.created_at
+        LIMIT 100
+        """
+    ).fetchall()
+
+
+def reply_support(conn: psycopg.Connection, admin: dict, message_id: int, text: str, now: datetime) -> None:
+    """The answer shows in the sender's 🔔 (signed-in senders); it is also e-mailed when they left an address."""
+    from app.moderation import ModerationError, require_admin
+
+    require_admin(admin)
+    text = text.strip()
+    if not 2 <= len(text) <= MAX_TEXT:
+        raise ModerationError(f"Yanıt 2 ile {MAX_TEXT} karakter arasında olmalı.")
+    row = conn.execute(
+        "UPDATE support_messages SET reply = %s, replied_at = %s WHERE id = %s RETURNING email, topic",
+        (text, now, message_id),
+    ).fetchone()
+    if row is None:
+        raise ModerationError("Mesaj bulunamadı.", 404)
+    if row["email"]:
+        send_email(row["email"], f"availo destek: {row['topic']}", text)

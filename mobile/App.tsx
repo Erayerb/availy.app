@@ -51,6 +51,7 @@ import { CampaignsProvider } from './src/context/CampaignsContext';
 import { LoyaltyProvider } from './src/context/LoyaltyContext';
 import { EngagementProvider, useEngagement } from './src/context/EngagementContext';
 import { SettingsProvider, SettingsSync } from './src/context/SettingsContext';
+import { UpgradeProvider } from './src/context/UpgradeContext';
 import { useLocation } from './src/context/LocationContext';
 import { LocationProvider } from './src/context/LocationContext';
 import { FavoritesProvider } from './src/context/FavoritesContext';
@@ -554,6 +555,7 @@ function Main() {
               inviteName={auth.user?.username ?? null}
               onOpenProfile={openMyProfile}
               onOpenNotifications={() => goTo('notifications')}
+              onOpenScreen={(next) => goTo(next)}
             />
           )}
           {screen === 'map' && (
@@ -658,6 +660,7 @@ function Main() {
               onVerifyEmail={auth.verifyEmail}
               onOpenMyProfile={openMyProfile}
               onOpenVerification={() => goTo('verification')}
+              onUpgrade={() => goTo('subscription')}
             />
           )}
           {screen === 'settings' && (
@@ -682,6 +685,7 @@ function Main() {
                       venueId: auth.user.venueId,
                       plan: auth.user.plan ?? DEFAULT_PLAN,
                       onPlanChange: (plan) => auth.updateProfile({ plan }),
+                      token: auth.user.token ?? null,
                     }
                   : null
               }
@@ -728,6 +732,7 @@ function Main() {
                 setLevelsFor(level);
                 goTo('levels');
               }}
+              onUpgrade={() => goTo('subscription')}
             />
           )}
           {screen === 'notifications' && (
@@ -752,6 +757,14 @@ function Main() {
                 goTo('friends');
               }}
               onOpenSettings={() => goTo('settings')}
+              onOpenCampaigns={
+                isBusiness(auth.user)
+                  ? () => {
+                      setCampaignsTab('myCampaigns');
+                      goTo('campaigns');
+                    }
+                  : undefined
+              }
             />
           )}
           {screen === 'checkin' && (
@@ -833,6 +846,7 @@ function Main() {
   const backKey = tabNames.includes(behind.name) ? `tab:${behind.name}` : `page:${behind.id}`;
 
   return (
+    <UpgradeProvider business={isBusiness(auth.user)} onOpenSubscription={() => goTo('subscription')}>
     <EngagementProvider
       // A new key (e.g. a changed e-mail) loads that account's data again
       key={auth.user ? accountKey(auth.user) : 'guest'}
@@ -935,6 +949,7 @@ function Main() {
       </LoyaltyProvider>
       </CampaignsProvider>
     </EngagementProvider>
+    </UpgradeProvider>
   );
 }
 

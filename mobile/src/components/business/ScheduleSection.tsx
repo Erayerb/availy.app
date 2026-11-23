@@ -5,7 +5,8 @@ import { Pressable } from '../Pressable';
 
 import { useCampaigns } from '../../context/CampaignsContext';
 import type { Venue } from '../../lib/api';
-import { DISCOUNT_OPTIONS, DURATION_OPTIONS_HOURS, RADIUS_OPTIONS_KM, scheduleSuggestion } from '../../lib/campaigns';
+import { DISCOUNT_STEP, DURATION_OPTIONS_HOURS, RADIUS_OPTIONS_KM, scheduleSuggestion } from '../../lib/campaigns';
+import { Stepper } from '../Stepper';
 import type { PlanId } from '../../lib/plans';
 import { validateSchedule, WEEKDAYS } from '../../lib/schedules';
 import { colors } from '../../theme';
@@ -24,7 +25,7 @@ export function ScheduleSection({
   plan: PlanId;
   onUpgrade: () => void;
 }) {
-  const { schedules: mine, addSchedule, setScheduleActive, removeSchedule } = useCampaigns();
+  const { schedules: mine, addSchedule, setScheduleActive, removeSchedule, access } = useCampaigns();
   const [message, setMessage] = useState<string | null>(null); // null: follows the choices
   const [days, setDays] = useState<number[]>([1]);
   const [startHour, setStartHour] = useState('13');
@@ -34,7 +35,8 @@ export function ScheduleSection({
   const [error, setError] = useState<string | null>(null);
   const text = message ?? scheduleSuggestion(venue.category, days, Number(startHour), duration, discount);
 
-  if (plan !== 'saas') {
+  // The server's plan wins (a running 15-day trial counts as the Aylık paket)
+  if ((access?.plan ?? plan) !== 'saas') {
     return (
       <View style={panel.card}>
         <Text style={panel.sectionTitle}>Zamanlanmış kampanyalar <InlineIcon name="lock" /></Text>
@@ -113,10 +115,11 @@ export function ScheduleSection({
       </View>
       <View style={panel.wrap}>
         <Chip label="İndirimsiz" active={discount === null} onPress={() => setDiscount(null)} />
-        {DISCOUNT_OPTIONS.map((d) => (
-          <Chip key={d} label={`%${d}`} active={discount === d} onPress={() => setDiscount(d)} />
-        ))}
+        <Chip label="İndirimli" active={discount !== null} onPress={() => setDiscount(discount ?? 20)} />
       </View>
+      {discount !== null && (
+        <Stepper value={discount} onChange={setDiscount} min={DISCOUNT_STEP} max={90} step={DISCOUNT_STEP} format={(d) => `%${d}`} label="İndirim" />
+      )}
       <View style={panel.wrap}>
         {RADIUS_OPTIONS_KM.map((r) => (
           <Chip key={r} label={`${r} km`} active={radius === r} onPress={() => setRadius(r)} />

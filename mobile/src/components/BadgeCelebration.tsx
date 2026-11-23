@@ -20,7 +20,12 @@ export function BadgeCelebration() {
           <Celebration emoji={badges[0]?.icon} first={badges[0]?.id === 'explorer'} />
           <Text style={styles.title}>{title(badges)}</Text>
           {badges.map((b) =>
-            // A streak alone is the title; with badges it is one of the lines
+            b.kind === 'first' ? (
+              <Text key={b.id} style={styles.total}>
+                {b.points > 0 ? `+${b.points} puan kazandın. ` : ''}Puanla seviye atlarsın, haftalık sıralamaya girersin; mekanların
+                availo ödüllerini ve özel kuponlarını alırsın.
+              </Text>
+            ) : // A streak alone is the title; with badges it is one of the lines
             b.kind === 'streak' && badges.length === 1 ? (
               <Text key={b.id} style={styles.total}>Her hafta en az bir check-in yap, seri sürsün.</Text>
             ) : (
@@ -30,7 +35,7 @@ export function BadgeCelebration() {
               </Text>
             ),
           )}
-          {badges.filter((b) => b.points > 0).length > 1 && <Text style={styles.total}>Toplam +{total} puan</Text>}
+          {badges.filter((b) => b.points > 0 && b.kind !== 'first').length > 1 && <Text style={styles.total}>Toplam +{total} puan</Text>}
           <Pressable style={styles.button} onPress={close}>
             <Text style={styles.buttonText}>Harika</Text>
           </Pressable>
@@ -41,6 +46,7 @@ export function BadgeCelebration() {
 }
 
 function title(badges: NewBadge[]): string {
+  if (badges[0]?.kind === 'first') return "🎉 İlk check-in'in!";
   const real = badges.filter((b) => b.kind !== 'streak');
   if (!real.length) return `${badges[0]?.icon ?? ''} ${badges[0]?.name ?? ''}`.trim();
   return real.length > 1 ? `${real.length} yeni rozet!` : 'Yeni rozet!';

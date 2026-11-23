@@ -22,6 +22,7 @@ export type CheckinResult = {
   points_earned: number;
   new_badges?: NewBadge[]; // earned with this check-in: the celebration pop-up
   streak_up?: boolean; // the week's first check-in made the streak longer
+  first_ever?: boolean; // the person's very first check-in: celebrated, with what points are for
   together?: string[]; // friends here within the hour: +10 each ("Birlikte check-in")
   first_today?: boolean; // the day's first check-in here (not its discovery): double points
   // Why it earned no points: a check-in at another venue in the last 30 minutes, or 8 already today

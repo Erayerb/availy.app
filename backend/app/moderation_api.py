@@ -10,6 +10,7 @@ from app.auth_api import current_user
 from app.checkins_api import get_clock
 from app.db import get_conn
 from app.moderation import ModerationError, dismiss_reports, remove_item, reported_items
+from app.support import reply_support, support_inbox
 from app.venue_issues import moderate_pending, open_issues, pending_venues, report_issue, resolve_issue, set_founder
 
 router = APIRouter(prefix="/v1/admin")
@@ -175,6 +176,39 @@ def resolve(
     """Kapandı (off the map) / Düzelttim (name, hours) / Bildirim yanlış."""
     try:
         resolve_issue(conn, user, venue_id, kind, body.action, now, body.name, body.open_hour, body.close_hour)
+    except ModerationError as e:
+        raise _fail(e) from None
+    return Response(status_code=204)
+
+
+class SupportOut(BaseModel):
+    id: int
+    kind: str
+    topic: str
+    body: str
+    email: str | None
+    username: str | None
+    created_at: datetime
+    reply: str | None
+    replied_at: datetime | None
+
+
+class SupportReplyIn(BaseModel):
+    text: str = Field(max_length=1000)
+
+
+@router.get("/support", response_model=list[SupportOut])
+def support_messages(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    try:
+        return support_inbox(conn, user)
+    except ModerationError as e:
+        raise _fail(e) from None
+
+
+@router.post("/support/{message_id}/reply", status_code=204)
+def answer_support(message_id: int, body: SupportReplyIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn), now: datetime = Depends(get_clock)):
+    try:
+        reply_support(conn, user, message_id, body.text, now)
     except ModerationError as e:
         raise _fail(e) from None
     return Response(status_code=204)
