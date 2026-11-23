@@ -50,7 +50,7 @@ export function FriendsPlaces({ token, onOpenVenue, onAddFriends, inviteName = n
 
   return (
     <View style={styles.section}>
-      <Text style={styles.title}>Arkadaşlarının gittiği yerler</Text>
+      <Text style={styles.title}>Arkadaşların nerede?</Text>
       {empty ? (
         <View style={styles.empty}>
           <Text style={styles.emptyText}>

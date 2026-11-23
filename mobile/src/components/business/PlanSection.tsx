@@ -1,15 +1,16 @@
-import { View } from 'react-native';
+import { Linking, View } from 'react-native';
 import { Text } from '../Text';
 import { Pressable } from '../Pressable';
 
 import { useState } from 'react';
 
 import { useCampaigns } from '../../context/CampaignsContext';
-import { PLANS, type PlanId } from '../../lib/plans';
+import { BUSINESS_PLANS_URL, PLANS, SHOW_BUSINESS_PURCHASE_LINK, type PlanId } from '../../lib/plans';
 import { colors } from '../../theme';
 import { panel } from './panelStyles';
 
-/** The business's package (pay per campaign or monthly SaaS); no payment in the prototype. */
+/** The business's package: Ücretsiz or the Aylık paket. The Aylık paket is bought on the website (the app opens
+ * it); the 15-day trial starts here; going back to Ücretsiz is here too. */
 export function PlanSection({ plan, onPlanChange }: { plan: PlanId; onPlanChange: (plan: PlanId) => void }) {
   const { access, startTrial } = useCampaigns();
   const [note, setNote] = useState<string | null>(null);
@@ -42,7 +43,15 @@ export function PlanSection({ plan, onPlanChange }: { plan: PlanId; onPlanChange
               borderColor: selected ? colors.primary : colors.border,
               gap: 3,
             }}
-            onPress={() => onPlanChange(id)}
+            onPress={() => {
+              if (selected) return;
+              if (id === 'saas') {
+                if (SHOW_BUSINESS_PURCHASE_LINK) Linking.openURL(BUSINESS_PLANS_URL).catch(() => setNote('Site açılamadı.'));
+                else setNote("Aylık paketi availo web sitesinden alabilirsin.");
+                return;
+              }
+              onPlanChange(id);
+            }}
           >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 }}>
               <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>{p.name}</Text>
@@ -54,12 +63,14 @@ export function PlanSection({ plan, onPlanChange }: { plan: PlanId; onPlanChange
               </Text>
             ))}
             <Text style={{ marginTop: 4, color: selected ? colors.primary : colors.textMuted, fontWeight: selected ? '600' : '400' }}>
-              {selected ? '✓ Mevcut paketin' : 'Bu paketi seç'}
+              {selected ? '✓ Mevcut paketin' : id === 'saas' ? (SHOW_BUSINESS_PURCHASE_LINK ? 'Web sitesinden al ›' : 'Web sitesinden alınır') : 'Ücretsiz plana dön'}
             </Text>
           </Pressable>
         );
       })}
-      <Text style={{ textAlign: 'center', color: colors.placeholder, fontSize: 12 }}>Prototip: ödeme alınmaz.</Text>
+      <Text style={{ textAlign: 'center', color: colors.placeholder, fontSize: 12 }}>
+        Aylık paket web sitesinden kartla alınır (online ödeme çok yakında).
+      </Text>
     </View>
   );
 }

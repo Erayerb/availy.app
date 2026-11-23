@@ -270,6 +270,9 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Mağaza sürümü: Expo EAS Build ile App Store / Google Play (Expo Go geliştirme modunda çalışır; yavaş sayfa geçişleri gerçek sürümde büyük ölçüde düzelir)
 - Android harita anahtarı: Android'de harita Google Haritalar (iPhone'da Apple Haritalar, ücretsiz). Google Cloud'da faturalandırması açık bir proje aç, "Maps SDK for Android"i etkinleştir, Android'e kısıtlı bir API anahtarı oluştur ve app.json'a `android.config.googleMaps.apiKey` olarak ekle (anahtar gizli: EAS secret / ortam değişkeni, koda yazılmaz). Telefondaki harita gösterimi ücretsiz ve sınırsız; yalnızca map ID (Google panelinden özel stil) kullanılırsa ayda 10.000 açılıştan sonra ücretli olur, kullanma. Derlemeden önce resmi fiyat sayfasını bir kez kontrol et (developers.google.com/maps/billing-and-pricing/pricing)
 - Ödeme: Aylık paket, availo+ ve "Öne çık" için ödeme altyapısı yok; ekranlarda "Prototip" yazıyor (bkz. Paketler)
+  - availo+: App Store / Google Play aboneliği, RevenueCat ile (iki mağazayı tek yerden yönetir, belli bir gelire kadar ücretsiz). Sunucu "availo+ mı?" bilgisini RevenueCat'in bildiriminden (webhook) alıp users.plan'a yazar; Abonelik ekranındaki tek dokunuşla açılan prototip geçiş kalkar. Gerekenler: mağaza hesaplarında abonelik ürünleri, ödeme / vergi bilgileri
+  - İşletme (Aylık paket, "Öne çık"): web sitesinden (isletme.html#paketler) kartla, iyzico / PayTR / Param ile; sağlayıcının "ödendi" bildirimi (webhook) sunucuda paketi açar. Uygulamadaki Abonelik ekranı şimdilik siteye yönlendiriyor (mobile/src/lib/plans.ts `BUSINESS_PLANS_URL`). ⚠️ Mağaza kuralları: Apple (ABD dışı) ve Google uygulamadan dışarıdaki satın almaya link vermeyi kısıtlıyor; mağazaya göndermeden önce linki iOS'ta kapatmak (`SHOW_BUSINESS_PURCHASE_LINK`) ya da kurala uygun hâle getirmek gerekebilir
+  - İkisi için: şirket (şahıs şirketi olur), vergi levhası, e-arşiv / e-fatura, mesafeli satış sözleşmesi ve gizlilik metni (hukukçu)
 - E-posta: Resend hesabı açıldı, anahtar Render'da (`resend` ortam grubu, RESEND_API_KEY). Alan adı olmadan Resend yalnızca hesap sahibinin adresine gönderir; herkese gidebilmesi için alan adı al (ör. availy.app), Resend → Domains'te doğrula (DNS: SPF, DKIM) ve Render'da MAIL_FROM = "availo <no-reply@alanadı>" yap
 
 **KVKK ve hukuk** (hepsi hukukçuya sorulacak)
@@ -352,7 +355,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Ek kazanım: yorum yazmak, Sakin saatte gitmek
 
 **Fikirler (karar bekliyor)**
-- Ana sayfa sağa kaydırmalı satırlar (sıradaki iş; beğenilmezse şimdiki listeye dönülür): "Şu an sakin, yakınında", "Arkadaşlarının gittiği yerler", "Puanla alabileceklerin", "Keşfedilmeyi bekleyenler", "Trend olanlar"; en fazla 4–5 satır, boşlar gizlenir, her satırda "Tümü", en altta filtreli "Tüm mekanlar"
+- Ana sayfa sağa kaydırmalı satırlar (yapıldı, deneniyor; beğenilmezse eski tek listeye dönülür; mobile/src/components/HomeRows.tsx): sırasıyla "Arkadaşların nerede?", "Şu an sakin, yakınında", "Ne arıyorsun?" (tek satır, seçilebilir etiket çipleri), "Trend olanlar", "Keşfedilmeyi bekleyenler" (yalnızca konum varken, 2 km içi, en fazla 6). Boş satırlar gizlenir; altında filtreli "Tüm mekanlar" listesi kalır. "Öne çık": sponsorlu mekan uyduğu satırların başında "Sponsorlu" etiketiyle (seçenek A)
 - Ödeme altyapısı: availo+ App Store / Google Play aboneliği (RevenueCat); işletme paketi ve "Öne çık" web sitesinden kartla (iyzico / PayTR / Param) + sunucuya "ödendi" bildirimi. Şirket, e-arşiv / e-fatura, mesafeli satış sözleşmesi gerekir
 - Öneri şeridinden tek dokunuşla bildirim: şeritte Sakin / Orta / Kalabalık, basınca check-in ve "Geri al"
 - Check-in sonrası tek soru: priz, Wi-Fi, sessizlik; özellikleri kullanıcılar doldurur, çalışma filtresini besler

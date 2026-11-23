@@ -209,3 +209,7 @@
   .micro span { display: inline-flex; align-items: center; gap: 4px; }
   .micro i { color: var(--low); }
   .sub b, .card p b, .step p b, .lead b { color: var(--text); }
+  .buy { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 16px; padding: 18px 20px; border-radius: 20px; background: var(--surface); border: 2px solid var(--gold); }
+  .buy b { display: block; font-size: 18px; }
+  .buy span { color: var(--muted); font-size: 15px; }
+  .buy > div { flex: 1 1 320px; }

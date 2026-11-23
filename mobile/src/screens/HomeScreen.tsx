@@ -2,7 +2,7 @@ import { useDeferredValue, useMemo, useState } from 'react';
 import { StarterTasks } from '../components/StarterTasks';
 import type { Screen } from '../components/TabBar';
 import { WhileAway } from '../components/WhileAway';
-import { Modal, Platform, StyleSheet, View } from 'react-native';
+import { LayoutAnimation, Modal, Platform, StyleSheet, View } from 'react-native';
 import { useOnPageFocus } from '../context/PageContext';
 import { Text, TextInput } from '../components/Text';
 import { Pressable } from '../components/Pressable';
@@ -12,6 +12,7 @@ import { Chip } from '../components/TagChips';
 import { FilterBar } from '../components/FilterSheet';
 import { VenueGrid } from '../components/VenueGrid';
 import { FriendsPlaces } from '../components/FriendsPlaces';
+import { HomeRows } from '../components/HomeRows';
 import { Wordmark } from '../components/Wordmark';
 import { useDistricts } from '../hooks/useDistricts';
 import { useSearch } from '../hooks/useSearch';
@@ -114,6 +115,15 @@ export function HomeScreen({
 
   const { point } = useLocation();
   const [placeOpen, setPlaceOpen] = useState(false);
+  // The search box: closed into an icon at the top right until tapped (or while a search is typed)
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchVisible = searchOpen || query.length > 0;
+  const toggleSearch = (open: boolean) => {
+    // The box grows in, and the page moves down with it
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    if (!open) setQuery('');
+    setSearchOpen(open);
+  };
 
   // "Önerilen": open places first, nearest first; without a location a mixed order (search results by name)
   const items = useMemo(
@@ -133,31 +143,45 @@ export function HomeScreen({
     <View style={styles.header}>
       <View style={styles.topRow}>
         <Wordmark size={28} />
-        <HeaderButtons onOpenProfile={onOpenProfile} onOpenNotifications={onOpenNotifications} />
+        <View style={styles.topActions}>
+          {/* Search as an icon (one row less); a tap opens the box under it */}
+          {!searchVisible && (
+            <Pressable onPress={() => toggleSearch(true)} style={styles.searchButton} hitSlop={8} accessibilityLabel="Mekan ara">
+              <TabIcon name="search" color={colors.text} active={false} size={19} />
+            </Pressable>
+          )}
+          <HeaderButtons onOpenProfile={onOpenProfile} onOpenNotifications={onOpenNotifications} />
+        </View>
       </View>
 
-      <View style={styles.search}>
-        <TabIcon name="search" color={colors.textMuted} active={false} size={18} />
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Mekan ara"
-          placeholderTextColor={colors.placeholder}
-          style={styles.searchInput}
-          returnKeyType="search"
-          autoCorrect={false}
-        />
-        {query.length > 0 && (
-          <Pressable onPress={() => setQuery('')} hitSlop={10}>
+      {searchVisible && (
+        <View style={styles.search}>
+          <TabIcon name="search" color={colors.textMuted} active={false} size={18} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Mekan ara"
+            placeholderTextColor={colors.placeholder}
+            style={styles.searchInput}
+            returnKeyType="search"
+            autoCorrect={false}
+            autoFocus={searchOpen}
+          />
+          <Pressable onPress={() => toggleSearch(false)} hitSlop={10} accessibilityLabel="Aramayı kapat">
             <Icon name="x" size={16} color={colors.textMuted} />
           </Pressable>
-        )}
-      </View>
+        </View>
+      )}
 
       {!searching && <StarterTasks token={token} onOpen={onOpenScreen} />}
       {!searching && <WhileAway token={token} onOpenVenue={onOpenVenue} onOpenNotifications={onOpenNotifications} />}
 
       {!searching && <FriendsPlaces token={token} onOpenVenue={onOpenVenue} onAddFriends={onOpenFriends} inviteName={inviteName} />}
+
+      {/* Sideways rows: Şu an sakin, yakınında · Ne arıyorsun? · Trend olanlar · Keşfedilmeyi bekleyenler */}
+      {!searching && <HomeRows venues={venues} onOpenVenue={onOpenVenue} />}
+
+      {!searching && <Text style={styles.allTitle}>Tüm mekanlar</Text>}
 
       {/* Filtrele: Ne arıyorsun?, Sırala (Önerilen / En yakın / En sakin), Kapalıları gizle */}
       <FilterBar
@@ -281,6 +305,9 @@ function placeLabel(sides: Side[], districts: string[]): string {
 }
 
 const styles = themed(() => StyleSheet.create({
+  topActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  searchButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  allTitle: { fontSize: 17, fontWeight: '700', color: colors.text, marginTop: 10 },
   header: { gap: 10 },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6, zIndex: 20, elevation: 20 },
   row: { gap: 8 },

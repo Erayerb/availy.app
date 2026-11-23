@@ -28,3 +28,9 @@ export const PLANS: Record<PlanId, { name: string; price: string; features: stri
 };
 
 export const DEFAULT_PLAN: PlanId = 'pay_per_use';
+
+// The Aylık paket is bought on the website (card payment there; iyzico or similar later), not in the app
+export const BUSINESS_PLANS_URL = 'https://erayerb.github.io/availy.app/v2/tanitim/isletme.html#paketler';
+// ⚠️ App Store (outside the US) and Google Play restrict links to purchases outside the app: turn this off on
+// iOS before review if needed (CONTEXT.md > Ödeme)
+export const SHOW_BUSINESS_PURCHASE_LINK = true;
