@@ -22,7 +22,7 @@ export type Profile = {
   discoveries: number | null;
   badges: Badge[];
   venues: ProfileVenue[] | null; // null: only friends see them
-  weekly_streak?: number | null; // "🔥 4 haftalık seri"
+  streak?: number | null; // "🔥 4 gün üst üste"
   weekly_winner?: boolean; // first of last week: "Haftanın 1.si"
   stats_hidden?: boolean;
   level?: Level | null; // shown even when the statistics are hidden

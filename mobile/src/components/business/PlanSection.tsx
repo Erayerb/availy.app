@@ -18,7 +18,8 @@ export function PlanSection({ plan, onPlanChange }: { plan: PlanId; onPlanChange
   return (
     <View style={panel.card}>
       <Text style={panel.sectionTitle}>Paketin</Text>
-      {access?.trial_until && (
+      {/* A founder's free months usually outlast the trial: only the later one is said */}
+      {access?.trial_until && !(access.founder_until && access.founder_until >= access.trial_until) && (
         <Text style={panel.success}>Aylık paket denemen sürüyor: {day(access.trial_until)} tarihine kadar ücretsiz.</Text>
       )}
       {access?.founder_until && (
@@ -69,7 +70,7 @@ export function PlanSection({ plan, onPlanChange }: { plan: PlanId; onPlanChange
         );
       })}
       <Text style={{ textAlign: 'center', color: colors.placeholder, fontSize: 12 }}>
-        Aylık paket web sitesinden kartla alınır (online ödeme çok yakında).
+        Aylık paket web sitesinden alınır.
       </Text>
     </View>
   );

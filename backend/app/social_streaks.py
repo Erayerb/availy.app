@@ -1,19 +1,19 @@
 """Doing it together: "Birlikte check-in" (friends at the same venue within an hour get +10 each),
-"Grup serisi" (weeks in a row in which every member checked in) and "Seri kurtarma" (once a month
-a friend may cover a week without a check-in, so someone's weekly streak goes on).
+"Grup serisi" (weeks in a row in which every member checked in) and "Seri kurtarma" (a friend may cover a
+day without a check-in, so someone's daily streak goes on: 2 a month, availo+ 10).
 """
 from datetime import date, datetime, timedelta
 
 import psycopg
 
-from app.streaks import ISTANBUL, _week_start, weekly_streak
+from app.streaks import ISTANBUL, _week_start, day_streak, istanbul_day
 
 TOGETHER_WINDOW = timedelta(hours=1)
 TOGETHER_POINTS = 10
 SAVE_EVERY = timedelta(days=30)
-# Saves per 30 days: Premium gets three
-SAVES = {"premium": 3}
-SAVES_DEFAULT = 1
+# Saves per 30 days: availo+ gets ten
+SAVES = {"premium": 10}
+SAVES_DEFAULT = 2
 
 FRIENDS = """(SELECT addressee_id FROM friendships WHERE requester_id = %(me)s AND status = 'accepted'
               UNION SELECT requester_id FROM friendships WHERE addressee_id = %(me)s AND status = 'accepted')"""
@@ -66,24 +66,35 @@ def _checked_in_week(conn: psycopg.Connection, user_id: int, week: datetime) -> 
     ).fetchone():
         return True
     return conn.execute(
-        "SELECT 1 FROM streak_saves WHERE user_id = %s AND week_start = %s", (user_id, week.date())
+        "SELECT 1 FROM streak_saves WHERE user_id = %s AND day >= %s AND day < %s", (user_id, week.date(), end.date())
     ).fetchone() is not None
 
 
+def _checked_in_day(conn: psycopg.Connection, user_id: int, day: date) -> bool:
+    """A check-in that day (Istanbul), or a friend saved it."""
+    start = datetime.combine(day, datetime.min.time(), ISTANBUL)
+    if conn.execute(
+        "SELECT 1 FROM checkins WHERE user_id = %s AND NOT is_demo AND created_at >= %s AND created_at < %s LIMIT 1",
+        (user_id, start, start + timedelta(days=1)),
+    ).fetchone():
+        return True
+    return conn.execute("SELECT 1 FROM streak_saves WHERE user_id = %s AND day = %s", (user_id, day)).fetchone() is not None
+
+
 def friend_streaks(conn: psycopg.Connection, me: dict, friend_ids: list[int], now: datetime) -> dict[int, dict]:
-    """For the friends list: each friend's streak and whether this week still needs a check-in (or a save)."""
-    week = _week_start(now)
+    """For the friends list: each friend's streak and whether today still needs a check-in (or a save)."""
+    today = istanbul_day(now)
     can_save = save_allowed(conn, me, now)
     out = {}
     for fid in friend_ids:
-        streak = weekly_streak(conn, fid, now)
-        at_risk = streak >= 1 and not _checked_in_week(conn, fid, week)
+        streak = day_streak(conn, fid, now)
+        at_risk = streak >= 1 and not _checked_in_day(conn, fid, today)
         out[fid] = {"streak": streak, "at_risk": at_risk, "can_save": at_risk and can_save}
     return out
 
 
 def save_allowed(conn: psycopg.Connection, me: dict, now: datetime) -> bool:
-    """One save every 30 days; Premium three."""
+    """Saves in the last 30 days: 2, availo+ 10."""
     plan = conn.execute("SELECT plan FROM users WHERE id = %s", (me["id"],)).fetchone()["plan"]
     used = conn.execute(
         "SELECT count(*) AS n FROM streak_saves WHERE saved_by = %s AND created_at > %s", (me["id"], now - SAVE_EVERY)
@@ -98,16 +109,16 @@ def save_streak(conn: psycopg.Connection, me: dict, username: str, now: datetime
     ).fetchone()
     if friend is None:
         raise StreakError("Yalnızca arkadaşlarının serisini kurtarabilirsin.", 404)
-    week = _week_start(now)
-    if weekly_streak(conn, friend["id"], now) < 1 or _checked_in_week(conn, friend["id"], week):
-        raise StreakError("Bu hafta kurtarılacak bir seri yok.")
+    today = istanbul_day(now)
+    if day_streak(conn, friend["id"], now) < 1 or _checked_in_day(conn, friend["id"], today):
+        raise StreakError("Bugün kurtarılacak bir seri yok.")
     if not save_allowed(conn, me, now):
-        raise StreakError("Bu ayki seri kurtarma hakkın doldu (Premium'da ayda 3).", 429)
+        raise StreakError("Bu ayki seri kurtarma hakkın doldu (availo+'ta ayda 10).", 429)
     conn.execute(
-        "INSERT INTO streak_saves (user_id, week_start, saved_by, created_at) VALUES (%s, %s, %s, %s)",
-        (friend["id"], week.date(), me["id"], now),
+        "INSERT INTO streak_saves (user_id, day, saved_by, created_at) VALUES (%s, %s, %s, %s)",
+        (friend["id"], today, me["id"], now),
     )
-    return {"username": friend["username"], "streak": weekly_streak(conn, friend["id"], now)}
+    return {"username": friend["username"], "streak": day_streak(conn, friend["id"], now)}
 
 
 def group_streak(conn: psycopg.Connection, group_id: int, me: dict, now: datetime) -> dict:

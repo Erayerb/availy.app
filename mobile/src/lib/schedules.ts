@@ -19,10 +19,32 @@ export type ScheduledCampaign = {
 
 export type NewSchedule = Omit<ScheduledCampaign, 'id' | 'active'>;
 
+// Day names a message may use ("salı", "salıları", "cumartesi"): the longer one first (cumartesi before cuma)
+const DAY_WORDS: [string, number][] = [
+  ['pazartesi', 0], ['salı', 1], ['çarşamba', 2], ['perşembe', 3], ['cumartesi', 5], ['cuma', 4], ['pazar', 6],
+];
+const DAY_LABELS = ['pazartesi', 'salı', 'çarşamba', 'perşembe', 'cuma', 'cumartesi', 'pazar'];
+
+/** The days the message names ("Her salı…" → [1]). */
+export function daysInMessage(message: string): number[] {
+  const found = new Set<number>();
+  for (const word of message.toLocaleLowerCase('tr-TR').split(/[^a-zçğıöşü]+/)) {
+    const day = DAY_WORDS.find(([name]) => word.startsWith(name));
+    if (day) found.add(day[1]);
+  }
+  return [...found].sort((a, b) => a - b);
+}
+
 export function validateSchedule(s: Pick<NewSchedule, 'message' | 'days' | 'start_hour'>): string | null {
   if (s.message.trim().length < 5) return 'Kampanya mesajını yaz.';
   if (s.days.length === 0) return 'En az bir gün seç.';
   if (!Number.isInteger(s.start_hour) || s.start_hour < 0 || s.start_hour > 23) return 'Başlangıç saati 0–23 olmalı.';
+  // "Her salı" in the message, but Salı is not chosen (or another day is chosen that the message does not say)
+  const named = daysInMessage(s.message);
+  const missing = named.filter((d) => !s.days.includes(d));
+  if (missing.length > 0) return `Mesajda "${DAY_LABELS[missing[0]]}" yazıyor ama o gün seçili değil. Günleri ya da mesajı düzelt.`;
+  const unsaid = named.length > 0 ? s.days.filter((d) => !named.includes(d)) : [];
+  if (unsaid.length > 0) return `${DAY_LABELS[unsaid[0]][0].toLocaleUpperCase('tr-TR')}${DAY_LABELS[unsaid[0]].slice(1)} seçili ama mesajda yazmıyor. Günleri ya da mesajı düzelt.`;
   return null;
 }
 

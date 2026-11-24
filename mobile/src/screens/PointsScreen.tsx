@@ -56,7 +56,7 @@ export function PointsScreen({ token, onBack, onOpenVenue }: { token: string; on
       </View>
 
       <Text style={styles.section}>Puanla alabileceklerin</Text>
-      {offers.length === 0 && <Text style={styles.muted}>Yakında puanla alınabilecek bir ödül yok. Mekanlar ekledikçe burada görünür.</Text>}
+      {offers.length === 0 && <Text style={styles.muted}>Şimdilik puanla alınacak ödül yok. Mekanlar ödül ekleyince burada görürsün.</Text>}
       {offers.map((o) => {
         const enough = (wallet?.balance ?? 0) >= o.points;
         return (
@@ -81,7 +81,7 @@ export function PointsScreen({ token, onBack, onOpenVenue }: { token: string; on
       })}
 
       <Text style={styles.section}>Geçmiş</Text>
-      {wallet && wallet.moves.length === 0 && <Text style={styles.muted}>Henüz puan hareketin yok. İlk check-in'inle başla.</Text>}
+      {wallet && wallet.moves.length === 0 && <Text style={styles.muted}>Check-in yap, ilk puanını kazan.</Text>}
       <View style={styles.card}>
         {moves.map((m, i) => (
           <View key={`${m.at}-${i}`} style={[styles.move, i > 0 && styles.divider]}>

@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { Children, createContext, useContext, type ReactNode } from 'react';
 import {
   StyleSheet,
   Text as RNText,
@@ -51,11 +51,23 @@ export function withFont(style: StyleProp<TextStyle>, inherit = false): StylePro
 
 const InsideText = createContext(false);
 
+/** Upper case the Turkish way: "i" becomes "İ" (the style's textTransform gave "GEÇMIŞ"; not every phone's JS
+ * engine knows the Turkish locale, so by hand). */
+function turkishUpper(children: ReactNode): ReactNode {
+  return Children.map(children, (child) => (typeof child === 'string' ? child.replace(/i/g, 'İ').replace(/ı/g, 'I').toUpperCase() : child));
+}
+
 export function Text(props: TextProps) {
   const nested = useContext(InsideText);
+  const upper = StyleSheet.flatten(props.style)?.textTransform === 'uppercase';
   return (
     <InsideText.Provider value>
-      <RNText {...props} style={withFont(props.style, nested)} />
+      <RNText
+        {...props}
+        style={upper ? [withFont(props.style, nested), { textTransform: 'none' }] : withFont(props.style, nested)}
+      >
+        {upper ? turkishUpper(props.children) : props.children}
+      </RNText>
     </InsideText.Provider>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { confirmAction } from '../lib/confirm';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { Text, TextInput } from '../components/Text';
 import { Pressable } from '../components/Pressable';
@@ -96,7 +97,7 @@ export function VenueSetupScreen({ token, onDone, onLogout }: Props) {
           );
         }}
         ListFooterComponent={
-          <Pressable onPress={onLogout} style={styles.logout} hitSlop={10}>
+          <Pressable onPress={() => confirmAction('Çıkış yapmak istediğine emin misin?', 'Tekrar girmek için kullanıcı adın ve şifren gerekir.', 'Çıkış yap', onLogout)} style={styles.logout} hitSlop={10}>
             <Text style={styles.logoutText}>Çıkış yap</Text>
           </Pressable>
         }

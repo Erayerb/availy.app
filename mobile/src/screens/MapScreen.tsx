@@ -186,9 +186,9 @@ export function MapScreen({
       <Tip
         id="checkinButton"
         after="mapColors"
-        align="right"
         radius={22}
         text="Bir mekandaysan Check-in'e bas: 10 saniye sürer, puan kazanırsın ve herkes oranın doluluğunu görür."
+        action={{ label: 'Check-in yap', onPress: onOpenCheckin }}
         style={[styles.checkinPlace, { bottom: (showPopup ? popupHeight : legendHeight) + TAB_BAR_HEIGHT + 20 }]}
       >
         <Pressable style={styles.checkinButton} onPress={onOpenCheckin} accessibilityLabel="Check-in yap">
@@ -270,10 +270,10 @@ export function MapScreen({
             ))}
           </View>
           {onlyTrending && trending(venues).length === 0 && (
-            <Text style={styles.status}>Son 24 saatte bu bölgede check-in yok. Haritayı kaydır ya da sonra bak.</Text>
+            <Text style={styles.status}>Bu bölgede şu an bilgi yok. Haritayı kaydır ya da ilk check-in'i sen yap.</Text>
           )}
           {onlyVisited && visitedIds.size === 0 && (
-            <Text style={styles.status}>Henüz check-in yapmadın. Check-in yaptığın mekanlar burada görünür.</Text>
+            <Text style={styles.status}>Check-in yaptığın mekanları burada görürsün.</Text>
           )}
           {/* One thin line: the colours, then the time of the last update (the first tip points at it) */}
           <Tip
@@ -310,10 +310,20 @@ export function MapScreen({
       >
         <View style={styles.topBar} pointerEvents="box-none">
           {onBack && <BackButton onPress={onBack} />}
-          <Pressable style={styles.search} onPress={() => setSearching(true)} accessibilityLabel="Mekan ara">
-            <TabIcon name="search" color={colors.textMuted} active={false} size={18} />
-            <Text style={styles.searchText}>Mekan ara</Text>
-          </Pressable>
+          <Tip
+            id="mapSearch"
+            after="checkinButton"
+            placement="below"
+            radius={22}
+            text="Mekanı adıyla ara: seçince harita oraya gider ve kartı açılır. Haritada yoksa buradan ekleyebilirsin."
+            action={{ label: 'Ara', onPress: () => setSearching(true) }}
+            style={styles.searchTip}
+          >
+            <Pressable style={styles.search} onPress={() => setSearching(true)} accessibilityLabel="Mekan ara">
+              <TabIcon name="search" color={colors.textMuted} active={false} size={18} />
+              <Text style={styles.searchText}>Mekan ara</Text>
+            </Pressable>
+          </Tip>
           {anyFilter && (
             <Pressable style={styles.clear} onPress={clearFilters} accessibilityLabel="Filtreleri temizle">
               <Text style={styles.clearText}>✕ Temizle</Text>
@@ -368,8 +378,8 @@ const styles = themed(() => StyleSheet.create({
     gap: 6,
   },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, gap: 10 },
+  searchTip: { flex: 1 },
   search: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,

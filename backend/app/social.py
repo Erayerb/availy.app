@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 import psycopg
 
 from app.levels import level_ids
-from app.safety import BLOCKED, hidden_reply, hidden_review
+from app.safety import BLOCKED, hidden_reply, hidden_review, same_day
 
 ISTANBUL = ZoneInfo("Europe/Istanbul")
 LEADERBOARD_LIMIT = 50
@@ -165,17 +165,31 @@ def notifications(conn: psycopg.Connection, me: dict, now: datetime) -> list[dic
               AND EXISTS (SELECT 1 FROM checkins c WHERE c.venue_id = p.venue_id AND c.user_id = %(me)s)
             UNION ALL
             -- A friend checked in (not a private one, not the ones I muted; "Buradayım, gel" says it already).
-            -- Only the last day: older ones are news no more, and would bury everything else
+            -- Only the last day: older ones are news no more, and would bury everything else. The same friend at
+            -- the same place again that day: one item, the latest (the phone hears each one)
             SELECT 'friend_checkin', c.created_at, u.username, v.id, v.name, NULL, false
             FROM checkins c JOIN users u ON u.id = c.user_id JOIN venues v ON v.id = c.venue_id
             WHERE c.created_at > GREATEST(%(since)s, %(now)s - interval '1 day') AND c.created_at <= %(now)s AND NOT c.is_private AND u.share_checkins
               AND NOT u.frozen AND c.user_id NOT IN {BLOCKED}
               AND c.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id = %(me)s)
               AND NOT EXISTS (SELECT 1 FROM come_calls k WHERE k.checkin_id = c.id)
+              AND NOT EXISTS (SELECT 1 FROM checkins c3 WHERE c3.user_id = c.user_id AND c3.venue_id = c.venue_id
+                              AND c3.created_at > c.created_at AND c3.created_at <= %(now)s AND NOT c3.is_private
+                              AND {same_day("c3.created_at", "c.created_at")})
               AND c.user_id IN (
                   SELECT CASE WHEN requester_id = %(me)s THEN addressee_id ELSE requester_id END
                   FROM friendships WHERE status = 'accepted' AND %(me)s IN (requester_id, addressee_id)
               )
+            UNION ALL
+            -- A venue I like (a favourite, or checked in there in the last 90 days) started a campaign: told when it
+            -- starts (a scheduled one too). The last day only, like friends' check-ins; not the standing reward
+            SELECT 'venue_campaign', c.starts_at, NULL, v.id, v.name, c.message, false
+            FROM campaigns c JOIN venues v ON v.id = c.venue_id
+            WHERE c.starts_at > GREATEST(%(since)s, %(now)s - interval '1 day') AND c.starts_at <= %(now)s
+              AND c.ends_at > %(now)s AND NOT c.standing AND NOT c.hidden
+              AND (EXISTS (SELECT 1 FROM favorites f WHERE f.user_id = %(me)s AND f.venue_id = c.venue_id)
+                   OR EXISTS (SELECT 1 FROM checkins k WHERE k.user_id = %(me)s AND k.venue_id = c.venue_id
+                              AND k.created_at > %(now)s - interval '90 days'))
             UNION ALL
             -- A friend reviewed a venue (last day, like their check-ins)
             SELECT 'friend_review', r.created_at, u.username, v.id, v.name, r.rating || '★ ' || r.body, false
@@ -357,7 +371,7 @@ def quiet_favorites(conn: psycopg.Connection, me: dict, now: datetime) -> list[d
     favorites = conn.execute(
         """
         SELECT f.venue_id, v.name FROM favorites f JOIN venues v ON v.id = f.venue_id
-        WHERE f.user_id = %(me)s
+        WHERE f.user_id = %(me)s AND f.quiet_alert  -- the zil on the card in Favoriler
           AND NOT EXISTS (SELECT 1 FROM watches w WHERE w.user_id = %(me)s AND w.venue_id = f.venue_id AND w.created_at > %(watch)s)
           AND EXISTS (SELECT 1 FROM checkins c WHERE c.venue_id = f.venue_id AND c.level IN ('medium', 'high')
                       AND c.created_at > %(busy)s AND c.created_at <= %(now)s)

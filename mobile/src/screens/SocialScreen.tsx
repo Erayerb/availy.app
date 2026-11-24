@@ -212,7 +212,6 @@ export function SocialScreen({
         <Tip
           id="social"
           placement="below"
-          align="right"
           radius={18}
           text="Arkadaşlarını buradan ekle: kimin nerede olduğunu Akış'ta gör, aynı yerde check-in yapınca ikiniz de puan kazanın."
         >
@@ -242,7 +241,7 @@ export function SocialScreen({
 
       {mine && !feedLoading && feed.length === 0 && (
         <>
-          <Text style={styles.muted}>Son günlerde check-in'in ya da yorumun yok. Yaptıkların, arkadaşlarının beğeni ve yorumlarıyla burada görünür.</Text>
+          <Text style={styles.muted}>Check-in yap ya da yorum yaz; arkadaşlarının beğenileriyle burada görürsün.</Text>
           {[
             { icon: 'map-pin' as IconName, title: 'Check-in yap', text: 'Bulunduğun mekanın doluluğunu bildir, puan kazan.', onPress: onOpenCheckin },
             { icon: 'compass' as IconName, title: 'Mekan keşfet', text: 'Haritada yakınındaki mekanlara bak; bir mekana ilk check-in yapan orayı keşfeder.', onPress: onOpenMap },
@@ -265,8 +264,8 @@ export function SocialScreen({
             <>
               <Text style={styles.muted}>
                 {lists.friends.length === 0
-                  ? "Arkadaş ekleyince check-in'leri ve yorumları burada görünür. Başlamak için:"
-                  : "Arkadaşlarının son günlerde check-in'i ya da yorumu yok. Bu arada:"}
+                  ? "Arkadaşlarını ekle: kim nerede, gör; aynı yere sen de git. Başlamak için:"
+                  : "Arkadaşların bir yere gidince burada görürsün. Bu arada:"}
               </Text>
               {[
                 // No friends yet: inviting is the quickest way (both become friends when they sign up)
@@ -425,12 +424,12 @@ export function SocialScreen({
             >
               {lists.friends.map((p) => (
                 <PersonRow key={p.id} person={p} onOpen={onOpenUser} streak={p.streak} atRisk={p.at_risk}>
-                  {/* Seri kurtarma: their streak ends on Sunday without a check-in; I may cover the week once a month */}
-                  {/* No save left this month: availo+ has three */}
+                  {/* Seri kurtarma: their streak ends tonight without a check-in; I may cover the day (2 a month) */}
+                  {/* No save left this month: availo+ has ten */}
                   {p.at_risk && !p.can_save && !premium && (
                     <Action
                       label="🔥 Kurtar"
-                      onPress={() => promptUpgrade('Bu ayki seri kurtarma hakkını kullandın. availo+ ile ayda 3 kez kurtarabilirsin.')}
+                      onPress={() => promptUpgrade('Bu ayki seri kurtarma hakların bitti. availo+ ile ayda 10 kez kurtarabilirsin.')}
                     />
                   )}
                   {p.can_save && (
@@ -439,7 +438,7 @@ export function SocialScreen({
                       onPress={() =>
                         confirmAction(
                           `@${p.username} serisini kurtar`,
-                          `Bu hafta check-in yapmadı; ${p.streak} haftalık serisi pazar gecesi bitecek. Kurtarırsan bu hafta sayılır. Ayda bir kurtarabilirsin.`,
+                          `Bugün check-in yapmadı; ${p.streak} günlük serisi bu gece bitecek. Kurtarırsan bugün sayılır. Ayda ${premium ? 10 : 2} kez kurtarabilirsin.`,
                           'Kurtar',
                           () =>
                             friendsApi

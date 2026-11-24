@@ -59,12 +59,20 @@ test('scheduled campaign input is checked before it goes to the server', () => {
   assert.equal(validateSchedule({ ...schedule, days: [] }), 'En az bir gün seç.');
   assert.equal(validateSchedule({ ...schedule, start_hour: 24 }), 'Başlangıç saati 0–23 olmalı.');
   assert.equal(validateSchedule({ ...schedule, message: 'kısa' }), 'Kampanya mesajını yaz.');
+  // The days the message names must be the days chosen
+  assert.match(validateSchedule({ ...schedule, days: [0, 2], message: 'Her salı öğleden sonra %20 indirim!' }) ?? '', /"salı" yazıyor/);
+  assert.match(validateSchedule({ ...schedule, days: [0, 1, 2], message: 'Her salı öğleden sonra %20 indirim!' }) ?? '', /Pazartesi seçili/);
+  assert.equal(validateSchedule({ ...schedule, days: [4, 5], message: 'Cuma ve cumartesi akşamları %10 indirim!' }), null);
+  assert.equal(validateSchedule({ ...schedule, days: [6], message: 'Pazarları kahvaltıda %10 indirim!' }), null);
 });
 
 test('"Profilin %60 dolu": the venue page steps', async () => {
   const { profileSteps } = await import('../src/lib/business.ts');
-  const steps = profileSteps({ photo_at: '2026-10-29', address: 'Moda Cd. 1', instagram: '', phone: null, amenity_keys: [] });
+  const steps = profileSteps({ photo_at: '2026-10-29', hours: '09:00–23:00', address: 'Moda Cd. 1', instagram: '', phone: null, amenity_keys: [] });
   assert.deepEqual(steps.filter((s) => !s.done).map((s) => s.key), ['instagram', 'phone', 'amenities']);
+  // No hours known: a step to fill
+  const noHours = profileSteps({ photo_at: '2026-10-29', hours: 'Saat bilgisi yok', address: 'Moda Cd. 1', instagram: 'x', phone: '1', amenity_keys: ['wifi'] });
+  assert.deepEqual(noHours.filter((s) => !s.done).map((s) => s.key), ['hours']);
 });
 
 test('this month against last month', async () => {
@@ -73,4 +81,11 @@ test('this month against last month', async () => {
   assert.equal(monthChangeText(-10), 'geçen aya göre −%10');
   assert.equal(monthChangeText(0), 'geçen ayla aynı');
   assert.equal(monthChangeText(null), null);
+});
+
+test('"Haftanın günleri": the busiest day', async () => {
+  const { busiestDaysText } = await import('../src/lib/business.ts');
+  assert.equal(busiestDaysText([0, 3, 0, 1, 0, 0, 0]), 'En yoğun günün: Salı');
+  assert.equal(busiestDaysText([0, 1, 0, 1, 0, 0, 0]), 'En yoğun günlerin: Salı ve Perşembe');
+  assert.equal(busiestDaysText([0, 0, 0, 0, 0, 0, 0]), null);
 });

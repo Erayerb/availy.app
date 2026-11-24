@@ -48,3 +48,11 @@ test('a check-in with friends there says so', async () => {
   assert.equal(checkinMessage(base), "+10 puan · Buraya 3. check-in'in");
   assert.match(checkinMessage({ ...base, together: ['ayse'] }), /@ayse ile birliktesiniz · \+10 puan$/);
 });
+
+test('🔔: Bugün, Bu hafta, Daha eski', async () => {
+  const { groupByAge } = await import('../src/lib/social.ts');
+  const now = new Date(2026, 10, 24, 15, 0);
+  const at = (d: number, h = 10) => new Date(2026, 10, d, h, 0).toISOString();
+  const groups = groupByAge([{ at: at(24) }, { at: at(23) }, { at: at(18) }, { at: at(17) }, { at: at(1) }], now);
+  assert.deepEqual(groups.map((g) => [g.title, g.items.length]), [['Bugün', 1], ['Bu hafta', 2], ['Daha eski', 2]]);
+});

@@ -126,4 +126,6 @@ const PageView = memo(
   (a, b) => !a.active && !b.active && a.under === b.under,
 );
 
-const styles = StyleSheet.create({ stack: { flex: 1 } });
+// Clipped: the pages waiting off screen do not widen the page (the web preview zoomed out because of them).
+// On the web 'clip', which the browser cannot scroll either (a focused element scrolled 'hidden' sideways)
+const styles = StyleSheet.create({ stack: { flex: 1, overflow: (NATIVE ? 'hidden' : 'clip') as 'hidden' } });

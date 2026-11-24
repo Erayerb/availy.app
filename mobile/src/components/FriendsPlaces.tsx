@@ -22,10 +22,11 @@ type Props = {
   onOpenVenue: (venue: Venue) => void;
   onAddFriends?: () => void; // nothing to show yet: "Arkadaş ekle"
   inviteName?: string | null; // my user name, for "Davet et"
+  hideTitle?: boolean; // the home page draws the title itself (with the search icon on its line)
 };
 
 /** Home: "Arkadaşlarının gittiği yerler", a row of cards; with no visits yet, ways to add friends. */
-export function FriendsPlaces({ token, onOpenVenue, onAddFriends, inviteName = null }: Props) {
+export function FriendsPlaces({ token, onOpenVenue, onAddFriends, inviteName = null, hideTitle = false }: Props) {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -49,12 +50,12 @@ export function FriendsPlaces({ token, onOpenVenue, onAddFriends, inviteName = n
   const empty = shown.length === 0;
 
   return (
-    <View style={styles.section}>
-      <Text style={styles.title}>Arkadaşların nerede?</Text>
+    <View style={[styles.section, hideTitle && styles.untitled]}>
+      {!hideTitle && <Text style={styles.title}>Arkadaşların nerede?</Text>}
       {empty ? (
         <View style={styles.empty}>
           <Text style={styles.emptyText}>
-            {friends.length === 0 ? 'Arkadaşlarını ekle; gittikleri yerler burada görünür.' : 'Arkadaşların son 7 günde bir yere gitmedi. Daha çok arkadaş ekle.'}
+            {friends.length === 0 ? 'Arkadaşlarını ekle: kim nerede, gör; aynı yere sen de git.' : 'Arkadaşların bir yere gidince burada görürsün. İlk sen git, onlar sana katılsın.'}
           </Text>
           <View style={styles.emptyButtons}>
             {onAddFriends && (
@@ -103,6 +104,7 @@ export function FriendsPlaces({ token, onOpenVenue, onAddFriends, inviteName = n
 
 const styles = themed(() => StyleSheet.create({
   section: { gap: 10, marginTop: 6 },
+  untitled: { marginTop: -4 }, // right under the home page's own title line
   title: { fontSize: 17, fontWeight: '700', color: colors.text },
   empty: { padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 10 },
   emptyText: { fontSize: 14, color: colors.textMuted, lineHeight: 20 },

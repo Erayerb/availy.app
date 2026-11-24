@@ -184,8 +184,8 @@ export function Leaderboard({ token, me, onOpenUser }: Props) {
       {!boards && !error && (scope !== 'group' || groupId) && <RowsSkeleton count={4} round />}
       {boards && (
         <>
-          <BoardTable title="Bu hafta" board={boards.week} empty="Bu hafta henüz kimse puan kazanmadı." onOpenUser={onOpenUser} />
-          <BoardTable title="Tüm zamanlar" board={boards.all} empty="Henüz kimse puan kazanmadı." onOpenUser={onOpenUser} />
+          <BoardTable title="Bu hafta" board={boards.week} empty="Bu hafta puan kazanan yok. İlk check-in'i yap, zirveye otur." onOpenUser={onOpenUser} />
+          <BoardTable title="Tüm zamanlar" board={boards.all} empty="Puan kazanan yok. İlk check-in'i yap, zirveye otur." onOpenUser={onOpenUser} />
         </>
       )}
 
@@ -221,7 +221,7 @@ export function Leaderboard({ token, me, onOpenUser }: Props) {
 
       {winners.length > 0 && (
         <Text style={styles.prize}>
-          <InlineIcon name="trophy" /> Haftanın 1.si: {winners.map((u) => `@${u}`).join(', ')}
+          <InlineIcon name="trophy" /> Geçen haftanın 1.si: {winners.map((u) => `@${u}`).join(', ')}
         </Text>
       )}
       <Pressable onPress={() => setHelp((h) => !h)} hitSlop={6}>

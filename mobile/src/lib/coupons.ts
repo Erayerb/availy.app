@@ -37,6 +37,17 @@ export function remainingCoupons(campaign: Campaign): number | null {
   return Math.max(0, campaign.maxClaims - (campaign.stats?.claims ?? 0));
 }
 
+// An expired or used coupon leaves Kuponlarım a week after (its end, or the day it was used)
+const KEEP_OLD_MS = 7 * 86_400_000;
+
+/** Kuponlarım: valid ones, and old ones for a week (then they hide themselves). */
+export function shownCoupons(coupons: Coupon[], now: Date): Coupon[] {
+  return coupons.filter((c) => {
+    const over = c.redeemedAt ?? c.endsAt;
+    return couponValid(c, now) || now.getTime() - new Date(over).getTime() < KEEP_OLD_MS;
+  });
+}
+
 /** "Geçerli · kasada göster" while the campaign runs and the coupon is unused. */
 export const couponValid = (coupon: Coupon, now: Date) =>
   coupon.redeemedAt === null && now.getTime() < new Date(coupon.endsAt).getTime();

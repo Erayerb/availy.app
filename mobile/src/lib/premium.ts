@@ -13,7 +13,7 @@ export const FREE_FEATURES = [
   'Check-in yap, puan topla, rozet kazan',
   'Kuponları al; mekanların ödüllerini puanla aç',
   `Sakinleşince haber al: aynı anda ${FREE_WATCH_LIMIT} mekan`,
-  'Serini kurtar: ayda 1 kez',
+  'Serini kurtar: ayda 2 kez',
   'Konuma göre reklamlar',
 ];
 
@@ -22,7 +22,7 @@ export const PREMIUM_FEATURES = [
   'Aylık özetini gör: en çok gittiğin yerler, semtlerin, arkadaşlarınla kıyas',
   'Favorilerin sakinleşince haber al (zil açmadan)',
   'Sakinleşince haber al: sınırsız mekan',
-  'Serini kurtar: ayda 3 kez',
+  'Serini kurtar: ayda 10 kez',
   'Reklamsız kullan',
   'Ücretsiz plandaki her şey',
 ];

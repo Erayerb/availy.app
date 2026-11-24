@@ -9,6 +9,7 @@ import { ThemedSwitch } from './ThemedSwitch';
 import { TAG_OPTIONS, toggleTag, type Tag } from '../lib/filters';
 import { SORT_OPTIONS, SORT_RESET_MS, type SortMode } from '../lib/sort';
 import { colors, themed } from '../theme';
+import { useHoldTips } from '../lib/tips';
 
 type Props = {
   tags: Tag[];
@@ -20,6 +21,8 @@ type Props = {
   count: number; // venues shown with these filters
   // First in the row, before the sort chips (Ana sayfa: the place button)
   leading?: ReactNode;
+  // Ana sayfa > "Tüm mekanlar": the title on the left and "Filtreler" on the right (no sort chips)
+  title?: string;
 };
 
 /**
@@ -30,6 +33,7 @@ type Props = {
 export function FilterBar(props: Props) {
   const { tags, onTagsChange, sortMode, onSortChange, hideClosed, onHideClosedChange } = props;
   const [open, setOpen] = useState(false);
+  useHoldTips(open);
   // One of the three is on: the old one goes off in the same instant the new one comes on
   const [shownSort, setShownSort] = useState(sortMode);
   useEffect(() => setShownSort(sortMode), [sortMode]);
@@ -59,6 +63,19 @@ export function FilterBar(props: Props) {
 
   return (
     <>
+      {props.title ? (
+        <View style={styles.titleRow}>
+          <Text style={styles.barTitle}>{props.title}</Text>
+          <Pressable
+            onPress={() => setOpen(true)}
+            style={[styles.button, active > 0 && styles.buttonOn]}
+            accessibilityLabel={active > 0 ? `Filtrele, ${active} filtre açık` : 'Filtrele'}
+          >
+            <Icon name="adjustments-horizontal" size={18} color={active > 0 ? colors.onPrimary : colors.text} />
+            <Text style={[styles.buttonText, active > 0 && styles.buttonTextOn]}>{active > 0 ? `Filtreler (${active})` : 'Filtreler'}</Text>
+          </Pressable>
+        </View>
+      ) : (
       <View style={styles.row}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bar}>
           {SORT_OPTIONS.map(({ mode, label }) => (
@@ -87,6 +104,7 @@ export function FilterBar(props: Props) {
           </Pressable>
         </ScrollView>
       </View>
+      )}
       {/* What is on, each removable with one tap */}
       {active > 0 && (
         <View style={styles.appliedRow}>
@@ -152,6 +170,8 @@ function Applied({ label, onRemove }: { label: string; onRemove: () => void }) {
 
 const styles = themed(() => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
+  barTitle: { fontSize: 17, fontWeight: '700', color: colors.text },
   bar: { gap: 8, alignItems: 'center' },
   appliedRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
   button: {

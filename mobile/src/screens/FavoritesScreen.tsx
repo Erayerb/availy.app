@@ -11,6 +11,7 @@ import { Pressable } from '../components/Pressable';
 
 import { HeaderButtons } from '../components/HeaderButtons';
 import { VenueGrid } from '../components/VenueGrid';
+import { QuietBell } from '../components/QuietBell';
 import { useFavorites } from '../context/FavoritesContext';
 import { useLocation } from '../context/LocationContext';
 import { sortByDistance } from '../lib/geo';
@@ -195,6 +196,7 @@ export function FavoritesScreen({ onOpenVenue, visits, signedIn, token, onLogin,
       onOpenVenue={onOpenVenue}
       refreshing={refreshing}
       onRefresh={refresh}
+      tileExtra={tab === 'saved' ? (v) => <QuietBell venueId={v.id} /> : undefined}
     />
   );
 }

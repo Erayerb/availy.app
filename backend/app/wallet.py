@@ -16,6 +16,13 @@ REASONS = {
     "together": "Birlikte check-in",
     "task": "İlk adımlar",
 }
+# İlk adımlar: which task paid it
+TASK_LABELS = {
+    "checkin": "İlk adım: ilk check-in'in",
+    "list": "İlk adım: ilk listen",
+    "friend": "İlk adım: ilk arkadaşın",
+    "photo": "İlk adım: profil fotoğrafın",
+}
 
 
 def wallet(conn: psycopg.Connection, me: dict) -> dict:
@@ -30,11 +37,11 @@ def wallet(conn: psycopg.Connection, me: dict) -> dict:
     moves = conn.execute(
         """
         SELECT * FROM (
-            SELECT p.created_at AS at, p.amount, p.reason, v.name AS venue_name
+            SELECT p.created_at AS at, p.amount, p.reason, v.name AS venue_name, p.task
             FROM points p LEFT JOIN checkins c ON c.id = p.checkin_id LEFT JOIN venues v ON v.id = c.venue_id
             WHERE p.user_id = %(me)s
             UNION ALL
-            SELECT s.created_at, -s.amount, CASE WHEN m.standing THEN 'reward' ELSE 'special_coupon' END, v.name
+            SELECT s.created_at, -s.amount, CASE WHEN m.standing THEN 'reward' ELSE 'special_coupon' END, v.name, NULL
             FROM point_spends s LEFT JOIN coupons k ON k.code = s.coupon_code
             LEFT JOIN campaigns m ON m.id = k.campaign_id LEFT JOIN venues v ON v.id = m.venue_id
             WHERE s.user_id = %(me)s
@@ -47,7 +54,9 @@ def wallet(conn: psycopg.Connection, me: dict) -> dict:
         "balance": totals["earned"] - totals["spent"],
         "earned": totals["earned"],
         "spent": totals["spent"],
-        "moves": [{**m, "label": labels.get(m["reason"], m["reason"])} for m in moves],
+        "moves": [
+            {**m, "label": TASK_LABELS.get(m["task"] or "", labels.get(m["reason"], m["reason"]))} for m in moves
+        ],
     }
 
 

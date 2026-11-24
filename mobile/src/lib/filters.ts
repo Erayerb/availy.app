@@ -7,7 +7,7 @@ export const TAG_OPTIONS: { tag: Tag; label: string }[] = [
   { tag: 'quiet', label: 'Sessizlik' },
   { tag: 'food', label: 'Yemek' },
   { tag: 'nightlife', label: 'Gece hayatı' },
-  { tag: 'wifi', label: 'Ücretsiz Wi-Fi' }, // from OpenStreetMap (internet_access without a fee)
+  // 'wifi' is no filter any more (it still shows on the venue page as a feature)
 ];
 
 /** Add the tag if missing, remove it if present; result is sorted for stable query keys. */

@@ -55,10 +55,10 @@ export function CustomersScreen({ venueId, user, onOpenUser, onRegister, onOpenL
         </View>
         {stats && stats.top_visits.length > 0 ? (
           <Text style={styles.text}>
-            En sık gelenler: {stats.top_visits.map((n) => `${n} kez`).join(', ')}
+            {topVisitsText(stats.top_visits)}
           </Text>
         ) : (
-          <Text style={styles.muted}>Henüz check-in yok.</Text>
+          <Text style={styles.muted}>Müşterilerin check-in yaptıkça burada görürsün.</Text>
         )}
       </View>
 
@@ -72,7 +72,7 @@ export function CustomersScreen({ venueId, user, onOpenUser, onRegister, onOpenL
           </Text>
         ) : (
           <View style={styles.row}>
-            <Text style={[styles.muted, styles.flex]}>Henüz sadakat programın yok.</Text>
+            <Text style={[styles.muted, styles.flex]}>Damga kartı aç, müşterilerin tekrar gelsin.</Text>
             <Pressable style={styles.button} onPress={onOpenLoyalty}>
               <Text style={styles.buttonText}>Sadakat programı oluştur</Text>
             </Pressable>
@@ -101,6 +101,13 @@ export function CustomersScreen({ venueId, user, onOpenUser, onRegister, onOpenL
   );
 }
 
+/** "En sık gelen müşterin 5 kez geldi" / "En sık gelen 3 müşterin 5, 3 ve 2 kez geldi" (son 30 gün). */
+function topVisitsText(visits: number[]): string {
+  if (visits.length === 1) return `En sık gelen müşterin ${visits[0]} kez geldi.`;
+  const list = `${visits.slice(0, -1).join(', ')} ve ${visits[visits.length - 1]}`;
+  return `En sık gelen ${visits.length} müşterin ${list} kez geldi.`;
+}
+
 function Stat({ value, label }: { value: number; label: string }) {
   return (
     <View style={styles.stat}>
@@ -121,7 +128,7 @@ const styles = themed(() => StyleSheet.create({
   muted: { fontSize: 13, color: colors.textMuted },
   stats: { flexDirection: 'row', gap: 8 },
   stat: { flex: 1, padding: 10, borderRadius: 14, backgroundColor: colors.cream, alignItems: 'center' },
-  statValue: { fontSize: 20, fontWeight: '800', color: colors.primary },
+  statValue: { fontSize: 20, fontWeight: '800', color: colors.text }, // neutral: a 0 is no alarm
   statLabel: { fontSize: 11, color: colors.textMuted, textAlign: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   flex: { flex: 1 },

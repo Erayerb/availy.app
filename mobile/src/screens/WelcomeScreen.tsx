@@ -55,7 +55,7 @@ export function WelcomeScreen({ onLogin, onRegister, onGuest }: Props) {
           <>
             <Pressable onPress={() => setRole(null)} hitSlop={10}>
               <Text style={styles.roleLine}>
-                {ROLE_LABELS[role]} hesap · <Text style={styles.change}>değiştir</Text>
+                {ROLE_LABELS[role]} hesabı · <Text style={styles.change}>değiştir</Text>
               </Text>
             </Pressable>
             <Pressable onPress={() => onLogin(role)} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>

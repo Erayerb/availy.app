@@ -24,6 +24,11 @@ FROZEN = "(SELECT id FROM users WHERE frozen)"
 MUTED = "(SELECT muted_id FROM mutes WHERE muter_id = %(me)s)"
 
 
+def same_day(a: str, b: str) -> str:
+    """SQL: the two times fall on the same day in Istanbul."""
+    return f"({a} AT TIME ZONE 'Europe/Istanbul')::date = ({b} AT TIME ZONE 'Europe/Istanbul')::date"
+
+
 def hidden_review(alias: str = "r") -> str:
     """Condition for a review row (`alias`) I should not see: removed by an admin, reported by me, or by
     too many (reports an admin dismissed do not count)."""
@@ -129,7 +134,7 @@ def profile(conn: psycopg.Connection, me: dict, username: str, now: datetime) ->
     is_me = other["id"] == me["id"]
     from app.friends import relation
     from app.social import last_week_winners
-    from app.streaks import weekly_streak
+    from app.streaks import day_streak
     from app.user_photos import photo_time
 
     rel = "self" if is_me else relation(conn, me["id"], other["id"])
@@ -169,7 +174,7 @@ def profile(conn: psycopg.Connection, me: dict, username: str, now: datetime) ->
         "discoveries": stats["discoveries"] if stats else None,
         "badges": stats["badges"] if stats else [],
         "venues": venues,
-        "weekly_streak": weekly_streak(conn, other["id"], now) if stats else None,
+        "streak": day_streak(conn, other["id"], now) if stats else None,
         "weekly_winner": any(w["user_id"] == other["id"] for w in last_week_winners(conn, now)),
         "stats_hidden": stats is None,
         "level": stats["level"] if stats else _level(conn, other["id"]),

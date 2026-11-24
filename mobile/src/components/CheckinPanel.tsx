@@ -135,10 +135,10 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
       haptics.success();
       notifyVenuesChanged();
       // Badges this check-in earned: their pop-up a moment after the check-in's own celebration
-      // New badges and a longer streak ("🔥 3 hafta üst üste") pop up a moment after the check-in's own celebration
+      // New badges and a longer streak ("🔥 3 gün üst üste") pop up a moment after the check-in's own celebration
       const streak: NewBadge[] =
-        done.streak_up && (done.weekly_streak ?? 0) >= 2
-          ? [{ id: 'streak', kind: 'streak', icon: '🔥', name: `${done.weekly_streak} hafta üst üste!`, points: 0 }]
+        done.streak_up && (done.streak ?? 0) >= 2
+          ? [{ id: 'streak', kind: 'streak', icon: '🔥', name: `${done.streak} gün üst üste!`, points: 0 }]
           : [];
       const first: NewBadge[] = done.first_ever
         ? [{ id: 'first_ever', kind: 'first', icon: '🎉', name: "İlk check-in'in!", points: done.points_earned ?? 0 }]
@@ -146,7 +146,7 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
       const pops = [...first, ...streak, ...(done.new_badges ?? [])];
       if (pops.length) setTimeout(() => celebrateBadges(pops), 1400);
       setResult({ ok: true, text: checkinMessage(done) });
-      setShared({ id: done.id, label: look(level).label, first: done.is_first, streak: done.weekly_streak ?? 0, note: null, coupons: done.coupons ?? [] });
+      setShared({ id: done.id, label: look(level).label, first: done.is_first, streak: done.streak ?? 0, note: null, coupons: done.coupons ?? [] });
       setRating(0);
       setWords('');
       setReview(null);
@@ -238,7 +238,7 @@ export function CheckinPanel({ venue, user, onLogin, onRegister, onDone, lastChe
             <Celebration icon={shared.first ? 'sparkles' : 'confetti'} first={shared.first} />
             <Text style={styles.partyTitle}>{shared.first ? 'Burayı sen keşfettin!' : 'Check-in yapıldı!'}</Text>
             <Text style={styles.success}>{result.text}</Text>
-            {shared.streak >= 2 && <Text style={styles.streak}><InlineIcon name="flame" /> {shared.streak}. hafta üst üste check-in!</Text>}
+            {shared.streak >= 2 && <Text style={styles.streak}><InlineIcon name="flame" /> {shared.streak}. gün üst üste check-in!</Text>}
             {isRegistered(user) && user?.token && <MomentCapture token={user.token} checkinId={shared.id} />}
             {shared.coupons.map((c) => (
               <View key={c.code} style={styles.coupon}>

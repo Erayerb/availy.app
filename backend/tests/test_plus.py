@@ -83,6 +83,13 @@ def test_a_favourite_turning_quiet_is_told_with_availo_plus(client, conn, clock)
     assert "favorite_quiet" not in kinds()  # not turned on
     conn.execute("UPDATE users SET app_settings = '{\"favoriteQuietNotifications\": true}' WHERE username = 't_ali'")
     assert "favorite_quiet" in kinds()
+    # The zil on its card in Favoriler turns this one off (and on again)
+    assert client.put(f"/v1/me/favorites/{kafe}/quiet-alert", json={"on": False}, headers=auth(ali)).status_code == 204
+    assert client.get("/v1/me/favorites/quiet-off", headers=auth(ali)).json() == [kafe]
+    assert "favorite_quiet" not in kinds()
+    client.put(f"/v1/me/favorites/{kafe}/quiet-alert", json={"on": True}, headers=auth(ali))
+    assert client.get("/v1/me/favorites/quiet-off", headers=auth(ali)).json() == []
+    assert "favorite_quiet" in kinds()
 
 
 def test_monthly_summary(client, conn, clock):

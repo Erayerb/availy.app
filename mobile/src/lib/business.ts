@@ -97,14 +97,16 @@ export function quietestWeekday(weekday: number[]): number | null {
   return weekday.filter((n) => n === min).length === 1 ? weekday.indexOf(min) : null;
 }
 
-export type ProfileStep = { key: 'photo' | 'address' | 'instagram' | 'phone' | 'amenities'; label: string; done: boolean };
+export type ProfileStep = { key: 'photo' | 'hours' | 'address' | 'instagram' | 'phone' | 'amenities'; label: string; done: boolean };
 
 /** "Profilin %60 dolu": what a venue page needs to look complete (İşletme profili). */
 export function profileSteps(
-  venue: { photo_at?: string | null; address?: string; instagram?: string | null; phone?: string | null; amenity_keys?: string[] | null },
+  venue: { photo_at?: string | null; hours?: string; address?: string; instagram?: string | null; phone?: string | null; amenity_keys?: string[] | null },
 ): ProfileStep[] {
   return [
     { key: 'photo', label: 'Kapak fotoğrafı', done: !!venue.photo_at },
+    // No hours known: customers read "Saat bilgisi yok"
+    { key: 'hours', label: 'Çalışma saatleri', done: !!venue.hours && venue.hours !== 'Saat bilgisi yok' },
     { key: 'address', label: 'Adres', done: !!venue.address?.trim() },
     { key: 'instagram', label: 'Instagram', done: !!venue.instagram?.trim() },
     { key: 'phone', label: 'Telefon', done: !!venue.phone?.trim() },
@@ -113,6 +115,15 @@ export function profileSteps(
 }
 
 const DAY_NAMES = ['pazartesi', 'salı', 'çarşamba', 'perşembe', 'cuma', 'cumartesi', 'pazar'];
+
+/** "Haftanın günleri": "En yoğun günün: Salı" (a tie: "Salı ve Perşembe"); null without check-ins. */
+export function busiestDaysText(weekday: number[]): string | null {
+  const max = Math.max(0, ...weekday);
+  if (max === 0) return null;
+  const names = weekday.flatMap((n, i) => (n === max ? [`${DAY_NAMES[i][0].toLocaleUpperCase('tr-TR')}${DAY_NAMES[i].slice(1)}`] : []));
+  const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} ve ${names[names.length - 1]}` : names[0];
+  return `En yoğun ${names.length > 1 ? 'günlerin' : 'günün'}: ${list}`;
+}
 
 /** "Salı 14:00–16:00". */
 export function quietSlotLabel(slot: QuietSlot): string {

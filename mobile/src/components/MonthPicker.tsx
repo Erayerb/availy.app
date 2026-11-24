@@ -5,12 +5,14 @@ import { colors, themed } from '../theme';
 import { Icon } from './Icon';
 import { Pressable } from './Pressable';
 import { Text } from './Text';
+import { useHoldTips } from '../lib/tips';
 
 const MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 
 /** "Kasım 2026 ▾": a chip that opens the last months to choose from (0 = this month, 1 = last month...). */
 export function MonthPicker({ value, onChange, count = 12, light = false }: { value: number; onChange: (monthsBack: number) => void; count?: number; light?: boolean }) {
   const [open, setOpen] = useState(false);
+  useHoldTips(open);
   const now = new Date();
   const label = (back: number) => {
     const d = new Date(now.getFullYear(), now.getMonth() - back, 1);

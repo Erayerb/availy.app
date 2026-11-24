@@ -73,6 +73,8 @@
   .show { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
   .show + .show { margin-top: 72px; }
   .show.flip > .phone { order: -1; }
+  .trust { display: flex; gap: 12px; align-items: flex-start; background: var(--surface); border: 2px solid var(--primary); border-radius: 16px; padding: 14px 16px; margin: 0 0 18px; font-size: 15px; line-height: 1.5; }
+  .trust > i { color: var(--primary); font-size: 26px; flex: none; line-height: 1.1; }
   .show ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
   .show li { display: flex; gap: 12px; align-items: flex-start; color: var(--muted); font-size: 16px; }
   .show li i { color: var(--primary); font-size: 22px; line-height: 1.2; flex: none; }

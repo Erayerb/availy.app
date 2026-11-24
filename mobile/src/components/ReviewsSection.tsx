@@ -53,7 +53,7 @@ export function ReviewsSection({ venueId, user, reviews, onChange, reload, onReg
 
       {/* Rating is given right after a check-in (in the check-in box); here only what people wrote */}
       {ownerBusiness && <Text style={styles.muted}>Müşterilerinin yorumlarına "Yanıtla" ile işletme olarak cevap verebilirsin.</Text>}
-      {reviews.count === 0 && <Text style={styles.muted}>Henüz yorum yok. Check-in yapınca puan verip yorum yazabilirsin.</Text>}
+      {reviews.count === 0 && <Text style={styles.muted}>Yorum yok. Check-in yap, ilk yorumu sen yaz.</Text>}
       {shown.map((review) => (
         <ReviewItem
           key={review.id}
@@ -64,7 +64,7 @@ export function ReviewsSection({ venueId, user, reviews, onChange, reload, onReg
           onOpenUser={onOpenUser}
         />
       ))}
-      {reviews.count > 0 && written.length === 0 && <Text style={styles.muted}>Henüz yazılı yorum yok.</Text>}
+      {reviews.count > 0 && written.length === 0 && <Text style={styles.muted}>Yazılı yorum yok.</Text>}
       {!showAll && written.length > FIRST_REVIEWS && (
         <Pressable onPress={() => setShowAll(true)}>
           <Text style={styles.link}>Tüm yorumları göster ({written.length})</Text>

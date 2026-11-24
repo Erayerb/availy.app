@@ -1,7 +1,7 @@
-"""v2: coming back. "🔥 4 haftalık seri" (weeks in a row with a check-in) and a venue's regular
+"""v2: coming back. "🔥 5 gün üst üste" (days in a row with a check-in) and a venue's regular
 ("müdavim": the one with the most check-ins there lately, among the people I may see as one).
 """
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import psycopg
@@ -19,28 +19,28 @@ def _week_start(at: datetime) -> datetime:
     return (local - timedelta(days=local.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
 
 
-def weekly_streak(conn: psycopg.Connection, user_id: int, now: datetime) -> int:
-    """Weeks in a row (Monday to Sunday) with at least one check-in, up to this week.
-    This week may still be empty: the streak lasts until the week ends without a check-in."""
-    weeks = {
-        _week_start(r["created_at"])
+def istanbul_day(at: datetime) -> date:
+    return at.astimezone(ISTANBUL).date()
+
+
+def day_streak(conn: psycopg.Connection, user_id: int, now: datetime) -> int:
+    """Days in a row (Istanbul) with at least one check-in, up to today. Today may still be empty: the streak
+    lasts until a day ends without a check-in. A day a friend saved ("Seri kurtarma") counts too."""
+    days = {
+        istanbul_day(r["created_at"])
         for r in conn.execute(
             "SELECT created_at FROM checkins WHERE user_id = %s AND NOT is_demo AND created_at <= %s AND created_at > %s",
-            (user_id, now, now - timedelta(weeks=104)),
+            (user_id, now, now - timedelta(days=400)),
         )
     }
-    # Weeks a friend saved ("Seri kurtarma") count as weeks with a check-in
-    weeks |= {
-        datetime.combine(r["week_start"], time(0), ISTANBUL)
-        for r in conn.execute("SELECT week_start FROM streak_saves WHERE user_id = %s", (user_id,))
-    }
-    week = _week_start(now)
-    if week not in weeks:
-        week -= timedelta(weeks=1)
+    days |= {r["day"] for r in conn.execute("SELECT day FROM streak_saves WHERE user_id = %s", (user_id,))}
+    day = istanbul_day(now)
+    if day not in days:
+        day -= timedelta(days=1)
     streak = 0
-    while week in weeks:
+    while day in days:
         streak += 1
-        week = _week_start(week - timedelta(days=3))
+        day -= timedelta(days=1)
     return streak
 
 

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from app.streaks import venue_regular, weekly_streak
+from app.streaks import day_streak, venue_regular
 from tests.test_business import account, auth
 from tests.test_checkin_social import befriend
 from tests.test_checkins import venue_id
@@ -20,20 +20,20 @@ def add_checkin(conn, user_id, venue, at, private=False):
     )
 
 
-def test_weekly_streak(client, conn):
+def test_day_streak(client, conn):
     account(client, "t_ali")
     ali = user(conn, "t_ali")
     kafe = venue_id(conn, "Test Kafe A")
-    assert weekly_streak(conn, ali["id"], NOW) == 0
-    # Last week, the week before, and a gap before that
-    for days in (8, 15, 29):
+    assert day_streak(conn, ali["id"], NOW) == 0
+    # Yesterday, the day before, and a gap before that
+    for days in (1, 2, 4):
         add_checkin(conn, ali["id"], kafe, NOW - timedelta(days=days))
-    # Nothing yet this week: the streak is still alive (2 weeks)
-    assert weekly_streak(conn, ali["id"], NOW) == 2
+    # Nothing yet today: the streak is still alive (2 days)
+    assert day_streak(conn, ali["id"], NOW) == 2
     add_checkin(conn, ali["id"], kafe, NOW - timedelta(hours=1))
-    assert weekly_streak(conn, ali["id"], NOW) == 3
-    # A whole week without a check-in ends it
-    assert weekly_streak(conn, ali["id"], NOW + timedelta(days=14)) == 0
+    assert day_streak(conn, ali["id"], NOW) == 3
+    # A whole day without a check-in ends it
+    assert day_streak(conn, ali["id"], NOW + timedelta(days=2)) == 0
 
 
 def test_venue_regular(client, conn):

@@ -9,9 +9,9 @@ export type Relation = 'friend' | 'outgoing' | 'incoming' | 'none';
 export type FriendCheckin = { venue_id: number; venue_name: string; at: string; is_first: boolean; points: number };
 export type Friend = Person & {
   last_checkin: FriendCheckin | null;
-  streak?: number; // "🔥 4": weeks in a row with a check-in
-  at_risk?: boolean; // no check-in this week yet: the streak ends on Sunday
-  can_save?: boolean; // I may save it ("Seri kurtarma", once a month)
+  streak?: number; // "🔥 4": days in a row with a check-in
+  at_risk?: boolean; // no check-in today yet: the streak ends tonight
+  can_save?: boolean; // I may save it ("Seri kurtarma", 2 a month, availo+ 10)
 };
 export type FriendLists = { friends: Friend[]; incoming: Person[]; outgoing: Person[] };
 
@@ -54,7 +54,7 @@ export const friendsApi = {
   add: (token: string, username: string) =>
     send<Person & { relation: Relation }>('POST', '/v1/friends', { username }, token),
   remove: (token: string, id: number) => send<void>('DELETE', `/v1/friends/${id}`, undefined, token),
-  // Seri kurtarma: cover a friend's week without a check-in (once a month)
+  // Seri kurtarma: cover a friend's day without a check-in (2 a month, availo+ 10)
   saveStreak: (token: string, username: string) =>
     send<{ username: string; streak: number }>('POST', `/v1/friends/${encodeURIComponent(username)}/save-streak`, undefined, token),
   // "Rehberden bul": my number (kept only as a hash), then the contacts' numbers (compared, not stored)
@@ -78,7 +78,7 @@ export const friendsApi = {
 };
 
 // Only fresh visits; an old one says little about where to go now
-const RECENT_DAYS = 7;
+const RECENT_DAYS = 2;
 const MAX_PLACES = 10;
 
 export type FriendPlace = { venueId: number; at: string; people: Friend[] };

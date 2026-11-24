@@ -10,9 +10,11 @@ import { usePullRefresh } from '../hooks/usePullRefresh';
 import { useNotifications } from '../context/NotificationsContext';
 import { sentence, timeAgo } from '../lib/crowd';
 import { confirmAction } from '../lib/confirm';
-import { notificationText, type AppNotification } from '../lib/social';
+import { groupByAge, notificationText, type AppNotification } from '../lib/social';
 import { GradientFill } from '../components/GradientFill';
 import { Icon, type IconName } from '../components/Icon';
+import { SwipeToDelete } from '../components/SwipeToDelete';
+import { Avatar } from '../components/Avatar';
 import { colors, themed } from '../theme';
 
 type Props = {
@@ -40,6 +42,7 @@ const ICONS: Record<AppNotification['kind'], IconName> = {
   auto_campaign: 'speakerphone',
   come_here: 'map-pin',
   friend_checkin: 'map-pin',
+  venue_campaign: 'tag',
   friend_review: 'star',
   favorite_quiet: 'heart',
   comeback: 'map-pin',
@@ -79,6 +82,7 @@ const TINTS: Record<AppNotification['kind'], [string, string]> = {
   auto_campaign: ['#7A2E1F', '#D9480F'],
   come_here: ['#123A2A', '#2E9E4F'],
   friend_checkin: ['#123A2A', '#2E9E4F'],
+  venue_campaign: ['#7A2E1F', '#D9480F'],
   friend_review: ['#2B2350', '#7B5EA7'],
   favorite_quiet: ['#7A2E1F', '#C8102E'],
   comeback: ['#123A2A', '#2E9E4F'],
@@ -111,7 +115,7 @@ const CAMPAIGN_KINDS = new Set<AppNotification['kind']>([
 
 // Tapping opens the venue (when there is one) for these
 const OPENS_VENUE = new Set<AppNotification['kind']>([
-  'reply', 'reward', 'loyalty', 'come_here', 'friend_checkin', 'friend_review', 'favorite_quiet', 'together', 'venue_approved', 'loyalty_reward',
+  'reply', 'reward', 'loyalty', 'come_here', 'friend_checkin', 'venue_campaign', 'friend_review', 'favorite_quiet', 'together', 'venue_approved', 'loyalty_reward',
   'moment_removed', 'moment_report_result', 'report_result', 'watch_quiet', 'new_review', 'sponsor_started', 'venue_issue',
 ]);
 
@@ -154,12 +158,15 @@ export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue,
           </Pressable>
         </>
       ) : items.length === 0 ? (
-        <Text style={styles.muted}>Henüz bildirimin yok. Arkadaşlık istekleri ve yorumlarına gelen yanıtlar burada görünür.</Text>
+        <Text style={styles.muted}>Bildirimin yok. Arkadaşın bir yere gidince ya da beklediğin mekan sakinleşince burada görürsün.</Text>
       ) : (
+        groupByAge(items, new Date()).map((group) => (
+        <View key={group.title} style={styles.group}>
+        <Text style={styles.groupTitle}>{group.title}</Text>
         <View style={styles.card}>
-          {items.map((n, i) => (
+          {group.items.map((n, i) => (
+            <SwipeToDelete key={n.key} onDelete={() => dismiss(n.key)}>
             <Pressable
-              key={n.key}
               onPress={() =>
                 n.kind === 'checkin_like' || n.kind === 'checkin_comment'
                   ? onOpenFeed()
@@ -176,22 +183,40 @@ export function NotificationsScreen({ signedIn, onBack, onRegister, onOpenVenue,
                     : onOpenFriends()
               }
               style={({ pressed }) => [styles.row, i > 0 && styles.divider, pressed && styles.pressed]}
+              accessibilityHint="Silmek için sola kaydır"
             >
-              <View style={styles.iconBox}>
-                <GradientFill colors={TINTS[n.kind] ?? TINTS.dead_hour} />
-                <Icon name={ICONS[n.kind]} size={19} color="#fff" />
-              </View>
+              {n.username ? (
+                // From a person: their photo, what happened as a small badge on it
+                <View>
+                  <Avatar username={n.username} size={38} />
+                  <View style={styles.kindBadge}>
+                    <GradientFill colors={TINTS[n.kind] ?? TINTS.dead_hour} />
+                    <View>
+                      <Icon name={ICONS[n.kind]} size={11} color="#fff" />
+                    </View>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.iconBox}>
+                  <GradientFill colors={TINTS[n.kind] ?? TINTS.dead_hour} />
+                  {/* In its own view: on the web a bare icon went under the gradient */}
+                  <View>
+                    <Icon name={ICONS[n.kind]} size={19} color="#fff" />
+                  </View>
+                </View>
+              )}
               <View style={styles.flex}>
                 <Text style={styles.text}>{notificationText(n)}</Text>
                 <Text style={styles.muted}>{sentence(timeAgo(n.at, new Date()))}</Text>
               </View>
-              <Pressable onPress={() => dismiss(n.key)} hitSlop={10} style={styles.delete} accessibilityLabel="Bildirimi sil">
-                <Icon name="trash" size={20} color={colors.textMuted} />
-              </Pressable>
             </Pressable>
+            </SwipeToDelete>
           ))}
         </View>
+        </View>
+        ))
       )}
+      {signedIn && items.length > 0 && <Text style={styles.hint}>Bir bildirimi silmek için sola kaydır.</Text>}
 
       <Pressable onPress={onOpenSettings}>
         <Text style={styles.link}>Bildirim ayarları ›</Text>
@@ -215,11 +240,17 @@ const styles = themed(() => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
   divider: { borderTopWidth: 1, borderTopColor: colors.border },
   pressed: { opacity: 0.7 },
+  kindBadge: {
+    position: 'absolute', right: -3, bottom: -3, width: 18, height: 18, borderRadius: 9, overflow: 'hidden',
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: colors.surface,
+  },
   iconBox: { width: 38, height: 38, borderRadius: 19, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   flex: { flex: 1, gap: 2 },
   text: { fontSize: 14, color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },
-  delete: { padding: 6 },
+  group: { gap: 8 },
+  groupTitle: { fontSize: 13, fontWeight: '700', color: colors.textMuted, marginLeft: 4 },
+  hint: { fontSize: 12, color: colors.placeholder, textAlign: 'center' },
   clear: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 14, backgroundColor: colors.cream },
   clearText: { color: colors.danger, fontWeight: '700', fontSize: 14 },
   link: { color: colors.primary, fontWeight: '600', textAlign: 'center' },

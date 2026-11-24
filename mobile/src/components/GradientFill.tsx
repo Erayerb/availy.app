@@ -21,7 +21,8 @@ export function GradientFill({ colors: [darkFrom, to], scrim = false }: { colors
   // Each gradient needs its own id: two on one page must not share a definition
   const id = `g${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   return (
-    <Svg style={StyleSheet.absoluteFill} preserveAspectRatio="none" viewBox="0 0 100 100" pointerEvents="none">
+    // width/height 100%: on the web the drawing otherwise stays square (a tall page was half black)
+    <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100" pointerEvents="none">
       <Defs>
         {scrim ? (
           <LinearGradient id={id} x1="0" y1="0" x2="0" y2="1">

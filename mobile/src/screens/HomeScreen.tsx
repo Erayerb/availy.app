@@ -1,4 +1,5 @@
 import { useDeferredValue, useMemo, useState } from 'react';
+import { Tip } from '../components/Tip';
 import { StarterTasks } from '../components/StarterTasks';
 import type { Screen } from '../components/TabBar';
 import { WhileAway } from '../components/WhileAway';
@@ -143,57 +144,17 @@ export function HomeScreen({
     <View style={styles.header}>
       <View style={styles.topRow}>
         <Wordmark size={28} />
-        <View style={styles.topActions}>
-          {/* Search as an icon (one row less); a tap opens the box under it */}
-          {!searchVisible && (
-            <Pressable onPress={() => toggleSearch(true)} style={styles.searchButton} hitSlop={8} accessibilityLabel="Mekan ara">
-              <TabIcon name="search" color={colors.text} active={false} size={19} />
-            </Pressable>
-          )}
-          <HeaderButtons onOpenProfile={onOpenProfile} onOpenNotifications={onOpenNotifications} />
-        </View>
+        <HeaderButtons onOpenProfile={onOpenProfile} onOpenNotifications={onOpenNotifications} />
       </View>
 
-      {searchVisible && (
-        <View style={styles.search}>
-          <TabIcon name="search" color={colors.textMuted} active={false} size={18} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Mekan ara"
-            placeholderTextColor={colors.placeholder}
-            style={styles.searchInput}
-            returnKeyType="search"
-            autoCorrect={false}
-            autoFocus={searchOpen}
-          />
-          <Pressable onPress={() => toggleSearch(false)} hitSlop={10} accessibilityLabel="Aramayı kapat">
-            <Icon name="x" size={16} color={colors.textMuted} />
-          </Pressable>
-        </View>
-      )}
-
-      {!searching && <StarterTasks token={token} onOpen={onOpenScreen} />}
-      {!searching && <WhileAway token={token} onOpenVenue={onOpenVenue} onOpenNotifications={onOpenNotifications} />}
-
-      {!searching && <FriendsPlaces token={token} onOpenVenue={onOpenVenue} onAddFriends={onOpenFriends} inviteName={inviteName} />}
-
-      {/* Sideways rows: Şu an sakin, yakınında · Ne arıyorsun? · Trend olanlar · Keşfedilmeyi bekleyenler */}
-      {!searching && <HomeRows venues={venues} onOpenVenue={onOpenVenue} />}
-
-      {!searching && <Text style={styles.allTitle}>Tüm mekanlar</Text>}
-
-      {/* Filtrele: Ne arıyorsun?, Sırala (Önerilen / En yakın / En sakin), Kapalıları gizle */}
-      <FilterBar
-        tags={tags}
-        onTagsChange={onTagsChange}
-        sortMode={sortMode}
-        onSortChange={onSortChange}
-        hideClosed={hideClosed}
-        onHideClosedChange={onHideClosedChange}
-        count={items.length}
-        leading={
-          // Konum: the current choice opens the sheet; × clears it
+      {/* Under the icons, at the right: search as an icon on the first section's title line (no row of its own);
+          a tap opens the box in its place */}
+      {!searchVisible && (
+        <View style={styles.titleRow}>
+          <Text style={styles.sectionTitle} numberOfLines={1}>
+            {token && !searching ? 'Arkadaşların nerede?' : ''}
+          </Text>
+          {/* Konum: next to search, for the whole page (every row and the list below); × clears it */}
           <View style={[styles.place, hasPlaceFilter && styles.placeOn]}>
             <Pressable onPress={() => setPlaceOpen(true)} style={styles.placeMain} accessibilityRole="button" accessibilityLabel="Konum seç">
               <Icon name="map-pin" size={15} color={hasPlaceFilter ? colors.onPrimary : colors.primary} />
@@ -216,16 +177,54 @@ export function HomeScreen({
               </Pressable>
             )}
           </View>
-        }
-      />
-
-      {needsLocation && <Text style={styles.hint}>En yakını göstermek için konum izni gerekli.</Text>}
-      {updatedAt && (
-        <Text style={styles.hint}>
-          Son güncelleme {updatedAt.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-          {Platform.OS === 'web' ? '' : ' · yenilemek için aşağı çek'}
-        </Text>
+          <Tip id="homeSearch" after="campaignsButton" placement="below" radius={20} text="Mekan ara: adını yaz, sonuçlar burada listelenir.">
+            <Pressable onPress={() => toggleSearch(true)} style={styles.searchButton} hitSlop={8} accessibilityLabel="Mekan ara">
+              <TabIcon name="search" color={colors.onPrimary} active={false} size={20} />
+            </Pressable>
+          </Tip>
+        </View>
       )}
+
+      {searchVisible && (
+        <View style={styles.search}>
+          <TabIcon name="search" color={colors.textMuted} active={false} size={18} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Mekan ara"
+            placeholderTextColor={colors.placeholder}
+            style={styles.searchInput}
+            returnKeyType="search"
+            autoCorrect={false}
+            autoFocus={searchOpen}
+          />
+          <Pressable onPress={() => toggleSearch(false)} hitSlop={10} accessibilityLabel="Aramayı kapat">
+            <Icon name="x" size={16} color={colors.textMuted} />
+          </Pressable>
+        </View>
+      )}
+
+      {!searching && (
+        <FriendsPlaces token={token} onOpenVenue={onOpenVenue} onAddFriends={onOpenFriends} inviteName={inviteName} hideTitle />
+      )}
+
+      {!searching && <StarterTasks token={token} onOpen={onOpenScreen} />}
+      {!searching && <WhileAway token={token} onOpenVenue={onOpenVenue} onOpenNotifications={onOpenNotifications} />}
+
+      {/* Sideways rows: Şu an sakin, yakınında · Ne arıyorsun? · Trend olanlar · Keşfedilmeyi bekleyenler */}
+      {!searching && <HomeRows venues={venues} onOpenVenue={onOpenVenue} placeChosen={hasPlaceFilter} />}
+
+      {/* Tüm mekanlar: the title and "Filtrele" (Ne arıyorsun?, Kapalıları gizle) */}
+      <FilterBar
+        tags={tags}
+        onTagsChange={onTagsChange}
+        sortMode={sortMode}
+        onSortChange={onSortChange}
+        hideClosed={hideClosed}
+        onHideClosedChange={onHideClosedChange}
+        count={items.length}
+        title={searching ? 'Sonuçlar' : 'Tüm mekanlar'}
+      />
     </View>
   );
 
@@ -271,7 +270,14 @@ export function HomeScreen({
             />
           ))}
         </View>
-        <Text style={styles.hint}>Diğer ilçeler yakında açılacak.</Text>
+        {/* Not in the pilot yet: still usable (the same tone as the website) */}
+        <View style={styles.soon}>
+          <Text style={styles.soonTitle}>Senin ilçen listede yok mu?</Text>
+          <Text style={styles.soonText}>
+            <Text style={styles.soonBold}>Yine de kullanabilirsin.</Text> Bulunduğun mekanı ekle, ilk check-in'i yap,{' '}
+            <Text style={styles.soonBold}>keşfeden sen ol</Text>. Diğer ilçeler çok yakında.
+          </Text>
+        </View>
         <Pressable onPress={() => setPlaceOpen(false)} style={styles.done}>
           <Text style={styles.doneText}>{items.length} mekanı göster</Text>
         </Pressable>
@@ -305,14 +311,19 @@ function placeLabel(sides: Side[], districts: string[]): string {
 }
 
 const styles = themed(() => StyleSheet.create({
-  topActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  searchButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  allTitle: { fontSize: 17, fontWeight: '700', color: colors.text, marginTop: 10 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, zIndex: 15, elevation: 15 },
+  sectionTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: colors.text },
+  // Search stands out: filled with the brand colour
+  searchButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  soon: { gap: 4, padding: 14, borderRadius: 14, backgroundColor: colors.cream, marginTop: 4 },
+  soonTitle: { fontSize: 15, fontWeight: '800', color: colors.text },
+  soonText: { fontSize: 14, lineHeight: 20, color: colors.textMuted },
+  soonBold: { fontWeight: '700', color: colors.text },
   header: { gap: 10 },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6, zIndex: 20, elevation: 20 },
   row: { gap: 8 },
   hint: { fontSize: 13, color: colors.textMuted },
-  place: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, backgroundColor: colors.cream, maxWidth: 140 },
+  place: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, backgroundColor: colors.cream, maxWidth: 120 },
   placeOn: { backgroundColor: colors.primary },
   placeMain: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 7, paddingLeft: 10, paddingRight: 10, flexShrink: 1 },
   placeText: { fontSize: 13, fontWeight: '600', color: colors.text, flexShrink: 1 },

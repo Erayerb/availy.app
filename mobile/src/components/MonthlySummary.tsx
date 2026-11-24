@@ -63,6 +63,7 @@ function pagesFor(s: Summary, onOpenVenue: (venue: { id: number }) => void): Sto
       title: `En çok gittiğin yer · ${first.visits} kez`,
       lines: rest.slice(0, 3).map((v, i) => `${i + 2}. ${v.name} · ${v.visits} kez`),
       onPress: () => onOpenVenue({ id: first.id }),
+      actionLabel: 'Mekanı aç',
     });
   }
   if (s.top_districts.length)

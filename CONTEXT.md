@@ -63,13 +63,13 @@ dalında ve `v1` etiketinde olduğu gibi durur (bkz. en alttaki "v1" bölümü).
 Ödeme altyapısı yok: paketler seçilince açılır ("Prototip"). Sunucu sınırları kendisi kontrol eder (backend/app/plans.py, users.plan); Premium bir şey denenince uygulama uyarı gösterip Abonelik'e yönlendirir (mobile/src/context/UpgradeContext.tsx).
 
 **Bireysel**
-- Ücretsiz: harita, anlık doluluk, filtreler; check-in, puan, seviye, rozet, sıralama; "İlk adımlar" kartı (ilk check-in, liste, arkadaş, profil fotoğrafı; her biri +10, hepsi "Hızlı başlangıç" rozeti +20); ilk check-in kutlaması; mekanların kalıcı ödülleri (ör. 200 puan = %10, haftada bir); arkadaşlar, akış, beğeni (yalnızca sayı), yorum, tüm bildirimler (uygulama kapalıyken de); "Şu an burada" fotoğrafları, listeler; kampanya kuponları (ücretsiz; işletme isterse "puanla açılan özel kupon": 50/100/200/400 puan), sadakat damga kartı; "Sakin olunca haber ver" aynı anda 1 mekan; ayda 1 seri kurtarma; konuma göre reklam (henüz yok)
-- availo+ (Premium, ₺79/ay): availo+ rozeti; reklamsız; "Sakin olunca haber ver" sınırsız; favoriler sakinleşince zil açmadan haber (açılıp kapanır); aylık özet (en çok gidilen mekanlar ve semtler, geçen ayla ve arkadaşlarla kıyas); profilde kapak fotoğrafı ve renkli çerçeve; ayda 3 seri kurtarma
+- Ücretsiz: harita, anlık doluluk, filtreler; check-in, puan, seviye, rozet, sıralama; "İlk adımlar" kartı (ilk check-in, liste, arkadaş, profil fotoğrafı; her biri +10, hepsi "Hızlı başlangıç" rozeti +20); ilk check-in kutlaması; mekanların kalıcı ödülleri (ör. 200 puan = %10, haftada bir); arkadaşlar, akış, beğeni (yalnızca sayı), yorum, tüm bildirimler (uygulama kapalıyken de); "Şu an burada" fotoğrafları, listeler; kampanya kuponları (ücretsiz; işletme isterse "puanla açılan özel kupon": 50/100/200/400 puan), sadakat damga kartı; "Sakin olunca haber ver" aynı anda 1 mekan; ayda 2 seri kurtarma (günlük seri); konuma göre reklam (henüz yok)
+- availo+ (Premium, ₺79/ay): availo+ rozeti; reklamsız; "Sakin olunca haber ver" sınırsız; favoriler sakinleşince zil açmadan haber (Bildirim ayarlarından açılıp kapanır; her favori kendiliğinden dahil, Favoriler'de kartın zili tek bir mekanı kapatır: favorites.quiet_alert); aylık özet (en çok gidilen mekanlar ve semtler, geçen ayla ve arkadaşlarla kıyas); profilde kapak fotoğrafı ve renkli çerçeve; ayda 10 seri kurtarma
 - Puanların sayfası (Daha fazla ve Kampanyalar'ın üstü): harcanabilir puan (kazanılan − harcanan; seviye ve sıralama kazanılan toplamla), yakında puanla alınabilecekler (GET /v1/rewards), puan geçmişi (GET /v1/me/wallet). Haritada kalıcı ödülü olan mekanın noktasında 🎁
 - Puan: kazanılır (check-in 10, günün ilki 20, keşif 50, rozet, fotoğraf 5, birlikte check-in 10, davet 50, mekan onayı 50); düzenli kullanıcı haftada ~50–70. Yalnızca özel kuponlarda harcanır (point_spends; seviye ve sıralama harcamadan etkilenmez; kampanya erken biterse kullanılmamış kuponun puanı geri gelir)
 
 **İşletme**
-- Ücretsiz: mekan doğrulanınca (ücretsiz) ayda 3 kampanya, doğrulanmadan kampanya yok; kalıcı ödül ("200 puan = %10 indirim", mekan sayfasında hep durur, kişi başı haftada bir, kampanya hakkından düşmez); "Bu ay availo ile" raporu (kişi, ilk kez gelen, kupon) ve ayın 1'inde geçen ayın rapor bildirimi; mekan profili, fotoğraf, saatler; doğrulama (ücretsiz); yorumlara yanıt ve şikâyet; sadakat damga kartı; kupon doğrulama; ölü saat bildirimi ("Mekanın sakin görünüyor, kampanya başlat"); bildirimler (yeni yorum, "Bilgi yanlış mı?", kupon kullanıldı, kuponların %80'i doldu, kampanya bitti ve sonuçları, "Öne çık" başladı / bitti); yakındaki benzer mekanlar
+- Ücretsiz: mekan doğrulanınca (ücretsiz) ayda 3 kampanya, doğrulanmadan kampanya yok; kalıcı ödül ("200 puan = %10 indirim", mekan sayfasında hep durur, kişi başı haftada bir, kampanya hakkından düşmez); "availo ile" ay kartı (tek ay seçici; kişi, ilk kez gelen, check-in, kupon, kampanya; Aylık pakette altında geçen ayla karşılaştırma ve "Ayın özetini aç") ve ayın 1'inde geçen ayın rapor bildirimi; mekan profili, fotoğraf, saatler; doğrulama (ücretsiz); yorumlara yanıt ve şikâyet; sadakat damga kartı; kupon doğrulama; ölü saat bildirimi ("Mekanın sakin görünüyor, kampanya başlat"); bildirimler (yeni yorum, "Bilgi yanlış mı?", kupon kullanıldı, kuponların %80'i doldu, kampanya bitti ve sonuçları, "Öne çık" başladı / bitti); yakındaki benzer mekanlar
 - Aylık paket (₺599/ay): sınırsız kampanya; istatistikler (saat saat bugün, son 7 gün, haftanın günleri, geçen ayla karşılaştırma, en sakin saatler); zamanlanmış haftalık kampanyalar; otomatik ölü saat kampanyası
 - Ayrıca ücretli: "Öne çık" (sponsorlu, ₺300/hafta, ₺1.000/ay; yönetici açar)
 - Aylık paket 15 gün ücretsiz denenebilir (mekan başına bir kez; bitince bildirim)
@@ -116,7 +116,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Yanlış şifre: 2. yanlışta uyarı, 3. yanlışta şifreyle giriş kilitlenir; "Şifremi unuttum" (e-posta kodu) ile yeni şifre belirleyince açılır (users.failed_logins / password_locked)
 - Verilerimi indir (KVKK): Profil ayarları'nda; sunucudaki her şey tek JSON dosyası (GET /v1/me/export; şifre, oturum, telefon özeti yok)
 - 📋 Listeler: Favoriler > Listelerim (istediğin kadar liste), listenin içinde "＋ Mekan ekle" araması ve mekan sayfasındaki liste simgesi; listede mekanlar satır olarak, sahibi "Çıkar" ile çıkarır; liste gizli / arkadaşlar (profilde görünür) / bağlantıyla herkes (?list=KOD); başkasının listesi "Listeyi kaydet" ile kopyalanır; listede "şu an N tanesi sakin" (backend/app/lists.py)
-- 🔥 Haftalık seri: üst üste kaç hafta (Pazartesi–Pazar, İstanbul saati) en az bir check-in; bu hafta henüz yoksa seri hafta bitene kadar sürer. Check-in kutlamasında (2+ hafta) ve profilde (backend/app/streaks.py)
+- 🔥 Günlük seri: üst üste kaç gün (İstanbul saati) en az bir check-in; bugün henüz yoksa seri gün bitene kadar sürer. Check-in kutlamasında (2+ gün) ve profilde (backend/app/streaks.py `day_streak`). Seri kurtarma: arkadaşın, check-in yapmadığın bugünü kurtarır (streak_saves.day); kurtaran kişi 30 günde 2, availo+ 10 kez. Grup serisi haftalık kaldı (her üyenin her gün check-in yapması zor)
 - Müdavim (ev ikonu): mekan sayfasında son 30 günde en çok (en az 3) gizli olmayan check-in yapan; arkadaşlar her zaman, diğerleri yalnızca "Müdavimi olduğum mekanlarda herkes görsün" (Gizlilik, users.regular_public) açıksa (GET /v1/venues/{id}/regular)
 - "Daha boş alternatifler": önce güncel check-in'lere göre daha boş benzer mekanlar, sonra yakındaki açık benzer mekanlardan bilgisi olmayanlar ("şu an bilgi yok")
 - Haritada gruplama: yakın noktalar sayılı tek daire (renk: açık / güncel noktaların çoğunluğu; hiç gri olmaz, yalnız kapalı / eski bilgili gruplar mor), dokununca en fazla 2 seviye yakınlaşır; 16. yakınlaştırmadan sonra grup yok (mobile/src/lib/clusters.ts, ek kütüphane yok)
@@ -129,7 +129,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Haritada sağ altta "+" → Check-in yap: en yakın mekanlar ve arama; sağ üstte "➕ Mekan ekle"
 - Yazısız puanlar yalnızca ortalamaya girer: mekan sayfasında "N yorum" yazılı yorumları sayar (hiç yoksa "N puan"), işletmenin "yanıt bekliyor" sayısına girmez
 - Harita: konum biliniyorsa kullanıcının yanından, işletmede kendi mekanından açılır; ikisi de yoksa İstanbul
-- Misafirin Daha fazla menüsü: üstte Kayıt ol kartı; Abonelik, Gizlilik, Destek (Yakında) ve Profil ayarları yok (Puanın ve rozetlerin var); Bildirim ayarlarında Sosyal bölümü yok
+- Misafirin Daha fazla menüsü: üstte Kayıt ol kartı; Abonelik, Gizlilik ve Profil ayarları yok (Puanın ve rozetlerin var); Bildirim ayarlarında Sosyal bölümü yok
 - Haftanın 1.si: geçen haftayı genel sıralamada 1. bitiren (eşitlikte hepsi; migration 015, ilk istekte bir kez yazılır, zamanlayıcı yok): profilde etiket (o hafta), sıralamada satır, kalıcı rozet (+50)
 - Damga (5 puan, günde en fazla 4 damga puanlı) ve kullanılan kupon (10 puan) sunucuda `points`'e yazılır; sıralamaya ve seviyeye girer (migration 014 eskileri de yazdı)
 - Misafirin rozeti yok: kazandıkları kayıt olunca rozet ve tam puan olarak gelir
@@ -176,7 +176,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Şikâyet (Hakaret / Spam / Yanlış bilgi / Diğer): şikâyet edene hemen, 3 şikâyette herkese gizlenir
 
 **Destek**
-- Daha fazla > "Destek" (Yakında): tanıtım sitesi yapılınca mobile/src/lib/share.ts `SUPPORT_SITE_URL` ile sitedeki destek sayfası açılır; o zamana kadar "Hata bildir ve iletişim" açılır
+- Daha fazla > "Destek" satırı kaldırıldı ("Hata bildir ve iletişim" yeter); tanıtım sitesinde destek sayfası olunca istenirse geri eklenir (mobile/src/lib/share.ts `SUPPORT_SITE_URL`)
 - "Hata bildir" / "İletişime geç" sunucuya gider (support_messages; POST /v1/support, giriş olmadan da; kişi başı günde 10); SUPPORT_EMAIL ayarlıysa oraya e-posta da gider (Render'da girilmeli)
 
 **Gizlilik ve güvenlik**
@@ -186,7 +186,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Gizlilik politikası ve kullanım koşulları taslağı (mobile/src/lib/legal.ts), kayıt ekranında onay satırı
 
 **Harita ve ana sayfa**
-- Ana sayfa: Konum (pilot semtler Ataşehir, Kadıköy, Şişli; diğerleri soluk), Ne arıyorsun (Sosyalleşme, Ortak çalışma, Eğlence, Sessizlik, Yemek, Gece hayatı, Ücretsiz Wi-Fi), arama (Türkçe karakterden bağımsız), Önerilen / En yakın / En sakin, Kapalıları gizle
+- Ana sayfa: Konum (pilot semtler Ataşehir, Kadıköy, Şişli; diğerleri soluk), Ne arıyorsun (Sosyalleşme, Ortak çalışma, Eğlence, Sessizlik, Yemek, Gece hayatı; Ücretsiz Wi-Fi artık filtre değil, yalnızca mekan özelliği), arama (Türkçe karakterden bağımsız), Önerilen / En yakın / En sakin, Kapalıları gizle
 - Harita: üstte "🔍 Mekan ara" (seçilen mekanda harita yeniden açılır, kartı açık); renkli noktalar (soluk = tek kişi, gri ? = bilgi yok, mor ✨ = keşfedilmedi), yakınlaşınca mekan adları, mavi konum noktası, "Konumuma git", yana kayan filtre şeridi, Tümü / Ziyaret ettiklerim, 🔥 Trendler
 - Ücretsiz Wi-Fi: OSM'de Wi-Fi'ı olup ücreti olmayan (ya da müşteriye ücretsiz) mekanlar ve ortak çalışma alanları `wifi` amacı alır (pilot: 267 mekanın 22'si); filtrede ve mekan özelliklerinde "📶 Ücretsiz Wi-Fi" (artık tahmin edilmiyor). Parklar ve "Doğa" kaldırıldı: OSM'den çekilmiyor, eski park kayıtları gizli (check-in'leriyle duruyor). Neon'da Wi-Fi bilgisi için copy_venues yeniden çalıştırılmalı (mevcut mekanların amaçlarını günceller)
 - "📈 Cumartesi günleri genelde 18:00–20:00 kalabalık · En sakin: 10:00–11:00": son 8 haftanın check-in puanları gün ve saat başına ortalanır (en az 3 check-in olan saatler); bugünün gününde yeterli veri yoksa tüm günler birlikte (GET /v1/venues/{id}/typical, app/typical.py)
@@ -242,7 +242,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 
 **Kampanya ve kupon** (sunucuda)
 - İşletme kampanya gönderir (mesaj, indirim, 1/2/3 saat, 1/2/5 km, kişi sınırı); her telefondaki müşteri yakınındaki aktif kampanyayı görür, "Kuponu al" → AV-XXXX (0/O, 1/I, 8/B yok; kişi başı bir; sınır kilitle korunur), kasada QR ya da elle; kampanya bitince kupon kullanılamaz
-- Kampanyalarım: son 7 gün sonuçları, gösterim (kişi başı bir) / kupon / kullanım; bitir, tekrar gönder, bitenleri sil (yalnızca listeden); Rakipler (3 km)
+- Kampanyalarım: son 7 gün sonuçları, gösterim (kişi başı bir) / kupon / kullanım; bitir, tekrar gönder, bitenleri sil (yalnızca listeden). "Rakipler" sekmesi kaldırıldı (Panel'de "Yakındaki benzer mekanlar" var)
 - "Check-in yapana kupon": kampanyada "Kupon kimlere? Yalnızca check-in yapanlar"; müşteride "📍 Check-in yap, kuponu kap", check-in yapınca kupon kendiliğinden verilir ve kutlamada görünür (campaigns.checkin_only; kampanya başladıktan sonraki check-in gerekir)
 - Zamanlanmış / haftalık kampanyalar işletmenin telefonunda tutulur, zamanı gelince (uygulama açıkken) sunucuya gönderilir
 
@@ -263,6 +263,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 **Yayından önce** (özet: 150 m, push bildirimleri, migration, Sentry, KVKK bölümü)
 - Render ayarları (availy-api → Environment): `PHONE_PEPPER` = uzun, rastgele bir metin (girilmezse "Rehberden bul" güvensiz varsayılan metinle çalışır; ayrıntı: Tanıdıkları bulmak) ve isteğe bağlı `SUPPORT_EMAIL` = hata bildirimleri ve iletişim mesajlarının e-postayla da geleceği adres (Resend alan adı doğrulanana kadar yalnızca Resend hesabının adresine gider)
 - Check-in mesafesini 1 km'den 150 m'ye geri al
+- İşletme doğrulama: doğrulanmamış mekan kampanya gönderemiyor ve kapak fotoğrafı yükleyemiyor, ama doğrulama ekranı hâlâ "Yakında" ve "şimdilik her şey doğrulamasız açık" diyor. Ya doğrulamayı aç (SMS / belge) ya da şimdilik elle doğrula (isletme, kafe, sawa) ve ekrandaki yazıyı düzelt
 - Push bildirimleri (bkz. Bildirimler)
 - Deneme ve gerçek ortam ayrı: ikinci Render servisi + ikinci Neon veritabanı (gerçek ortam `main`'den, kod aynı)
 - Planlar: Render Starter (~7 $/ay, uyumaz), Neon ücretli plan (~19 $/ay; 7–30 gün yedek)
@@ -291,6 +292,9 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Kapı QR'ının telefon kamerasıyla doğrudan uygulamayı açması (universal link; kod hazır, alan adı gerekir)
 - Telefon bildirimleri ve ana ekran widget'ı (bkz. Bildirimler)
 
+**Arkadaşlarla buluş** (sonra)
+- Ana sayfa "Arkadaşların nerede?" kartında arkadaş bir mekandaysa (taze check-in) "Yanına git" butonu: yol tarifi açılır, arkadaşa "Geliyorum" gider; arkadaşın "Buradayım, gel!" çağrısına da tek dokunuşla "Geliyorum" yanıtı
+
 **Sürpriz paket** (Too Good To Go benzeri)
 - İşletme gün sonunda satılmayan ürünlerden indirimli "sürpriz paket" açar: fiyat, normal değeri, adet, teslim saati (ör. 18:00–19:00), kabaca içerik
 - Kullanıcı uygulamadan ayırır (kişi başı bir; adet bitince kapanır), saatinde kod / QR ile alır; ödeme önce kasada, sonra uygulamada
@@ -317,7 +321,8 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Gerçek reklamlar gelince: yakındaki mekanların kampanyaları, Premium'da gizli
 
 **Bildirimler** (olay olunca, uygulama kapalıyken de)
-- Yakındaki kampanya bildirimi: push ile birlikte, isteğe bağlı. Son konum yaklaşık 1 km'ye yuvarlanıp tutulur, 24 saatte silinir (bkz. KVKK). Favori ve gidilen mekanların kampanyası izinsiz gelir
+- Kampanya bildirimi (yapıldı, konumsuz): bir mekan kampanya başlatınca (zamanlanmış da) o mekanı favorilemiş ya da son 90 günde orada check-in yapmış kişilere 🔔 + push gelir ("venue_campaign"; kalıcı ödül hariç; Bildirim ayarları > Kampanya bildirimleri ile kapanır)
+- Yakındaki kampanya bildirimi (konuma göre, sonraya): isteğe bağlı; son konum yaklaşık 1 km'ye yuvarlanıp tutulur, 24 saatte silinir (bkz. KVKK)
 - Telefon bildirimi (push): kod hazır. Uygulama bildirim adresini kaydeder (PUT /v1/me/push-token, push_tokens), sunucu yeni 🔔 öğelerini ~30 sn'de bir Expo push ile gönderir (backend/app/push.py; PUSH_INTERVAL_SECONDS, 0 = kapalı), Bildirim ayarlarına uyar. Çalışması için: `eas login` → `eas init` (projectId) → `eas build:configure`; iPhone: Apple Developer + `eas build -p ios`; Android: Firebase projesi, google-services.json, `eas credentials` ile FCM V1 anahtarı. Bildirim metinleri iki yerde: backend/app/push.py `text` ve mobile/src/lib/social.ts `notificationText` (birlikte değişmeli)
 - Kısıt: iPhone'da Expo Go ile çalışmaz; EAS Build ve Apple Developer hesabı (yıllık 99 $) gerekir. Android'de Expo Go ile de denenebilir
 - Uygulama kapalıyken check-in önerisi: geofencing (expo-location + TaskManager, "Her zaman" konum izni, en fazla ~20 bölge); Konum ve izinler metni o zaman güncellenmeli. Son konumla olmaz (kişinin şu anki yerini göstermez); sonraya
@@ -340,7 +345,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - İşletmenin kendi doluluğunu bildirmesi ("işletme bildirdi" etiketiyle): yalnızca Aylık paket için
 - Kapı QR'ı şimdilik GitHub Pages adresine gidiyor: kesin alan adı alınmadan çok sayıda basılmamalı
 - Kurucu mekan avantajı: işletme isterse "Mahalleli'ye çift damga" açar (bedelini kafe seçer)
-- Aylık paketin sattığı "Rakip karşılaştırması" (Panel'de yakındaki benzer mekanlar, Kampanyalar > Rakipler) bedava pakette de açık: pakete bağla ya da paketin açıklamasından çıkar
+- Aylık paketin sattığı "Rakip karşılaştırması" (Panel'de yakındaki benzer mekanlar) bedava pakette de açık: pakete bağla ya da paketin açıklamasından çıkar
 - Birden fazla mekan: tek hesapta mekan seçici ("Moda Şube ▾"; şimdi users.venue_id tek mekan), doğrulama ve Aylık paket şube başına
 - Çalışan hesapları (bir kez yapılıp kaldırıldı; kod git geçmişinde: `v2: seviye simgesi...` commit'i, app/staff.py, CounterScreen, StaffSection, migration 012): işletme kısa kodla davet eder, çalışan kendi hesabıyla kasada kupon ve sadakat QR'ı okutur, sahip kimin ne yaptığını görür ve çıkarır. Üstüne iki yetki düşünüldü: Kasa (yalnızca QR) ve Yönetici (panel, kampanya, yorum yanıtı; ödeme, doğrulama ve yönetici ekleme yalnızca sahipte; kampanyayı kimin oluşturduğu kayıtlı). Geri eklerken: DELETE /v1/staff/me yolu /{staff_id}'den önce tanımlanmalı; yeni migration numarası 014
 - Mekan sahipliği doğrulaması (✓ rozeti; şimdi ekran "Yakında", `venue_profiles.verified` elle): OSM'den telefon / e-posta içe aktar (pilot: 282 mekanın 32'sinde telefon, 7'sinde e-posta) → e-postası varsa kod, telefonu varsa SMS (ücretli) ya da arama → yoksa vergi levhası / ruhsat + mekandayken konum + yönetici onayı → ✓, kampanya ve sadakat açılır; başkasına bağlı mekan için "Bu mekan benim" aynı yolla

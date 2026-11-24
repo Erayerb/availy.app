@@ -21,6 +21,9 @@ def test_first_week_tasks_pay_once_and_bring_the_badge(client, conn, clock):
     done = client.get("/v1/me/starter-tasks", headers=auth(ali)).json()
     assert done["done"] == 4 and done["new_points"] == 40
     assert client.get("/v1/me/starter-tasks", headers=auth(ali)).json()["new_points"] == 0  # once
+    # Puanların > Geçmiş says which task paid
+    labels = {m["label"] for m in client.get("/v1/me/wallet", headers=auth(ali)).json()["moves"]}
+    assert {"İlk adım: ilk check-in'in", "İlk adım: ilk listen", "İlk adım: ilk arkadaşın", "İlk adım: profil fotoğrafın"} <= labels
     badges = conn.execute("SELECT badge_id FROM user_badges b JOIN users u ON u.id = b.user_id WHERE u.username = 't_ali'").fetchall()
     assert "starter" in {b["badge_id"] for b in badges}
     clock.now += timedelta(hours=2)

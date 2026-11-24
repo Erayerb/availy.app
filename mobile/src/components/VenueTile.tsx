@@ -1,4 +1,4 @@
-import { memo, useEffect } from 'react';
+import { memo, useEffect, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text } from './Text';
 import { Pressable } from './Pressable';
@@ -19,12 +19,13 @@ type Props = {
   size: number;
   distance?: string | null; // e.g. "850 m", shown when the user's location is known
   onPress: () => void;
+  extra?: ReactNode; // under the heart (Favoriler: the zil)
 };
 
 // The photo is a little shorter than it is wide, so more venues fit on the screen
 export const TILE_RATIO = 0.78;
 
-function Tile({ venue, size, distance, onPress }: Props) {
+function Tile({ venue, size, distance, onPress, extra }: Props) {
   // Sponsored cards count their views and taps for the business's numbers
   useEffect(() => {
     if (venue.sponsored) sponsorsApi.view(venue.id);
@@ -64,6 +65,7 @@ function Tile({ venue, size, distance, onPress }: Props) {
         )}
         <View style={styles.favorite}>
           <FavoriteButton venueId={venue.id} size={16} floating />
+          {extra}
         </View>
       </View>
       <Text style={styles.distance} numberOfLines={1}>
@@ -76,7 +78,7 @@ function Tile({ venue, size, distance, onPress }: Props) {
 }
 
 /** Lists re-render often (a chip, a filter): a tile only when what it shows changed. */
-export const VenueTile = memo(Tile, (a, b) => a.venue === b.venue && a.size === b.size && a.distance === b.distance);
+export const VenueTile = memo(Tile, (a, b) => a.venue === b.venue && a.size === b.size && a.distance === b.distance && !a.extra && !b.extra);
 
 const styles = themed(() => StyleSheet.create({
   pressed: { opacity: 0.75 },
@@ -110,7 +112,7 @@ const styles = themed(() => StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
-  favorite: { position: 'absolute', top: 6, right: 6 },
+  favorite: { position: 'absolute', top: 6, right: 6, gap: 6 },
   distance: { marginTop: 6, fontSize: 12, color: colors.textMuted },
   sponsored: { color: colors.gold, fontWeight: '700' },
   name: { fontSize: 15, fontWeight: '800', color: '#fff', lineHeight: 18 },

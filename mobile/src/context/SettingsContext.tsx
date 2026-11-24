@@ -21,6 +21,7 @@ export type Settings = {
   checkinLikeNotifications: boolean; // likes on my check-ins
   friendCheckinNotifications: boolean; // a friend checked in (or reviewed a venue)
   favoriteQuietNotifications: boolean; // availo+: a busy favourite turned quiet, without a bell
+  campaignNotifications: boolean; // a favourite (or a venue I went to lately) started a campaign
   // v2 privacy kept on the phone (the rest is on the server)
   privateByDefault: boolean; // the check-in screen starts with "Gizli check-in" on
   // Görünüm: follow the phone, or always light / dark
@@ -42,6 +43,7 @@ const DEFAULTS: Settings = {
   checkinLikeNotifications: true,
   friendCheckinNotifications: true,
   favoriteQuietNotifications: false,
+  campaignNotifications: true,
   privateByDefault: false,
   appearance: 'system',
 };

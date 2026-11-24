@@ -40,8 +40,6 @@ export function HeaderButtons(props: Partial<Actions>) {
         <Tip
           id="campaignsButton"
           placement="below"
-          align="center"
-          shift={-40}
           radius={22}
           text="Kampanyalar burada: yakındaki indirimler, aldığın kuponlar, sadakat kartların ve puanla alabileceklerin."
         >

@@ -22,6 +22,7 @@ export type AppNotification = {
     // A friend after a check-in: "Buradayım, gel"
     | 'come_here'
     | 'friend_checkin' // a friend checked in
+    | 'venue_campaign' // a favourite (or a venue I went to lately) started a campaign; body: its message
     | 'friend_review' // a friend reviewed a venue; body: "4★ text"
     | 'favorite_quiet' // availo+: a busy favourite turned quiet
     | 'comeback' // 4 days without a check-in (the one reminder that is not an event); body: the text
@@ -129,6 +130,7 @@ export const NOTIFICATION_ICONS: Record<AppNotification['kind'], string> = {
   auto_campaign: '📣',
   come_here: '📍',
   friend_checkin: '📍',
+  venue_campaign: '🏷️',
   friend_review: '⭐',
   favorite_quiet: '♥',
   comeback: '👋',
@@ -195,6 +197,7 @@ export function notificationText(n: AppNotification): string {
     return Date.now() - new Date(n.at).getTime() < 90 * 60_000
       ? `${who} şu an ${n.venue_name} mekanında. Sen de katıl!`
       : `${who} ${n.venue_name} mekanında check-in yaptı.`;
+  if (n.kind === 'venue_campaign') return `${n.venue_name} kampanya başlattı: "${n.body}"`;
   if (n.kind === 'friend_review') return `${who} ${n.venue_name} için yorum yazdı: ${n.body}`;
   if (n.kind === 'favorite_quiet') return `Favorin ${n.venue_name} şu an sakin. Gitmek için iyi bir zaman.`;
   if (n.kind === 'together') return `${who} de ${n.venue_name} mekanına geldi: birlikte check-in, ikiniz de puan kazandınız.`;
@@ -223,3 +226,15 @@ export function notificationText(n: AppNotification): string {
 
 /** As a phone notification, where there is no icon next to it. */
 export const phoneNotificationText = (n: AppNotification) => `${NOTIFICATION_ICONS[n.kind]} ${notificationText(n)}`;
+
+/** "Bugün", "Bu hafta" (the last 7 days) and "Daha eski"; empty groups are left out. */
+export function groupByAge<T extends { at: string }>(items: T[], now: Date): { title: string; items: T[] }[] {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const week = today - 6 * 86_400_000;
+  const groups = [
+    { title: 'Bugün', items: items.filter((n) => new Date(n.at).getTime() >= today) },
+    { title: 'Bu hafta', items: items.filter((n) => new Date(n.at).getTime() < today && new Date(n.at).getTime() >= week) },
+    { title: 'Daha eski', items: items.filter((n) => new Date(n.at).getTime() < week) },
+  ];
+  return groups.filter((g) => g.items.length > 0);
+}

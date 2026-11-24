@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
+import { Tip } from './Tip';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { useLocation } from '../context/LocationContext';
@@ -16,6 +17,8 @@ const PER_ROW = 12;
 // "Keşfedilmeyi bekleyenler": only nearby ones, a few (no rush across the city)
 const DISCOVER_KM = 2;
 const DISCOVER_MAX = 6;
+// "Şu an sakin, yakınında": the nearest quiet one is this close
+const NEAR_KM = 2;
 // "Ne arıyorsun?": in this order (the first is chosen at the start); no Wi-Fi chip here
 const ROW_TAGS: Tag[] = ['quiet', 'socializing', 'food', 'nightlife', 'coworking', 'entertainment'];
 
@@ -26,7 +29,11 @@ export function withSponsoredFirst(list: Venue[]): Venue[] {
 
 /** The rows of the home page under "Arkadaşların nerede?": what is quiet nearby, what you are after (one tag at a
  * time), what is trending and what waits to be discovered. Each scrolls sideways; an empty row is not shown. */
-export function HomeRows({ venues, onOpenVenue }: { venues: Venue[]; onOpenVenue: (venue: Venue) => void }) {
+export function HomeRows({ venues, onOpenVenue, placeChosen = false }: {
+  venues: Venue[];
+  onOpenVenue: (venue: Venue) => void;
+  placeChosen?: boolean; // Konum: districts chosen (venues are only theirs); undiscovered ones there, from any distance
+}) {
   const { point } = useLocation();
   const [tag, setTag] = useState<Tag>('quiet');
   const near = useMemo(() => (point ? sortByDistance(venues, point) : venues), [venues, point]);
@@ -47,12 +54,16 @@ export function HomeRows({ venues, onOpenVenue }: { venues: Venue[]; onOpenVenue
     [venues],
   );
   const discover = useMemo(
-    // Only with the user's location: nearby ones, not a list of the whole city
-    () =>
-      point
-        ? near.filter((v) => v.open_now && v.crowd?.state === 'unexplored' && distanceKm(point, v) <= DISCOVER_KM).slice(0, DISCOVER_MAX)
-        : [],
-    [near, point],
+    // Nearby ones (with the user's location), not a list of the whole city; with districts chosen in Konum the
+    // ones there, nearest first. A sponsored venue nobody has checked in at yet comes first, from any distance
+    () => {
+      const unexplored = near.filter((v) => v.open_now && v.crowd?.state === 'unexplored');
+      const sponsored = unexplored.filter((v) => v.sponsored);
+      const rest = unexplored.filter((v) => !v.sponsored);
+      const nearby = placeChosen ? rest : point ? rest.filter((v) => distanceKm(point, v) <= DISCOVER_KM) : [];
+      return [...sponsored, ...nearby].slice(0, DISCOVER_MAX);
+    },
+    [near, point, placeChosen],
   );
 
   const distance = (v: Venue) => (point ? formatDistance(distanceKm(point, v)) : null);
@@ -65,22 +76,35 @@ export function HomeRows({ venues, onOpenVenue }: { venues: Venue[]; onOpenVenue
 
   return (
     <View style={styles.rows}>
-      {quiet.length > 0 && <Row title={point ? 'Şu an sakin, yakınında' : 'Şu an sakin'}>{tiles(quiet)}</Row>}
+      {/* Nearest quiet ones first; when none is near, the far ones still show (then without "yakınında") */}
+      {quiet.length > 0 && (
+        <Row title={point && distanceKm(point, quiet.find((v) => !v.sponsored) ?? quiet[0]) <= NEAR_KM ? 'Şu an sakin, yakınında' : 'Şu an sakin'}>
+          {tiles(quiet)}
+        </Row>
+      )}
 
       {/* One tag at a time: the chips pick what the cards under them show */}
       <View style={styles.section}>
         <Text style={styles.title}>Ne arıyorsun?</Text>
+        <Tip
+          id="homeRows"
+          after="homeSearch"
+          placement="above"
+          radius={18}
+          text="Satırları sağa kaydır. Ne arıyorsun? Bir etikete dokun, uyan mekanlar hemen altında, sakin olanlar önde sıralansın."
+        >
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           {ROW_TAGS.map((t) => (
             <Chip key={t} label={TAG_OPTIONS.find((o) => o.tag === t)?.label ?? t} active={tag === t} onPress={() => setTag(t)} />
           ))}
         </ScrollView>
+        </Tip>
         {tagged.length > 0 ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
             {tiles(tagged)}
           </ScrollView>
         ) : (
-          <Text style={styles.empty}>Şu an buna uyan açık mekan yok.</Text>
+          <Text style={styles.empty}>Şu an buna uyan açık mekan yok. Başka bir çip seç.</Text>
         )}
       </View>
 

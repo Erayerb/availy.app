@@ -90,3 +90,50 @@ def test_the_business_hears_reviews_issues_and_its_sponsorship(client, conn, clo
     assert "sponsor_started" in got and "sponsor_ended" in got
     # Not for anyone else
     assert "new_review" not in kinds(client, ali)
+
+
+def test_the_same_friend_at_the_same_place_again_that_day_is_one_item(client, conn, clock):
+    from app.push import deliver
+
+    ali, ayse = account(client, "t_ali"), account(client, "t_ayse")
+    befriend(client, ali, ayse, "t_ali", "t_ayse")
+    client.put("/v1/me/push-token", json={"token": "ExponentPushToken[abc]", "platform": "ios"}, headers=auth(ali))
+    out = []
+
+    def post(batch):
+        out.extend(batch)
+        return []
+
+    deliver(conn, clock.now, post)
+    kafe = venue_id(conn, "Test Kafe A")
+    # Discovered by someone else first (a discovery always stays in Akış)
+    assert checkin(client, account(client, "t_yabanci"), kafe).status_code == 201
+    clock.now += timedelta(minutes=1)
+    assert checkin(client, ayse, kafe).status_code == 201
+    clock.now += timedelta(minutes=1)
+    deliver(conn, clock.now, post)
+    clock.now += timedelta(hours=2)
+    assert checkin(client, ayse, kafe).status_code == 201
+    clock.now += timedelta(minutes=1)
+    deliver(conn, clock.now, post)
+    items = [n for n in client.get("/v1/notifications", headers=auth(ali)).json() if n["kind"] == "friend_checkin"]
+    assert len(items) == 1  # the latest one
+    assert len(out) == 2  # the phone hears each check-in
+    # Akış: one post too (the earlier one had nothing on it)
+    feed = client.get("/v1/feed", headers=auth(ali)).json()
+    assert len([f for f in feed if f["kind"] == "checkin" and f["venue_id"] == kafe]) == 1
+
+
+def test_a_liked_venue_starting_a_campaign(client, conn, clock):
+    token, kafe = business_at(client, conn)
+    fan, gone, other = account(client, "t_ali"), account(client, "t_ayse"), account(client, "t_yabanci")
+    assert client.put(f"/v1/me/favorites/{kafe}", headers=auth(fan)).status_code == 204
+    assert checkin(client, gone, kafe).status_code == 201
+    clock.now += timedelta(minutes=5)
+    body = {"message": "Önümüzdeki 2 saat tüm kahvelerde %20 indirim", "discount": 20, "radius_km": 2, "duration_hours": 2}
+    assert client.post("/v1/campaigns", json=body, headers=auth(token)).status_code in (200, 201)
+    clock.now += timedelta(minutes=1)
+    for person in (fan, gone):
+        got = kinds(client, person)["venue_campaign"]
+        assert got["venue_id"] == kafe and got["body"] == body["message"]
+    assert "venue_campaign" not in kinds(client, other)

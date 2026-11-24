@@ -7,6 +7,10 @@ export const userSyncApi = {
   favorites: (token: string) => send<number[]>('GET', '/v1/me/favorites', undefined, token),
   setFavorite: (token: string, venueId: number, on: boolean) =>
     send<void>(on ? 'PUT' : 'DELETE', `/v1/me/favorites/${venueId}`, undefined, token),
+  // availo+ "Favorilerim sakinleşince": the favourites whose zil is off
+  quietOff: (token: string) => send<number[]>('GET', '/v1/me/favorites/quiet-off', undefined, token),
+  setQuietAlert: (token: string, venueId: number, on: boolean) =>
+    send<void>('PUT', `/v1/me/favorites/${venueId}/quiet-alert`, { on }, token),
   watches: (token: string) => send<ServerWatch[]>('GET', '/v1/me/watches', undefined, token),
   addWatch: (token: string, venueId: number, createdAt?: string) =>
     send<void>('PUT', `/v1/me/watches/${venueId}`, { created_at: createdAt ?? null }, token),

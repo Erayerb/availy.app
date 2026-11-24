@@ -8,6 +8,9 @@ type Favorites = {
   ids: number[];
   isFavorite: (id: number) => boolean;
   toggle: (id: number) => void;
+  // availo+ "Favorilerim sakinleşince": the zil on a favourite's card (on unless turned off)
+  quietOn: (id: number) => boolean;
+  setQuiet: (id: number, on: boolean) => void;
 };
 
 const FavoritesContext = createContext<Favorites | null>(null);
@@ -24,6 +27,19 @@ type Props = {
 /** Favorite venue ids: on the server per account (so a new phone has them), with a copy on the phone. */
 export function FavoritesProvider({ accountKey, token, signedIn, onLoginRequired, children }: Props) {
   const [ids, setIds] = useState<number[]>([]);
+  const [quietOff, setQuietOff] = useState<number[]>([]);
+  useEffect(() => {
+    setQuietOff([]);
+    if (token) userSyncApi.quietOff(token).then(setQuietOff).catch(() => {});
+  }, [token]);
+  const quietOn = useCallback((id: number) => !quietOff.includes(id), [quietOff]);
+  const setQuiet = useCallback(
+    (id: number, on: boolean) => {
+      setQuietOff((current) => (on ? current.filter((x) => x !== id) : [...current, id]));
+      if (token) userSyncApi.setQuietAlert(token, id, on).catch(() => {});
+    },
+    [token],
+  );
   // The older shared list (KEYS.favorites, before lists were per account) is left untouched
   const storageKey = accountKey ? `${KEYS.favorites}.${accountKey}` : null;
 
@@ -76,7 +92,7 @@ export function FavoritesProvider({ accountKey, token, signedIn, onLoginRequired
   const isFavorite = useCallback((id: number) => ids.includes(id), [ids]);
 
   return (
-    <FavoritesContext.Provider value={{ ids, isFavorite, toggle }}>{children}</FavoritesContext.Provider>
+    <FavoritesContext.Provider value={{ ids, isFavorite, toggle, quietOn, setQuiet }}>{children}</FavoritesContext.Provider>
   );
 }
 

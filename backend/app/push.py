@@ -37,6 +37,7 @@ SETTING_FOR_KIND = {
     "friend_review": "friendCheckinNotifications",
     "watch_quiet": "watchNotifications",
     "favorite_quiet": "favoriteQuietNotifications",
+    "venue_campaign": "campaignNotifications",
 }
 
 ISSUES = {
@@ -85,6 +86,7 @@ def text(n: dict) -> str:
         "trial_ended": "Aylık paket denemen bitti. Sınırsız kampanya ve istatistikler için Aylık paket'e geç.",
         "founder_ended": "Kurucu mekan olarak 3 aylık ücretsiz Aylık paketin bitti. Devam etmek için Abonelik'e bak; rozetin kalıyor.",
         "auto_campaign": f'Ölü saat için otomatik kampanya gönderildi: "{body}"',
+        "venue_campaign": f'{venue} kampanya başlattı: "{body}"',
         "reward": f'{venue} sana ödül verdi: "{body}" Kasada bu bildirimi göster.',
         "friend_checkin": f"{who} şu an {venue} mekanında. Sen de katıl!",
         "friend_review": f"{who} {venue} için yorum yazdı: {body}",

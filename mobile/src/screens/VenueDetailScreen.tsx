@@ -275,7 +275,7 @@ export function VenueDetailScreen({
         {/* Busy: "Sakin olunca haber ver" as a button with its words (stays on for 6 hours) */}
         {!owner && !canWatch(venue) && <WatchButton venue={venue} labeled />}
         {!owner && canWatch(venue) && (
-          <Tip id="watchBell" placement="above" align="left" text="Burası şu an kalabalık. Zile bas: sakinleşince sana haber verelim." style={styles.tipLeft}>
+          <Tip id="watchBell" placement="above" text="Burası şu an kalabalık. Zile bas: sakinleşince sana haber verelim." style={styles.tipLeft}>
             <WatchButton venue={venue} labeled />
           </Tip>
         )}
@@ -298,19 +298,19 @@ export function VenueDetailScreen({
       {/* Quiet labelled actions: not buttons that look like Check-in */}
       <View style={styles.quickRow}>
         <Pressable style={({ pressed }) => [styles.quick, pressed && styles.pressedDim]} onPress={() => onShowOnMap(venue)}>
-          <Icon name="map-pin" size={16} color={colors.text} />
+          <Icon name="map-pin" size={20} color={colors.text} />
           <Text style={styles.quickText}>Haritada gör</Text>
         </Pressable>
         <Pressable
           style={({ pressed }) => [styles.quick, pressed && styles.pressedDim]}
           onPress={() => Linking.openURL(directionsUrl(Platform.OS, venue.lat, venue.lon))}
         >
-          <Icon name="map" size={16} color={colors.text} />
+          <Icon name="map" size={20} color={colors.text} />
           <Text style={styles.quickText}>Yol tarifi</Text>
         </Pressable>
         {herePerson && (
           <Pressable style={({ pressed }) => [styles.quick, pressed && styles.pressedDim]} onPress={() => setListing(true)}>
-            <Icon name="bookmarks" size={16} color={colors.text} />
+            <Icon name="bookmarks" size={20} color={colors.text} />
             <Text style={styles.quickText}>Listeye ekle</Text>
           </Pressable>
         )}
@@ -404,9 +404,10 @@ const styles = themed(() => StyleSheet.create({
   tipLeft: { alignSelf: 'flex-start' },
   underCover: { minHeight: 26, gap: 4 },
   wrongInfo: { position: 'absolute', top: 0, right: 0, zIndex: 1 },
-  quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  quick: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 9, paddingHorizontal: 13, borderRadius: 14, backgroundColor: colors.cream },
-  quickText: { fontSize: 14, fontWeight: '600', color: colors.text },
+  // One row, equal parts: the icon above its word (three fit on any phone)
+  quickRow: { flexDirection: 'row', gap: 8 },
+  quick: { flex: 1, alignItems: 'center', gap: 4, paddingVertical: 10, borderRadius: 14, backgroundColor: colors.cream },
+  quickText: { fontSize: 13, fontWeight: '600', color: colors.text },
   hero: { borderRadius: 20, overflow: 'hidden' },
   heroFade: { ...StyleSheet.absoluteFill },
   heroStack: { position: 'absolute', top: 16, right: 18 },

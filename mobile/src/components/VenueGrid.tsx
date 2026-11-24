@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { FlatList, Platform, RefreshControl, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { TAB_BAR_SPACE } from './TabBar';
 import { Text } from './Text';
@@ -26,10 +26,11 @@ type Props = {
   // Pull-to-refresh
   refreshing?: boolean;
   onRefresh?: () => void;
+  tileExtra?: (venue: Venue) => ReactNode; // under each tile's heart (Favoriler: the zil)
 };
 
 /** Two-column grid of square venue tiles with a scrolling header above it. */
-export function VenueGrid({ venues, header, emptyText, empty, loading = false, error, onOpenVenue, refreshing = false, onRefresh }: Props) {
+export function VenueGrid({ venues, header, emptyText, empty, loading = false, error, onOpenVenue, refreshing = false, onRefresh, tileExtra }: Props) {
   const { width } = useWindowDimensions();
   const tileSize = (width - PADDING * 2 - GAP) / 2;
   const { point } = useLocation();
@@ -69,6 +70,7 @@ export function VenueGrid({ venues, header, emptyText, empty, loading = false, e
           size={tileSize}
           distance={point ? formatDistance(distanceKm(point, item)) : null}
           onPress={() => onOpenVenue(item)}
+          extra={tileExtra?.(item)}
         />
       )}
       refreshControl={

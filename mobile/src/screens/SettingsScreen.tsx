@@ -126,7 +126,14 @@ export function SettingsScreen({ onBack, isBusiness, guest, venueId, account }: 
                   : promptUpgrade('Favorilerin sakinleşince zil açmadan haber almak availo+ ile.')
               }
             />
-            <SettingsSwitch icon="tag" tint={TINT.orange} title="Kampanya bildirimleri" subtitle="Yakında" value={false} disabled />
+            <SettingsSwitch
+              icon="tag"
+              tint={TINT.orange}
+              title="Kampanya bildirimleri"
+              subtitle="Favori mekanların ve son gittiğin yerler kampanya başlatınca"
+              value={settings.campaignNotifications}
+              onChange={(v) => update({ campaignNotifications: v })}
+            />
           </SettingsSection>
           {!guest && (
             <SettingsSection title="Sosyal">

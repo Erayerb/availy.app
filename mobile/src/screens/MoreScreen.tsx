@@ -1,4 +1,6 @@
+import Constants from 'expo-constants';
 import { Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { confirmAction } from '../lib/confirm';
 import { TAB_BAR_SPACE } from '../components/TabBar';
 import { usePageTop } from '../context/PageContext';
 import { Text } from '../components/Text';
@@ -11,7 +13,6 @@ import { Wordmark } from '../components/Wordmark';
 import { ProfileCompletion } from '../components/ProfileCompletion';
 import { StarterTasks } from '../components/StarterTasks';
 import { isBusiness, type User } from '../lib/auth';
-import { SUPPORT_SITE_URL } from '../lib/share';
 import { colors, themed } from '../theme';
 
 // `url`: opens a web page instead of a screen (the screen is the fallback until the page exists)
@@ -25,48 +26,38 @@ const ICON_COLORS: Partial<Record<IconName, string>> = {
 };
 
 const CUSTOMER_ITEMS: Item[] = [
-  { screen: 'profile', label: 'Profil ayarları', icon: 'user', hint: 'Kullanıcı adı, e-posta, şifre, hesabı dondurma ve silme' },
-  { screen: 'campaigns', label: 'Kampanyalar', icon: 'tag', hint: 'Yakındaki kampanyalar, kuponların ve sadakat kartların' },
-  { screen: 'points', label: 'Puanların', icon: 'star', hint: 'Harcanabilir puanın, puanla alabileceklerin, geçmiş' },
+  { screen: 'profile', label: 'Profil ayarları', icon: 'user', hint: 'Kullanıcı adı, e-posta, şifre' },
+  { screen: 'campaigns', label: 'Kampanyalar', icon: 'tag', hint: 'İndirimler, kuponların, damga kartların' },
+  { screen: 'points', label: 'Puanların', icon: 'star', hint: 'Puanını harca, geçmişini gör' },
   { screen: 'subscription', label: 'Abonelik', icon: 'crown', hint: 'Ücretsiz ya da availo+ (₺79/ay)' },
-  { screen: 'settings', label: 'Bildirim ayarları', icon: 'bell', hint: 'Check-in önerileri, sakinleşince haber ver, arkadaşlık, yorum ve beğeniler' },
-  { screen: 'appearance', label: 'Görünüm', icon: 'moon', hint: 'Açık ya da koyu tema, renk körlüğü dostu mod' },
-  { screen: 'privacy', label: 'Gizlilik ayarları', icon: 'lock', hint: "Check-in'lerimi kim görür, sıralama, aranabilirlik, engellenenler" },
-  { screen: 'permissions', label: 'Konum ve izinler', icon: 'location', hint: 'Konum, kamera ve bildirim izinleri ne için kullanılıyor' },
+  { screen: 'settings', label: 'Bildirim ayarları', icon: 'bell', hint: 'Neyden haberin olsun, sen seç' },
+  { screen: 'appearance', label: 'Görünüm', icon: 'moon', hint: 'Açık, koyu ya da renk körü dostu' },
+  { screen: 'privacy', label: 'Gizlilik ayarları', icon: 'lock', hint: "Check-in'lerini kim görür" },
+  { screen: 'permissions', label: 'Konum ve izinler', icon: 'location', hint: 'Hangi izin ne için' },
 ];
 
 // A guest has no account to set up, nothing to subscribe to and no friends to hide from: signing up is the card on top
 const GUEST_ITEMS: Item[] = [
   { screen: 'profile', label: 'Puanın', icon: 'star', hint: 'Misafir olarak topladıkların' },
-  { screen: 'campaigns', label: 'Kampanyalar', icon: 'tag', hint: 'Yakındaki kampanyalar ve kuponlar' },
+  { screen: 'campaigns', label: 'Kampanyalar', icon: 'tag', hint: 'Kuponların' },
   { screen: 'settings', label: 'Bildirim ayarları', icon: 'bell', hint: 'Check-in önerileri, sakinleşince haber ver' },
-  { screen: 'appearance', label: 'Görünüm', icon: 'moon', hint: 'Açık ya da koyu tema, renk körlüğü dostu mod' },
-  { screen: 'permissions', label: 'Konum ve izinler', icon: 'location', hint: 'Konum, kamera ve bildirim izinleri ne için kullanılıyor' },
+  { screen: 'appearance', label: 'Görünüm', icon: 'moon', hint: 'Açık, koyu ya da renk körü dostu' },
+  { screen: 'permissions', label: 'Konum ve izinler', icon: 'location', hint: 'Hangi izin ne için' },
 ];
 
 const BUSINESS_ITEMS: Item[] = [
-  { screen: 'profile', label: 'İşletme profili', icon: 'building-store', hint: 'Kapak fotoğrafı, ad, saatler, özellikler, adres ve konum, iletişim' },
+  { screen: 'profile', label: 'İşletme profili', icon: 'building-store', hint: 'Kapak, saatler, adres, iletişim' },
   { screen: 'verification', label: 'İşletme doğrulama', icon: 'id', hint: 'Mekan sahipliğini kanıtla', badge: 'Yakında' },
-  { screen: 'subscription', label: 'Abonelik', icon: 'crown', hint: 'Ücretsiz ya da Aylık paket (15 gün ücretsiz dene)' },
-  { screen: 'settings', label: 'Ayarlar', icon: 'settings', hint: 'Hesap, ölü saat bildirimi, otomatik kampanya' },
-  { screen: 'appearance', label: 'Görünüm', icon: 'moon', hint: 'Açık ya da koyu tema, renk körlüğü dostu mod' },
-  { screen: 'permissions', label: 'İzinler', icon: 'camera', hint: 'Kamera ve bildirim izinleri ne için kullanılıyor' },
+  { screen: 'subscription', label: 'Abonelik', icon: 'crown', hint: 'Ücretsiz ya da Aylık paket' },
+  { screen: 'settings', label: 'Ayarlar', icon: 'settings', hint: 'Hesap, ölü saat, otomatik kampanya' },
+  { screen: 'appearance', label: 'Görünüm', icon: 'moon', hint: 'Açık, koyu ya da renk körü dostu' },
+  { screen: 'permissions', label: 'İzinler', icon: 'camera', hint: 'Hangi izin ne için' },
 ];
 
 const COMMON_ITEMS: Item[] = [
-  {
-    screen: 'support',
-    label: 'Destek',
-    icon: 'message-circle',
-    hint: 'Sık sorulan sorular ve yardım',
-    url: SUPPORT_SITE_URL,
-    // Until the introduction website is up it cannot be opened ("Hata bildir ve iletişim" is below)
-    badge: SUPPORT_SITE_URL ? undefined : 'Yakında',
-    disabled: !SUPPORT_SITE_URL,
-  },
   { screen: 'support', label: 'Hata bildir ve iletişim', icon: 'bug', hint: 'Sorun bildir ya da bize yaz' },
   { screen: 'about', label: 'Hakkında', icon: 'compass', hint: 'Nasıl kullanılır, web sitemiz' },
-  { screen: 'legal', label: 'Kullanım koşulları', icon: 'bookmarks', hint: 'Kullanım koşulları ve gizlilik politikası (KVKK)' },
+  { screen: 'legal', label: 'Kullanım koşulları', icon: 'bookmarks', hint: 'Koşullar ve gizlilik (KVKK)' },
 ];
 
 type Props = {
@@ -147,10 +138,12 @@ export function MoreScreen({ user, onSelect, onLogin, onRegister, onLogout }: Pr
       ))}
 
       {!guest && (
-        <Pressable onPress={onLogout} style={styles.logout}>
+        <Pressable onPress={() => confirmAction('Çıkış yapmak istediğine emin misin?', 'Tekrar girmek için kullanıcı adın ve şifren gerekir.', 'Çıkış yap', onLogout)} style={styles.logout}>
           <Text style={styles.logoutText}>Çıkış yap</Text>
         </Pressable>
       )}
+      {/* For support: which version the person has */}
+      <Text style={styles.version}>availo {Constants.expoConfig?.version ?? ''}</Text>
     </ScrollView>
   );
 }
@@ -179,6 +172,7 @@ const styles = themed(() => StyleSheet.create({
   rowText: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingRight: 14 },
   label: { fontSize: 16, fontWeight: '500', color: colors.text },
   hint: { fontSize: 12, color: colors.textMuted },
+  version: { textAlign: 'center', fontSize: 12, color: colors.placeholder, marginTop: 4 },
   badge: {
     fontSize: 11,
     fontWeight: '700',

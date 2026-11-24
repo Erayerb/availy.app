@@ -153,7 +153,7 @@ export function ListScreen({ token, target, onBack, onOpenVenue, onOpenList }: P
       data={shown}
       keyExtractor={(v) => String(v.id)}
       ListHeaderComponent={header}
-      ListEmptyComponent={!list || loading ? <RowsSkeleton count={4} /> : <Text style={styles.empty}>{'Bu listede henüz mekan yok.'}</Text>}
+      ListEmptyComponent={!list || loading ? <RowsSkeleton count={4} /> : <Text style={styles.empty}>{'Listen boş. Mekan sayfasında "Listeye ekle"ye dokun.'}</Text>}
       keyboardShouldPersistTaps="handled"
       onRefresh={() => {
         load();

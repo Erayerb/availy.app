@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 import psycopg
 
-from app.safety import BLOCKED, FROZEN, MUTED, hidden_reply, hidden_review
+from app.safety import BLOCKED, FROZEN, MUTED, hidden_reply, hidden_review, same_day
 
 MAX_BODY = 280
 MAX_REVIEWS_PER_CHECKIN = 1  # one rating per check-in: rating twice from one visit would count the person twice
@@ -209,6 +209,17 @@ def friend_feed(
                    OR EXISTS (SELECT 1 FROM checkin_likes l WHERE l.checkin_id = c.id)
                    OR EXISTS (SELECT 1 FROM checkin_comments k WHERE k.checkin_id = c.id))"""
         shared = "NOT c2.is_private AND u.share_checkins"
+    # The same person at the same place again the same day: one post. An earlier bare check-in (no words, likes,
+    # comments, photo; not a discovery) goes when a later one there that day shows
+    later_seen = "true" if who == "me" else "NOT c4.is_private"
+    again = f"""NOT (rv.id IS NULL AND c.note IS NULL AND NOT c.is_first
+                AND NOT EXISTS (SELECT 1 FROM checkin_likes l WHERE l.checkin_id = c.id)
+                AND NOT EXISTS (SELECT 1 FROM checkin_comments k WHERE k.checkin_id = c.id)
+                AND NOT EXISTS (SELECT 1 FROM moment_photos m WHERE m.checkin_id = c.id AND m.expires_at > now()
+                                AND m.hidden_at IS NULL)
+                AND EXISTS (SELECT 1 FROM checkins c4 WHERE c4.user_id = c.user_id AND c4.venue_id = c.venue_id
+                            AND c4.created_at > c.created_at AND NOT c4.is_demo AND {later_seen}
+                            AND {same_day("c4.created_at", "c.created_at")}))"""
     return conn.execute(
         f"""
         SELECT * FROM (
@@ -227,7 +238,7 @@ def friend_feed(
                 SELECT r.id, r.rating, r.body, r.allow_replies FROM reviews r
                 WHERE r.checkin_id = c.id AND NOT {hidden_review("r")} ORDER BY r.created_at DESC LIMIT 1
             ) rv ON true
-            WHERE {checkin_who} AND NOT c.is_demo AND c.created_at > %(since)s AND {plain}
+            WHERE {checkin_who} AND NOT c.is_demo AND c.created_at > %(since)s AND {plain} AND {again}
             UNION ALL
             SELECT 'review', r.created_at, u.username, v.id, v.name, v.category, false, 0, r.rating, r.body, NULL,
                    r.id, r.allow_replies, NULL::bigint, NULL, false, ARRAY[]::text[]

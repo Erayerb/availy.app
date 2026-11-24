@@ -10,6 +10,7 @@ import { MonthPicker } from '../MonthPicker';
 import { Pressable } from '../Pressable';
 import { SummaryStory, type StoryPage } from '../SummaryStory';
 import { Text } from '../Text';
+import { colors, themed } from '../../theme';
 
 type Summary = {
   months_available: number;
@@ -75,44 +76,46 @@ function pagesFor(s: Summary): StoryPage[] {
   return pages;
 }
 
-/** İşletme paneli, Aylık paket: "Aylık özet" — the month as coloured pages, like the customers' one. */
-export function BusinessSummary({ token }: { token: string }) {
+/** In the month card (İşletme paneli), Aylık paket: against last month, and "Ayın özetini aç" — the month as
+ * coloured pages, like the customers' one. Nothing on the free plan (the endpoint says 402). `onMonths`: how many
+ * months can be picked. */
+export function SummaryButton({ token, back, onMonths }: { token: string; back: number; onMonths: (n: number) => void }) {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [open, setOpen] = useState(false);
-  const [back, setBack] = useState(0);
-  const [locked, setLocked] = useState(false);
   useEffect(() => {
     send<Summary>('GET', `/v1/business/monthly-summary?months_back=${back}`, undefined, token)
       .then((s) => {
         setSummary(s);
-        setLocked(false);
+        onMonths(s.months_available);
       })
-      .catch(() => setLocked(true));
-  }, [token, back]);
-  if (!summary || locked) return null; // not in the plan (402): the panel shows its own lock
+      .catch(() => setSummary(null));
+  }, [token, back]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!summary) return null;
+  const change = summary.people - summary.previous_people;
   return (
     <>
+      <Text style={change > 0 ? styles.up : change < 0 ? styles.down : styles.same}>
+        {change === 0 ? 'Geçen ayla aynı' : change > 0 ? `Geçen aydan ${change} kişi fazla` : `Geçen aydan ${-change} kişi az`}
+      </Text>
       <Pressable style={styles.card} onPress={() => setOpen(true)} accessibilityRole="button">
         <GradientFill colors={['#13304F', '#2F6AA3']} />
         <View style={styles.icon}>
-          <Icon name="chart-bar" size={22} color="#fff" />
+          <Icon name="chart-bar" size={18} color="#fff" />
         </View>
-        <View style={styles.flex}>
-          <Text style={styles.title}>Aylık özet</Text>
-          <Text style={styles.sub}>Mekanının ayını görmek için bas</Text>
-        </View>
-        <MonthPicker value={back} onChange={setBack} count={summary.months_available} light />
+        <Text style={styles.title}>Ayın özetini aç</Text>
+        <Text style={styles.chevron}>›</Text>
       </Pressable>
       <SummaryStory visible={open} pages={pagesFor(summary)} onClose={() => setOpen(false)} />
     </>
   );
 }
 
-const styles = StyleSheet.create({
-  card: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 16, borderRadius: 18, overflow: 'hidden' },
-  icon: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  flex: { flex: 1, gap: 2 },
-  title: { fontSize: 17, fontWeight: '800', color: '#fff' },
-  sub: { fontSize: 13, color: 'rgba(255,255,255,0.9)' },
-  chevron: { fontSize: 26, color: '#fff' },
-});
+const styles = themed(() => StyleSheet.create({
+  card: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 14, overflow: 'hidden' },
+  icon: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  title: { flex: 1, fontSize: 15, fontWeight: '800', color: '#fff' },
+  chevron: { fontSize: 22, color: '#fff' },
+  up: { fontSize: 13, fontWeight: '700', color: colors.success },
+  down: { fontSize: 13, fontWeight: '700', color: colors.danger },
+  same: { fontSize: 13, fontWeight: '700', color: colors.textMuted },
+}));

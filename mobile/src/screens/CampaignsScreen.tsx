@@ -15,14 +15,15 @@ import { CampaignBox } from '../components/CampaignBox';
 import { CampaignForm } from '../components/business/CampaignForm';
 import { CouponVerifier } from '../components/business/CouponVerifier';
 import { LoyaltySetup } from '../components/business/LoyaltySetup';
-import { ScheduleSection } from '../components/business/ScheduleSection';
+import { ScheduleForm, ScheduleSection } from '../components/business/ScheduleSection';
+import { BottomSheet } from '../components/BottomSheet';
 import { Chip } from '../components/TagChips';
 import { useCampaigns } from '../context/CampaignsContext';
 import { useLoyalty } from '../context/LoyaltyContext';
 import { useLocation } from '../context/LocationContext';
 import { isActive, repeatCampaign, timeLeft, visibleCampaigns, type Campaign } from '../lib/campaigns';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
-import { couponQrPayload, couponValid } from '../lib/coupons';
+import { couponQrPayload, couponValid, shownCoupons } from '../lib/coupons';
 import { campaignTotals } from '../lib/campaigns';
 import { distanceKm, formatDistance } from '../lib/geo';
 import type { PlanId } from '../lib/plans';
@@ -32,7 +33,7 @@ import { customerQrPayload, describeProgram } from '../lib/loyalty';
 import { colors, themed } from '../theme';
 import { InlineIcon } from '../components/Icon';
 
-export type Tab = 'campaigns' | 'coupons' | 'loyalty' | 'myCampaigns' | 'myPrograms' | 'venueCoupons' | 'rivals';
+export type Tab = 'campaigns' | 'coupons' | 'loyalty' | 'myCampaigns' | 'myPrograms' | 'venueCoupons';
 
 // Campaigns, coupons and loyalty share one bottom tab
 const CUSTOMER_TABS: { tab: Tab; label: string }[] = [
@@ -41,16 +42,12 @@ const CUSTOMER_TABS: { tab: Tab; label: string }[] = [
   { tab: 'loyalty', label: 'Sadakat' },
 ];
 
-// A business sees its own campaigns, coupons and loyalty program, plus its rivals' campaigns
+// A business sees its own campaigns, coupons and loyalty program
 const BUSINESS_TABS: { tab: Tab; label: string }[] = [
   { tab: 'myCampaigns', label: 'Kampanyalarım' },
   { tab: 'venueCoupons', label: 'Kuponlar' },
   { tab: 'myPrograms', label: 'Sadakat programım' },
-  { tab: 'rivals', label: 'Rakipler' },
 ];
-
-// "Rakipler": active campaigns of other venues this close to the business
-const RIVAL_RADIUS_KM = 3;
 
 export type BusinessInfo = {
   venueId: number;
@@ -120,7 +117,7 @@ export function CampaignsScreen({ signedIn, serverPoints, customerCode, business
         radius={16}
         text={
           business
-            ? 'Kampanyalarım: yeni kampanya ve kalıcı ödül. Kuponlar: kasada müşterinin kodunu ya da QR\'ını okut. Rakipler: yakındaki mekanların kampanyaları.'
+            ? 'Kampanyalarım: yeni kampanya ve kalıcı ödül. Kuponlar: kasada müşterinin kodunu ya da QR\'ını okut.'
             : 'Kampanyalar: yakındaki indirimler. Kuponlarım: aldığın kuponlar, kasada QR\'ı göster. Sadakat: damga kartların.'
         }
       >
@@ -136,7 +133,6 @@ export function CampaignsScreen({ signedIn, serverPoints, customerCode, business
       {tab === 'myCampaigns' && business && <MyCampaigns business={business} />}
       {tab === 'myPrograms' && business && <MyPrograms />}
       {tab === 'venueCoupons' && business && <VenueCoupons venueId={business.venueId} />}
-      {tab === 'rivals' && business && <Rivals venueId={business.venueId} />}
     </ScrollView>
   );
 }
@@ -189,12 +185,13 @@ function CampaignList({ onOpenVenue }: Pick<Props, 'onOpenVenue'>) {
 }
 
 function MyCoupons() {
-  const { coupons: mine, now, removeCoupon } = useCampaigns();
+  const { coupons: all, now, removeCoupon } = useCampaigns();
+  const mine = shownCoupons(all, now);
 
   return (
     <View style={styles.list}>
       {mine.length === 0 && (
-        <Text style={styles.empty}>Henüz kuponun yok. Kampanyalardan "Kuponu al"a dokun.</Text>
+        <Text style={styles.empty}>Kuponun yok. Kampanyalarda "Kuponu al"a dokun, kasada göster.</Text>
       )}
       {mine.map((coupon) => {
         const status = coupon.redeemedAt ? 'Kullanıldı' : couponValid(coupon, now) ? 'Geçerli · kasada göster' : 'Süresi doldu';
@@ -293,7 +290,7 @@ function Loyalty({
       </View>
 
       {error && <Text style={styles.endText}>{error}</Text>}
-      {sorted.length === 0 && <Text style={styles.empty}>Henüz sadakat programı olan mekan yok.</Text>}
+      {sorted.length === 0 && <Text style={styles.empty}>Gittiğin mekanlar damga kartı açınca burada görürsün.</Text>}
       {sorted.map((program) => {
         const member = program.member;
         return (
@@ -338,12 +335,16 @@ function Loyalty({
 /** Business: new campaign, scheduled campaigns and results of its own campaigns. */
 function MyCampaigns({ business }: { business: BusinessInfo }) {
   const { promptUpgrade } = useUpgrade();
-  const { campaigns, now, end, remove, create } = useCampaigns();
+  const { campaigns, now, end, remove, create, access } = useCampaigns();
   const { venues } = useVenuesByIds([business.venueId]);
   const venue = venues[0];
   const mine = campaigns.filter((c) => c.venueId === business.venueId);
   const ended = mine.filter((c) => !isActive(c, now));
   const totals = campaignTotals(campaigns, business.venueId, 7, now);
+  // The forms open in sheets: the page is the results and the lists
+  const [sheet, setSheet] = useState<'campaign' | 'schedule' | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const weekly = (access?.plan ?? business.plan) === 'saas';
 
   return (
     <View style={styles.list}>
@@ -354,16 +355,21 @@ function MyCampaigns({ business }: { business: BusinessInfo }) {
         </Text>
       </View>
       {venue && (
-        <>
-          <CampaignForm venue={venue} plan={business.plan} />
-          {business.token && <RewardSetup token={business.token} />}
-          <ScheduleSection
-            venue={venue}
-            plan={business.plan}
-            onUpgrade={() => promptUpgrade('Zamanlanmış haftalık kampanyalar Aylık pakette.')}
-          />
-        </>
+        <View style={styles.newRow}>
+          <Pressable style={[styles.newButton, styles.newPrimary]} onPress={() => { setNote(null); setSheet('campaign'); }}>
+            <Text style={styles.newPrimaryText}><InlineIcon name="plus" /> Yeni kampanya</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.newButton, styles.newSecondary]}
+            onPress={() => (weekly ? setSheet('schedule') : promptUpgrade('Haftalık kampanyalar Aylık pakette.'))}
+          >
+            <Text style={styles.newSecondaryText}>
+              <InlineIcon name={weekly ? 'plus' : 'lock'} /> Haftalık kampanya
+            </Text>
+          </Pressable>
+        </View>
       )}
+      {note && <Text style={styles.success}>✓ {note}</Text>}
       <View style={styles.cardHeader}>
         <Text style={styles.sectionTitle}>Kampanyaların</Text>
         {ended.length > 1 && (
@@ -372,7 +378,7 @@ function MyCampaigns({ business }: { business: BusinessInfo }) {
           </Pressable>
         )}
       </View>
-      {mine.length === 0 && <Text style={styles.muted}>Henüz kampanyan yok.</Text>}
+      {mine.length === 0 && <Text style={styles.muted}>Kampanyan yok. "Yeni kampanya"ya dokun, boş masaları doldur.</Text>}
       {mine.map((c) => {
         const live = isActive(c, now);
         const stats = c.stats ?? { views: 0, claims: 0, redemptions: 0 };
@@ -400,40 +406,31 @@ function MyCampaigns({ business }: { business: BusinessInfo }) {
           </View>
         );
       })}
-    </View>
-  );
-}
-
-/** Business: what nearby venues are offering right now. */
-function Rivals({ venueId }: { venueId: number }) {
-  const { campaigns, now } = useCampaigns();
-  const { venues } = useVenuesByIds([venueId]);
-  const venue = venues[0];
-  if (!venue) return null;
-  const rivals = campaigns
-    .filter((c) => c.venueId !== venueId && isActive(c, now))
-    .map((c) => ({ campaign: c, km: distanceKm(venue, c) }))
-    .filter(({ km }) => km <= RIVAL_RADIUS_KM)
-    .sort((a, b) => a.km - b.km);
-
-  return (
-    <View style={styles.list}>
-      <Text style={styles.muted}>{RIVAL_RADIUS_KM} km içindeki diğer mekanların şu anki kampanyaları</Text>
-      {rivals.length === 0 && <Text style={styles.empty}>Şu an yakınında kampanya yapan başka mekan yok.</Text>}
-      {rivals.map(({ campaign, km }) => (
-        <View key={campaign.id} style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.venue} numberOfLines={1}>
-              {campaign.venueName}
-            </Text>
-            {campaign.discount !== null && <Text style={styles.badge}>%{campaign.discount}</Text>}
-          </View>
-          <Text style={styles.text}>{campaign.message}</Text>
-          <Text style={styles.muted}>
-            <InlineIcon name="map-pin" /> {formatDistance(km)} · {timeLeft(campaign, now)} · {campaign.radiusKm} km'ye gönderildi
-          </Text>
-        </View>
-      ))}
+      {venue && (
+        <>
+          <ScheduleSection plan={business.plan} onUpgrade={() => promptUpgrade('Haftalık kampanyalar Aylık pakette.')} />
+          {business.token && <RewardSetup token={business.token} />}
+          <BottomSheet visible={sheet === 'campaign'} title="Yeni kampanya" onClose={() => setSheet(null)}>
+            <CampaignForm
+              venue={venue}
+              plan={business.plan}
+              onSent={(text) => {
+                setSheet(null);
+                setNote(text);
+              }}
+            />
+          </BottomSheet>
+          <BottomSheet visible={sheet === 'schedule'} title="Haftalık kampanya" onClose={() => setSheet(null)}>
+            <ScheduleForm
+              venue={venue}
+              onDone={() => {
+                setSheet(null);
+                setNote('Zamanlandı; zamanı gelince kendiliğinden başlar.');
+              }}
+            />
+          </BottomSheet>
+        </>
+      )}
     </View>
   );
 }
@@ -455,7 +452,7 @@ function VenueCoupons({ venueId }: { venueId: number }) {
     <View style={styles.list}>
       <CouponVerifier />
       <Text style={styles.sectionTitle}>Alınan kuponlar</Text>
-      {mine.length === 0 && <Text style={styles.muted}>Henüz kupon alınmadı.</Text>}
+      {mine.length === 0 && <Text style={styles.muted}>Kupon alınınca burada görürsün.</Text>}
       {mine.map((c) => (
         <View key={c.code} style={[styles.card, !couponValid(c, new Date()) && styles.faded]}>
           <View style={styles.codeRow}>
@@ -472,6 +469,13 @@ function VenueCoupons({ venueId }: { venueId: number }) {
 }
 
 const styles = themed(() => StyleSheet.create({
+  newRow: { flexDirection: 'row', gap: 10 },
+  newButton: { flex: 1, paddingVertical: 13, borderRadius: 14, alignItems: 'center' },
+  newPrimary: { backgroundColor: colors.primary },
+  newPrimaryText: { color: colors.onPrimary, fontWeight: '800', fontSize: 15 },
+  newSecondary: { borderWidth: 1.5, borderColor: colors.primary },
+  newSecondaryText: { color: colors.primary, fontWeight: '800', fontSize: 15 },
+  success: { color: colors.success, fontWeight: '700', fontSize: 14 },
   walletCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.gold },
   pointsEmoji: { fontSize: 26 },
   pointsTitle: { fontSize: 16, fontWeight: '800', color: colors.text },

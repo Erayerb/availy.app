@@ -160,17 +160,19 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
             <Text style={styles.name}>
               @{profile.username}
               {profile.plus && <PlusBadge />}
-              {/* The weekly streak ("🔥 4": weeks in a row with a check-in) beside the name */}
-              {!profile.stats_hidden && (profile.weekly_streak ?? 0) >= 1 && <Text style={styles.flame}>  🔥 {profile.weekly_streak}</Text>}
+              {/* The streak ("🔥 4": days in a row with a check-in) beside the name */}
+              {!profile.stats_hidden && (profile.streak ?? 0) >= 1 && <Text style={styles.flame}>  🔥 {profile.streak}</Text>}
             </Text>
+            {!me && (
             <Text style={styles.muted}>
-              {me ? 'Bu senin profilin' : profile.relation === 'friend' ? 'Arkadaşın' : profile.relation === 'incoming' ? 'Seni eklemek istiyor' : profile.relation === 'outgoing' ? 'İstek gönderildi' : 'Arkadaşın değil'}
+              {profile.relation === 'friend' ? 'Arkadaşın' : profile.relation === 'incoming' ? 'Seni eklemek istiyor' : profile.relation === 'outgoing' ? 'İstek gönderildi' : 'Arkadaşın değil'}
               {profile.muted ? ' · sessizde' : ''}
             </Text>
+            )}
           </View>
         </View>
         {profile.weekly_winner && (
-          <Text style={styles.winner}><InlineIcon name="trophy" /> Haftanın 1.si</Text>
+          <Text style={styles.winner}><InlineIcon name="trophy" /> Geçen haftanın 1.si</Text>
         )}
         {profile.level && <LevelCard level={profile.level} onOpen={() => onOpenLevels(profile.level!)} />}
         {profile.stats_hidden ? (
@@ -246,7 +248,7 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
             title={`${me ? 'Gittiğin' : 'Gittiği'} mekanlar · ${venues.length}`}
             chips={venueChips}
             venues={shownVenues}
-            empty="Henüz check-in yok."
+            empty="Check-in yok."
             onOpenVenue={onOpenVenue}
             onShowAll={() => setFullList(true)}
           />

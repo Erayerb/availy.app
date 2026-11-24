@@ -58,7 +58,7 @@ class CheckinOut(BaseModel):
     my_visits: int
     first_ever: bool = False  # the person's very first check-in
     coupons: list[CheckinCoupon] = []  # from "Check-in yapana kupon" campaigns
-    weekly_streak: int = 0  # weeks in a row with a check-in, this one included
+    streak: int = 0  # days in a row with a check-in, today included
     streak_up: bool = False  # this week's first check-in: the streak grew
     together: list[str] = []  # friends here within the hour (+10 each)
 

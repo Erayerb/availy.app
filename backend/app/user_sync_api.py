@@ -37,6 +37,25 @@ def add_favorite(venue_id: int, user: dict = Depends(current_user), conn: psycop
     return Response(status_code=204)
 
 
+@router.get("/favorites/quiet-off", response_model=list[int])
+def favorites_quiet_off(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
+    """availo+ "Favorilerim sakinleşince": the favourites whose zil is off (the rest tell when they turn quiet)."""
+    rows = conn.execute("SELECT venue_id FROM favorites WHERE user_id = %s AND NOT quiet_alert ORDER BY venue_id", (user["id"],))
+    return [r["venue_id"] for r in rows.fetchall()]
+
+
+class QuietAlertIn(BaseModel):
+    on: bool
+
+
+@router.put("/favorites/{venue_id}/quiet-alert", status_code=204)
+def set_quiet_alert(
+    venue_id: int, body: QuietAlertIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)
+):
+    conn.execute("UPDATE favorites SET quiet_alert = %s WHERE user_id = %s AND venue_id = %s", (body.on, user["id"], venue_id))
+    return Response(status_code=204)
+
+
 @router.delete("/favorites/{venue_id}", status_code=204)
 def remove_favorite(venue_id: int, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
     conn.execute("DELETE FROM favorites WHERE user_id = %s AND venue_id = %s", (user["id"], venue_id))

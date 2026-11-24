@@ -7,10 +7,12 @@ import { haptics } from '../lib/haptics';
 import { colors, themed } from '../theme';
 import { Pressable } from './Pressable';
 import { Text } from './Text';
+import { useHoldTips } from '../lib/tips';
 
 /** "Yeni rozet!": pops up wherever the user is when a badge is earned (with its points). */
 export function BadgeCelebration() {
   const [badges, close] = useBadgeCelebration();
+  useHoldTips(badges.length > 0);
   const total = badges.reduce((sum, b) => sum + b.points, 0);
   if (badges.length) haptics.success();
   return (

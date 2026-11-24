@@ -17,7 +17,7 @@ test('time ago in Turkish', () => {
 test('summary line for each state', () => {
   assert.equal(crowdSummary(live, NOW), 'Son bildirim 12 dk önce · 6 kişi');
   assert.equal(crowdSummary({ ...UNEXPLORED, state: 'stale', last_report_at: ago(180) }, NOW), 'Son bildirim 3 saat önce');
-  assert.match(crowdSummary(UNEXPLORED, NOW), /İlk check-in'i sen yap/);
+  assert.match(crowdSummary(UNEXPLORED, NOW), /kimse gitmedi, sen keşfet/);
 });
 
 test('percent only with enough people, extras from the follow-up answers', () => {

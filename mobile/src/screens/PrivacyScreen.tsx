@@ -123,7 +123,7 @@ export function PrivacyScreen({ token, onBack, onOpenPermissions, onOpenLegal }:
             />
           </SettingsSection>
 
-          <SettingsSection title="İstatistiklerimi kimler görsün?" footer="Puanların, check-in ve keşif sayın, haftalık serin ve rozetlerin.">
+          <SettingsSection title="İstatistiklerimi kimler görsün?" footer="Puanların, check-in ve keşif sayın, serin ve rozetlerin.">
             <SettingsLink
               icon="users"
               tint={TINT.blue}

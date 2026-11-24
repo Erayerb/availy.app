@@ -49,6 +49,7 @@ class NotificationOut(BaseModel):
         "auto_campaign",
         "come_here",
         "friend_checkin",
+        "venue_campaign",
         "together",
         "venue_approved",
         "invite_joined",

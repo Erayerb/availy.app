@@ -1,4 +1,5 @@
 import { CandidateResults } from '../components/CandidateResults';
+import { Tip } from '../components/Tip';
 import { RowsSkeleton } from '../components/Skeleton';
 import { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
@@ -88,9 +89,16 @@ export function CheckinScreen({ onBack, onOpenVenue, onAddVenue, visits, token =
         <BackButton onPress={onBack} />
         <Text style={[styles.title, styles.flex]}>Check-in yap</Text>
         {/* The venue is not in the list */}
-        <Pressable onPress={onAddVenue} style={styles.add} hitSlop={6} accessibilityLabel="Mekan ekle">
-          <Text style={styles.addText}><InlineIcon name="plus" /> Mekan ekle</Text>
-        </Pressable>
+        <Tip
+          id="addVenue"
+          placement="below"
+          radius={14}
+          text="Bulunduğun mekan listede yoksa buradan ekle: 3 check-in alınca herkese açılır, keşfeden sen olursun."
+        >
+          <Pressable onPress={onAddVenue} style={styles.add} hitSlop={6} accessibilityLabel="Mekan ekle">
+            <Text style={styles.addText}><InlineIcon name="plus" /> Mekan ekle</Text>
+          </Pressable>
+        </Tip>
       </View>
       <TextInput
         value={query}
@@ -116,7 +124,7 @@ export function CheckinScreen({ onBack, onOpenVenue, onAddVenue, visits, token =
     </View>
   );
 
-  const empty = error ?? (loading ? 'Yükleniyor…' : query.trim() ? 'Bu adla mekan bulunamadı.' : point ? 'Yakında mekan yok.' : '');
+  const empty = error ?? (loading ? 'Yükleniyor…' : query.trim() ? 'Bu adla mekan bulunamadı.' : point ? 'Çevrende mekan yok. Bulunduğun yeri ekle, ilk check-in senin olsun.' : '');
 
   return (
     <FlatList
@@ -170,7 +178,7 @@ const styles = themed(() => StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 8 },
   header: { gap: 12, marginBottom: 4 },
-  topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  topRow: { flexDirection: 'row', alignItems: 'center', gap: 12, zIndex: 20, elevation: 20 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
   input: { padding: 12, borderRadius: 12, backgroundColor: colors.cream, fontSize: 15, color: colors.text },

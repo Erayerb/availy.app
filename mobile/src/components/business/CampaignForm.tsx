@@ -25,8 +25,9 @@ import { colors } from '../../theme';
 import { Chip } from '../TagChips';
 import { panel } from './panelStyles';
 
-/** New campaign: message (ready-made suggestion), discount, duration and radius. */
-export function CampaignForm({ venue, plan }: { venue: Venue; plan: PlanId }) {
+/** New campaign (in the "+ Yeni kampanya" sheet): message (ready-made suggestion), discount, duration and radius.
+ * `onSent`: told when it went out (the sheet closes and the list says it). */
+export function CampaignForm({ venue, plan, onSent }: { venue: Venue; plan: PlanId; onSent?: (note: string) => void }) {
   const { create, access } = useCampaigns();
   const { promptUpgrade } = useUpgrade();
   const [message, setMessage] = useState<string | null>(null); // null: use the suggestion
@@ -80,13 +81,15 @@ export function CampaignForm({ venue, plan }: { venue: Venue; plan: PlanId }) {
     });
     setSending(false);
     if (failure) return failure.includes('Aylık pakette') || failure.includes("Aylık paket'e") ? promptUpgrade(failure) : setError(failure);
-    setSent(`Kampanya ${radius} km içindeki kullanıcılara gönderildi.`);
+    const note = `Kampanya ${radius} km içindeki kullanıcılara gönderildi.`;
     setMessage(null);
+    if (onSent) return onSent(note);
+    setSent(note);
   };
 
   return (
-    <View style={panel.card}>
-      <Text style={panel.sectionTitle}>Yeni kampanya</Text>
+    <View style={onSent ? styles.bare : panel.card}>
+      {!onSent && <Text style={panel.sectionTitle}>Yeni kampanya</Text>}
       <TextInput
         value={text}
         onChangeText={setMessage}
@@ -164,3 +167,5 @@ export function CampaignForm({ venue, plan }: { venue: Venue; plan: PlanId }) {
     </View>
   );
 }
+
+const styles = { bare: { gap: 10 } } as const;
