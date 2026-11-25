@@ -278,8 +278,42 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - E-posta: Resend hesabı açıldı, anahtar Render'da (`resend` ortam grubu, RESEND_API_KEY). Alan adı olmadan Resend yalnızca hesap sahibinin adresine gönderir; herkese gidebilmesi için alan adı al (ör. availy.app), Resend → Domains'te doğrula (DNS: SPF, DKIM) ve Render'da MAIL_FROM = "availo <no-reply@alanadı>" yap
 
 **KVKK ve hukuk** (hepsi hukukçuya sorulacak)
-- Gizlilik politikası ve kullanım koşulları: hukukçu kontrolü, şirket bilgileri, web'de yayın; `[iletişim e-postası]` boşluğu doldurulacak (mobile/src/lib/legal.ts `CONTACT`)
+- Gizlilik politikası ve kullanım koşulları: taslaklar docs/hukuk/ (2. taslak, Swarm/Foursquare, Getir ve Too Good To Go metinleriyle karşılaştırıldı: gizlilik-politikasi.md, kullanim-kosullari.md: genel, bireysel, işletme, ücretli hizmetler; acik-riza-ve-onay-metinleri.md: rehber, ticari ileti, bekleme listesi) ve hukukçuya gösterilecek sorular (hukukcu-icin-kontrol-listesi.md: uygulama kısaca, sade Türkçe 13 soru, ilk beşi öncelikli; doldurulacak bilgiler; veri akışı tablosu. Teknik ve mağaza işleri listede değil, aşağıdaki "Yasal uyum yapılacakları"nda). Uygulamadaki metin (mobile/src/lib/legal.ts) bunlardan üretilir: `python3 mobile/scripts/build-legal.py docs/hukuk/gizlilik-politikasi.md docs/hukuk/kullanim-kosullari.md > mobile/src/lib/legal.ts`. Hukukçu kontrolü, köşeli parantezli şirket bilgileri, web'de yayın
 - Sunucular Frankfurt'ta: yurt dışına veri aktarım şartları
+
+**Yasal uyum yapılacakları** (2026-11-25 incelemesi; yayından önce, hukukçunun cevabını beklemeden yapılabilecekler ve yasak bir şey kullanmamak için)
+- ⚠️ Nominatim kullanım kuralı ihlali: harita aramasında (MapSearch, LocationPicker → lib/reverseGeocode.ts `searchPlaces`) yazı yazılırken 500 ms sonra otomatik istek gidiyor. Nominatim'in kullanım politikası istemci tarafında otomatik tamamlamayı yasaklıyor, uygulamayı tanıtan bir User-Agent / Referer istiyor ve yoğun kullanımı kabul etmiyor. Arama yalnızca "Ara"ya basınca yapılmalı ya da kendi sunucumuz üzerinden (önbellekli, tanıtıcı başlıkla) veya ücretli bir geocoding hizmetiyle değiştirilmeli. Ters geocoding (mekan ekleme, adres) de aynı kurallara tabi
+- Web önizlemesindeki harita tile.openstreetmap.org kullanıyor (VenueMap.web.tsx): yalnızca önizleme için kabul edilebilir; web'de gerçek kullanıcıya açılırsa OSM tile politikası gereği başka bir tile sağlayıcısı gerekir
+- OpenStreetMap atfı (ODbL): mekan sayfasında ve haritada "© OpenStreetMap katkıcıları" görünür kalmalı (şu an var)
+- İzin metinleri (mobile/app.json) gerçeği yansıtmalı (Apple yanlış veya eksik metni reddeder):
+  - Konum: şu an "Yakındaki kampanyaları göstermek için…" yazıyor. Asıl kullanım check-in'de mekanda olduğunu doğrulamak ve yakındaki mekanları göstermek; metin buna göre ve "saklanmaz" diye güncellenmeli
+  - Kamera: "Şu an burada" fotoğrafı ve kupon QR okutma da eklenmeli
+  - `usesAppleSignIn: true` ve expo-apple-authentication duruyor, ama uygulamada Apple ile giriş yok: ya kaldırılmalı ya da sosyal giriş eklenecekse "Apple ile giriş" de eklenmeli (App Store kuralı 4.8)
+- Yaş: App Store / Google Play yaş derecelendirme formları (kullanıcı içeriği, konum paylaşımı ve sosyal özellikler var: büyük olasılıkla 12+ / Teen). Hukukçunun cevabına göre kayıtta yaş beyanı (doğum yılı veya "13 yaşından büyüğüm" kutusu)
+- Mağaza formları: App Store "App Privacy" (gizlilik etiketleri) ve Google Play "Data safety" formu, aydınlatma metniyle birebir aynı doldurulmalı. İkisi de herkese açık bir gizlilik politikası adresi istiyor (web sitesinde yayınlanmalı, şu an hazirlaniyor.html)
+- Google Play hesap silme kuralı: uygulama içi silmenin yanında, uygulama yüklü olmadan da hesap silme talebi gönderilebilecek bir web sayfası adresi gerekiyor
+- Onay ve rıza ekranları (docs/hukuk/acik-riza-ve-onay-metinleri.md):
+  - "Rehberden bul" öncesi ayrı açık rıza ekranı.
+  - Kampanya bildirimleri için ayrı, işaretlenmemiş ticari ileti onayı. Şu an `campaignNotifications` varsayılan açık; hukukçu "ticari ileti" derse varsayılan kapalı olmalı ve İYS kaydı yapılmalı. App Store kuralı 4.5.4 de pazarlama bildirimleri için açık onay istiyor.
+  - Bekleme listesi formuna aydınlatma bağlantısı ve açık rıza kutusu.
+- Şirket ve kayıtlar:
+  - Şirket kuruluşu ve KEP adresi.
+  - VERBİS kaydı gerekip gerekmediği.
+  - Yurt dışı aktarım için standart sözleşmeler ve Kurum'a bildirim.
+  - Hizmet sağlayıcılarla veri işleme sözleşmeleri (Render, Neon, Resend, Expo).
+  - Kişisel veri saklama ve imha politikası.
+  - Veri ihlali bildirim süreci.
+- Misafir hesaplar için saklama süresi ve otomatik silme (kodda yok)
+- Apple'ın özel kullanım koşulları (EULA) için asgari hükümleri: Apple'ın taraf olmadığı, bakım ve destek sorumluluğunun bizde olduğu, Apple'ın üçüncü kişi lehtarı olduğu; taslakta var, mağazaya gönderirken Apple'ın güncel listesiyle karşılaştırılmalı
+- İşletme doğrulaması (vergi levhası / SMS) yapılınca: alınan belgeler için aydınlatma metnine satır ve saklama süresi eklenmeli
+- İşletme istatistiklerinde küçük sayılar ("bugün 1 kişi") kişiyi tanınır kılabilir: hukukçu isterse bir eşik konmalı
+- Çekiliş (planlı): Milli Piyango İdaresi izni olmadan yapılmamalı
+- Puanlar: nakde çevrilebilir veya devredilebilir hale getirilmemeli (elektronik para ve hediye çeki mevzuatı)
+- "Sponsorlu" etiketi her sponsorlu görünümde açıkça kalmalı (ticari reklam mevzuatı)
+- Ödeme: mesafeli satış sözleşmesi, ön bilgilendirme formu, e-arşiv / e-fatura; uygulamadan siteye satın alma yönlendirmesi mağaza kurallarına göre kontrol edilmeli (bkz. Ödeme)
+- Marka: "availo" adı ve logosu için TÜRKPATENT araması ve tescil
+- Lisanslar: yazı tipleri Figtree ve Tinos (SIL Open Font License) ve Tabler ikonları (MIT) uygun; uygulamada bir "Açık kaynak lisansları" sayfası eklenmesi iyi olur
+- Google Places verisi kopyalanmıyor (kullanım şartlarına aykırı); Foursquare OS Places (Apache 2.0) ve Overture (CDLA) yalnızca arka planda aday; gösterilirse atıf eklenmeli
 - Rehberden bul: gizlilik politikasına madde
 - Bekleme listesi: tanıtım sayfasında toplanan iletişim bilgileri için aydınlatma metni
 - Son konum (yakındaki kampanya için): "konum kaydedilmez" metni değişir, ayrı açık izin alınır
