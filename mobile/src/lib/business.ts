@@ -54,7 +54,8 @@ export function campaignCostText(access: BusinessAccess | null): string {
 }
 
 export type StandingReward = { id: number; points: number; discount: number; active: boolean };
-export type VenueReward = { campaign_id: number; points: number; discount: number; next_at: string | null };
+// free: without points for me ("welcome": Kâşif's gift)
+export type VenueReward = { campaign_id: number; points: number; discount: number; next_at: string | null; free?: 'welcome' | null };
 export type MonthReport = { month: string; checkins: number; people: number; new_people: number; coupons_used: number; campaigns: number };
 export type SalesPitch = {
   week_checkins: number;
@@ -142,9 +143,3 @@ export const quietSlotSchedule = (slot: QuietSlot, category: string) => ({
   duration_hours: slot.hours,
 });
 
-/** "Geçen aya göre +%20" / "−%10" / "aynı"; null when last month had nothing to compare with. */
-export function monthChangeText(pct: number | null | undefined): string | null {
-  if (pct === null || pct === undefined) return null;
-  if (pct === 0) return 'geçen ayla aynı';
-  return `geçen aya göre ${pct > 0 ? '+' : '−'}%${Math.abs(pct)}`;
-}

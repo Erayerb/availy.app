@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect,  useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { TAB_BAR_SPACE } from '../components/TabBar';
 import { useOnPageFocus, usePageTop } from '../context/PageContext';
@@ -18,15 +18,14 @@ type Props = {
   venueId: number;
   user: User;
   onOpenUser: (username: string) => void;
-  onRegister: () => void;
   onOpenLoyalty: () => void; // Kampanyalar > Sadakat programım
 };
 
 /** Business "Müşteriler" tab: how often people come (anonymous), loyalty members and the reviews to answer. */
-export function CustomersScreen({ venueId, user, onOpenUser, onRegister, onOpenLoyalty }: Props) {
+export function CustomersScreen({ venueId, user, onOpenUser, onOpenLoyalty }: Props) {
   const [stats, setStats] = useState<VenueStats | null>(null);
   const { mine } = useLoyalty();
-  const { reviews, setReviews, reload } = useReviews(venueId, user.token);
+  const { reviews, reload } = useReviews(venueId, user.token);
   // Reviews with words the business has not answered yet (stars alone have nothing to answer)
   const written = reviews.items.filter((r) => r.body?.trim());
   const waiting = written.filter((r) => !r.replies.some((p) => p.is_business)).length;
@@ -92,9 +91,7 @@ export function CustomersScreen({ venueId, user, onOpenUser, onRegister, onOpenL
         venueId={venueId}
         user={user}
         reviews={reviews}
-        onChange={setReviews}
         reload={reload}
-        onRegister={onRegister}
         onOpenUser={onOpenUser}
       />
     </ScrollView>

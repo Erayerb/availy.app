@@ -25,6 +25,8 @@ CHECKIN_POINTS = 10
 FIRST_CHECKIN_POINTS = 50
 # "Bugünün ilk bilgisini sen ver": the day's first check-in at a venue (not its discovery) earns double
 FIRST_TODAY_FACTOR = 2
+STREAK_WEEK = 7  # every full week of the daily streak…
+STREAK_WEEK_POINTS = 10  # …brings this many points
 # Against point farming (cafes side by side): no points within 30 minutes of a check-in at another
 # venue, and at most 8 check-ins with points a day; the check-in still counts for the occupancy
 POINTS_GAP = timedelta(minutes=30)
@@ -172,12 +174,31 @@ def create_checkin(
     from app.streaks import ISTANBUL, day_streak
 
     after_checkin(conn, venue_id, now)  # a quiet venue tells its business (and may send its campaign)
+    from app.streaks import update_regular
+
+    update_regular(conn, venue_id, now)  # a new regular tells the one before ("müdavimliğini @ayse aldı")
 
     first_today = not checkin["is_first"] and is_first_today(conn, venue_id, checkin["id"], now)
+    earned = award_points(conn, user, checkin, now, first_today)
+    from app.friends import invite_checked_in
+
+    earned += invite_checked_in(conn, user, now)  # came through an invite: +50 for both on the first check-in
+    streak = day_streak(conn, user["id"], now)
+    day_start = now.astimezone(ISTANBUL).replace(hour=0, minute=0, second=0, microsecond=0)
+    streak_up = conn.execute(
+        "SELECT count(*) AS n FROM checkins WHERE user_id = %s AND NOT is_demo AND created_at >= %s", (user["id"], day_start)
+    ).fetchone()["n"] == 1
+    # Every full week of the streak (7, 14, 21… days): +10
+    if streak_up and streak >= STREAK_WEEK and streak % STREAK_WEEK == 0 and not user.get("is_guest"):
+        conn.execute(
+            "INSERT INTO points (user_id, amount, reason, checkin_id, created_at) VALUES (%s, %s, 'streak', %s, %s)",
+            (user["id"], STREAK_WEEK_POINTS, checkin["id"], now),
+        )
+        earned += STREAK_WEEK_POINTS
     return {
         **checkin,
         "first_today": first_today,
-        "points_earned": award_points(conn, user, checkin, now, first_today),
+        "points_earned": earned,
         "points_note": points_blocked(conn, user["id"], checkin["id"], now),
         "coupons": coupons_for_checkin(conn, user, venue_id, now),
         # "Burayı keşfeden 12. kişisin" on the first visit; later the visit count
@@ -185,12 +206,9 @@ def create_checkin(
         "my_visits": visits["mine"],
         # The very first check-in: the app celebrates it and says what points are for
         "first_ever": conn.execute("SELECT count(*) AS n FROM checkins WHERE user_id = %s", (user["id"],)).fetchone()["n"] == 1,
-        "streak": day_streak(conn, user["id"], now),  # "🔥 3 gün üst üste"
+        "streak": streak,  # "🔥 3 gün üst üste"
         # The day's first check-in made the streak longer: celebrated like a badge
-        "streak_up": conn.execute(
-            "SELECT count(*) AS n FROM checkins WHERE user_id = %s AND NOT is_demo AND created_at >= %s",
-            (user["id"], now.astimezone(ISTANBUL).replace(hour=0, minute=0, second=0, microsecond=0)),
-        ).fetchone()["n"] == 1,
+        "streak_up": streak_up,
         # Friends here within the hour: +10 each ("Birlikte check-in")
         "together": together_bonus(conn, user, checkin, now),
         "new_badges": reward_badges(conn, user["id"], now),  # celebrated with the check-in
@@ -381,7 +399,9 @@ def reward_badges(conn: psycopg.Connection, user_id: int, now: datetime) -> list
         new.append({"id": badge["id"], "name": badge["name"], "icon": badge["icon"], "points": points})
     if first_look:
         conn.execute("UPDATE users SET badges_synced_at = %s WHERE id = %s", (now, user_id))
-    return new
+    from app.levels import reward_levels
+
+    return new + reward_levels(conn, user_id, now)  # a new level is celebrated the same way
 
 
 def user_visits(conn: psycopg.Connection, user_id: int) -> list[dict]:

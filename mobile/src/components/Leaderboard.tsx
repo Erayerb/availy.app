@@ -359,8 +359,6 @@ const styles = themed(() => StyleSheet.create({
   meRow: { backgroundColor: colors.cream, borderWidth: 1.5, borderColor: colors.primary },
   meText: { color: colors.text },
   rank: { width: 26, fontSize: 15, fontWeight: '800', color: colors.textMuted, textAlign: 'center' },
-  medal: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  medalText: { fontSize: 13, fontWeight: '800', color: '#fff' },
   ring: { padding: 2, borderRadius: 20, borderWidth: 2, borderColor: 'transparent' },
   name: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.text },
   points: { fontSize: 14, fontWeight: '700', color: colors.primary },

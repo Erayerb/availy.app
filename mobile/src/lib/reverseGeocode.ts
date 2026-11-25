@@ -3,7 +3,7 @@
  * form. Uses OpenStreetMap's free Nominatim service; if that fails, falls back
  * to the nearest known venue's district.
  */
-import { distanceKm, type LatLon } from './geo.ts';
+import {  type LatLon } from './geo.ts';
 
 // line: street and number ("Moda Caddesi 12"), empty when the point has none
 export type Address = { district: string; neighborhood: string; line?: string };

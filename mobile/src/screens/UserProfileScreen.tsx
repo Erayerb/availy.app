@@ -21,7 +21,7 @@ import { categoryLabel } from '../lib/filters';
 import { friendsApi } from '../lib/friends';
 import { safetyApi, type Profile, type ProfileVenue, type Level } from '../lib/safety';
 import { VenuePhoto } from '../components/VenuePhoto';
-import { Icon, InlineIcon } from '../components/Icon';
+import {  InlineIcon } from '../components/Icon';
 import { confirmAction } from '../lib/confirm';
 import { colors, themed } from '../theme';
 
@@ -173,6 +173,10 @@ export function UserProfileScreen({ token, username, onBack, onOpenVenue, onOpen
         </View>
         {profile.weekly_winner && (
           <Text style={styles.winner}><InlineIcon name="trophy" /> Geçen haftanın 1.si</Text>
+        )}
+        {/* The house badge: "Buranın müdavimi" somewhere */}
+        {(profile.regular_of ?? 0) > 0 && (
+          <Text style={styles.winner}><InlineIcon name="home-heart" /> {profile.regular_of} mekanın müdavimi</Text>
         )}
         {profile.level && <LevelCard level={profile.level} onOpen={() => onOpenLevels(profile.level!)} />}
         {profile.stats_hidden ? (
@@ -397,7 +401,6 @@ const styles = themed(() => StyleSheet.create({
   },
   latestText: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.text },
   chevronSmall: { fontSize: 20, color: colors.textMuted },
-  emoji: { fontSize: 22 },
   text: { fontSize: 15, fontWeight: '600', color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },
   chevron: { fontSize: 22, color: colors.textMuted },

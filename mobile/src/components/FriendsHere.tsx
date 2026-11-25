@@ -16,7 +16,7 @@ type Props = {
 
 /** "Buranın müdavimi @ayse · 30 günde 5 check-in" (me, a friend, or someone who shows it to everyone). */
 export function VenueRegular({ venueId, token, onOpenUser, reloadKey }: Props) {
-  const [regular, setRegular] = useState<{ username: string; visits: number; me: boolean; friend: boolean } | null>(null);
+  const [regular, setRegular] = useState<{ username: string | null; visits: number; me: boolean; friend: boolean } | null>(null);
 
   useEffect(() => {
     if (!token) return setRegular(null);
@@ -29,10 +29,13 @@ export function VenueRegular({ venueId, token, onOpenUser, reloadKey }: Props) {
       <InlineIcon name="home-heart" />{' '}
       {regular.me ? (
         'Buranın müdavimi sensin'
+      ) : !regular.username ? (
+        // Keeps it to friends: still the regular, without a name
+        'Buranın müdavimi: Gizli müdavim'
       ) : (
         <>
           Buranın müdavimi{' '}
-          <Text style={styles.name} onPress={onOpenUser ? () => onOpenUser(regular.username) : undefined}>
+          <Text style={styles.name} onPress={onOpenUser ? () => onOpenUser(regular.username ?? '') : undefined}>
             @{regular.username}
           </Text>
           {regular.friend ? ' (arkadaşın)' : ''}

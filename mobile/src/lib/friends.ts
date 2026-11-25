@@ -25,9 +25,10 @@ export const inviteLink = (username: string) => `${WEB_APP_URL}?invite=${encodeU
 
 // The SMS sent with "Davet et" from the contacts list
 export const smsInviteMessage = (username: string) =>
-  `Arkadaşın seni availo'ya davet ediyor. Sen de ilk check-in'i yap. ${inviteLink(username)}`;
+  `Arkadaşın seni availo'ya davet ediyor. Katıl, ilk check-in'ini yap: ikinize de 50 puan. ${inviteLink(username)}`;
 
-export const inviteMessage = (username: string) => `availo'da beni arkadaş olarak ekle: @${username} ${inviteLink(username)}`;
+export const inviteMessage = (username: string) =>
+  `availo'da beni arkadaş olarak ekle: @${username}. Katılıp ilk check-in'ini yapınca ikimize de 50 puan. ${inviteLink(username)}`;
 
 const USERNAME = /^[a-z0-9][a-z0-9._]{2,19}$/;
 

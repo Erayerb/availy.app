@@ -54,7 +54,6 @@ export function VenuePhoto({ venueId, category, photoAt = null, size, height, ra
 }
 
 const styles = themed(() => StyleSheet.create({
-  image: { overflow: 'hidden' },
   placeholder: { overflow: 'hidden' },
   icon: { position: 'absolute' },
   middle: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },

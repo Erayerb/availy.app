@@ -78,7 +78,7 @@ export function SummaryStory({ visible, pages, onClose }: { visible: boolean; pa
           {pages.map((p) => (
             <Pressable
               key={p.key}
-              style={[styles.page, { width, height }]}
+              style={[styles.page, { width }]}
               onPress={(e) => goTo(e.nativeEvent.pageX < width / 2 ? page - 1 : page + 1)}
               accessibilityHint="Sağa dokun: ileri, sola dokun: geri"
             >

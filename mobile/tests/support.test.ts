@@ -31,7 +31,8 @@ test('free users can watch one venue, Premium users any number', async () => {
 });
 
 test('"Tekrar gönder" copies the campaign with its planned length', async () => {
-  const { createCampaign, repeatCampaign } = await import('../src/lib/campaigns.ts');
+  const { repeatCampaign } = await import('../src/lib/campaigns.ts');
+  const { createCampaign } = await import('./helpers.ts');
   const base = { venueId: 1, venueName: 'Kafe', lat: 41, lon: 29, message: 'Kahveler %20 indirimli', discount: 20, radiusKm: 2, maxClaims: 25 };
   const first = createCampaign({ ...base, durationHours: 3 }, new Date('2026-10-14T10:00:00Z'), 'a');
   // Ended early, after 10 minutes

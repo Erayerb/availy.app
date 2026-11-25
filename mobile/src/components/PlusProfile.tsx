@@ -157,7 +157,6 @@ export function PlusProfile({
 const styles = themed(() => StyleSheet.create({
   wrap: { gap: 10 },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
-  title: { fontSize: 17, fontWeight: '800', color: colors.text },
   plus: { fontSize: 13, fontWeight: '800', color: colors.gold },
   preview: { marginBottom: 32 },
   cover: { width: '100%', aspectRatio: 3, borderRadius: 14, overflow: 'hidden', backgroundColor: colors.cream },

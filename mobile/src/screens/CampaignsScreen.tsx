@@ -4,7 +4,7 @@ import { confirmAction } from '../lib/confirm';
 import { RewardSetup } from '../components/business/RewardSetup';
 import { useUpgrade } from '../context/UpgradeContext';
 import { HeaderButtons } from '../components/HeaderButtons';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect,  useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { TAB_BAR_SPACE } from '../components/TabBar';
 import { usePageTop } from '../context/PageContext';
@@ -16,6 +16,7 @@ import { CampaignForm } from '../components/business/CampaignForm';
 import { CouponVerifier } from '../components/business/CouponVerifier';
 import { LoyaltySetup } from '../components/business/LoyaltySetup';
 import { ScheduleForm, ScheduleSection } from '../components/business/ScheduleSection';
+import type { ScheduledCampaign } from '../lib/schedules';
 import { BottomSheet } from '../components/BottomSheet';
 import { Chip } from '../components/TagChips';
 import { useCampaigns } from '../context/CampaignsContext';
@@ -25,7 +26,7 @@ import { isActive, repeatCampaign, timeLeft, visibleCampaigns, type Campaign } f
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
 import { couponQrPayload, couponValid, shownCoupons } from '../lib/coupons';
 import { campaignTotals } from '../lib/campaigns';
-import { distanceKm, formatDistance } from '../lib/geo';
+import {  formatDistance } from '../lib/geo';
 import type { PlanId } from '../lib/plans';
 import QRCode from 'react-native-qrcode-svg';
 
@@ -248,7 +249,6 @@ function Loyalty({
   onLogin: () => void;
 }) {
   const { programs, join, leave } = useLoyalty();
-  const { coupons } = useCampaigns();
   const [error, setError] = useState<string | null>(null);
 
   if (!signedIn) {
@@ -339,10 +339,39 @@ function MyCampaigns({ business }: { business: BusinessInfo }) {
   const { venues } = useVenuesByIds([business.venueId]);
   const venue = venues[0];
   const mine = campaigns.filter((c) => c.venueId === business.venueId);
+  const running = mine.filter((c) => isActive(c, now));
   const ended = mine.filter((c) => !isActive(c, now));
   const totals = campaignTotals(campaigns, business.venueId, 7, now);
   // The forms open in sheets: the page is the results and the lists
   const [sheet, setSheet] = useState<'campaign' | 'schedule' | null>(null);
+  const [editing, setEditing] = useState<ScheduledCampaign | null>(null); // "Düzenle" on a weekly one
+
+  const campaignCard = (c: Campaign, live: boolean) => {
+    const stats = c.stats ?? { views: 0, claims: 0, redemptions: 0 };
+    return (
+      <View key={c.id} style={styles.card}>
+        <Text style={[styles.text, !live && styles.faded]}>{c.message}</Text>
+        <Text style={[styles.muted, !live && styles.faded]}>
+          {live ? `Aktif · ${timeLeft(c, now)}` : 'Bitti'} · {c.radiusKm} km{c.checkinOnly ? <> · <InlineIcon name="map-pin" /> check-in yapana</> : ''} · <InlineIcon name="eye" /> {stats.views} gösterim ·
+          <InlineIcon name="ticket" /> {stats.claims} kupon · <InlineIcon name="circle-check" /> {stats.redemptions} kullanım
+        </Text>
+        {live ? (
+          <Pressable onPress={() => end(c.id)} hitSlop={8}>
+            <Text style={styles.endText}>Bitir</Text>
+          </Pressable>
+        ) : (
+          <View style={styles.actions}>
+            <Pressable onPress={() => create(repeatCampaign(c))} hitSlop={8}>
+              <Text style={styles.repeatText}>↻ Tekrar gönder</Text>
+            </Pressable>
+            <Pressable onPress={() => remove([c.id])} hitSlop={8}>
+              <Text style={styles.endText}><InlineIcon name="trash" /> Sil</Text>
+            </Pressable>
+          </View>
+        )}
+      </View>
+    );
+  };
   const [note, setNote] = useState<string | null>(null);
   const weekly = (access?.plan ?? business.plan) === 'saas';
 
@@ -370,62 +399,63 @@ function MyCampaigns({ business }: { business: BusinessInfo }) {
         </View>
       )}
       {note && <Text style={styles.success}>✓ {note}</Text>}
-      <View style={styles.cardHeader}>
-        <Text style={styles.sectionTitle}>Kampanyaların</Text>
-        {ended.length > 1 && (
-          <Pressable onPress={() => remove(ended.map((c) => c.id))} hitSlop={8}>
-            <Text style={styles.endText}>Bitenlerin hepsini sil</Text>
-          </Pressable>
-        )}
-      </View>
-      {mine.length === 0 && <Text style={styles.muted}>Kampanyan yok. "Yeni kampanya"ya dokun, boş masaları doldur.</Text>}
-      {mine.map((c) => {
-        const live = isActive(c, now);
-        const stats = c.stats ?? { views: 0, claims: 0, redemptions: 0 };
-        return (
-          <View key={c.id} style={styles.card}>
-            <Text style={[styles.text, !live && styles.faded]}>{c.message}</Text>
-            <Text style={[styles.muted, !live && styles.faded]}>
-              {live ? `Aktif · ${timeLeft(c, now)}` : 'Bitti'} · {c.radiusKm} km{c.checkinOnly ? <> · <InlineIcon name="map-pin" /> check-in yapana</> : ''} · <InlineIcon name="eye" /> {stats.views} gösterim ·
-              <InlineIcon name="ticket" /> {stats.claims} kupon · <InlineIcon name="circle-check" /> {stats.redemptions} kullanım
-            </Text>
-            {live ? (
-              <Pressable onPress={() => end(c.id)} hitSlop={8}>
-                <Text style={styles.endText}>Bitir</Text>
-              </Pressable>
-            ) : (
-              <View style={styles.actions}>
-                <Pressable onPress={() => create(repeatCampaign(c))} hitSlop={8}>
-                  <Text style={styles.repeatText}>↻ Tekrar gönder</Text>
-                </Pressable>
-                <Pressable onPress={() => remove([c.id])} hitSlop={8}>
-                  <Text style={styles.endText}><InlineIcon name="trash" /> Sil</Text>
-                </Pressable>
-              </View>
-            )}
-          </View>
-        );
-      })}
+      {/* Running now first; the weekly ones and the standing reward; the ended ones at the very bottom */}
+      <Text style={styles.sectionTitle}>Aktif kampanyaların</Text>
+      {running.length === 0 && <Text style={styles.muted}>Şu an aktif kampanyan yok. "Yeni kampanya"ya dokun, boş masaları doldur.</Text>}
+      {running.map((c) => campaignCard(c, true))}
       {venue && (
         <>
-          <ScheduleSection plan={business.plan} onUpgrade={() => promptUpgrade('Haftalık kampanyalar Aylık pakette.')} />
+          <ScheduleSection
+            plan={business.plan}
+            onUpgrade={() => promptUpgrade('Haftalık kampanyalar Aylık pakette.')}
+            onEdit={(s) => {
+              setEditing(s);
+              setSheet('schedule');
+            }}
+          />
           {business.token && <RewardSetup token={business.token} />}
+        </>
+      )}
+      {ended.length > 0 && (
+        <>
+          <View style={styles.cardHeader}>
+            <Text style={styles.sectionTitle}>Geçmiş kampanyalar</Text>
+            {ended.length > 1 && (
+              <Pressable onPress={() => remove(ended.map((c) => c.id))} hitSlop={8}>
+                <Text style={styles.endText}>Hepsini sil</Text>
+              </Pressable>
+            )}
+          </View>
+          {ended.map((c) => campaignCard(c, false))}
+        </>
+      )}
+      {venue && (
+        <>
           <BottomSheet visible={sheet === 'campaign'} title="Yeni kampanya" onClose={() => setSheet(null)}>
             <CampaignForm
               venue={venue}
-              plan={business.plan}
               onSent={(text) => {
                 setSheet(null);
                 setNote(text);
               }}
             />
           </BottomSheet>
-          <BottomSheet visible={sheet === 'schedule'} title="Haftalık kampanya" onClose={() => setSheet(null)}>
+          <BottomSheet
+            visible={sheet === 'schedule'}
+            title={editing ? 'Haftalık kampanyayı düzenle' : 'Haftalık kampanya'}
+            onClose={() => {
+              setSheet(null);
+              setEditing(null);
+            }}
+          >
             <ScheduleForm
+              key={editing?.id ?? 'new'}
               venue={venue}
+              initial={editing}
               onDone={() => {
                 setSheet(null);
-                setNote('Zamanlandı; zamanı gelince kendiliğinden başlar.');
+                setNote(editing ? 'Haftalık kampanya kaydedildi.' : 'Zamanlandı; zamanı gelince kendiliğinden başlar.');
+                setEditing(null);
               }}
             />
           </BottomSheet>
@@ -534,15 +564,6 @@ const styles = themed(() => StyleSheet.create({
   reward: { fontSize: 13, color: colors.success, fontWeight: '600' },
   primary: { paddingVertical: 11, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center' },
   primaryText: { color: colors.onPrimary, fontWeight: '700' },
-  secondary: {
-    paddingVertical: 11,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
-    alignItems: 'center',
-  },
-  secondaryText: { color: colors.primary, fontWeight: '700' },
-  switchRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: colors.text, marginTop: 4 },
   endText: { color: colors.danger, fontWeight: '600' },
   repeatText: { color: colors.primary, fontWeight: '600' },

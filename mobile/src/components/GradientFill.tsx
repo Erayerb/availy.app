@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { isDarkScheme } from '../theme';
@@ -15,14 +15,17 @@ function mix(a: string, b: string, t: number): string {
  * A diagonal two-colour gradient filling its parent (give the parent overflow: 'hidden' and a radius).
  * `scrim`: instead a dark veil, darker at the top and bottom edges, so labels on a photo stay readable.
  */
+// The web only: there the drawing otherwise stays square (a tall page was half black). On a phone the size props
+// left dark strips round it, so they are not given there
+const WEB_SIZE = Platform.OS === 'web' ? { width: '100%', height: '100%' } : {};
+
 export function GradientFill({ colors: [darkFrom, to], scrim = false }: { colors: [string, string]; scrim?: boolean }) {
   // The deep start colour suits the dark theme; on the light (cream) theme it moves halfway to the bright end
   const from = isDarkScheme() || !/^#[0-9a-f]{6}$/i.test(darkFrom) ? darkFrom : mix(darkFrom, to, 0.5);
   // Each gradient needs its own id: two on one page must not share a definition
   const id = `g${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   return (
-    // width/height 100%: on the web the drawing otherwise stays square (a tall page was half black)
-    <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100" pointerEvents="none">
+    <Svg style={StyleSheet.absoluteFill} {...WEB_SIZE} preserveAspectRatio="none" viewBox="0 0 100 100" pointerEvents="none">
       <Defs>
         {scrim ? (
           <LinearGradient id={id} x1="0" y1="0" x2="0" y2="1">

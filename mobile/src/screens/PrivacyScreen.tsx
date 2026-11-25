@@ -117,7 +117,7 @@ export function PrivacyScreen({ token, onBack, onOpenPermissions, onOpenLegal }:
               icon="crown"
               tint={TINT.gold}
               title="Müdavimliğim herkese açık"
-              subtitle="Mekan sayfasında “Buranın müdavimi @sen” yazar. Kapalıysa yalnızca arkadaşların görür."
+              subtitle="Mekan sayfasında “Buranın müdavimi @sen” yazar. Kapalıysa yine müdavim olursun ama arkadaşın olmayanlar “Gizli müdavim” görür."
               value={privacy.regular_public}
               onChange={(v) => change({ regular_public: v })}
             />
@@ -199,16 +199,8 @@ const styles = themed(() => StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 20 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
-  card: { padding: 16, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 14 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  choice: { gap: 6 },
-  choiceRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  choiceChip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 14, backgroundColor: colors.cream },
-  choiceChipOn: { backgroundColor: colors.primary },
-  choiceText: { fontSize: 14, fontWeight: '600', color: colors.text },
-  choiceTextOn: { color: colors.onPrimary },
   flex: { flex: 1, gap: 4 },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
   text: { fontSize: 15, color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },
   link: { color: colors.primary, fontWeight: '600' },

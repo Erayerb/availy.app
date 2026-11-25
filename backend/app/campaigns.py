@@ -9,6 +9,8 @@ from zoneinfo import ZoneInfo
 
 import psycopg
 
+from app.levels import welcome_left
+
 MAX_MESSAGE = 140
 RADIUS_KM = (1, 2, 5)
 # No 0/O, 1/I or 8/B, so codes are easy to read aloud and type
@@ -234,6 +236,10 @@ def claim_coupon(conn: psycopg.Connection, user: dict, campaign_id: int, now: da
     if row["max_claims"] is not None and taken >= row["max_claims"]:
         raise CampaignError("Bu kampanyanın kupon sınırı doldu.", 409)
     price = 0 if row["checkin_only"] else row["points_price"]
+    # Kâşif's welcome gift: one standing reward without points
+    welcome = bool(price and row["standing"] and welcome_left(conn, user["id"]))
+    if welcome:
+        price = 0
     if price:
         # Locks the person, so two taps cannot spend the same points twice
         conn.execute("SELECT id FROM users WHERE id = %s FOR UPDATE", (user["id"],))
@@ -251,6 +257,10 @@ def claim_coupon(conn: psycopg.Connection, user: dict, campaign_id: int, now: da
             (code, campaign_id, user["id"], now),
         ).fetchone()
         if inserted:
+            if welcome:  # Kâşif's gift is used up
+                conn.execute(
+                    "UPDATE level_rewards SET welcome_used_at = %s WHERE user_id = %s AND level_id = 'explorer'", (now, user["id"])
+                )
             if price:
                 conn.execute(
                     "INSERT INTO point_spends (user_id, amount, coupon_code, created_at) VALUES (%s, %s, %s, %s)",
@@ -404,4 +414,6 @@ def venue_reward(conn: psycopg.Connection, venue_id: int, viewer: dict | None, n
         ).fetchone()
         if last["at"] is not None and not last["unused"] and now - last["at"] < REWARD_EVERY:
             next_at = last["at"] + REWARD_EVERY
-    return {"campaign_id": row["id"], "points": row["points"], "discount": row["discount"], "next_at": next_at}
+    # Without points for me: Kâşif's welcome gift
+    free = "welcome" if viewer is not None and welcome_left(conn, viewer["id"]) else None
+    return {"campaign_id": row["id"], "points": row["points"], "discount": row["discount"], "next_at": next_at, "free": free}

@@ -228,6 +228,7 @@ class VenueRewardOut(BaseModel):
     points: int
     discount: int
     next_at: datetime | None  # when I may take it again (None: now)
+    free: str | None = None  # without points for me: "welcome" (Kâşif's gift)
 
 
 @router.get("/venues/{venue_id}/reward", response_model=VenueRewardOut | None)

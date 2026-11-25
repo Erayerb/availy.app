@@ -23,6 +23,7 @@ export type Profile = {
   badges: Badge[];
   venues: ProfileVenue[] | null; // null: only friends see them
   streak?: number | null; // "🔥 4 gün üst üste"
+  regular_of?: number; // 🏠 the venues where this person is the regular
   weekly_winner?: boolean; // first of last week: "Haftanın 1.si"
   stats_hidden?: boolean;
   level?: Level | null; // shown even when the statistics are hidden

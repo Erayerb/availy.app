@@ -20,21 +20,20 @@ import { confirmAction } from '../../lib/confirm';
 import { useUpgrade } from '../../context/UpgradeContext';
 import { Stepper } from '../Stepper';
 import { campaignCostText } from '../../lib/business';
-import type { PlanId } from '../../lib/plans';
 import { colors } from '../../theme';
 import { Chip } from '../TagChips';
 import { panel } from './panelStyles';
 
 /** New campaign (in the "+ Yeni kampanya" sheet): message (ready-made suggestion), discount, duration and radius.
  * `onSent`: told when it went out (the sheet closes and the list says it). */
-export function CampaignForm({ venue, plan, onSent }: { venue: Venue; plan: PlanId; onSent?: (note: string) => void }) {
+export function CampaignForm({ venue, onSent }: { venue: Venue; onSent?: (note: string) => void }) {
   const { create, access } = useCampaigns();
   const { promptUpgrade } = useUpgrade();
   const [message, setMessage] = useState<string | null>(null); // null: use the suggestion
   const [discount, setDiscount] = useState<number | null>(20);
   const [duration, setDuration] = useState(2);
   const [radius, setRadius] = useState(2);
-  const [maxClaims, setMaxClaims] = useState<number | null>(null);
+  const [maxClaims, setMaxClaims] = useState<number | null>(20); // "Sınırlı" first: a limit makes it feel worth taking now
   // "Check-in yapana kupon": the coupon comes with a check-in at the venue
   const [checkinOnly, setCheckinOnly] = useState(false);
   // "Puanla açılan özel kupon": 0 = free (the usual)

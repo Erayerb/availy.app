@@ -13,7 +13,6 @@ import {
 } from '../../lib/loyalty';
 import { QrScanner } from '../QrScanner';
 import { colors } from '../../theme';
-import { Chip } from '../TagChips';
 import { panel } from './panelStyles';
 import { ThemedSwitch } from '../ThemedSwitch';
 import { InlineIcon } from '../Icon';

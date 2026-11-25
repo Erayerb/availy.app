@@ -8,7 +8,7 @@ import type { Venue } from '../../lib/api';
 import { DISCOUNT_STEP, DURATION_OPTIONS_HOURS, RADIUS_OPTIONS_KM, scheduleSuggestion } from '../../lib/campaigns';
 import { Stepper } from '../Stepper';
 import type { PlanId } from '../../lib/plans';
-import { validateSchedule, WEEKDAYS } from '../../lib/schedules';
+import { validateSchedule, WEEKDAYS, type ScheduledCampaign } from '../../lib/schedules';
 import { colors } from '../../theme';
 import { Chip } from '../TagChips';
 import { panel } from './panelStyles';
@@ -18,7 +18,7 @@ import { InlineIcon } from '../Icon';
 /** Weekly recurring campaigns (Aylık paket), in Kampanyalar: the list (on/off, Sil); the form is in a sheet
  * (ScheduleForm). The server starts them on time, the app need not be open. Without the plan: what it is and
  * the way to it. */
-export function ScheduleSection({ plan, onUpgrade }: { plan: PlanId; onUpgrade: () => void }) {
+export function ScheduleSection({ plan, onUpgrade, onEdit }: { plan: PlanId; onUpgrade: () => void; onEdit: (schedule: ScheduledCampaign) => void }) {
   const { schedules: mine, setScheduleActive, removeSchedule, access } = useCampaigns();
 
   // The server's plan wins (a running 15-day trial counts as the Aylık paket)
@@ -51,25 +51,31 @@ export function ScheduleSection({ plan, onUpgrade }: { plan: PlanId; onUpgrade: 
             </Text>
             <ThemedSwitch value={s.active} onValueChange={(active) => setScheduleActive(s.id, active)} />
           </View>
-          <Pressable onPress={() => removeSchedule(s.id)}>
-            <Text style={{ color: colors.danger, fontWeight: '600' }}>Sil</Text>
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 18 }}>
+            <Pressable onPress={() => onEdit(s)} hitSlop={8}>
+              <Text style={{ color: colors.primary, fontWeight: '700' }}>Düzenle</Text>
+            </Pressable>
+            <Pressable onPress={() => removeSchedule(s.id)} hitSlop={8}>
+              <Text style={{ color: colors.danger, fontWeight: '600' }}>Sil</Text>
+            </Pressable>
+          </View>
         </View>
       ))}
     </View>
   );
 }
 
-/** "+ Haftalık kampanya" sheet: message (follows the choices until written by hand), days, start, duration,
- * discount and radius. `onDone`: saved (the sheet closes). */
-export function ScheduleForm({ venue, onDone }: { venue: Venue; onDone: () => void }) {
-  const { addSchedule } = useCampaigns();
-  const [message, setMessage] = useState<string | null>(null); // null: follows the choices
-  const [days, setDays] = useState<number[]>([1]);
-  const [startHour, setStartHour] = useState('13');
-  const [duration, setDuration] = useState(3);
-  const [discount, setDiscount] = useState<number | null>(20);
-  const [radius, setRadius] = useState(2);
+/** "+ Haftalık kampanya" sheet (or "Düzenle" with `initial`): message (follows the choices until written by
+ * hand), days, start, duration, discount and radius. `onDone`: saved (the sheet closes). */
+export function ScheduleForm({ venue, initial, onDone }: { venue: Venue; initial?: ScheduledCampaign | null; onDone: () => void }) {
+  const { addSchedule, updateSchedule } = useCampaigns();
+  // Editing: the message as it was (it no longer follows the choices unless "Seçimlere göre yeniden yaz")
+  const [message, setMessage] = useState<string | null>(initial?.message ?? null); // null: follows the choices
+  const [days, setDays] = useState<number[]>(initial?.days ?? [1]);
+  const [startHour, setStartHour] = useState(String(initial?.start_hour ?? 13));
+  const [duration, setDuration] = useState(initial?.duration_hours ?? 3);
+  const [discount, setDiscount] = useState<number | null>(initial ? initial.discount : 20);
+  const [radius, setRadius] = useState(initial?.radius_km ?? 2);
   const [error, setError] = useState<string | null>(null);
   const text = message ?? scheduleSuggestion(venue.category, days, Number(startHour), duration, discount);
 
@@ -78,7 +84,7 @@ export function ScheduleForm({ venue, onDone }: { venue: Venue; onDone: () => vo
     const problem = validateSchedule(input);
     setError(problem);
     if (problem) return;
-    const failure = await addSchedule(input);
+    const failure = initial ? await updateSchedule(initial.id, input) : await addSchedule(input);
     if (failure) return setError(failure);
     onDone();
   };
@@ -134,7 +140,7 @@ export function ScheduleForm({ venue, onDone }: { venue: Venue; onDone: () => vo
       </View>
       {error && <Text style={panel.error}>{error}</Text>}
       <Pressable style={panel.primary} onPress={add}>
-        <Text style={panel.primaryText}>Zamanla</Text>
+        <Text style={panel.primaryText}>{initial ? "Kaydet" : "Zamanla"}</Text>
       </Pressable>
       <Text style={panel.muted}>Zamanı gelince kampanya kendiliğinden başlar; uygulamanın açık olması gerekmez.</Text>
     </View>

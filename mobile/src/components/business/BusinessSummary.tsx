@@ -6,7 +6,6 @@ import { WEEKDAY_NAMES } from '../../lib/business';
 import { GradientFill } from '../GradientFill';
 import { Icon } from '../Icon';
 import { monthName } from '../MonthlySummary';
-import { MonthPicker } from '../MonthPicker';
 import { Pressable } from '../Pressable';
 import { SummaryStory, type StoryPage } from '../SummaryStory';
 import { Text } from '../Text';

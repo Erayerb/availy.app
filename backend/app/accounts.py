@@ -325,6 +325,14 @@ def create_session(
 
 def user_for_token(conn: psycopg.Connection, token: str, now: datetime | None = None) -> dict | None:
     now = now or datetime.now(timezone.utc)
+    # A given availo+ (a level's gift) that has run out ends here
+    conn.execute(
+        """
+        UPDATE users u SET plan = NULL, plus_until = NULL FROM sessions s
+        WHERE s.user_id = u.id AND s.token_hash = %s AND u.plus_until IS NOT NULL AND u.plus_until <= %s
+        """,
+        (hash_token(token), now),
+    )
     return conn.execute(
         f"""
         SELECT {", ".join(f"u.{c}" for c in USER_COLUMNS.split(", "))}

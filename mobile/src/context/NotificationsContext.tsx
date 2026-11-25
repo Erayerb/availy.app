@@ -83,6 +83,8 @@ export function NotificationsProvider({ token, accountKey, children }: Props) {
     auto_campaign: true,
     friend_checkin: settings.friendCheckinNotifications,
     venue_campaign: settings.campaignNotifications,
+    campaign_last_hour: settings.campaignNotifications,
+    regular_lost: true,
     friend_review: settings.friendCheckinNotifications,
     favorite_quiet: settings.favoriteQuietNotifications,
     comeback: true,

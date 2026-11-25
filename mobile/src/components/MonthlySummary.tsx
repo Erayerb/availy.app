@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { send } from '../lib/accountApi';
-import { colors, themed } from '../theme';
+import {  themed } from '../theme';
 import { GradientFill } from './GradientFill';
 import { Icon } from './Icon';
 import { MonthPicker } from './MonthPicker';
@@ -104,12 +104,12 @@ export function MonthlySummary({ token, plus, onUpgrade, onOpenVenue }: { token:
       <Pressable style={styles.card} onPress={() => (plus ? summary && setOpen(true) : onUpgrade())} accessibilityRole="button">
         <GradientFill colors={['#7A2E1F', '#C8102E']} />
         <View style={styles.icon}>
-          <Icon name="chart-bar" size={22} color="#fff" />
+          <Icon name="chart-bar" size={17} color="#fff" />
         </View>
         <View style={styles.flex}>
           <Text style={styles.title}>Aylık özet</Text>
           <Text style={styles.sub}>
-            {plus ? 'Aylık özetini görmek için bas' : 'availo+ ile: en çok gittiğin yerler, semtlerin, arkadaşlarınla kıyas'}
+            {plus ? 'Ayını görmek için bas' : 'availo+ ile: en çok gittiğin yerler, arkadaşlarınla kıyas'}
           </Text>
         </View>
         {plus ? <MonthPicker value={back} onChange={setBack} count={summary?.months_available ?? 1} light /> : <Text style={styles.chevron}>›</Text>}
@@ -129,10 +129,11 @@ export function MonthlySummary({ token, plus, onUpgrade, onOpenVenue }: { token:
 }
 
 const styles = themed(() => StyleSheet.create({
-  card: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 16, borderRadius: 18, overflow: 'hidden' },
-  icon: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  flex: { flex: 1, gap: 2 },
-  title: { fontSize: 17, fontWeight: '800', color: '#fff' },
-  sub: { fontSize: 13, color: 'rgba(255,255,255,0.9)' },
-  chevron: { fontSize: 26, color: '#fff' },
+  // Small: one line of a card, not a banner
+  card: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 14, overflow: 'hidden' },
+  icon: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  flex: { flex: 1, gap: 1 },
+  title: { fontSize: 15, fontWeight: '800', color: '#fff' },
+  sub: { fontSize: 12, color: 'rgba(255,255,255,0.9)' },
+  chevron: { fontSize: 22, color: '#fff' },
 }));

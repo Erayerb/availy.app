@@ -4,7 +4,7 @@ The venue waits for approval ("⏳ Onay bekliyor") and still takes check-ins. Wh
 have checked in there on at least three different days, it is approved and whoever added it gets
 points. Unapproved venues are hidden after 30 days (app/venues.py VISIBLE).
 """
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import psycopg
 

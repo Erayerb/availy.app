@@ -4,11 +4,9 @@ import { test } from 'node:test';
 import {
   activeCampaignForVenue,
   campaignsNear,
-  createCampaign,
   deadHour,
   deadHourSuggestion,
   scheduleSuggestion,
-  endCampaign,
   isActive,
   timeLeft,
   validateCampaign,
@@ -16,6 +14,7 @@ import {
   type Campaign,
 } from '../src/lib/campaigns.ts';
 import { distanceKm, formatDistance, sortByDistance } from '../src/lib/geo.ts';
+import { createCampaign, endCampaign } from './helpers.ts';
 import { campaignCostText, type BusinessAccess } from '../src/lib/business.ts';
 import { formatHour, nearbyCompetitors } from '../src/lib/stats.ts';
 
@@ -45,6 +44,14 @@ test('campaign lasts for the chosen hours and can be ended early', () => {
   assert.ok(isActive(c, new Date(NOW.getTime() + 119 * 60_000)));
   assert.ok(!isActive(c, new Date(NOW.getTime() + 120 * 60_000)));
   assert.ok(!isActive(endCampaign(c, NOW), NOW));
+});
+
+test('the last hour: "Son 45 dk"', async () => {
+  const { lastHourText } = await import('../src/lib/campaigns.ts');
+  const c = campaign();
+  assert.equal(lastHourText(c, NOW), null); // 2 hours left
+  assert.equal(lastHourText(c, new Date(NOW.getTime() + 75 * 60_000)), 'Son 45 dk');
+  assert.equal(lastHourText(c, new Date(NOW.getTime() + 121 * 60_000)), null); // over
 });
 
 test('timeLeft text', () => {

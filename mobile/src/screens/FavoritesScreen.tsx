@@ -6,7 +6,7 @@ import { Skeleton } from '../components/Skeleton';
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { TAB_BAR_SPACE } from '../components/TabBar';
-import { Text, TextInput } from '../components/Text';
+import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { HeaderButtons } from '../components/HeaderButtons';
@@ -18,7 +18,7 @@ import { sortByDistance } from '../lib/geo';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
 import type { Venue } from '../lib/api';
 import type { Visit } from '../lib/checkinApi';
-import { listsApi, MAX_LIST_NAME, VISIBILITY_OPTIONS, type VenueList } from '../lib/lists';
+import { listsApi,  VISIBILITY_OPTIONS, type VenueList } from '../lib/lists';
 import { colors, themed } from '../theme';
 
 export type FavoritesTab = 'saved' | 'lists' | 'visited';
@@ -42,7 +42,6 @@ export function FavoritesScreen({ onOpenVenue, visits, signedIn, token, onLogin,
   // Listelerim (on the server)
   const [lists, setLists] = useState<VenueList[] | null>(null);
   const [creating, setCreating] = useState(false);
-  const [listError, setListError] = useState<string | null>(null);
   const loadLists = useCallback(() => {
     if (token) listsApi.mine(token).then(setLists).catch(() => setLists([]));
   }, [token]);
@@ -134,7 +133,6 @@ export function FavoritesScreen({ onOpenVenue, visits, signedIn, token, onLogin,
             }}
           />
         )}
-        {listError && <Text style={styles.error}>{listError}</Text>}
         {lists === null && (
           <View style={styles.skeletons}>
             <Skeleton height={64} radius={14} />
@@ -235,26 +233,8 @@ const styles = themed(() => StyleSheet.create({
   // Same top space as the other tabs (VenueGrid)
   page: { flex: 1, marginTop: 50, backgroundColor: colors.background },
   listsPage: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: TAB_BAR_SPACE, gap: 12 },
-  newRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  input: { padding: 12, borderRadius: 12, backgroundColor: colors.cream, fontSize: 15, color: colors.text },
-  flex: { flex: 1 },
-  add: { paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12, backgroundColor: colors.primary },
-  addText: { color: colors.onPrimary, fontWeight: '700' },
-  disabled: { opacity: 0.5 },
-  error: { color: colors.danger },
   muted: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
-  listCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 14,
-    borderRadius: 14,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
   pressed: { opacity: 0.7 },
   listName: { fontSize: 16, fontWeight: '700', color: colors.text },
   label: { fontSize: 15, fontWeight: '700', color: colors.text, marginTop: 4 },
-  chevron: { fontSize: 22, color: colors.textMuted },
 }));

@@ -117,7 +117,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Verilerimi indir (KVKK): Profil ayarları'nda; sunucudaki her şey tek JSON dosyası (GET /v1/me/export; şifre, oturum, telefon özeti yok)
 - 📋 Listeler: Favoriler > Listelerim (istediğin kadar liste), listenin içinde "＋ Mekan ekle" araması ve mekan sayfasındaki liste simgesi; listede mekanlar satır olarak, sahibi "Çıkar" ile çıkarır; liste gizli / arkadaşlar (profilde görünür) / bağlantıyla herkes (?list=KOD); başkasının listesi "Listeyi kaydet" ile kopyalanır; listede "şu an N tanesi sakin" (backend/app/lists.py)
 - 🔥 Günlük seri: üst üste kaç gün (İstanbul saati) en az bir check-in; bugün henüz yoksa seri gün bitene kadar sürer. Check-in kutlamasında (2+ gün) ve profilde (backend/app/streaks.py `day_streak`). Seri kurtarma: arkadaşın, check-in yapmadığın bugünü kurtarır (streak_saves.day); kurtaran kişi 30 günde 2, availo+ 10 kez. Grup serisi haftalık kaldı (her üyenin her gün check-in yapması zor)
-- Müdavim (ev ikonu): mekan sayfasında son 30 günde en çok (en az 3) gizli olmayan check-in yapan; arkadaşlar her zaman, diğerleri yalnızca "Müdavimi olduğum mekanlarda herkes görsün" (Gizlilik, users.regular_public) açıksa (GET /v1/venues/{id}/regular)
+- Müdavim (ev ikonu): mekanın tek müdavimi, herkes için aynı: son 30 günde en çok (en az 3) gizli olmayan check-in yapan, eşitlikte en son gelen (GET /v1/venues/{id}/regular). "Müdavimliğim herkese açık" kapalıysa yine müdavim olur ama arkadaşı olmayanlar "Gizli müdavim" görür. Her check-in'den sonra hesaplanır (venue_regulars); yeri kaptıran kişiye "Mado mekanındaki müdavimliğini @ayse aldı" bildirimi (regular_changes). Profilde "🏠 N mekanın müdavimi"
 - "Daha boş alternatifler": önce güncel check-in'lere göre daha boş benzer mekanlar, sonra yakındaki açık benzer mekanlardan bilgisi olmayanlar ("şu an bilgi yok")
 - Haritada gruplama: yakın noktalar sayılı tek daire (renk: açık / güncel noktaların çoğunluğu; hiç gri olmaz, yalnız kapalı / eski bilgili gruplar mor), dokununca en fazla 2 seviye yakınlaşır; 16. yakınlaştırmadan sonra grup yok (mobile/src/lib/clusters.ts, ek kütüphane yok)
 - "✨ Şu an normalden daha sakin (bu saatte genelde Kalabalık)" / "normalden daha kalabalık": canlı doluluk ile bu saatin önceki günlerdeki olağan seviyesi (typical usual_now) karşılaştırılır; mekan sayfasında
@@ -176,7 +176,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Şikâyet (Hakaret / Spam / Yanlış bilgi / Diğer): şikâyet edene hemen, 3 şikâyette herkese gizlenir
 
 **Destek**
-- Daha fazla > "Destek" satırı kaldırıldı ("Hata bildir ve iletişim" yeter); tanıtım sitesinde destek sayfası olunca istenirse geri eklenir (mobile/src/lib/share.ts `SUPPORT_SITE_URL`)
+- Daha fazla > "Destek" satırı kaldırıldı ("Hata bildir ve iletişim" yeter); tanıtım sitesinde destek sayfası olunca istenirse geri eklenir (MoreScreen'de `url` alanlı bir satır). İşletme Kampanyalar sayfası: aktif kampanyalar, haftalık kampanyalar (Düzenle: PUT /v1/business/schedules/{id}), kalıcı ödül, en altta geçmiş kampanyalar; yeni kampanyada kişi sınırı "Sınırlı" (20) açık gelir
 - "Hata bildir" / "İletişime geç" sunucuya gider (support_messages; POST /v1/support, giriş olmadan da; kişi başı günde 10); SUPPORT_EMAIL ayarlıysa oraya e-posta da gider (Render'da girilmeli)
 
 **Gizlilik ve güvenlik**
@@ -200,7 +200,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - İkonlar: uygulamanın çerçevesi (alt menü, üst düğmeler, geri oku, arama) kendi çizimimiz (components/TabIcon, SVG); içerikteki ikonlar Tabler (MIT; components/Icon SVG çizer, lib/tablerPaths.json + tablerFilledPaths.json); yazı içindeki InlineIcon font kullanır (assets/fonts/tabler-icons.ttf, lib/tablerGlyphs.json; yazının boyutunu ve rengini alır). Semt elçisi simgesi taç. Telefon bildirimi metinleri ve paylaşım mesajlarında emoji kaldı (uygulama dışı); rozet simgeleri (sunucudan) ve Keşfedilmedi noktası (✨) bilerek emoji
 - Veri yokken mekan sayfasında "Genelde bu saatte sakin (tahmini)" (mekanın kendi geçmiş check-in'leri, /typical usual_now)
 - "Bugünün ilk bilgisini sen ver": mekanda gece yarısından beri check-in yoksa (keşif hariç) check-in 2 kat puan (first_today)
-- Seviyeler (app/levels.py, saklanmaz, her seferinde hesaplanır): Yeni gelen → Kâşif (100 puan ya da 1 keşif) → Mahalleli (500 puan ve 3 mekanda 3+ check-in) → Semt elçisi (2.000 puan ve bir semtte 10 farklı mekan); profilde LevelCard (kendi profilinde "Kâşif → Mahalleli", puan yok); basınca Seviyeler ekranı (LevelsScreen: sonraki seviyeye kalanlar, dört seviye, gereklilikler, avantajlar); istatistikler gizli olsa da seviye görünür
+- Seviyeler (app/levels.py, saklanmaz, her seferinde hesaplanır): Yeni gelen → Kâşif (100 puan ya da 1 keşif) → Mahalleli (500 puan ve 3 mekanda 3+ check-in) → Semt elçisi (2.000 puan, bir semtte 10 farklı mekan ve bütün rozetler: ilk adım görevleri "Hızlı başlangıç" rozetiyle dahil); profilde LevelCard (kendi profilinde "Kâşif → Mahalleli", puan yok); basınca Seviyeler ekranı (LevelsScreen: sonraki seviyeye kalanlar, dört seviye, gereklilikler, avantajlar); istatistikler gizli olsa da seviye görünür
 - İşletme paneli: profil eksikse en üstte ProfileProgress (fotoğraf yoksa "Mekanının fotoğrafı yok" kartı ve tek dokunuşla yükleme; "Profilin %60 dolu" çubuğu ve eksikler: fotoğraf, adres, Instagram, telefon, özellikler; "Hakkımızda" yok). İşletme profili: kapak fotoğrafı, mekan bilgileri (ad, saatler, ne için uygun, özellikler; Ayarlar'dan taşındı), adres ve konum (adresten bul, haritadan seç, konumum), iletişim
 - Ana sayfa: "Filtrele"nin yanında sıralama çipleri (Önerilen / En yakın / En sakin), seçili filtreler altında; kart fotoğrafı genişliğin %78'i; yazısız puanlar (kendi puanın da) yorum listesinde görünmez
 - İkon fontları scripts/build-icons.py ile üretilir (yalnızca kodda geçen ikonlar, Tabler'ın kendi numaralarıyla, derlemeler arasında değişmez; font adı availy-icons; satır ölçüleri eşitlendi, ikonlar daire içinde ortalı; Tabler'ın hazır TTF'i iPhone'da yüklenmiyordu: bozuk post tablosu, U+FFFF üstü karakterler, iki fontta aynı iç ad). Yeni ikon adından sonra çalıştırılmalı (pip install fonttools)
@@ -263,6 +263,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 **Yayından önce** (özet: 150 m, push bildirimleri, migration, Sentry, KVKK bölümü)
 - Render ayarları (availy-api → Environment): `PHONE_PEPPER` = uzun, rastgele bir metin (girilmezse "Rehberden bul" güvensiz varsayılan metinle çalışır; ayrıntı: Tanıdıkları bulmak) ve isteğe bağlı `SUPPORT_EMAIL` = hata bildirimleri ve iletişim mesajlarının e-postayla da geleceği adres (Resend alan adı doğrulanana kadar yalnızca Resend hesabının adresine gider)
 - Check-in mesafesini 1 km'den 150 m'ye geri al
+- Güçlü şifre: şu an yalnızca en az 6 karakter (backend/app/accounts.py `MIN_PASSWORD_LENGTH`, uygulamada aynı kural). En az 8 karakter, büyük harf, küçük harf, sayı ve noktalama işareti istensin; kayıt ve şifre değiştirme ekranında kural canlı gösterilsin (✓ işaretleriyle), sunucu da aynı kuralı denetlesin. Mevcut hesaplar etkilenmez (yalnızca yeni şifrelerde). Test hesabı şifresi (seed_test_account.py) kurala uydurulmalı
 - İşletme doğrulama: doğrulanmamış mekan kampanya gönderemiyor ve kapak fotoğrafı yükleyemiyor, ama doğrulama ekranı hâlâ "Yakında" ve "şimdilik her şey doğrulamasız açık" diyor. Ya doğrulamayı aç (SMS / belge) ya da şimdilik elle doğrula (isletme, kafe, sawa) ve ekrandaki yazıyı düzelt
 - Push bildirimleri (bkz. Bildirimler)
 - Deneme ve gerçek ortam ayrı: ikinci Render servisi + ikinci Neon veritabanı (gerçek ortam `main`'den, kod aynı)
@@ -292,6 +293,9 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Kapı QR'ının telefon kamerasıyla doğrudan uygulamayı açması (universal link; kod hazır, alan adı gerekir)
 - Telefon bildirimleri ve ana ekran widget'ı (bkz. Bildirimler)
 
+**"Arkadaşların buraya gitti"** (sonra)
+- Mekan sayfasında doluluk satırının altında üst üste binmiş 2–3 küçük profil fotoğrafı ve "@eray ve @ayse son 30 günde buraya gitti"; dokununca kim, ne zaman gitti listesi (gizli check-in'ler ve check-in'lerini paylaşmayanlar sayılmaz). Şu an sayfada yalnızca "şu an burada olan arkadaşlar" var
+
 **Arkadaşlarla buluş** (sonra)
 - Ana sayfa "Arkadaşların nerede?" kartında arkadaş bir mekandaysa (taze check-in) "Yanına git" butonu: yol tarifi açılır, arkadaşa "Geliyorum" gider; arkadaşın "Buradayım, gel!" çağrısına da tek dokunuşla "Geliyorum" yanıtı
 
@@ -301,8 +305,12 @@ Testler: backend 217, mobil 124 (son ölçüm).
 - Mevcut kampanya ve kupon altyapısı kullanılır (kişi sınırı = adet, kupon = ayırma kodu); ölü saatte ya da kapanışa yakın "paket aç" önerisi
 
 **Puan ve seviyeler**
-- Puanı Premium'a çevirme: ör. 300 puan = 1 hafta Premium (ödeme altyapısı gelince gerçek Premium)
-- Seviyelere göre kazançlar: ör. Kâşif'e hoş geldin kuponu, Mahalleli'ye kurucu kafelerde ikram / indirim, Semt elçisi'ne erken erişim ve aylık Premium; seviye atlayınca kutlama ve bildirim
+- (Yapıldı) Seviye ödülleri: her seviye bir kez +30 puan ve kutlama (rozet gibi); Kâşif: bir mekanın kalıcı ödülünü bir kez puansız alma ("hoş geldin hediyen", level_rewards.welcome_used_at); Mahalleli: 1 hafta availo+; Semt elçisi: 1 ay availo+ (+ sıralamadaki altın çerçeve). Hediye availo+ users.plus_until ile, süresi bitince oturumda kendiliğinden kapanır; satın alınmış availo+'a dokunulmaz (backend/app/levels.py)
+- (Yapıldı) Davet: davet edilen kişi ilk check-in'ini yapınca ikisine de +50 (davet eden 30 günde en fazla 5 kez); davet mesajında yazıyor
+- (Yapıldı) Seri: günlük serinin her tam haftası (7, 14, 21… gün) +10
+- "Bugünün ilk bilgisi" zaten var: o gün mekanın ilk check-in'i çift puan (+10 fazladan)
+- availo+ indirimi puanla: ör. 1.000 puan = bir ay availo+ %50 indirimli (ödeme altyapısı gelince)
+- Haftalık çekiliş: 100 puanla katıl, kazanana kafe ikramı (işletme sponsorlu); kurallar ve yasal izin (çekiliş mevzuatı) hukukçuya sorulmalı
 
 **Tanıtım (reklam)**
 - Tanıtım sitesi: mobile/public/tanitim (yayında https://erayerb.github.io/availy.app/v2/tanitim/): index.html (kullanıcılar: hero, özellikler, nasıl çalışır, puanlar, Ücretsiz/availo+ tablosu, SSS, indirme), isletme.html (işletmeler: paketler tablosu, kurucu program, SSS, başvuru), hazirlaniyor.html (yasal metinler hukukçu onayına kadar), ortak styles.css. Mağaza linkleri gelince index.html'deki `STORES` doldurulur ("Yakında" rozetleri gerçek butona döner); masaüstünde sayfanın QR'ı; bekleme listesi (kullanıcı / işletme, POST /v1/waitlist, Yönetici > Bekleme listesi). İsim kesinleşince alan adı ve kök adrese taşıma; haritadan kısa video / gif eklenebilir
@@ -344,7 +352,7 @@ Testler: backend 217, mobil 124 (son ölçüm).
 **İşletme**
 - İşletmenin kendi doluluğunu bildirmesi ("işletme bildirdi" etiketiyle): yalnızca Aylık paket için
 - Kapı QR'ı şimdilik GitHub Pages adresine gidiyor: kesin alan adı alınmadan çok sayıda basılmamalı
-- Kurucu mekan avantajı: işletme isterse "Mahalleli'ye çift damga" açar (bedelini kafe seçer)
+- ~~Kurucu mekan avantajı: "Mahalleli'ye çift damga"~~ (2026-11-25: yapılmayacak)
 - Aylık paketin sattığı "Rakip karşılaştırması" (Panel'de yakındaki benzer mekanlar) bedava pakette de açık: pakete bağla ya da paketin açıklamasından çıkar
 - Birden fazla mekan: tek hesapta mekan seçici ("Moda Şube ▾"; şimdi users.venue_id tek mekan), doğrulama ve Aylık paket şube başına
 - Çalışan hesapları (bir kez yapılıp kaldırıldı; kod git geçmişinde: `v2: seviye simgesi...` commit'i, app/staff.py, CounterScreen, StaffSection, migration 012): işletme kısa kodla davet eder, çalışan kendi hesabıyla kasada kupon ve sadakat QR'ı okutur, sahip kimin ne yaptığını görür ve çıkarır. Üstüne iki yetki düşünüldü: Kasa (yalnızca QR) ve Yönetici (panel, kampanya, yorum yanıtı; ödeme, doğrulama ve yönetici ekleme yalnızca sahipte; kampanyayı kimin oluşturduğu kayıtlı). Geri eklerken: DELETE /v1/staff/me yolu /{staff_id}'den önce tanımlanmalı; yeni migration numarası 014

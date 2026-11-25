@@ -149,6 +149,3 @@ def group_streak(conn: psycopg.Connection, group_id: int, me: dict, now: datetim
     days_left = 7 - now.astimezone(ISTANBUL).weekday()
     return {"weeks": weeks, "missing": missing, "days_left": days_left}
 
-
-def week_monday(at: datetime) -> date:
-    return _week_start(at).date()

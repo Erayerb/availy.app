@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from tests.conftest import KADIKOY_BBOX
-from tests.test_business import account, auth, business_at
+from tests.test_business import account, auth
 from tests.test_checkins import NOON, clock  # noqa: F401 (clock is a fixture)
 
 # About 400 m from the test venues, inside KADIKOY_BBOX

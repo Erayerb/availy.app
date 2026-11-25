@@ -4,7 +4,6 @@ import { TAB_BAR_SPACE } from '../components/TabBar';
 import { Text } from '../components/Text';
 
 import { BackButton } from '../components/BackButton';
-import { useVenuesByIds } from '../hooks/useVenuesByIds';
 import { useSettings } from '../context/SettingsContext';
 import { useUpgrade } from '../context/UpgradeContext';
 import { ApiError } from '../lib/accountApi';
@@ -18,15 +17,12 @@ type Props = {
   onBack: () => void;
   isBusiness: boolean;
   guest: boolean; // no friends or reviews to be notified about
-  venueId: number | null; // business: its venue (for the automation settings)
   // Business: user name, e-mail, password, freeze and delete are here (customers: Profil ayarları)
   account: Parameters<typeof AccountSettings>[0] | null;
 };
 
 /** Customers: Bildirim ayarları. Businesses: Ayarlar (account, dead-hour alerts; the venue is edited in İşletme profili). */
-export function SettingsScreen({ onBack, isBusiness, guest, venueId, account }: Props) {
-  const { venues } = useVenuesByIds(venueId ? [venueId] : []);
-  const venue = venues[0];
+export function SettingsScreen({ onBack, isBusiness, guest, account }: Props) {
   const settings = useSettings();
   const { promptUpgrade } = useUpgrade();
   const { watchNotifications, update } = settings;
@@ -189,20 +185,6 @@ const styles = themed(() => StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 20 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
-  card: {
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    gap: 14,
-  },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  rowText: { flex: 1, gap: 4 },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
-  disabled: { color: colors.textMuted },
   muted: { fontSize: 13, color: colors.textMuted },
   version: { textAlign: 'center', fontSize: 12, color: colors.placeholder },
-  heading: { fontSize: 18, fontWeight: '700', color: colors.text, marginTop: 4 },
-  error: { fontSize: 13, color: colors.danger },
 }));

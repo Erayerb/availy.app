@@ -154,6 +154,14 @@ def test_wallet_offers_and_the_map_badge(client, conn, clock):
     offers = client.get("/v1/rewards", params={"lat": 40.984, "lon": 29.026}).json()
     assert [(o["venue_id"], o["standing"], o["points"]) for o in offers] == [(kafe, True, 10)] and offers[0]["distance_m"] == 0
     clock.now += timedelta(minutes=1)
+    # Kâşif's welcome gift: the first standing reward without points; the next week's costs them
+    assert client.get(f"/v1/venues/{kafe}/reward", headers=auth(ali)).json()["free"] == "welcome"
+    client.post(f"/v1/campaigns/{reward['id']}/coupon", headers=auth(ali))
+    assert client.get("/v1/me/wallet", headers=auth(ali)).json()["spent"] == 0
+    code = client.get("/v1/me/coupons", headers=auth(ali)).json()[0]["code"]
+    client.post("/v1/coupons/redeem", json={"code": code}, headers=auth(token))
+    clock.now += timedelta(days=8)
+    assert client.get(f"/v1/venues/{kafe}/reward", headers=auth(ali)).json()["free"] is None
     client.post(f"/v1/campaigns/{reward['id']}/coupon", headers=auth(ali))
     wallet = client.get("/v1/me/wallet", headers=auth(ali)).json()
     assert wallet["balance"] == wallet["earned"] - 10 and wallet["spent"] == 10

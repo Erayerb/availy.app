@@ -125,7 +125,7 @@ def report(conn: psycopg.Connection, me: dict, reason: str, review_id: int | Non
 def profile(conn: psycopg.Connection, me: dict, username: str, now: datetime) -> dict:
     """A person's profile: stats, earned badges, and (for me and my friends) the venues they checked in at."""
     other = conn.execute(
-        "SELECT id, username, share_checkins, frozen, stats_visibility, plan, frame_color FROM users WHERE lower(username) = %s AND NOT is_guest",
+        "SELECT id, username, share_checkins, frozen, stats_visibility, plan, frame_color, regular_public FROM users WHERE lower(username) = %s AND NOT is_guest",
         (normalize_username(username),),
     ).fetchone()
     hidden = other is not None and other["id"] != me["id"] and (other["frozen"] or is_blocked_between(conn, me["id"], other["id"]))
@@ -134,7 +134,7 @@ def profile(conn: psycopg.Connection, me: dict, username: str, now: datetime) ->
     is_me = other["id"] == me["id"]
     from app.friends import relation
     from app.social import last_week_winners
-    from app.streaks import day_streak
+    from app.streaks import day_streak, regular_count
     from app.user_photos import photo_time
 
     rel = "self" if is_me else relation(conn, me["id"], other["id"])
@@ -175,6 +175,8 @@ def profile(conn: psycopg.Connection, me: dict, username: str, now: datetime) ->
         "badges": stats["badges"] if stats else [],
         "venues": venues,
         "streak": day_streak(conn, other["id"], now) if stats else None,
+        # 🏠 the venues where this person is the regular (named only to those who may see it)
+        "regular_of": regular_count(conn, other["id"]) if (is_me or other["regular_public"] or rel == "friend") else 0,
         "weekly_winner": any(w["user_id"] == other["id"] for w in last_week_winners(conn, now)),
         "stats_hidden": stats is None,
         "level": stats["level"] if stats else _level(conn, other["id"]),

@@ -146,7 +146,8 @@ MAX_INVITE_REWARDS_PER_MONTH = 5  # fake sign-ups for points stay worthless
 
 
 def accept_invite(conn: psycopg.Connection, newcomer: dict, inviter_username: str | None, now) -> bool:
-    """Signed up through someone's invite link: friends right away, and the inviter earns points."""
+    """Signed up through someone's invite link: friends right away. The points come with the newcomer's first
+    check-in (invite_checked_in)."""
     if not inviter_username or newcomer.get("role") != "personal":
         return False
     inviter = conn.execute(
@@ -163,16 +164,35 @@ def accept_invite(conn: psycopg.Connection, newcomer: dict, inviter_username: st
         """,
         (inviter["id"], newcomer["id"], now),
     )
+    return True
+
+
+def invite_checked_in(conn: psycopg.Connection, user: dict, now) -> int:
+    """The first check-in of someone who came through an invite: +50 for both (the inviter at most 5 times in 30
+    days, so fake sign-ups stay worthless). Returns the newcomer's points."""
+    row = conn.execute(
+        """
+        SELECT u.invited_by, (SELECT count(*) FROM checkins WHERE user_id = u.id)::int AS checkins,
+               EXISTS (SELECT 1 FROM points WHERE user_id = u.id AND reason = 'invited') AS paid
+        FROM users u WHERE u.id = %s
+        """,
+        (user["id"],),
+    ).fetchone()
+    if row["invited_by"] is None or row["checkins"] != 1 or row["paid"]:
+        return 0
+    conn.execute(
+        "INSERT INTO points (user_id, amount, reason, created_at) VALUES (%s, %s, 'invited', %s)", (user["id"], INVITE_POINTS, now)
+    )
     rewarded = conn.execute(
         "SELECT count(*)::int AS n FROM points WHERE user_id = %s AND reason = 'invite' AND created_at > %s",
-        (inviter["id"], now - timedelta(days=30)),
+        (row["invited_by"], now - timedelta(days=30)),
     ).fetchone()["n"]
     if rewarded < MAX_INVITE_REWARDS_PER_MONTH:
         conn.execute(
             "INSERT INTO points (user_id, amount, reason, created_at) VALUES (%s, %s, 'invite', %s)",
-            (inviter["id"], INVITE_POINTS, now),
+            (row["invited_by"], INVITE_POINTS, now),
         )
-    return True
+    return INVITE_POINTS
 
 
 HERE_WINDOW = timedelta(minutes=60)

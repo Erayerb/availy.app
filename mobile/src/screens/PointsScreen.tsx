@@ -52,7 +52,10 @@ export function PointsScreen({ token, onBack, onOpenVenue }: { token: string; on
       </View>
       <View style={styles.explain}>
         <Icon name="bulb" size={18} color={colors.gold} />
-        <Text style={styles.explainText}>Harcadığın puanlar sıralamanı ve seviyeni etkilemez.</Text>
+        <Text style={styles.explainText}>
+          Puanlarınla kafelerden indirim kuponu al; harcadıkların sıralamanı ve seviyeni etkilemez. Yakında daha fazlası: availo+
+          indirimi, çekilişler.
+        </Text>
       </View>
 
       <Text style={styles.section}>Puanla alabileceklerin</Text>

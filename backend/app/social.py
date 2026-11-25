@@ -191,6 +191,26 @@ def notifications(conn: psycopg.Connection, me: dict, now: datetime) -> list[dic
                    OR EXISTS (SELECT 1 FROM checkins k WHERE k.user_id = %(me)s AND k.venue_id = c.venue_id
                               AND k.created_at > %(now)s - interval '90 days'))
             UNION ALL
+            -- A favourite's campaign is in its last hour and I have not taken its coupon ("Mado'da son 1 saat")
+            -- (the one time-based item besides the 4-day reminder, approved; campaigns of 2+ hours, so it is not
+            -- the same moment as the start). body: the discount (or empty), then the message
+            SELECT 'campaign_last_hour', c.ends_at - interval '1 hour', NULL, v.id, v.name,
+                   COALESCE(c.discount::text, '') || '|' || c.message, false
+            FROM campaigns c JOIN venues v ON v.id = c.venue_id
+            WHERE c.ends_at - interval '1 hour' <= %(now)s AND c.ends_at > %(now)s AND c.duration_hours >= 2
+              AND NOT c.standing AND NOT c.hidden
+              AND EXISTS (SELECT 1 FROM favorites f WHERE f.user_id = %(me)s AND f.venue_id = c.venue_id)
+              AND NOT EXISTS (SELECT 1 FROM coupons k WHERE k.campaign_id = c.id AND k.user_id = %(me)s)
+            UNION ALL
+            -- Someone took my place as a venue's regular (their name only if they show it, or we are friends)
+            SELECT 'regular_lost', r.created_at,
+                   CASE WHEN u.regular_public OR EXISTS (
+                       SELECT 1 FROM friendships f WHERE f.status = 'accepted'
+                         AND ((f.requester_id = %(me)s AND f.addressee_id = u.id) OR (f.addressee_id = %(me)s AND f.requester_id = u.id))
+                   ) THEN u.username END, v.id, v.name, NULL, false
+            FROM regular_changes r JOIN users u ON u.id = r.taken_by JOIN venues v ON v.id = r.venue_id
+            WHERE r.lost_by = %(me)s AND r.created_at > %(since)s AND NOT u.frozen AND r.taken_by NOT IN {BLOCKED}
+            UNION ALL
             -- A friend reviewed a venue (last day, like their check-ins)
             SELECT 'friend_review', r.created_at, u.username, v.id, v.name, r.rating || '★ ' || r.body, false
             FROM reviews r JOIN users u ON u.id = r.user_id JOIN venues v ON v.id = r.venue_id

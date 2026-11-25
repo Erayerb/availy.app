@@ -7,11 +7,9 @@ import { Pressable } from './Pressable';
 import { isRegistered, type User } from '../lib/auth';
 import { confirmAction } from '../lib/confirm';
 import { sentence, timeAgo } from '../lib/crowd';
-import { stars } from '../lib/feedback';
 import { author, MAX_REPLIES_PER_PERSON, MAX_REVIEW, reviewsApi, type Review, type Reviews } from '../lib/reviews';
 import { REPORT_REASONS, safetyApi, type ReportReason } from '../lib/safety';
 import { colors, themed } from '../theme';
-import { ThemedSwitch } from './ThemedSwitch';
 
 // Reviews shown before "Tümünü göster"
 const FIRST_REVIEWS = 5;
@@ -20,14 +18,12 @@ type Props = {
   venueId: number;
   user: User | null;
   reviews: Reviews;
-  onChange: (reviews: Reviews) => void;
   reload: () => void;
-  onRegister: () => void;
   onOpenUser: (username: string) => void;
 };
 
 /** v2 "Yorumlar": stars and a comment per person, replies from other users if the author allows them. */
-export function ReviewsSection({ venueId, user, reviews, onChange, reload, onRegister, onOpenUser }: Props) {
+export function ReviewsSection({ venueId, user, reviews, reload, onOpenUser }: Props) {
   const registered = isRegistered(user) && !!user?.token;
   const token = user?.token;
   // Businesses do not write reviews; on their own venue they answer them ("İşletme")
@@ -261,13 +257,7 @@ const styles = themed(() => StyleSheet.create({
     gap: 10,
   },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
-  form: { gap: 10 },
-  starsRow: { flexDirection: 'row', gap: 6 },
-  star: { fontSize: 28, color: colors.textMuted },
-  starOn: { color: '#E0A800' },
-  stars: { color: '#E0A800' },
   input: { padding: 12, borderRadius: 12, backgroundColor: colors.cream, fontSize: 15, color: colors.text, minHeight: 44 },
-  switchRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   flex: { flex: 1 },
   text: { fontSize: 14, color: colors.text },
   bold: { fontWeight: '700', color: colors.text },
@@ -286,7 +276,6 @@ const styles = themed(() => StyleSheet.create({
   reasons: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   reason: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: colors.surface },
   reasonText: { fontSize: 13, fontWeight: '600', color: colors.danger },
-  success: { color: colors.success, fontWeight: '600' },
   error: { color: colors.danger },
   primary: { paddingVertical: 11, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center' },
   primaryText: { color: colors.onPrimary, fontWeight: '700' },

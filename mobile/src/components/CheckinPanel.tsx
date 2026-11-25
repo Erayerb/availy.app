@@ -14,7 +14,6 @@ import { useCampaigns } from '../context/CampaignsContext';
 import { checkinBody, checkinMessage, followUpQuestion, sendCheckin, type CheckinResult, firstOfDayOpen } from '../lib/checkinApi';
 import { isRegistered } from '../lib/auth';
 import { confirmAction } from '../lib/confirm';
-import { stars } from '../lib/feedback';
 import { MAX_REVIEW, newestMine, reviewsApi, type Reviews } from '../lib/reviews';
 import { checkinShareMessage } from '../lib/share';
 import { socialApi } from '../lib/social';
@@ -461,11 +460,8 @@ const styles = themed(() => StyleSheet.create({
   saveWords: { borderColor: colors.primary },
   saveWordsText: { color: colors.primary, fontWeight: '700' },
   quote: { fontSize: 14, fontStyle: 'italic', color: colors.text, textAlign: 'center' },
-  stars: { color: '#E0A800', fontStyle: 'normal' },
   streak: { fontSize: 15, fontWeight: '800', color: colors.text },
   starsRow: { flexDirection: 'row', gap: 6, justifyContent: 'center' },
-  star: { fontSize: 28, color: colors.textMuted },
-  starOn: { color: '#E0A800' },
   reviewActions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 12 },
   deleteText: { color: colors.danger, fontWeight: '700' },
   coupon: { alignSelf: 'stretch', padding: 10, borderRadius: 12, backgroundColor: colors.cream, gap: 2, alignItems: 'center' },

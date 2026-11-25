@@ -3,7 +3,7 @@ import { Tip } from '../components/Tip';
 import { StarterTasks } from '../components/StarterTasks';
 import type { Screen } from '../components/TabBar';
 import { WhileAway } from '../components/WhileAway';
-import { LayoutAnimation, Modal, Platform, StyleSheet, View } from 'react-native';
+import { LayoutAnimation, Modal,  StyleSheet, View } from 'react-native';
 import { useOnPageFocus } from '../context/PageContext';
 import { Text, TextInput } from '../components/Text';
 import { Pressable } from '../components/Pressable';
@@ -89,7 +89,7 @@ export function HomeScreen({
   onOpenScreen,
 }: Props) {
   const visibleDistricts = districtsForSides(useDistricts(), sides);
-  const { venues: found, loading, error, refreshing, refresh, update, updatedAt } = useSearch(query, null, tags);
+  const { venues: found, loading, error, refreshing, refresh, update } = useSearch(query, null, tags);
   useOnPageFocus(update);
   // A chip answers at once; the list follows when it can
   const listSort = useDeferredValue(sortMode);
@@ -138,7 +138,6 @@ export function HomeScreen({
     },
     [venues, searching, point, listSort],
   );
-  const needsLocation = sortMode === 'nearest' && !point;
 
   const header = (
     <View style={styles.header}>
@@ -321,8 +320,6 @@ const styles = themed(() => StyleSheet.create({
   soonBold: { fontWeight: '700', color: colors.text },
   header: { gap: 10 },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6, zIndex: 20, elevation: 20 },
-  row: { gap: 8 },
-  hint: { fontSize: 13, color: colors.textMuted },
   place: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, backgroundColor: colors.cream, maxWidth: 120 },
   placeOn: { backgroundColor: colors.primary },
   placeMain: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 7, paddingLeft: 10, paddingRight: 10, flexShrink: 1 },
@@ -351,5 +348,4 @@ const styles = themed(() => StyleSheet.create({
     backgroundColor: colors.cream,
   },
   searchInput: { flex: 1, fontSize: 16, color: colors.text, padding: 0 },
-  searchClear: { fontSize: 15, color: colors.textMuted },
 }));

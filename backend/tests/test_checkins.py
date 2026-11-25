@@ -165,8 +165,8 @@ def test_points_and_badges(client, conn, clock):
     second = checkin(client, second_user, kafe).json()
     assert not second["is_first"] and second["points_earned"] == 10
     stats = me(client, first_user)
-    # 60 for the check-in, 5 + 15 for its two badges (İlk adım, Kâşif)
-    assert stats["points"] == 80 and stats["checkins"] == 1 and stats["discoveries"] == 1
+    # 60 for the check-in, 5 + 15 for its two badges (İlk adım, Kâşif), 30 for reaching the Kâşif level
+    assert stats["points"] == 110 and stats["checkins"] == 1 and stats["discoveries"] == 1
     earned = {b["id"] for b in stats["badges"] if b["earned"]}
     assert earned == {"first_step", "explorer"}
     great = next(b for b in stats["badges"] if b["id"] == "great_explorer")
@@ -195,7 +195,7 @@ def test_guests_get_half_points_and_keep_them_after_sign_up(client, conn, clock)
     body = {"name": "Ayşe", "email": "ayse.kasif@example.test", "password": "gizli123", "username": "ayse.kasif"}
     client.post("/v1/auth/upgrade", json=body, headers={"Authorization": f"Bearer {token}"})
     stats = me(client, token)
-    assert not stats["is_guest"] and stats["points"] == 30 + 5 + 15  # and the two badges' points, full: guests have no badges
+    assert not stats["is_guest"] and stats["points"] == 30 + 5 + 15 + 30  # the two badges and the Kâşif level, full: guests have none
     assert any(b["id"] == "explorer" and b["earned"] for b in stats["badges"])
     # From now on full points (half an hour later: points need 30 minutes between check-ins)
     clock.now = NOON + timedelta(minutes=30)
@@ -342,7 +342,7 @@ def test_levels_from_points_discoveries_and_places(client, conn, clock):
     checkin(client, token, venue_id(conn, "Test Kafe A"))
     now = level()
     assert now["name"] == "Kâşif" and now["next"]["name"] == "Mahalleli"
-    assert now["next"]["missing"][0] == "420 puan"  # 60 for the check-in, 20 for its two badges
+    assert now["next"]["missing"][0] == "390 puan"  # 60 for the check-in, 20 for its two badges, 30 for the level
     # Mahalleli: 500 points and 3 check-ins at 3 venues
     uid = conn.execute("SELECT id FROM users WHERE email = 'seviye@example.test'").fetchone()["id"]
     conn.execute("INSERT INTO points (user_id, amount, reason, created_at) VALUES (%s, 500, 'checkin', now())", (uid,))
@@ -353,15 +353,23 @@ def test_levels_from_points_discoveries_and_places(client, conn, clock):
                 (venue_id(conn, name), uid, clock.now - timedelta(days=d + 1)),
             )
     assert (level()["name"], level()["next"]["name"]) == ("Mahalleli", "Semt elçisi")
+    # Semt elçisi needs every badge too (on top of the points and the district's venues)
+    from app.checkins import BADGES
+
+    assert any("rozet daha" in m for m in level()["next"]["missing"])
+    for badge_id, *_ in BADGES:
+        conn.execute("INSERT INTO user_badges (user_id, badge_id, earned_at) VALUES (%s, %s, now()) ON CONFLICT DO NOTHING", (uid, badge_id))
+    assert not any("rozet" in m for m in level()["next"]["missing"])
 
 
 def test_badges_earn_points_once_and_the_full_profile_earns_more(client, conn, clock):
     token = user_token(client, "rozet@example.test")
     first = checkin(client, token, venue_id(conn, "Test Kafe A")).json()
     # İlk adım and Kâşif with the first check-in: 60 for the check-in, 5 + 15 for the badges
-    assert sorted(b["id"] for b in first["new_badges"]) == ["explorer", "first_step"]
+    # The Kâşif level is celebrated with them (+30)
+    assert sorted(b["id"] for b in first["new_badges"]) == ["explorer", "first_step", "level_explorer"]
     stats = me(client, token)
-    assert stats["points"] == 60 + 5 + 15 and stats["new_badges"] == []
+    assert stats["points"] == 60 + 5 + 15 + 30 and stats["new_badges"] == []
     steps = {s["key"]: s["done"] for s in stats["profile"]}
     assert steps == {"photo": False, "email": False, "checkin": True, "friend": False, "review": False}
     # Everything else done (written straight into the database here): Tam profil, +20, celebrated once
@@ -376,7 +384,7 @@ def test_badges_earn_points_once_and_the_full_profile_earns_more(client, conn, c
     )
     full = me(client, token)
     assert [(b["id"], b["points"]) for b in full["new_badges"]] == [("profile", 20)]
-    assert full["points"] == 100 and me(client, token)["new_badges"] == []
+    assert full["points"] == 130 and me(client, token)["new_badges"] == []  # 80 + 30 (Kâşif level) + 20
     assert other  # the friend's account
 
 

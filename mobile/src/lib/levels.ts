@@ -14,18 +14,18 @@ export const LEVELS: LevelInfo[] = [
     id: 'explorer',
     name: 'Kâşif',
     needs: '100 puan ya da 1 keşif (bir mekanın ilk check-in’i)',
-    perks: ['Profilinde ve sıralamada Kâşif simgesi', 'Hoş geldin kuponu (yakında)'],
+    perks: ['Profilinde ve sıralamada Kâşif simgesi', 'Hoş geldin hediyesi: bir mekan ödülünü puansız al', '+30 puan'],
   },
   {
     id: 'local',
     name: 'Mahalleli',
     needs: '500 puan ve 3 mekanda en az 3 check-in',
-    perks: ['Kurucu kafelerde ikram ve indirimler (yakında)', 'Mahalleli simgesi'],
+    perks: ['1 hafta ücretsiz availo+', 'Mahalleli simgesi', '+30 puan'],
   },
   {
     id: 'ambassador',
     name: 'Semt elçisi',
-    needs: '2.000 puan ve bir semtte 10 farklı mekan',
-    perks: ['Yeni özelliklere erken erişim (yakında)', '1 ay ücretsiz availo+ (yakında)', 'Profil fotoğrafında çerçeve'],
+    needs: '2.000 puan, bir semtte 10 farklı mekan ve bütün rozetler (ilk adım görevleri dahil)',
+    perks: ['1 ay ücretsiz availo+', 'Profil fotoğrafında altın çerçeve', '+30 puan', 'Yeni özelliklere erken erişim (yakında)'],
   },
 ];

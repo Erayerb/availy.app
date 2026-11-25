@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from app.contacts import normalize_phone
 from tests.test_business import account, auth
 from tests.test_checkins import checkin, clock, venue_id  # noqa: F401 (clock is a fixture)
@@ -14,12 +16,23 @@ def test_phone_numbers_normalize():
     assert normalize_phone("123") is None
 
 
-def test_signing_up_with_an_invite_makes_friends_and_rewards_the_inviter(client, conn):
+def test_an_invite_makes_friends_and_the_first_checkin_rewards_both(client, conn, clock):
     ali = account(client, "t_ali")
     before = client.get("/v1/me", headers=auth(ali)).json()["points"]
     ayse = register(client, "t_ayse", invited_by="T_Ali")
     assert [f["username"] for f in client.get("/v1/friends", headers=auth(ayse)).json()["friends"]] == ["t_ali"]
-    assert client.get("/v1/me", headers=auth(ali)).json()["points"] == before + 50
+    assert client.get("/v1/me", headers=auth(ali)).json()["points"] == before  # not for signing up alone
+    # Ayşe's first check-in: +50 each (once)
+    pts = lambda: conn.execute(  # noqa: E731
+        "SELECT reason, amount FROM points p JOIN users u ON u.id = p.user_id WHERE u.username = %s AND reason IN ('invite', 'invited')",
+        ("t_ali",),
+    ).fetchall()
+    kafe = venue_id(conn, "Test Kafe A")
+    assert checkin(client, ayse, kafe).json()["points_earned"] >= 50
+    assert [(r["reason"], r["amount"]) for r in pts()] == [("invite", 50)]
+    clock.now += timedelta(hours=3)
+    checkin(client, ayse, venue_id(conn, "Test Cowork B"))
+    assert len(pts()) == 1
     # An unknown or own name does nothing
     assert client.post("/v1/auth/register", json={"email": "t_can@example.test", "password": "gizli123", "username": "t_can", "invited_by": "yokboyle"}).status_code == 201
 

@@ -13,7 +13,7 @@ import { MapSearch } from '../components/MapSearch';
 import { BackButton } from '../components/BackButton';
 import { TabIcon } from '../components/TabIcon';
 import { CARD_WIDTH, VenueCard } from '../components/VenueCard';
-import { Icon, InlineIcon } from '../components/Icon';
+import { Icon } from '../components/Icon';
 import { VenueMap } from '../components/VenueMap';
 import { SELECTED_DOT_SIZE } from '../components/VenueMap.types';
 import { useVenues } from '../hooks/useVenues';
@@ -475,12 +475,10 @@ const styles = themed(() => StyleSheet.create({
     fontSize: 12,
     color: colors.text,
   },
-  legendBreak: { width: '100%', height: 0 },
   legendTime: { fontSize: 10.5, color: colors.textMuted },
   legendLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%' },
   legendSpark: { fontSize: 9 },
   legendText: { fontSize: 11, color: colors.text },
-  dot: { width: 10, height: 10, borderRadius: 5 },
   status: { fontSize: 11, color: colors.textMuted },
   error: { fontSize: 11, color: colors.danger, maxWidth: 140 },
 }));

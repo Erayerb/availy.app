@@ -246,5 +246,4 @@ const styles = themed(() => StyleSheet.create({
   pressed: { opacity: 0.8 },
   switch: { alignItems: 'center', paddingVertical: 6 },
   switchText: { color: colors.primary, fontSize: 15 },
-  note: { textAlign: 'center', color: colors.placeholder, fontSize: 12, marginTop: 8 },
 }));

@@ -49,3 +49,16 @@ def test_scheduled_campaign_runs_once_in_its_window(client, conn, clock):
     assert client.get("/v1/campaigns").json() == []
     client.delete(f"/v1/business/schedules/{schedule['id']}", headers=auth(token))
     assert client.get("/v1/business/schedules", headers=auth(token)).json() == []
+
+
+def test_a_weekly_campaign_can_be_changed(client, conn, clock):
+    token, _ = business_at(client, conn)
+    body = {"message": "Her çarşamba öğlen %20", "discount": 20, "radius_km": 2, "days": [2], "start_hour": 13, "duration_hours": 3}
+    schedule = client.post("/v1/business/schedules", json=body, headers=auth(token)).json()
+    changed = {**body, "message": "Her perşembe öğlen %25", "discount": 25, "days": [3], "start_hour": 14}
+    out = client.put(f"/v1/business/schedules/{schedule['id']}", json=changed, headers=auth(token))
+    assert out.status_code == 200 and out.json()["days"] == [3] and out.json()["discount"] == 25
+    assert [s["message"] for s in client.get("/v1/business/schedules", headers=auth(token)).json()] == ["Her perşembe öğlen %25"]
+    # Not someone else's
+    other, _ = business_at(client, conn, username="t_isletme2", venue="Test Cowork B")
+    assert client.put(f"/v1/business/schedules/{schedule['id']}", json=changed, headers=auth(other)).status_code == 404

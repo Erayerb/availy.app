@@ -25,7 +25,6 @@ import { VenuePhoto } from '../components/VenuePhoto';
 import { WatchButton } from '../components/WatchButton';
 import { WrongInfo } from '../components/WrongInfo';
 import { useCampaigns } from '../context/CampaignsContext';
-import { useEngagement } from '../context/EngagementContext';
 import { useLoyalty } from '../context/LoyaltyContext';
 import { useLocation } from '../context/LocationContext';
 import { useSettings } from '../context/SettingsContext';
@@ -37,7 +36,6 @@ import type { Venue } from '../lib/api';
 import { categoryLabel } from '../lib/filters';
 import { distanceKm, formatDistance } from '../lib/geo';
 import { directionsUrl, shortLocation } from '../lib/location';
-import { stars } from '../lib/feedback';
 import { useReviews } from '../hooks/useReviews';
 import { ReviewsSection } from '../components/ReviewsSection';
 import { describeProgram, isProgramActive } from '../lib/loyalty';
@@ -78,7 +76,6 @@ export function VenueDetailScreen({
   const venue = venues[0];
   const { crowdLook } = useSettings();
   const { activeFor } = useCampaigns();
-  const { watches } = useEngagement();
   const { programs, join, leave } = useLoyalty();
   const [loyaltyNote, setLoyaltyNote] = useState<string | null>(null);
   // "Genelde 18:00'de kalabalık", from past weeks' check-ins
@@ -99,7 +96,6 @@ export function VenueDetailScreen({
     update();
     reloadReviews();
   });
-  const writtenCount = reviews.items.filter((r) => r.body?.trim()).length;
   const { point } = useLocation();
   const [note, setNote] = useState<string | null>(null);
 
@@ -118,7 +114,6 @@ export function VenueDetailScreen({
   const { label } = crowdLook(venue);
   const campaign = venue.open_now ? activeFor(venue.id) : null;
   const program = programs.find((p) => p.venueId === venue.id && isProgramActive(p));
-  const watching = watches.some((w) => w.venueId === venue.id);
   // The venue's own business sees its page as customers do, with "Düzenle"
   const owner = user?.role === 'business' && user.venueId === venue.id;
 
@@ -383,9 +378,7 @@ export function VenueDetailScreen({
         venueId={venue.id}
         user={user}
         reviews={reviews}
-        onChange={setReviews}
         reload={reloadReviews}
-        onRegister={onRegister}
         onOpenUser={onOpenUser}
       />
 
@@ -414,11 +407,6 @@ const styles = themed(() => StyleSheet.create({
   heroText: { position: 'absolute', left: 14, right: 14, bottom: 14, gap: 6 },
   heroName: { fontSize: 25, fontWeight: '800', color: '#fff' },
   heroMeta: { fontSize: 14, color: 'rgba(255,255,255,0.85)' },
-  heroActions: { flexDirection: 'row', gap: 8 },
-  heroPrimary: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 46, borderRadius: 14, backgroundColor: colors.primary },
-  heroPrimaryText: { color: colors.onPrimary, fontSize: 16, fontWeight: '700' },
-  heroIcon: { flexDirection: 'row', gap: 6, width: 52, height: 46, borderRadius: 14, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  heroIconText: { fontSize: 15, fontWeight: '700', color: colors.text },
   pressedDim: { opacity: 0.8 },
   loyalty: { padding: 12, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 10 },
   loyaltyHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -432,10 +420,8 @@ const styles = themed(() => StyleSheet.create({
   ownerNote: { fontSize: 13, color: colors.textMuted, fontWeight: '600' },
   edit: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 14, backgroundColor: colors.primary },
   editText: { color: colors.onPrimary, fontWeight: '700', fontSize: 14 },
-  verified: { color: colors.success, fontWeight: '800' },
   founderRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   founder: { fontSize: 13, fontWeight: '700', color: colors.gold },
-  verifiedText: { fontSize: 13, color: colors.success, fontWeight: '600' },
   pending: { fontSize: 13, color: colors.gold, fontWeight: '600', marginTop: 2 },
   links: { flexDirection: 'row', gap: 10 },
   linkButton: {
@@ -460,9 +446,7 @@ const styles = themed(() => StyleSheet.create({
   },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  name: { fontSize: 24, fontWeight: '700', color: colors.text },
   flex: { flex: 1 },
-  nameRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   muted: { fontSize: 13, color: colors.textMuted },
   link: { color: colors.primary, fontWeight: '600' },
   note: { fontSize: 13, color: colors.success },
@@ -478,7 +462,6 @@ const styles = themed(() => StyleSheet.create({
   status: { fontSize: 16, fontWeight: '600', color: colors.text },
   ratio: { marginLeft: 'auto', fontSize: 16, color: colors.textMuted },
   text: { fontSize: 14, color: colors.text },
-  watch: { fontSize: 13, color: colors.primary },
   unusual: { fontSize: 14, fontWeight: '700', color: colors.text },
   section: { gap: 8 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
@@ -492,7 +475,6 @@ const styles = themed(() => StyleSheet.create({
     color: colors.text,
     fontSize: 13,
   },
-  buttons: { flexDirection: 'row', gap: 10 },
   primary: {
     flex: 1,
     paddingVertical: 13,
@@ -501,19 +483,8 @@ const styles = themed(() => StyleSheet.create({
     alignItems: 'center',
   },
   primaryText: { color: colors.onPrimary, fontWeight: '700' },
-  secondary: {
-    flex: 1,
-    paddingVertical: 13,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
-    alignItems: 'center',
-  },
-  secondaryText: { color: colors.primary, fontWeight: '700' },
   demo: { textAlign: 'center', fontSize: 12, color: colors.placeholder },
   rating: { fontSize: 14, color: colors.textMuted, marginTop: 2 },
-  ratingStars: { color: '#E0A800' },
-  error: { fontSize: 13, color: colors.danger },
 }));
 
 /** "@eray"; guests have no user name ("Misafir 12"); private first check-ins stay anonymous. */

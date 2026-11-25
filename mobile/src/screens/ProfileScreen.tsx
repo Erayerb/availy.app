@@ -8,15 +8,13 @@ import { TAB_BAR_SPACE } from '../components/TabBar';
 import { Text, TextInput } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
-import { ProfilePhoto } from '../components/ProfilePhoto';
 import { TINT } from '../components/Settings';
 import { Collapsible } from '../components/Collapsible';
 import { ProfileEditor } from '../components/business/ProfileEditor';
 import { CoverPhoto } from '../components/business/CoverPhoto';
-import { BadgeGrid } from '../components/BadgeGrid';
 import { BackButton } from '../components/BackButton';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
-import { accountKey, MIN_PASSWORD_LENGTH, normalizeUsername, type User } from '../lib/auth';
+import {  MIN_PASSWORD_LENGTH, normalizeUsername, type User } from '../lib/auth';
 import { downloadMyData } from '../lib/dataExport';
 import { colors, themed } from '../theme';
 
@@ -598,7 +596,6 @@ const styles = themed(() => StyleSheet.create({
     gap: 10,
   },
   name: { fontSize: 20, fontWeight: '700', color: colors.text },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
   text: { fontSize: 14, color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },
   code: { fontWeight: '800', letterSpacing: 1 },

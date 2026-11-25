@@ -38,6 +38,7 @@ SETTING_FOR_KIND = {
     "watch_quiet": "watchNotifications",
     "favorite_quiet": "favoriteQuietNotifications",
     "venue_campaign": "campaignNotifications",
+    "campaign_last_hour": "campaignNotifications",
 }
 
 ISSUES = {
@@ -65,6 +66,12 @@ def _ended(body: str | None) -> str:
     return f"Kampanyan bitti: {seen} kişi gördü, {taken} kupon alındı, {used} kullanıldı."
 
 
+def _last_hour(venue: str | None, body: str | None) -> str:
+    discount = (body or "").split("|", 1)[0]
+    # No suffix after the name ("Mado'da" / "Gen'de" would need Turkish vowel harmony)
+    return f"{venue}: kampanyanın son 1 saati, %{discount} indirim" if discount else f"{venue}: kampanyanın son 1 saati"
+
+
 def text(n: dict) -> str:
     """The same line the 🔔 list shows (mobile/src/lib/social.ts notificationText): keep the two together."""
     who = f"@{n['username']}" if n.get("username") else "Biri"
@@ -87,6 +94,8 @@ def text(n: dict) -> str:
         "founder_ended": "Kurucu mekan olarak 3 aylık ücretsiz Aylık paketin bitti. Devam etmek için Abonelik'e bak; rozetin kalıyor.",
         "auto_campaign": f'Ölü saat için otomatik kampanya gönderildi: "{body}"',
         "venue_campaign": f'{venue} kampanya başlattı: "{body}"',
+        "regular_lost": f"{venue} mekanındaki müdavimliğini @{n.get('username')} aldı." if n.get("username") else f"{venue} mekanındaki müdavimliğini başkası aldı.",
+        "campaign_last_hour": _last_hour(venue, body),
         "reward": f'{venue} sana ödül verdi: "{body}" Kasada bu bildirimi göster.',
         "friend_checkin": f"{who} şu an {venue} mekanında. Sen de katıl!",
         "friend_review": f"{who} {venue} için yorum yazdı: {body}",

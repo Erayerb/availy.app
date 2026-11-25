@@ -36,6 +36,7 @@ class ProfileOut(BaseModel):
     badges: list[BadgeOut]  # the whole catalog with progress (empty when hidden)
     venues: list[ProfileVenue] | None  # None: not visible (not a friend, or they do not share check-ins)
     streak: int | None = 0  # "🔥 5 gün üst üste"
+    regular_of: int = 0  # 🏠 "3 mekanın müdavimi"
     weekly_winner: bool = False  # first of last week: "Haftanın 1.si"
     stats_hidden: bool = False
     level: LevelOut | None = None  # shown even when the statistics are hidden (a status, like a badge)

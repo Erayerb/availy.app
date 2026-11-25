@@ -43,6 +43,8 @@ const ICONS: Record<AppNotification['kind'], IconName> = {
   come_here: 'map-pin',
   friend_checkin: 'map-pin',
   venue_campaign: 'tag',
+  campaign_last_hour: 'hourglass',
+  regular_lost: 'home-heart',
   friend_review: 'star',
   favorite_quiet: 'heart',
   comeback: 'map-pin',
@@ -83,6 +85,8 @@ const TINTS: Record<AppNotification['kind'], [string, string]> = {
   come_here: ['#123A2A', '#2E9E4F'],
   friend_checkin: ['#123A2A', '#2E9E4F'],
   venue_campaign: ['#7A2E1F', '#D9480F'],
+  campaign_last_hour: ['#7A2E1F', '#C8102E'],
+  regular_lost: ['#5A3A12', '#C9962B'],
   friend_review: ['#2B2350', '#7B5EA7'],
   favorite_quiet: ['#7A2E1F', '#C8102E'],
   comeback: ['#123A2A', '#2E9E4F'],
@@ -115,7 +119,7 @@ const CAMPAIGN_KINDS = new Set<AppNotification['kind']>([
 
 // Tapping opens the venue (when there is one) for these
 const OPENS_VENUE = new Set<AppNotification['kind']>([
-  'reply', 'reward', 'loyalty', 'come_here', 'friend_checkin', 'venue_campaign', 'friend_review', 'favorite_quiet', 'together', 'venue_approved', 'loyalty_reward',
+  'reply', 'reward', 'loyalty', 'come_here', 'friend_checkin', 'venue_campaign', 'campaign_last_hour', 'regular_lost', 'friend_review', 'favorite_quiet', 'together', 'venue_approved', 'loyalty_reward',
   'moment_removed', 'moment_report_result', 'report_result', 'watch_quiet', 'new_review', 'sponsor_started', 'venue_issue',
 ]);
 

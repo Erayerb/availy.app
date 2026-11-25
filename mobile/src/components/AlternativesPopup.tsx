@@ -125,7 +125,6 @@ const styles = themed(() => StyleSheet.create({
     backgroundColor: colors.cream,
   },
   pressed: { opacity: 0.7 },
-  dot: { width: 10, height: 10, borderRadius: 5 },
   list: { gap: ROW_GAP },
   nameBox: { flex: 1 },
   name: { fontSize: 14, fontWeight: '600', color: colors.text },

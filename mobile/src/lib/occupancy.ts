@@ -33,12 +33,6 @@ export function levelStyle(level: string, colorBlind = false): LevelLook {
 
 export const LEVELS = Object.keys(LEVEL_STYLE) as Level[];
 
-const AREA_TEXT: Record<Level, string> = {
-  low: 'Sakin',
-  medium: 'Orta',
-  high: 'Yoğun',
-};
-
 /** A level colour mixed with white, for a level only one person has reported. */
 export function fadeColor(hex: string, amount = 0.5): string {
   const n = parseInt(hex.slice(1), 16);

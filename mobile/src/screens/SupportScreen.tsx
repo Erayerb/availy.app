@@ -124,5 +124,4 @@ const styles = themed(() => StyleSheet.create({
   error: { color: colors.danger, fontSize: 14 },
   primary: { paddingVertical: 13, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center' },
   primaryText: { color: colors.onPrimary, fontSize: 15, fontWeight: '600' },
-  note: { fontSize: 12, color: colors.placeholder, textAlign: 'center' },
 }));

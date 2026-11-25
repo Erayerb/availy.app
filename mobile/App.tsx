@@ -189,7 +189,13 @@ function Main() {
     if (screen === 'more' && auth.user?.token && !isBusiness(auth.user)) refreshMe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen]);
-  const { checkinSuggestions, appearance } = useSettings();
+  const { checkinSuggestions, appearance, update: updateSettings } = useSettings();
+  // availo+ is the server's (a level's gift starts and ends there): the phone follows when the plan changes
+  const serverPlan = auth.user && !isBusiness(auth.user) ? (auth.user.plan as string | undefined) : undefined;
+  useEffect(() => {
+    if (serverPlan !== undefined) updateSettings({ premium: serverPlan === 'premium' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverPlan]);
   // Görünüm: set the colors before any screen below reads them; a change re-renders everything
   const systemScheme = useColorScheme();
   const scheme: Scheme = appearance === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : appearance;
@@ -592,8 +598,6 @@ function Main() {
               venueId={auth.user.venueId}
               user={auth.user}
               onShowOnMap={openVenueOnMap}
-              onOpenUser={openProfile}
-              onRegister={() => setAuthForm('register')}
               onEditProfile={() => goTo('profile')}
               onUpgrade={() => goTo('subscription')}
             />
@@ -603,7 +607,6 @@ function Main() {
               venueId={auth.user.venueId}
               user={auth.user}
               onOpenUser={openProfile}
-              onRegister={() => setAuthForm('register')}
               onOpenLoyalty={() => {
                 setCampaignsTab('myPrograms');
                 goTo('campaigns');
@@ -669,7 +672,6 @@ function Main() {
               onBack={goBack}
               isBusiness={isBusiness(auth.user)}
               guest={!auth.user || auth.user.isGuest === true}
-              venueId={isBusiness(auth.user) ? (auth.user?.venueId ?? null) : null}
               account={auth.user && isBusiness(auth.user) ? { user: auth.user, ...accountActions } : null}
             />
           )}
@@ -960,7 +962,6 @@ function Main() {
 
 const styles = themed(() => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  screen: { flex: 1 },
   splash: { alignItems: 'center', justifyContent: 'center', gap: 14 },
   alert: {
     position: 'absolute',

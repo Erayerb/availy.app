@@ -23,6 +23,8 @@ export type AppNotification = {
     | 'come_here'
     | 'friend_checkin' // a friend checked in
     | 'venue_campaign' // a favourite (or a venue I went to lately) started a campaign; body: its message
+    | 'campaign_last_hour' // a favourite's campaign in its last hour; body: "20|message"
+    | 'regular_lost' // someone took my place as a venue's regular (username: null when they keep it to friends)
     | 'friend_review' // a friend reviewed a venue; body: "4★ text"
     | 'favorite_quiet' // availo+: a busy favourite turned quiet
     | 'comeback' // 4 days without a check-in (the one reminder that is not an event); body: the text
@@ -131,6 +133,8 @@ export const NOTIFICATION_ICONS: Record<AppNotification['kind'], string> = {
   come_here: '📍',
   friend_checkin: '📍',
   venue_campaign: '🏷️',
+  campaign_last_hour: '⏳',
+  regular_lost: '🏠',
   friend_review: '⭐',
   favorite_quiet: '♥',
   comeback: '👋',
@@ -197,6 +201,12 @@ export function notificationText(n: AppNotification): string {
     return Date.now() - new Date(n.at).getTime() < 90 * 60_000
       ? `${who} şu an ${n.venue_name} mekanında. Sen de katıl!`
       : `${who} ${n.venue_name} mekanında check-in yaptı.`;
+  if (n.kind === 'regular_lost')
+    return n.username ? `${n.venue_name} mekanındaki müdavimliğini @${n.username} aldı.` : `${n.venue_name} mekanındaki müdavimliğini başkası aldı.`;
+  if (n.kind === 'campaign_last_hour') {
+    const discount = (n.body ?? '').split('|')[0];
+    return discount ? `${n.venue_name}: kampanyanın son 1 saati, %${discount} indirim` : `${n.venue_name}: kampanyanın son 1 saati`;
+  }
   if (n.kind === 'venue_campaign') return `${n.venue_name} kampanya başlattı: "${n.body}"`;
   if (n.kind === 'friend_review') return `${who} ${n.venue_name} için yorum yazdı: ${n.body}`;
   if (n.kind === 'favorite_quiet') return `Favorin ${n.venue_name} şu an sakin. Gitmek için iyi bir zaman.`;

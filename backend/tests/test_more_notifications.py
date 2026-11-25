@@ -137,3 +137,22 @@ def test_a_liked_venue_starting_a_campaign(client, conn, clock):
         got = kinds(client, person)["venue_campaign"]
         assert got["venue_id"] == kafe and got["body"] == body["message"]
     assert "venue_campaign" not in kinds(client, other)
+
+
+def test_a_favourites_campaign_in_its_last_hour(client, conn, clock):
+    from app.push import text
+
+    token, kafe = business_at(client, conn)
+    fan, taker = account(client, "t_ali"), account(client, "t_ayse")
+    for person in (fan, taker):
+        client.put(f"/v1/me/favorites/{kafe}", headers=auth(person))
+    body = {"message": "Önümüzdeki 2 saat tüm kahvelerde %20 indirim", "discount": 20, "radius_km": 2, "duration_hours": 2}
+    campaign = client.post("/v1/campaigns", json=body, headers=auth(token)).json()
+    assert "campaign_last_hour" not in kinds(client, fan)  # the first hour
+    assert client.post(f"/v1/campaigns/{campaign['id']}/coupon", headers=auth(taker)).status_code == 200
+    clock.now += timedelta(minutes=70)
+    item = kinds(client, fan)["campaign_last_hour"]
+    assert item["venue_id"] == kafe and text(item) == "Test Kafe A: kampanyanın son 1 saati, %20 indirim"
+    assert "campaign_last_hour" not in kinds(client, taker)  # took the coupon already
+    clock.now += timedelta(hours=1)
+    assert "campaign_last_hour" not in kinds(client, fan)  # over

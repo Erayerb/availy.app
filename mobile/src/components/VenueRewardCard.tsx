@@ -24,7 +24,8 @@ export function VenueRewardCard({ venueId, token, onLogin, style }: { venueId: n
 
   const mine = coupons.find((c) => c.campaignId === String(reward.campaign_id) && !c.redeemedAt);
   const again = reward.next_at ? new Date(reward.next_at) : null;
-  const short = points !== null && points < reward.points;
+  const free = reward.free ?? null;
+  const short = !free && points !== null && points < reward.points;
 
   const take = async () => {
     if (!token) return onLogin();
@@ -65,7 +66,13 @@ export function VenueRewardCard({ venueId, token, onLogin, style }: { venueId: n
           text="Check-in'lerle topladığın puanlar burada işe yarar: mekanın ödülünü puanla al, kasada kodu göster. Seviyen ve sıralaman düşmez."
         >
         <Pressable style={[styles.button, short && styles.off]} onPress={take} disabled={short}>
-          <Text style={styles.buttonText}>{short ? `${reward.points - (points ?? 0)} puan daha gerekiyor` : `${reward.points} puanla al`}</Text>
+          <Text style={styles.buttonText}>
+            {free === 'welcome'
+              ? 'Hoş geldin hediyen: puansız al'
+              : short
+                ? `${reward.points - (points ?? 0)} puan daha gerekiyor`
+                : `${reward.points} puanla al`}
+          </Text>
         </Pressable>
         </Tip>
       )}

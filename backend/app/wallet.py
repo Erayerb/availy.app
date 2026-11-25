@@ -8,13 +8,16 @@ REASONS = {
     "checkin": "Check-in",
     "first_checkin": "Keşif (ilk check-in)",
     "venue_added": "Eklediğin mekan onaylandı",
-    "invite": "Davetinle katılan",
+    "invite": "Davet ettiğin arkadaşın ilk check-in'i",
     "badge": "Rozet",
     "stamp": "Damga",
     "coupon": "Kupon kullandın",
     "moment": "Fotoğraf paylaştın",
     "together": "Birlikte check-in",
     "task": "İlk adımlar",
+    "level": "Seviye atladın",
+    "streak": "Seri: bir hafta daha",
+    "invited": "Davetle geldin, ilk check-in",
 }
 # İlk adımlar: which task paid it
 TASK_LABELS = {

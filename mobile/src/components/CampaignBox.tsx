@@ -4,7 +4,7 @@ import { Text } from './Text';
 import { Pressable } from './Pressable';
 
 import { useCampaigns } from '../context/CampaignsContext';
-import { timeLeft, type Campaign } from '../lib/campaigns';
+import { lastHourText, timeLeft, type Campaign } from '../lib/campaigns';
 import { remainingCoupons } from '../lib/coupons';
 import { colors, themed } from '../theme';
 import { GradientFill } from './GradientFill';
@@ -30,7 +30,11 @@ export function CampaignBox({ campaign }: { campaign: Campaign }) {
         <View style={styles.flex}>
           <Text style={styles.message}>{campaign.message}</Text>
           <View style={styles.pills}>
-            <Text style={styles.pill}><InlineIcon name="clock" /> {timeLeft(campaign, now)}</Text>
+            {lastHourText(campaign, now) ? (
+              <Text style={[styles.pill, styles.urgent]}><InlineIcon name="hourglass" /> {lastHourText(campaign, now)}</Text>
+            ) : (
+              <Text style={styles.pill}><InlineIcon name="clock" /> {timeLeft(campaign, now)}</Text>
+            )}
           </View>
         </View>
       </View>
@@ -77,6 +81,7 @@ const styles = themed(() => StyleSheet.create({
   flex: { flex: 1, gap: 5 },
   message: { fontSize: 15, fontWeight: '700', color: colors.text },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  urgent: { backgroundColor: colors.primary, color: colors.onPrimary },
   pill: { fontSize: 12, fontWeight: '600', color: colors.text, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, overflow: 'hidden', backgroundColor: colors.cream },
   button: { paddingVertical: 10, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center' },
   pressed: { opacity: 0.8 },

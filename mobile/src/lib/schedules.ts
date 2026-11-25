@@ -56,6 +56,8 @@ export const automationApi = {
   saveSettings: (token: string, settings: Automation) => send<Automation>('PUT', '/v1/business/automation', settings, token),
   schedules: (token: string) => send<ScheduledCampaign[]>('GET', '/v1/business/schedules', undefined, token),
   addSchedule: (token: string, schedule: NewSchedule) => send<ScheduledCampaign>('POST', '/v1/business/schedules', schedule, token),
+  updateSchedule: (token: string, id: number, schedule: NewSchedule) =>
+    send<ScheduledCampaign>('PUT', `/v1/business/schedules/${id}`, schedule, token),
   setActive: (token: string, id: number, active: boolean) =>
     send<void>('PATCH', `/v1/business/schedules/${id}`, { active }, token),
   removeSchedule: (token: string, id: number) => send<void>('DELETE', `/v1/business/schedules/${id}`, undefined, token),

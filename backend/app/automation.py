@@ -159,6 +159,7 @@ def save_schedule(
     start_hour: int,
     duration_hours: int,
     now: datetime,
+    schedule_id: int | None = None,  # given: that weekly campaign is changed ("Düzenle")
 ) -> dict:
     venue_id = _business_venue(user)
     if not in_monthly_plan(conn, user):
@@ -177,6 +178,17 @@ def save_schedule(
         raise AutomationError("Mesafe 1, 2 ya da 5 km olabilir.")
     if discount is not None and not 1 <= discount <= 90:
         raise AutomationError("İndirim %1 ile %90 arasında olmalı.")
+    if schedule_id is not None:
+        row = conn.execute(
+            """
+            UPDATE campaign_schedules SET message = %s, discount = %s, radius_km = %s, days = %s, start_hour = %s, duration_hours = %s
+            WHERE id = %s AND venue_id = %s RETURNING id
+            """,
+            (text, discount, radius_km, clean_days, start_hour, duration_hours, schedule_id, venue_id),
+        ).fetchone()
+        if row is None:
+            raise AutomationError("Zamanlanmış kampanya bulunamadı.", 404)
+        return conn.execute(f"SELECT {SCHEDULE_FIELDS} FROM campaign_schedules WHERE id = %s", (row["id"],)).fetchone()
     row = conn.execute(
         """
         INSERT INTO campaign_schedules (venue_id, business_id, message, discount, radius_km, days, start_hour, duration_hours, created_at)

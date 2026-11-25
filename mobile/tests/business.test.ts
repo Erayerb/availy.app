@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { amenitiesFor } from '../src/lib/amenities.ts';
 import { stars } from '../src/lib/feedback.ts';
 import { campaignTotals } from '../src/lib/campaigns.ts';
 import { isProgramActive } from '../src/lib/loyalty.ts';
@@ -10,12 +9,6 @@ import { codeMatches, verificationCode } from '../src/lib/verification.ts';
 
 // Tuesday 13:30 in Istanbul
 const TUESDAY_1330 = new Date('2026-10-13T10:30:00Z');
-
-const venue = {
-  id: 1, name: 'Demo Kafe', category: 'cafe', tags: ['socializing'], capacity: 40, lat: 41, lon: 29,
-  neighborhood: 'Moda', district: 'Kadıköy', open_now: true, hours: '08:00–23:00', opens_at: '08:00',
-  occupancy: { level: 'medium' as const, ratio: 0.5, updated_at: '' }, district_occupancy: { level: 'medium' as const, ratio: 0.5 },
-};
 
 test('campaign totals for the last N days', () => {
   const campaigns = [
@@ -73,14 +66,6 @@ test('"Profilin %60 dolu": the venue page steps', async () => {
   // No hours known: a step to fill
   const noHours = profileSteps({ photo_at: '2026-10-29', hours: 'Saat bilgisi yok', address: 'Moda Cd. 1', instagram: 'x', phone: '1', amenity_keys: ['wifi'] });
   assert.deepEqual(noHours.filter((s) => !s.done).map((s) => s.key), ['hours']);
-});
-
-test('this month against last month', async () => {
-  const { monthChangeText } = await import('../src/lib/business.ts');
-  assert.equal(monthChangeText(20), 'geçen aya göre +%20');
-  assert.equal(monthChangeText(-10), 'geçen aya göre −%10');
-  assert.equal(monthChangeText(0), 'geçen ayla aynı');
-  assert.equal(monthChangeText(null), null);
 });
 
 test('"Haftanın günleri": the busiest day', async () => {

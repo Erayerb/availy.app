@@ -50,6 +50,8 @@ class NotificationOut(BaseModel):
         "come_here",
         "friend_checkin",
         "venue_campaign",
+        "campaign_last_hour",
+        "regular_lost",
         "together",
         "venue_approved",
         "invite_joined",

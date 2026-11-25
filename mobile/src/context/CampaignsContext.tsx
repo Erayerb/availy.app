@@ -31,6 +31,7 @@ type Campaigns = {
   // Business: weekly scheduled campaigns, run by the server
   schedules: ScheduledCampaign[];
   addSchedule: (schedule: NewSchedule) => Promise<string | null>;
+  updateSchedule: (id: number, schedule: NewSchedule) => Promise<string | null>; // "Düzenle"
   setScheduleActive: (id: number, active: boolean) => void;
   removeSchedule: (id: number) => void;
 };
@@ -184,6 +185,20 @@ export function CampaignsProvider({ token, business, children }: { token: string
     [token],
   );
 
+  const updateSchedule = useCallback(
+    async (id: number, schedule: NewSchedule) => {
+      if (!token) return 'Giriş yapmalısın.';
+      try {
+        const saved = await automationApi.updateSchedule(token, id, schedule);
+        setSchedules((list) => list.map((s) => (s.id === id ? saved : s)));
+        return null;
+      } catch (e) {
+        return asMessage(e);
+      }
+    },
+    [token],
+  );
+
   const setScheduleActive = useCallback(
     (id: number, active: boolean) => {
       if (!token) return;
@@ -211,7 +226,7 @@ export function CampaignsProvider({ token, business, children }: { token: string
 
   return (
     <CampaignsContext.Provider
-      value={{ campaigns, coupons, points, access, startTrial, removeCoupon, now, create, end, remove, claim, redeem, recordView, reload, activeFor, schedules, addSchedule, setScheduleActive, removeSchedule }}
+      value={{ campaigns, coupons, points, access, startTrial, removeCoupon, now, create, end, remove, claim, redeem, recordView, reload, activeFor, schedules, addSchedule, updateSchedule, setScheduleActive, removeSchedule }}
     >
       {children}
     </CampaignsContext.Provider>

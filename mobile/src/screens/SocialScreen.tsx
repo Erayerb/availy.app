@@ -29,7 +29,6 @@ import { friendQrPayload, friendsApi, inviteMessage, parseFriendCode, type Frien
 import { author, checkinSocialApi, daySections, MAX_REVIEW, reviewsApi, type FeedItem } from '../lib/reviews';
 import { confirmAction } from '../lib/confirm';
 import { Leaderboard } from '../components/Leaderboard';
-import { stars } from '../lib/feedback';
 import { shareText } from '../lib/shareVenue';
 import { haptics } from '../lib/haptics';
 import { colors, themed } from '../theme';
@@ -597,10 +596,8 @@ const styles = themed(() => StyleSheet.create({
   bold: { fontWeight: '700', color: colors.text },
   points: { color: colors.primary, fontWeight: '700' },
   discovered: { color: colors.discovery },
-  quote: { fontSize: 14, color: colors.text, fontWeight: '400', marginTop: 2 },
   reportedText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
   reportedDot: { width: 9, height: 9, borderRadius: 5 },
-  ratingStars: { fontSize: 14, color: '#E0A800', marginTop: 2 },
   tabs: { flexDirection: 'row', alignItems: 'center', gap: 8, zIndex: 20, elevation: 20 },
   addFriend: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
   badge: {

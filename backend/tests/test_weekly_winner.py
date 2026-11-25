@@ -31,5 +31,6 @@ def test_the_first_of_last_week_gets_the_label_and_the_badge(client, conn):
     assert client.get("/v1/users/t_ayse", headers=auth(ali)).json()["weekly_winner"] is False
     assert client.get("/v1/leaderboard?period=week&scope=everyone", headers=auth(ayse)).json()["last_week_winners"] == ["t_ali"]
     me = client.get("/v1/me", headers=auth(ali)).json()
-    assert [b["id"] for b in me["new_badges"]] == ["weekly_winner"] and me["points"] == 100050
+    # 100 000 points: the Kâşif level too (+30)
+    assert [b["id"] for b in me["new_badges"]] == ["weekly_winner", "level_explorer"] and me["points"] == 100080
     assert client.get("/v1/me", headers=auth(ali)).json()["new_badges"] == []

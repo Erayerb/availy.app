@@ -13,7 +13,7 @@ test('friend QR codes, invite links and typed names all give the user name', () 
 
 test('invite link and message', () => {
   assert.equal(inviteLink('eray'), 'https://erayerb.github.io/availy.app/v2/?invite=eray');
-  assert.match(inviteMessage('eray'), /@eray https:\/\/erayerb\.github\.io\/availy\.app\/v2\/\?invite=eray$/);
+  assert.match(inviteMessage('eray'), /@eray\. .*ikimize de 50 puan\. https:\/\/erayerb\.github\.io\/availy\.app\/v2\/\?invite=eray$/);
   assert.equal(inviteFromQuery('?invite=eray'), 'eray');
   assert.equal(inviteFromQuery('?venue=Kafe'), null);
 });

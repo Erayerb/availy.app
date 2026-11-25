@@ -90,6 +90,23 @@ def new_schedule(
         raise _fail(e) from None
 
 
+@router.put("/schedules/{schedule_id}", response_model=ScheduleOut)
+def change_schedule(
+    schedule_id: int,
+    body: ScheduleIn,
+    user: dict = Depends(current_user),
+    conn: psycopg.Connection = Depends(get_conn),
+    now: datetime = Depends(get_clock),
+):
+    """"Düzenle": the weekly campaign's message, days, start, duration, discount and radius."""
+    try:
+        return save_schedule(
+            conn, user, body.message, body.discount, body.radius_km, body.days, body.start_hour, body.duration_hours, now, schedule_id
+        )
+    except AutomationError as e:
+        raise _fail(e) from None
+
+
 @router.patch("/schedules/{schedule_id}", status_code=204)
 def pause_schedule(schedule_id: int, body: ActiveIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
     try:

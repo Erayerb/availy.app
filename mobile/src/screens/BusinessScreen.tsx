@@ -4,13 +4,13 @@ import { GradientFill } from '../components/GradientFill';
 import { StatusPill } from '../components/StatusPill';
 import { VenuePhoto } from '../components/VenuePhoto';
 import { TINT } from '../components/Settings';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect,  useState } from 'react';
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { TAB_BAR_SPACE } from '../components/TabBar';
 import { useOnPageFocus, usePageTop } from '../context/PageContext';
 import { PageSkeleton } from '../components/Skeleton';
 import { usePullRefresh } from '../hooks/usePullRefresh';
-import { Text, TextInput } from '../components/Text';
+import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
 
 import { HeaderButtons } from '../components/HeaderButtons';
@@ -42,14 +42,12 @@ type Props = {
   venueId: number;
   user: User;
   onShowOnMap: (venue: Venue) => void;
-  onOpenUser: (username: string) => void;
-  onRegister: () => void;
   onEditProfile: () => void; // Daha fazla > İşletme profili
   onUpgrade: () => void; // Abonelik: scheduled campaigns are in the monthly plan
 };
 
 /** v2 business panel: everything from customers' check-ins (no estimated occupancy). */
-export function BusinessScreen({ venueId, user, onShowOnMap, onOpenUser, onRegister, onEditProfile, onUpgrade }: Props) {
+export function BusinessScreen({ venueId, user, onShowOnMap, onEditProfile, onUpgrade }: Props) {
   const [venue, setVenue] = useState<Venue | null>(null);
   const [nearby, setNearby] = useState<Venue[]>([]);
   const [stats, setStats] = useState<VenueStats | null>(null);
@@ -368,9 +366,6 @@ const styles = themed(() => StyleSheet.create({
   heroEditText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   panelTitle: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   panelIcon: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  nameRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  editButton: { paddingVertical: 7, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary },
-  editText: { fontSize: 13, fontWeight: '700', color: colors.primary },
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 14 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
@@ -383,21 +378,6 @@ const styles = themed(() => StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     gap: 10,
-  },
-  venueName: { fontSize: 18, fontWeight: '700', color: colors.text },
-  discovery: { fontSize: 13, fontWeight: '600', color: colors.discovery },
-  discoveryName: { fontWeight: '800', color: colors.primary },
-  discoverer: { gap: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border },
-  rewardButton: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 14, borderWidth: 1.5, borderColor: colors.primary },
-  rewardButtonText: { color: colors.primary, fontWeight: '700', fontSize: 13 },
-  input: {
-    minHeight: 60,
-    padding: 10,
-    borderRadius: 12,
-    backgroundColor: colors.cream,
-    color: colors.text,
-    fontSize: 14,
-    textAlignVertical: 'top',
   },
   error: { fontSize: 13, color: colors.danger },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },

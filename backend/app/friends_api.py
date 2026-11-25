@@ -150,7 +150,7 @@ def here(
 
 
 class RegularOut(BaseModel):
-    username: str
+    username: str | None  # None: "Gizli müdavim" (keeps it to friends)
     visits: int  # in the last 30 days
     me: bool
     friend: bool
@@ -163,7 +163,7 @@ def regular(
     conn: psycopg.Connection = Depends(get_conn),
     now: datetime = Depends(get_clock),
 ):
-    """"müdavim": the most check-ins here lately, among me, my friends and people who show it to everyone (none: null)."""
+    """"müdavim": the most public check-ins here lately, the same for everyone (none: null; name hidden: "Gizli müdavim")."""
     from app.streaks import venue_regular
 
     return venue_regular(conn, user, venue_id, now)

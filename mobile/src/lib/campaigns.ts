@@ -7,9 +7,6 @@ import { distanceKm, type LatLon } from './geo.ts';
 
 export const RADIUS_OPTIONS_KM = [1, 2, 5] as const;
 export const DURATION_OPTIONS_HOURS = [1, 2, 3] as const;
-export const DISCOUNT_OPTIONS = [10, 20, 30] as const;
-// How many customers may take a coupon (null = no limit)
-export const CLAIM_LIMIT_OPTIONS = [10, 25, 50, 100] as const;
 export const MAX_MESSAGE_LENGTH = 140;
 
 export type Campaign = {
@@ -32,17 +29,6 @@ export type Campaign = {
 };
 
 export type NewCampaign = Omit<Campaign, 'id' | 'startsAt' | 'endsAt' | 'durationHours' | 'stats'> & { durationHours: number };
-
-export function createCampaign(input: NewCampaign, now: Date, id: string): Campaign {
-  const { durationHours } = input;
-  return {
-    ...input,
-    message: input.message.trim(),
-    id,
-    startsAt: now.toISOString(),
-    endsAt: new Date(now.getTime() + durationHours * 3_600_000).toISOString(),
-  };
-}
 
 // "Puanla açılan özel kupon" and the standing reward: points in steps of 10 (the server's rule); a regular
 // earns ~50-70 points a week
@@ -82,8 +68,10 @@ export function repeatCampaign(c: Campaign): NewCampaign {
   };
 }
 
-export function endCampaign(c: Campaign, now: Date): Campaign {
-  return { ...c, endsAt: now.toISOString() };
+/** In its last hour: "Son 45 dk" (red on the card, it is now or never); null before that or once over. */
+export function lastHourText(c: Campaign, now: Date): string | null {
+  const minutes = Math.ceil((new Date(c.endsAt).getTime() - now.getTime()) / 60_000);
+  return minutes > 0 && minutes <= 60 ? `Son ${minutes} dk` : null;
 }
 
 /** "1 sa 20 dk kaldı" / "15 dk kaldı" / "Bitti" */
