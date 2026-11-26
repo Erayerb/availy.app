@@ -24,11 +24,14 @@ class WaitlistIn(BaseModel):
     district: str | None = Field(None, max_length=60)
     venue_name: str | None = Field(None, max_length=120)
     founder: bool = False  # "Kurucu mekan ol" (business)
+    consent: bool = False  # the explicit consent box on the form (KVKK); nothing is kept without it
 
 
 @router.post("/waitlist", status_code=204)
 def join(body: WaitlistIn, conn: psycopg.Connection = Depends(get_conn), now: datetime = Depends(get_clock)):
     """No account needed; the same contact twice is kept once."""
+    if not body.consent:
+        raise HTTPException(status_code=422, detail="Devam etmek için açık rıza kutusunu işaretle.")
     contact = body.contact.strip()
     if not (EMAIL.match(contact) or INSTAGRAM.match(contact)):
         raise HTTPException(status_code=422, detail="Geçerli bir e-posta ya da Instagram kullanıcı adı yaz.")

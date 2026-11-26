@@ -153,7 +153,7 @@ def me(client, token):
 
 
 def user_token(client, email):
-    body = {"name": "Kullanıcı", "email": email, "password": "gizli123", "username": email.split("@")[0]}
+    body = {"name": "Kullanıcı", "email": email, "password": "Gizli.123", "username": email.split("@")[0]}
     return client.post("/v1/auth/register", json=body).json()["token"]
 
 
@@ -192,7 +192,7 @@ def test_guests_get_half_points_and_keep_them_after_sign_up(client, conn, clock)
     first = checkin(client, token, venue_id(conn, "Test Kafe A")).json()
     assert first["points_earned"] == 30  # (10 + 50) / 2
     assert first["new_badges"] == []  # no "Yeni rozet!" for a guest
-    body = {"name": "Ayşe", "email": "ayse.kasif@example.test", "password": "gizli123", "username": "ayse.kasif"}
+    body = {"name": "Ayşe", "email": "ayse.kasif@example.test", "password": "Gizli.123", "username": "ayse.kasif"}
     client.post("/v1/auth/upgrade", json=body, headers={"Authorization": f"Bearer {token}"})
     stats = me(client, token)
     assert not stats["is_guest"] and stats["points"] == 30 + 5 + 15 + 30  # the two badges and the Kâşif level, full: guests have none
@@ -217,7 +217,7 @@ def test_discovery_has_the_user_name(client, conn, clock):
     from app.checkins import load_discoveries
 
     kafe = venue_id(conn, "Test Kafe A")
-    body = {"email": "t_kasif@example.test", "password": "gizli123", "username": "t_kasif"}
+    body = {"email": "t_kasif@example.test", "password": "Gizli.123", "username": "t_kasif"}
     token = client.post("/v1/auth/register", json=body).json()["token"]
     checkin(client, token, kafe)
     assert load_discoveries(conn, [kafe], NOON)[kafe]["username"] == "t_kasif"

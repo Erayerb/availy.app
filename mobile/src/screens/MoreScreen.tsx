@@ -56,7 +56,7 @@ const BUSINESS_ITEMS: Item[] = [
 
 const COMMON_ITEMS: Item[] = [
   { screen: 'support', label: 'Hata bildir ve iletişim', icon: 'bug', hint: 'Sorun bildir ya da bize yaz' },
-  { screen: 'about', label: 'Hakkında', icon: 'compass', hint: 'Nasıl kullanılır, web sitemiz' },
+  { screen: 'about', label: 'Hakkında', icon: 'compass', hint: 'Nasıl kullanılır, web sitemiz, lisanslar' },
   { screen: 'legal', label: 'Kullanım koşulları', icon: 'bookmarks', hint: 'Koşullar ve gizlilik (KVKK)' },
 ];
 

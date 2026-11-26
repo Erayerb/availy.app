@@ -29,6 +29,9 @@ APPROVE_DAYS = 3
 APPROVAL_POINTS = 50
 
 
+MAX_PENDING = 3  # venues one customer may have waiting for approval at the same time
+
+
 class VenueError(Exception):
     def __init__(self, message: str, status: int = 400):
         super().__init__(message)
@@ -65,6 +68,19 @@ def add_venue(
         raise VenueError(problem)
     if category not in CATEGORIES:
         raise VenueError("Mekan türünü seç.")
+    # A customer has at most this many venues waiting for approval at once (no rain of fake venues)
+    if not business:
+        waiting = conn.execute(
+            """
+            SELECT count(*)::int AS n FROM venues WHERE added_by = %s AND source = 'user' AND approved_at IS NULL
+              AND created_at >= now() - interval '30 days' AND closed_at IS NULL AND hidden_at IS NULL
+            """,
+            (user["id"],),  # ones hidden after 30 days no longer count (the same rule as app/venues.py VISIBLE)
+        ).fetchone()["n"]
+        if waiting >= MAX_PENDING:
+            raise VenueError(
+                f"Onay bekleyen {MAX_PENDING} mekanın var. Biri onaylanınca (orada check-in yapılınca) yenisini ekleyebilirsin.", 429
+            )
     if not (-90 <= lat <= 90 and -180 <= lon <= 180):
         raise VenueError("Konum geçersiz.")
     point = "ST_SetSRID(ST_MakePoint(%(lon)s, %(lat)s), 4326)::geography"

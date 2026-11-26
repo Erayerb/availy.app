@@ -26,19 +26,13 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Yakındaki kampanyaları göstermek için konumunu kullanırız."
+          "locationWhenInUsePermission": "Check-in yaptığında mekanda olduğunu doğrulamak ve yakındaki mekanları göstermek için konumunu kullanırız. Konumun saklanmaz ve kimseyle paylaşılmaz."
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": "Sadakat damgası vermek için müşterinin QR kodunu okutmak üzere kamerayı kullanırız."
-        }
-      ],
-      [
-        "expo-contacts",
-        {
-          "contactsPermission": "Rehberindeki arkadaşlarını availo'da bulmak için telefon numaralarına bakarız; rehberin saklanmaz."
+          "cameraPermission": "Profil fotoğrafını ve mekanın o anki fotoğrafını çekmek, kupon ve sadakat QR kodlarını okutmak için kamerayı kullanırız."
         }
       ],
       "expo-font",
@@ -48,8 +42,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Profil ve mekan fotoğrafı seçmek için fotoğraflarına erişiriz.",
-          "cameraPermission": "Profil fotoğrafı çekmek ve sadakat QR kodunu okutmak için kamerayı kullanırız."
+          "photosPermission": "Profil fotoğrafını ve işletmeler için mekan kapak fotoğrafını seçmek için fotoğraflarına erişiriz.",
+          "cameraPermission": "Profil fotoğrafını ve mekanın o anki fotoğrafını çekmek, kupon ve sadakat QR kodlarını okutmak için kamerayı kullanırız."
         }
       ],
       "expo-apple-authentication",

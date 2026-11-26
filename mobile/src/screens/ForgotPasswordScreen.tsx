@@ -5,7 +5,8 @@ import { Pressable } from '../components/Pressable';
 
 import { BackButton } from '../components/BackButton';
 import { accountApi } from '../lib/accountApi';
-import { MIN_PASSWORD_LENGTH } from '../lib/auth';
+import { passwordProblem } from '../lib/auth';
+import { PasswordRules } from '../components/PasswordRules';
 import { colors, themed } from '../theme';
 
 type Props = {
@@ -41,7 +42,8 @@ export function ForgotPasswordScreen({ initialEmail, onBack, onDone }: Props) {
 
   const reset = async () => {
     if (code.length !== 6) return setNote({ ok: false, text: 'E-postadaki 6 haneli kodu yaz.' });
-    if (password.length < MIN_PASSWORD_LENGTH) return setNote({ ok: false, text: `Şifre en az ${MIN_PASSWORD_LENGTH} karakter olmalı.` });
+    const problem = passwordProblem(password);
+    if (problem) return setNote({ ok: false, text: problem });
     setBusy(true);
     try {
       await accountApi.reset(email.trim(), code, password);
@@ -91,6 +93,7 @@ export function ForgotPasswordScreen({ initialEmail, onBack, onDone }: Props) {
               textContentType="newPassword"
               onSubmitEditing={reset}
             />
+            <PasswordRules password={password} />
           </>
         )}
         {note && <Text style={note.ok ? styles.success : styles.error}>{note.text}</Text>}

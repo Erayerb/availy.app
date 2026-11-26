@@ -14,7 +14,7 @@ from functools import cache
 import psycopg
 
 ROLES = ("personal", "business")
-MIN_PASSWORD_LENGTH = 6  # same rule as the app
+MIN_PASSWORD_LENGTH = 8  # same rule as the app (mobile/src/lib/auth.ts)
 MAX_PASSWORD_LENGTH = 200
 SESSION_DAYS = 30
 # Guests have no password to sign in again, so their session lasts much longer
@@ -60,7 +60,32 @@ def validate_username(username: str) -> str | None:
     return None
 
 
-def validate_registration(name: str, email: str, password: str, role: str, username: str = "") -> str | None:
+def password_problem(password: str) -> str | None:
+    """A new password: at least 8 characters with an upper-case and a lower-case letter, a digit and a punctuation
+    mark (or another sign). Old passwords keep working; only new ones (sign-up, change, reset) are checked."""
+    if len(password) < MIN_PASSWORD_LENGTH:
+        return f"Şifre en az {MIN_PASSWORD_LENGTH} karakter olmalı."
+    if len(password) > MAX_PASSWORD_LENGTH:
+        return "Şifre çok uzun."
+    missing = [
+        label
+        for label, ok in (
+            ("bir büyük harf", any(c.isupper() for c in password)),
+            ("bir küçük harf", any(c.islower() for c in password)),
+            ("bir rakam", any(c.isdigit() for c in password)),
+            ("bir noktalama işareti (. ! ? gibi)", any(not c.isalnum() for c in password)),
+        )
+        if not ok
+    ]
+    if not missing:
+        return None
+    listed = missing[0] if len(missing) == 1 else f"{', '.join(missing[:-1])} ve {missing[-1]}"
+    return f"Şifrede {listed} olmalı."
+
+
+def validate_registration(
+    name: str, email: str, password: str, role: str, username: str = "", check_password: bool = True
+) -> str | None:
     # The name is optional at sign-up (the user name is shown instead); if given it must not be a single letter
     if name.strip() and len(name.strip()) < 2:
         return "Ad en az 2 karakter olmalı."
@@ -69,10 +94,9 @@ def validate_registration(name: str, email: str, password: str, role: str, usern
         return problem
     if not EMAIL_PATTERN.match(email.strip()):
         return "Geçerli bir e-posta gir."
-    if len(password) < MIN_PASSWORD_LENGTH:
-        return f"Şifre en az {MIN_PASSWORD_LENGTH} karakter olmalı."
-    if len(password) > MAX_PASSWORD_LENGTH:
-        return "Şifre çok uzun."
+    problem = password_problem(password) if check_password else None
+    if problem:
+        return problem
     if role not in ROLES:
         return "Hesap türü bireysel ya da işletme olmalı."
     return None
@@ -129,9 +153,15 @@ def username_taken(conn: psycopg.Connection, username: str, except_id: int | Non
 
 
 def create_user(
-    conn: psycopg.Connection, name: str, email: str, password: str, role: str = "personal", username: str = ""
+    conn: psycopg.Connection,
+    name: str,
+    email: str,
+    password: str,
+    role: str = "personal",
+    username: str = "",
+    check_password: bool = True,  # False only for the local test accounts (seed_test_account.py)
 ) -> dict:
-    problem = validate_registration(name, email, password, role, username)
+    problem = validate_registration(name, email, password, role, username, check_password)
     if problem:
         raise AccountError(problem)
     if conn.execute("SELECT 1 FROM users WHERE email = %s", (normalize_email(email),)).fetchone():
@@ -270,8 +300,9 @@ def change_password(conn: psycopg.Connection, user: dict, old_password: str, new
         raise AccountError("Misafir hesabının şifresi yok. Önce kayıt ol.", 409)
     if not verify_password(old_password, stored):
         raise AccountError("Mevcut şifre hatalı.", 403)
-    if not MIN_PASSWORD_LENGTH <= len(new_password) <= MAX_PASSWORD_LENGTH:
-        raise AccountError(f"Yeni şifre en az {MIN_PASSWORD_LENGTH} karakter olmalı.")
+    problem = password_problem(new_password)
+    if problem:
+        raise AccountError(problem)
     conn.execute("UPDATE users SET password_hash = %s WHERE id = %s", (hash_password(new_password), user["id"]))
 
 

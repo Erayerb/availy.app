@@ -1,6 +1,5 @@
 import { useLocation } from '../context/LocationContext';
 import { useCameraPermissions } from 'expo-camera';
-import * as Contacts from 'expo-contacts/legacy';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import { useCallback, useEffect, useState } from 'react';
@@ -73,7 +72,6 @@ export function PermissionsScreen({
   const { approximate } = useLocation();
   const [location, setLocation] = useState<Status>('unknown');
   const [notifications, setNotifications] = useState<Status>('unknown');
-  const [contacts, setContacts] = useState<Status>('unknown');
   const [camera, requestCamera] = useCameraPermissions();
   // Web has no settings page to open: "Ayarlara git" explains where the browser keeps them
   const [webHint, setWebHint] = useState<string | null>(null);
@@ -86,9 +84,6 @@ export function PermissionsScreen({
       Notifications.getPermissionsAsync()
         .then((p) => setNotifications(asStatus(p.status)))
         .catch(() => setNotifications('unknown'));
-      Contacts.getPermissionsAsync()
-        .then((p) => setContacts(asStatus(p.status)))
-        .catch(() => setContacts('unknown'));
     }
   }, []);
 
@@ -121,20 +116,6 @@ export function PermissionsScreen({
       onAsk: () => ask(isWeb ? askWebLocation : Location.requestForegroundPermissionsAsync),
       blockedHint: BROWSER_HINT,
     },
-    // Only for "Rehberden bul" (Sosyal > Arkadaşlar), and only in the phone app
-    !business &&
-      !isWeb && {
-            title: 'Rehber',
-        to: 'Rehbere',
-        summary: 'Yalnızca "Rehberden bul" dersen; rehberin saklanmaz',
-        status: contacts,
-        uses: [
-          "Sosyal > Arkadaşlar'da \"Rehberden bul\"a basınca rehberindeki availo kullanıcılarını bulmak",
-          'Numaralar yalnızca eşleşme için bir kez gönderilir, saklanmaz',
-        ],
-        withoutIt: 'Arkadaşlarını kullanıcı adı, QR ya da davet bağlantısıyla eklersin.',
-        onAsk: () => ask(Contacts.requestPermissionsAsync),
-      },
     {
         title: 'Kamera',
       to: 'Kameraya',
@@ -176,8 +157,8 @@ export function PermissionsScreen({
         <Text style={styles.title}>{business ? 'İzinler' : 'Konum ve izinler'}</Text>
       </View>
       <Text style={styles.muted}>
-        availo yalnızca aşağıdaki izinleri ister. Rehberine yalnızca sen "Rehberden bul" dersen bakar; fotoğraflarından
-        yalnızca senin seçtiğini alır; sosyal medya hesaplarına erişmez.
+        availo yalnızca aşağıdaki izinleri ister. Rehberine bakmaz; fotoğraflarından yalnızca senin seçtiğini alır;
+        sosyal medya hesaplarına erişmez.
       </Text>
 
       {permissions.map((p) => (
@@ -258,7 +239,6 @@ export function PermissionsScreen({
 // Each permission's coloured icon square
 const PERMISSION_ICONS: Record<string, [IconName, string]> = {
   Konum: ['location', TINT.green],
-  Rehber: ['users', TINT.blue],
   Kamera: ['camera', TINT.dark],
   Bildirimler: ['bell', TINT.orange],
   Fotoğraflar: ['photo', TINT.purple],

@@ -4,13 +4,7 @@
 
 Bu metinler aydınlatma metninden ve kullanım koşullarından ayrı olarak, her biri kendi onay kutusu veya ekranıyla, isteğe bağlı olarak sunulur. Onay vermemek Hizmetin temel kullanımını engellemez. Her onay, Profil ayarları veya Bildirim ayarlarından istenildiği zaman geri alınabilir.
 
-## 1. "Rehberden bul" için açık rıza
-
-Gösterileceği yer: "Rehberden bul" ilk kez kullanılırken, rehber izni istenmeden önce.
-
-> Telefon numaramın, availo'da beni tanıyanların bulabilmesi için geri döndürülemez anahtarlı bir özet olarak saklanmasına ve rehberimdeki telefon numaralarının yalnızca availo kullanan tanıdıklarımı bulmak amacıyla bir defaya mahsus karşılaştırılmasına (saklanmadan) açık rıza veriyorum. Bu rızayı Profil ayarları'ndan numaramı kaldırarak geri alabileceğimi biliyorum. Ayrıntılar: Gizlilik Politikası ve Aydınlatma Metni.
-
-## 2. Ticari elektronik ileti onayı
+## 1. Ticari elektronik ileti onayı
 
 Gösterileceği yer: kayıt sırasında ayrı ve işaretlenmemiş bir kutu olarak; sonrasında Bildirim ayarları > Kampanya bildirimleri.
 
@@ -18,13 +12,13 @@ Gösterileceği yer: kayıt sırasında ayrı ve işaretlenmemiş bir kutu olara
 
 [Hukukçu: İleti Yönetim Sistemi (İYS) kaydı ve uygulama içi bildirimlerin bu kapsama girip girmediği değerlendirilmeli.]
 
-## 3. Bekleme listesi için açık rıza (web sitesi)
+## 2. Bekleme listesi için açık rıza (web sitesi)
 
 Gösterileceği yer: tanıtım sitesindeki bekleme listesi formunda, gönder düğmesinin üstünde, işaretlenmemiş bir kutu olarak.
 
 > Bıraktığım iletişim bilgisinin (e-posta veya Instagram kullanıcı adı), semt ve mekan bilgisinin, availo uygulaması yayına girdiğinde ve işletmeler için kurucu mekan programı hakkında bana haber verilmesi amacıyla işlenmesine ve bu amaçla yurt dışındaki sunucularda saklanmasına açık rıza veriyorum. Ayrıntılar: Gizlilik Politikası ve Aydınlatma Metni.
 
-## 4. Kayıt ekranındaki beyan (onay değil, bilgilendirme)
+## 3. Kayıt ekranındaki beyan (onay değil, bilgilendirme)
 
 Gösterileceği yer: kayıt düğmesinin altında, kutusuz.
 

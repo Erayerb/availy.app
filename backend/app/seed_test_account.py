@@ -35,7 +35,7 @@ AREA = (29.053, 40.958, 29.077, 40.973)
 
 def test_user(conn: psycopg.Connection) -> dict:
     row = conn.execute("SELECT * FROM users WHERE lower(username) = %s", (USERNAME,)).fetchone()
-    return row or create_user(conn, "", EMAIL, PASSWORD, "personal", USERNAME) | {"is_guest": False}
+    return row or create_user(conn, "", EMAIL, PASSWORD, "personal", USERNAME, check_password=False) | {"is_guest": False}
 
 
 def add_activity(conn: psycopg.Connection, user: dict, now: datetime) -> int:
@@ -70,7 +70,7 @@ def add_activity(conn: psycopg.Connection, user: dict, now: datetime) -> int:
 def business_user(conn: psycopg.Connection, customer: dict) -> dict:
     """The business test account, at the venue the customer test account reviewed."""
     row = conn.execute("SELECT * FROM users WHERE lower(username) = %s", (BUSINESS_USERNAME,)).fetchone()
-    business = row or create_user(conn, "", BUSINESS_EMAIL, PASSWORD, "business", BUSINESS_USERNAME)
+    business = row or create_user(conn, "", BUSINESS_EMAIL, PASSWORD, "business", BUSINESS_USERNAME, check_password=False)
     venue = conn.execute(
         "SELECT venue_id FROM reviews WHERE user_id = %s ORDER BY created_at LIMIT 1", (customer["id"],)
     ).fetchone()

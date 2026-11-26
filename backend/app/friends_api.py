@@ -8,7 +8,6 @@ from pydantic import BaseModel
 
 from app.auth_api import current_user
 from app.db import get_conn
-from app.contacts import ContactsError, match_contacts, remove_phone, set_phone
 from app.checkins_api import get_clock
 from app.social_streaks import StreakError, friend_streaks, save_streak
 from app.friends import FriendError, add_friend, friends_here, list_friends, remove_friend, search_users
@@ -95,42 +94,6 @@ def add(body: AddIn, user: dict = Depends(current_user), conn: psycopg.Connectio
 def remove(other_id: int, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
     remove_friend(conn, user, other_id)
     return Response(status_code=204)
-
-
-class PhoneIn(BaseModel):
-    phone: str
-
-
-class ContactsIn(BaseModel):
-    phones: list[str]  # numbers from the phone's contacts; compared, never stored
-
-
-@router.put("/me/phone", status_code=204)
-def phone(body: PhoneIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
-    """"Rehberden bul": my own number, kept only as a keyed hash."""
-    try:
-        set_phone(conn, user, body.phone)
-    except ContactsError as e:
-        raise HTTPException(status_code=e.status, detail=e.message) from None
-    return Response(status_code=204)
-
-
-@router.delete("/me/phone", status_code=204)
-def forget_phone(user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
-    remove_phone(conn, user)
-    return Response(status_code=204)
-
-
-class ContactMatch(PersonWithRelation):
-    phone: str  # the contact's number as the app sent it
-
-
-@router.post("/friends/contacts", response_model=list[ContactMatch])
-def contacts(body: ContactsIn, user: dict = Depends(current_user), conn: psycopg.Connection = Depends(get_conn)):
-    try:
-        return match_contacts(conn, user, body.phones)
-    except ContactsError as e:
-        raise HTTPException(status_code=e.status, detail=e.message) from None
 
 
 class FriendHere(BaseModel):

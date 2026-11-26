@@ -17,7 +17,7 @@ import { CrowdDot } from './CrowdDot';
 import { Icon } from './Icon';
 
 const MAX_PLACES = 4;
-const PLACE_WAIT_MS = 500;
+const PLACE_WAIT_MS = 350;
 
 type Props = {
   onClose: () => void;
@@ -37,13 +37,16 @@ export function MapSearch({ onClose, onChoose, onChoosePlace, token = null, onAd
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Places from OpenStreetMap: their service asks for few requests, so this waits longer than our own search
+  // Places (streets, neighbourhoods) while typing, near the user first (to ~10 km, so moving does not search
+  // again); our server keeps the answers
+  const nearKey = point ? `${point.lat.toFixed(1)},${point.lon.toFixed(1)}` : '';
+  const near = point ? { lat: Number(point.lat.toFixed(1)), lon: Number(point.lon.toFixed(1)) } : null;
   useEffect(() => {
     const text = query.trim();
     if (text.length < 3) return setPlaces([]);
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      searchPlaces(text, controller.signal).then((found) => {
+      searchPlaces(text, controller.signal, near).then((found) => {
         if (!controller.signal.aborted) setPlaces(found.slice(0, MAX_PLACES));
       });
     }, PLACE_WAIT_MS);
@@ -51,7 +54,7 @@ export function MapSearch({ onClose, onChoose, onChoosePlace, token = null, onAd
       clearTimeout(timer);
       controller.abort();
     };
-  }, [query]);
+  }, [query, nearKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const text = query.trim();

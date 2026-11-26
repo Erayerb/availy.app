@@ -15,10 +15,7 @@
 <meta property="og:description" content="Kafe şu an sakin mi, kalabalık mı? İstanbul'da ders çalışacak, buluşacak ya da kahve içecek sakin bir yeri gitmeden önce gör. Ücretsiz; iPhone ve Android için çok yakında.">
 <meta property="og:url" content="https://erayerb.github.io/availy.app/v2/tanitim/">
 <meta name="twitter:card" content="summary">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Tinos:wght@400;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.50.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="assets/site.css">
 <link rel="stylesheet" href="styles.css">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"MobileApplication","name":"availo","operatingSystem":"iOS, Android","applicationCategory":"LifestyleApplication","inLanguage":"tr","description":"İstanbul'daki kafe, restoran, bar ve kütüphanelerin şu anki doluluğu: sakin mi, kalabalık mı? Oradakilerin check-in'lerinden.","offers":[{"@type":"Offer","price":"0","priceCurrency":"TRY","name":"Ücretsiz"},{"@type":"Offer","price":"79","priceCurrency":"TRY","name":"availo+ (aylık)"}],"areaServed":"İstanbul"}
@@ -39,7 +36,7 @@
 
   <div class="hero">
     <div>
-      <span class="eyebrow"><i class="ti ti-map-pin"></i> İlk olarak Moda ve Kadıköy'de</span>
+      <span class="eyebrow"><i class="ti ti-map-pin"></i> İlk olarak İstanbul'da</span>
       <h1>Şu an nerede yer var?</h1>
       <p class="lead">Kafe sakin mi, kalabalık mı? <b>Gitmeden gör</b>, boşuna yola çıkma.</p>
       <p class="lead more"><b>Mekandaysan check-in yap, puan kazan, kafelerde indirime çevir. Mekanları önce sen keşfet, geç kalma.</b></p>
@@ -239,7 +236,7 @@
       <details><summary>Doluluk bilgisi nereden geliyor, ne kadar doğru?</summary><p>O sırada mekanda olan kullanıcıların check-in'lerinden: "Sakin / Orta / Kalabalık". Son 90 dakikanın bildirimleri sayılır, yenisi eskisinden ağır basar. Bilgi yoksa uygulama bunu açıkça söyler; uydurma doluluk göstermez.</p></details>
       <details><summary>Konumum paylaşılıyor mu?</summary><p>Hayır. Konumun yalnızca check-in anında mekana yakın olduğunu doğrulamak için kullanılır ve saklanmaz. Arkadaşların yalnızca check-in yaptığın mekanı görür; gizli check-in'leri kimse görmez.</p></details>
       <details><summary>Hangi telefonlarda çalışır?</summary><p>iPhone (iOS) ve Android telefonlarda. Uygulama mağazalara çok yakında geliyor; açılınca haber almak için listeye yazılabilirsin.</p></details>
-      <details><summary>Hangi şehirlerde var?</summary><p>İlk olarak İstanbul'da, Moda ve Kadıköy'den başlıyoruz; Beşiktaş, Etiler, Nişantaşı ve Bakırköy de haritada.</p></details>
+      <details><summary>Hangi şehirlerde var?</summary><p>İlk olarak İstanbul'da başlıyoruz: Nişantaşı, Beşiktaş, Etiler, Caddebostan, Kayışdağı, Bakırköy ve santralistanbul (Bilgi Üniversitesi) çevresi haritada. Yeni semtler ekleniyor.</p></details>
       <details><summary>Verilerimi silebilir miyim?</summary><p>Evet. Uygulamada Profil ayarları'ndan verilerinin kopyasını indirebilir, hesabını dondurabilir ya da kalıcı olarak silebilirsin.</p></details>
       <details><summary>Puanlarım ne işe yarıyor?</summary><p>Puanla seviye atlarsın, haftalık sıralamaya girersin ve mekanların ödüllerini (ör. 200 puan = %10 indirim) alırsın. Harcadığın puan seviyeni ve sıralamanı düşürmez.</p></details>
     </div>
@@ -262,12 +259,13 @@
         <input id="u-contact" name="contact" autocomplete="email" placeholder="ornek@mail.com ya da @kullaniciadi" required>
         <label for="u-district">En çok nerede vakit geçirirsin?</label>
         <select id="u-district" name="district">
-          <option>Kadıköy</option><option>Beşiktaş</option><option>Üsküdar</option><option>Şişli</option><option>Beyoğlu</option><option>Ataşehir</option><option>Diğer</option>
+          <option>Kadıköy</option><option>Beşiktaş</option><option>Üsküdar</option><option>Şişli</option><option>Beyoğlu</option><option>Ataşehir</option><option>Bakırköy</option><option>Bilgi santral</option><option>Diğer</option>
         </select>
+        <label class="check"><input type="checkbox" name="consent" value="1" required> Bilgilerimin uygulama açıldığında bana haber verilmesi için işlenmesine açık rıza veriyorum (<a href="gizlilik.html" target="_blank">Aydınlatma Metni</a>).</label>
         <button class="cta" type="submit"><i class="ti ti-sparkles"></i> Beni listeye ekle</button>
         <p class="note" role="status"></p>
       </form>
-        <p class="fine">Bilgini yalnızca uygulama açıldığında haber vermek için kullanırız; kimseyle paylaşmayız.</p>
+        <p class="fine">Bilgini yalnızca uygulama açıldığında haber vermek için kullanırız; kimseyle paylaşmayız. İstediğin zaman silinmesini isteyebilirsin.</p>
       </div>
       <div class="qr" aria-hidden="true">
         <div class="qr-box"></div>
@@ -286,9 +284,10 @@
     </div>
     <nav class="links" aria-label="Yasal ve iletişim">
       <a href="isletme.html">İşletmeler için</a>
-      <a href="hazirlaniyor.html?belge=gizlilik">Gizlilik Politikası</a>
-      <a href="hazirlaniyor.html?belge=kosullar">Kullanım Koşulları</a>
-      <a href="hazirlaniyor.html?belge=kvkk">KVKK Aydınlatma Metni</a>
+      <a href="gizlilik.html">Gizlilik Politikası</a>
+      <a href="kosullar.html">Kullanım Koşulları</a>
+      <a href="gizlilik.html">KVKK Aydınlatma Metni</a>
+      <a href="hesap-silme.html">Hesap silme</a>
       <a href="#sss">Sıkça sorulanlar</a>
       <span>İletişim: uygulamada Daha fazla › Hata bildir ve iletişim</span>
     </nav>
@@ -308,6 +307,7 @@
       event.preventDefault();
       const data = Object.fromEntries(new FormData(form));
       if (form.dataset.kind === 'business') data.founder = data.founder === '1';
+      data.consent = data.consent === '1';
       note.className = 'note';
       note.textContent = 'Gönderiliyor…';
       button.disabled = true;

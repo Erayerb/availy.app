@@ -4,7 +4,7 @@ from app.social import week_start
 
 
 def account(client, username):
-    body = {"email": f"{username}@example.test", "password": "gizli123", "username": username}
+    body = {"email": f"{username}@example.test", "password": "Gizli.123", "username": username}
     return client.post("/v1/auth/register", json=body).json()["token"]
 
 

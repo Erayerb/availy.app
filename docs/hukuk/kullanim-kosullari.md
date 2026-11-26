@@ -84,7 +84,7 @@ Check-in'leriniz ve arkadaşlarınızın gittiği yerler hakkındaki bilgiler, k
 
 ### 12. Fikri Mülkiyet
 12.1. availo adı, logosu, uygulamanın tasarımı, yazılımı ve içeriği (Kullanıcı İçeriği ve üçüncü taraf verileri hariç) availo'ya aittir. Hizmeti yalnızca kişisel ve ticari olmayan amaçlarla kullanmanız için size kişisel, münhasır olmayan, devredilemez ve geri alınabilir bir kullanım hakkı tanınır.
-12.2. Harita ve mekan verilerinin bir kısmı OpenStreetMap katkıcılarına aittir ve Open Database License (ODbL) kapsamında kullanılır.
+12.2. Harita ve mekan verilerinin bir kısmı OpenStreetMap katkıcılarına aittir ve Open Database License (ODbL) kapsamında kullanılır. Önerilen yerler ve işletme doğrulamasında kullanılan iletişim bilgilerinin bir kısmı Overture Maps Foundation (Community Data License Agreement – Permissive 2.0) ve Foursquare Open Source Places (Apache License 2.0; Copyright 2024 Foursquare Labs, Inc.) kaynaklarından alınır. Bu lisansların metinleri uygulamada Hakkında > Lisanslar ve veri kaynakları bölümündedir.
 
 ### 13. Üçüncü Taraf Bağlantıları
 Hizmet, availo'nun kontrolünde olmayan web sitelerine ve hizmetlere (ör. yol tarifi için harita uygulamaları, işletmelerin Instagram sayfaları) bağlantı içerebilir. Bu sitelerin içerik ve uygulamalarından availo sorumlu değildir.
@@ -137,8 +137,7 @@ availo bu Koşulları güncelleyebilir. Önemli değişiklikler yürürlükten e
 
 ### 22. Sosyal Özellikler
 22.1. Arkadaşlarınız, gizlilik ayarlarınıza göre gizli olmayan check-in'lerinizi ve profil bilgilerinizi görebilir. Bir mekanda son 30 günde en çok check-in yapan kullanıcı o mekanın müdavimi olarak gösterilir; adınızın herkese görünüp görünmeyeceğini Gizlilik ayarlarından seçebilirsiniz.
-22.2. "Rehberden bul" isteğe bağlıdır. Bu özelliği kullanırken, rehberinizdeki numaraların availo kullanan kişileri bulmak için karşılaştırılmasında gerekli yetkiye sahip olduğunuzu beyan edersiniz. [Hukukçu: üçüncü kişilerin verisi açısından değerlendirilmeli.]
-22.3. Davet bağlantınızla katılan kişi ilk check-in'ini yaptığında her iki taraf da Hizmette belirtilen puanı kazanır. Davet puanları belirli bir süre içinde sınırlı sayıda verilir.
+22.2. Davet bağlantınızla katılan kişi ilk check-in'ini yaptığında her iki taraf da Hizmette belirtilen puanı kazanır. Davet puanları belirli bir süre içinde sınırlı sayıda verilir.
 
 ---
 

@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Literal
 
 import psycopg
-from fastapi import APIRouter, Depends, Header, HTTPException, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -172,12 +172,40 @@ def _send_verification(conn: psycopg.Connection, user: dict) -> None:
         pass
 
 
+# One address may get this many wrong sign-ins in IP_WINDOW, whatever the accounts (the per-account lock is 3)
+IP_MAX_FAILURES = 20
+IP_WINDOW = "15 minutes"
+IP_BLOCKED = "Bu bağlantıdan çok fazla hatalı giriş denendi. 15 dakika sonra tekrar dene."
+
+
+def client_ip(request: Request) -> str:
+    """The caller's address behind Render's proxy: the proxy's own header if there is one, otherwise the last
+    X-Forwarded-For entry (added by the proxy; earlier entries can be written by the caller)."""
+    for header in ("true-client-ip", "cf-connecting-ip"):
+        if request.headers.get(header):
+            return request.headers[header].strip()
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[-1].strip()
+    return request.client.host if request.client else "unknown"
+
+
 @router.post("/auth/login", response_model=SessionOut)
-def login(body: LoginIn, conn: psycopg.Connection = Depends(get_conn)):
+def login(body: LoginIn, request: Request, conn: psycopg.Connection = Depends(get_conn)):
+    ip = client_ip(request)
+    recent = conn.execute(
+        f"SELECT count(*) AS n FROM login_failures WHERE ip = %s AND created_at > now() - interval '{IP_WINDOW}'",
+        (ip,),
+    ).fetchone()["n"]
+    if recent >= IP_MAX_FAILURES:
+        return JSONResponse(status_code=429, content={"detail": IP_BLOCKED})
     try:
         user = authenticate(conn, body.login or body.email, body.password, body.role)
     except AccountError as e:
-        # Returned, not raised: the wrong-password count is saved together with the failed request
+        if e.status in (401, 423):
+            conn.execute("DELETE FROM login_failures WHERE created_at < now() - interval '1 day'")
+            conn.execute("INSERT INTO login_failures (ip) VALUES (%s)", (ip,))
+        # Returned, not raised: the wrong-password counts are saved together with the failed request
         return JSONResponse(status_code=e.status, content={"detail": e.message})
     return {"token": create_session(conn, user["id"]), "user": user}
 

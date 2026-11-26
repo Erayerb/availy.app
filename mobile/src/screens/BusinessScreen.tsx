@@ -34,9 +34,18 @@ import { colors, themed } from '../theme';
 import { Icon, InlineIcon, type IconName } from '../components/Icon';
 import { MonthReport } from '../components/business/MonthReport';
 import { ProfileProgress } from '../components/business/ProfileProgress';
+import { LockedPreview } from '../components/business/LockedPreview';
 
 const REFRESH_MS = 30_000;
 const CHART_HEIGHT = 80;
+// Made-up numbers behind the free plan's blurred panels
+const SAMPLE_HOURS = [0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 5, 3, 3, 4, 6, 8, 10, 7, 4, 2, 0];
+const SAMPLE_WEEKDAYS = [12, 9, 14, 16, 22, 30, 25];
+const SAMPLE_COMPETITORS = [
+  ['Köşe Kahve', '350 m', 'Kalabalık'],
+  ['Mavi Fırın', '700 m', 'Orta'],
+  ['Bahçe Cafe', '1,2 km', 'Sakin'],
+];
 
 type Props = {
   venueId: number;
@@ -212,16 +221,36 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onEditProfile, onUp
               <Stat value={today?.new_people ?? 0} label="Yeni müşteri" />
             </View>
           </View>
-          <View style={styles.card}>
-            <PanelTitle icon="lock" tint={TINT.purple}>Daha detaylı istatistikler</PanelTitle>
-            <Text style={styles.muted}>
-              Son 7 gün (kişi, tekrar gelen), saat saat bugün, haftanın günleri, geçen ayla karşılaştırma ve en sakin saatlerin Aylık
-              pakette.
-            </Text>
-            <Pressable style={styles.primary} onPress={onUpgrade}>
-              <Text style={styles.primaryText}>Aylık paket'e geç</Text>
-            </Pressable>
-          </View>
+          {/* The rest is in the Aylık paket: the panels stay, blurred over sample numbers (never the real ones) */}
+          <LockedPreview title={<PanelTitle icon="clock" tint={TINT.orange}>Bugün saat saat</PanelTitle>} onUpgrade={onUpgrade}>
+            <View style={styles.chart}>
+              {SAMPLE_HOURS.map((n, i) => (
+                <View key={i} style={styles.slot}>
+                  <View style={[styles.bar, { height: Math.max(2, n * 8), backgroundColor: n ? colors.primary : colors.border }]} />
+                </View>
+              ))}
+            </View>
+            <Text style={styles.text}>En çok check-in 19:00 civarında.</Text>
+          </LockedPreview>
+          <LockedPreview title={<PanelTitle icon="chart-line" tint={TINT.blue}>Son 7 gün</PanelTitle>} onUpgrade={onUpgrade}>
+            <View style={styles.stats}>
+              <Stat value={48} label="Check-in" />
+              <Stat value={31} label="Kişi" />
+              <Stat value={12} label="Tekrar gelen" />
+            </View>
+          </LockedPreview>
+          <LockedPreview title={<PanelTitle icon="chart-bar" tint={TINT.purple}>Haftanın günleri (son 30 gün)</PanelTitle>} onUpgrade={onUpgrade}>
+            <View style={styles.weekChart}>
+              {SAMPLE_WEEKDAYS.map((n, i) => (
+                <View key={WEEKDAY_NAMES[i]} style={styles.weekSlot}>
+                  <Text style={styles.axisText}>{n}</Text>
+                  <View style={[styles.weekBar, { height: Math.max(3, (n / 30) * CHART_HEIGHT) }]} />
+                  <Text style={styles.axisText}>{WEEKDAY_NAMES[i]}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={styles.text}>En sakin saatlerin ve onlara haftalık kampanya.</Text>
+          </LockedPreview>
         </>
       ) : (
         <>
@@ -326,23 +355,36 @@ export function BusinessScreen({ venueId, user, onShowOnMap, onEditProfile, onUp
         </>
       )}
 
-      {/* Nearby similar venues, as customers see them now */}
-      <View style={styles.card}>
-        <PanelTitle icon="map-search" tint={TINT.green}>Yakındaki benzer mekanlar (2 km)</PanelTitle>
-        {competitors.length === 0 && <Text style={styles.muted}>Çevrende benzer mekan yok.</Text>}
-        {competitors.map(({ venue: other, distanceKm }) => (
-          <View key={other.id} style={styles.compRow}>
-            <CrowdDot venue={other} />
-            <Text style={[styles.text, styles.flex]} numberOfLines={1}>
-              {other.name}
-            </Text>
-            <Text style={styles.muted}>{formatDistance(distanceKm)}</Text>
-            <Text style={styles.compLabel} numberOfLines={1}>
-              {crowdLook(other).label}
-            </Text>
-          </View>
-        ))}
-      </View>
+      {/* Nearby similar venues, as customers see them now (Aylık paket) */}
+      {plan !== 'saas' ? (
+        <LockedPreview title={<PanelTitle icon="map-search" tint={TINT.green}>Yakındaki benzer mekanlar (2 km)</PanelTitle>} onUpgrade={onUpgrade}>
+          {SAMPLE_COMPETITORS.map(([name, distance, label]) => (
+            <View key={name} style={styles.compRow}>
+              <View style={styles.sampleDot} />
+              <Text style={[styles.text, styles.flex]} numberOfLines={1}>{name}</Text>
+              <Text style={styles.muted}>{distance}</Text>
+              <Text style={styles.compLabel} numberOfLines={1}>{label}</Text>
+            </View>
+          ))}
+        </LockedPreview>
+      ) : (
+        <View style={styles.card}>
+          <PanelTitle icon="map-search" tint={TINT.green}>Yakındaki benzer mekanlar (2 km)</PanelTitle>
+          {competitors.length === 0 && <Text style={styles.muted}>Çevrende benzer mekan yok.</Text>}
+          {competitors.map(({ venue: other, distanceKm }) => (
+            <View key={other.id} style={styles.compRow}>
+              <CrowdDot venue={other} />
+              <Text style={[styles.text, styles.flex]} numberOfLines={1}>
+                {other.name}
+              </Text>
+              <Text style={styles.muted}>{formatDistance(distanceKm)}</Text>
+              <Text style={styles.compLabel} numberOfLines={1}>
+                {crowdLook(other).label}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
 
     </ScrollView>
   );
@@ -408,6 +450,7 @@ const styles = themed(() => StyleSheet.create({
   statValue: { fontSize: 20, fontWeight: '800', color: colors.text }, // neutral: a 0 is no alarm
   statLabel: { fontSize: 11, color: colors.textMuted, textAlign: 'center' },
   compRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  sampleDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
   compLabel: { fontSize: 13, fontWeight: '600', color: colors.text, maxWidth: 110, textAlign: 'right' },
   primary: { paddingVertical: 13, paddingHorizontal: 12, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center' },
   primaryText: { color: colors.onPrimary, fontSize: 15, fontWeight: '600', textAlign: 'center' },

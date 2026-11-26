@@ -29,10 +29,11 @@ export function withSponsoredFirst(list: Venue[]): Venue[] {
 
 /** The rows of the home page under "Arkadaşların nerede?": what is quiet nearby, what you are after (one tag at a
  * time), what is trending and what waits to be discovered. Each scrolls sideways; an empty row is not shown. */
-export function HomeRows({ venues, onOpenVenue, placeChosen = false }: {
+export function HomeRows({ venues, onOpenVenue, placeChosen = false, aside = null }: {
   venues: Venue[];
   onOpenVenue: (venue: Venue) => void;
   placeChosen?: boolean; // Konum: districts chosen (venues are only theirs); undiscovered ones there, from any distance
+  aside?: ReactNode; // the page's Konum + search, on the first row's title line when the page has no title of its own
 }) {
   const { point } = useLocation();
   const [tag, setTag] = useState<Tag>('quiet');
@@ -78,14 +79,14 @@ export function HomeRows({ venues, onOpenVenue, placeChosen = false }: {
     <View style={styles.rows}>
       {/* Nearest quiet ones first; when none is near, the far ones still show (then without "yakınında") */}
       {quiet.length > 0 && (
-        <Row title={point && distanceKm(point, quiet.find((v) => !v.sponsored) ?? quiet[0]) <= NEAR_KM ? 'Şu an sakin, yakınında' : 'Şu an sakin'}>
+        <Row title={point && distanceKm(point, quiet.find((v) => !v.sponsored) ?? quiet[0]) <= NEAR_KM ? 'Şu an sakin, yakınında' : 'Şu an sakin'} aside={aside}>
           {tiles(quiet)}
         </Row>
       )}
 
       {/* One tag at a time: the chips pick what the cards under them show */}
       <View style={styles.section}>
-        <Text style={styles.title}>Ne arıyorsun?</Text>
+        <TitleLine title="Ne arıyorsun?" aside={quiet.length > 0 ? null : aside} />
         <Tip
           id="homeRows"
           after="homeSearch"
@@ -118,10 +119,20 @@ export function HomeRows({ venues, onOpenVenue, placeChosen = false }: {
   );
 }
 
-function Row({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
+function TitleLine({ title, aside }: { title: string; aside?: ReactNode }) {
+  if (!aside) return <Text style={styles.title}>{title}</Text>;
+  return (
+    <View style={styles.titleLine}>
+      <Text style={[styles.title, styles.flex]} numberOfLines={1}>{title}</Text>
+      {aside}
+    </View>
+  );
+}
+
+function Row({ title, subtitle, aside, children }: { title: string; subtitle?: string; aside?: ReactNode; children: ReactNode }) {
   return (
     <View style={styles.section}>
-      <Text style={styles.title}>{title}</Text>
+      <TitleLine title={title} aside={aside} />
       {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
         {children}
@@ -132,6 +143,8 @@ function Row({ title, subtitle, children }: { title: string; subtitle?: string; 
 
 const styles = themed(() => StyleSheet.create({
   rows: { gap: 18, marginTop: 6 },
+  titleLine: { flexDirection: 'row', alignItems: 'center', gap: 8, zIndex: 15, elevation: 15 },
+  flex: { flex: 1 },
   section: { gap: 10 },
   title: { fontSize: 17, fontWeight: '700', color: colors.text },
   subtitle: { fontSize: 13, color: colors.textMuted, marginTop: -6 },

@@ -24,7 +24,7 @@ Bu metin bir sözleşme değildir ve kabul edilmesi gerekmez; açık rızanızı
 | Hesap | Hesap numarası, hesap türü (bireysel / işletme / misafir), oluşturma tarihi, şifrenin geri döndürülemez özeti, oturum anahtarlarının özeti, geçici doğrulama ve şifre sıfırlama kodları |
 | Lokasyon | Check-in ve yakındaki mekanlar / ödüller için anlık konum (saklanmaz); haritada seçtiğiniz nokta ve aradığınız yer adı |
 | Müşteri işlem | Check-in'ler (mekan, tarih-saat, doluluk bildirimi, gizlilik tercihi, not), yorumlar, puanlamalar, yanıtlar, beğeniler, favoriler, listeler, takipler, puan, puan harcamaları, rozet, seviye, seri, sıralama, müdavimlik, kupon ve sadakat kartı işlemleri, eklediğiniz mekanlar ve "Bilgi yanlış mı?" bildirimleri |
-| Sosyal | Arkadaşlıklar, gruplar, engellenen ve sessize alınan kullanıcılar, sizi davet eden kullanıcı; "Rehberden bul" kullanılırsa telefon numaranızın anahtarlı özeti |
+| Sosyal | Arkadaşlıklar, gruplar, engellenen ve sessize alınan kullanıcılar, sizi davet eden kullanıcı |
 | Görsel kayıt | Profil ve kapak fotoğrafı, "Şu an burada" fotoğrafları, işletmelerin yüklediği mekan fotoğrafları |
 | İşlem güvenliği | IP adresi, istek kayıtları, cihazın bildirim adresi (push token), işletim sistemi (iOS / Android), uygulama sürümü, hatalı giriş denemeleri, şikâyet ve moderasyon kayıtları |
 | Talep / şikâyet | Destek, hata bildirimi ve iletişim mesajları, kişisel veri başvuruları |
@@ -39,8 +39,6 @@ Bu metin bir sözleşme değildir ve kabul edilmesi gerekmez; açık rızanızı
 - Check-in önerileri telefonunuzda hesaplanır.
 
 **Özel nitelikli veriler:** availo, KVKK'nın 6. maddesindeki özel nitelikli kişisel verileri (sağlık, din, siyasi görüş vb.) işlemeyi amaçlamaz. Mekan türleri kafe, restoran, bar, kütüphane ve ortak çalışma alanı gibi yerlerle sınırlıdır; kullanıcılar da yalnızca bu türlerde mekan ekleyebilir. Yorum ve notlarınızda bu tür bilgileri paylaşmamanızı rica ederiz.
-
-**Rehberden bul (isteğe bağlı):** Kendi telefon numaranız yalnızca geri döndürülemez, anahtarlı bir özet olarak saklanır ve kimseye gösterilmez. Rehberinizdeki numaralar, availo kullanan tanıdıklarınızı bulmak için bir defaya mahsus karşılaştırılır ve **saklanmaz**.
 
 **"Şu an burada" fotoğrafları:** Fotoğraf gönderilmeden önce telefonunuzda yeniden kodlanır; içindeki konum (GPS) ve cihaz (EXIF) bilgileri silinir.
 
@@ -62,7 +60,6 @@ Kişisel verileriniz;
 | Check-in'in mekanda yapıldığının doğrulanması ve doluluğun hesaplanıp gösterilmesi | Lokasyon, müşteri işlem | Sözleşmenin ifası (m.5/2-c) |
 | Puan, rozet, seviye, seri, sıralama, kupon, ödül ve sadakat kartlarının yönetimi | Müşteri işlem | Sözleşmenin ifası (m.5/2-c) |
 | Arkadaşlık, akış, gruplar ve sosyal bildirimler | Kimlik, sosyal, müşteri işlem, görsel | Sözleşmenin ifası (m.5/2-c) |
-| "Rehberden bul" | Sosyal | Açık rıza (m.5/1) |
 | Hizmetle ilgili telefon bildirimleri (arkadaş etkinliği, takip ettiğiniz mekan vb.) | İşlem güvenliği (push token), müşteri işlem | Sözleşmenin ifası (m.5/2-c) |
 | Mekanların kampanyalarına ilişkin ticari bildirimler | İletişim, pazarlama, müşteri işlem | Ticari elektronik ileti onayı (6563 sayılı Kanun); açık rıza (m.5/1) |
 | Sahte check-in, puan ve kampanya istismarının, dolandırıcılığın önlenmesi; güvenlik | Lokasyon, müşteri işlem, işlem güvenliği | Meşru menfaat (m.5/2-f) |
@@ -107,7 +104,7 @@ Gizli check-in'leriniz kimseye gösterilmez. Görünürlük tercihlerinizi Gizli
 | Altyapı ve barındırma hizmet sağlayıcıları (Render Services, Inc.; Neon, Inc.; GitHub, Inc.) | Hizmet kapsamındaki tüm veriler | Uygulama sunucusu, veritabanı, web sitesi | Sözleşmenin ifası (m.5/2-c); meşru menfaat (m.5/2-f) |
 | E-posta hizmet sağlayıcısı (Resend, Inc.) | E-posta adresi, doğrulama kodu | Doğrulama ve şifre sıfırlama e-postaları | Sözleşmenin ifası (m.5/2-c) |
 | Bildirim altyapısı (Expo / 650 Industries, Inc.; Apple Inc.; Google LLC) | Push token, bildirim içeriği | Telefon bildirimlerinin iletilmesi | Sözleşmenin ifası (m.5/2-c) |
-| Harita ve adres hizmetleri (Apple Inc.; Google LLC; OpenStreetMap Vakfı – Nominatim) | Haritada görüntülenen alan, seçilen nokta, aranan yer adı | Harita gösterimi, adres ve yer bulma | Sözleşmenin ifası (m.5/2-c) |
+| Harita ve adres hizmetleri (Apple Inc.; Google LLC; OpenStreetMap Vakfı – Nominatim; komoot GmbH – Photon) | Haritada görüntülenen alan, seçilen nokta, aranan yer adı (Photon'a sunucumuz üzerinden, kimliğiniz ve IP adresiniz olmadan; yaklaşık bölge ile) | Harita gösterimi, adres ve yer bulma | Sözleşmenin ifası (m.5/2-c) |
 | Uygulama mağazaları (Apple Inc.; Google LLC) | Abonelik durumu | availo+ aboneliğinin yönetimi | Sözleşmenin ifası (m.5/2-c) |
 | Ödeme kuruluşu ([ödeme kuruluşu]) | Fatura ve ödeme bilgileri | İşletme paketlerinin ödemesi | Sözleşmenin ifası (m.5/2-c); hukuki yükümlülük (m.5/2-ç) |
 | Yetkili kamu kurum ve kuruluşları, adli makamlar | Talep edilen veriler | Hukuki yükümlülüklerin yerine getirilmesi | Kanunlarda öngörülme (m.5/2-a); hukuki yükümlülük (m.5/2-ç) |
@@ -125,7 +122,7 @@ Aktarım, KVKK'nın 9. maddesi ve Kişisel Verilerin Yurt Dışına Aktarılmas�
 |---|---|
 | Hesap, sosyal ve müşteri işlem verileri | Hesap açık olduğu sürece; hesap silinince en geç 30 gün içinde silinir veya anonim hale getirilir |
 | Check-in'ler | Hesap silinince kimliğinizden ayrılarak yalnızca anonim doluluk istatistiği olarak kalır |
-| Check-in sırasındaki konum, rehberdeki numaralar | Saklanmaz |
+| Check-in sırasındaki konum | Saklanmaz |
 | "Şu an burada" fotoğrafları | Mekan kapandıktan 1 saat sonra; 24 saat açık mekanlarda 24 saat sonra silinir |
 | Oturum anahtarları | En fazla 30 gün; misafir hesapta 365 gün |
 | Doğrulama ve şifre sıfırlama kodları | 15 dakika |
@@ -140,7 +137,7 @@ Süresi dolan veriler, Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Ha
 ## 7. Veri Güvenliği
 
 Kişisel verilerinizin güvenliği için aşağıdaki teknik ve idari tedbirleri alıyoruz:
-- Şifreleri, oturum anahtarlarını ve telefon numaralarını özetleyerek saklıyoruz.
+- Şifreleri ve oturum anahtarlarını özetleyerek saklıyoruz.
 - Sunucuyla iletişim şifreli (HTTPS) yapılır.
 - Fotoğraflardaki konum ve cihaz bilgileri gönderilmeden önce silinir.
 - Verilere yalnızca yetkili kişiler erişebilir.
@@ -167,7 +164,7 @@ KVKK'nın 11. maddesi uyarınca veri sorumlusuna başvurarak:
 
 haklarına sahipsiniz.
 
-**Uygulama içinden:** Profil ayarları'ndan verilerinizin bir kopyasını indirebilir, bilgilerinizi düzeltebilir, hesabınızı dondurabilir veya silebilirsiniz. Gizlilik, bildirim ve konum izinlerinizi istediğiniz zaman değiştirebilir, "Rehberden bul" için verdiğiniz numarayı kaldırabilir ve verdiğiniz açık rızaları geri alabilirsiniz.
+**Uygulama içinden:** Profil ayarları'ndan verilerinizin bir kopyasını indirebilir, bilgilerinizi düzeltebilir, hesabınızı dondurabilir veya silebilirsiniz. Gizlilik, bildirim ve konum izinlerinizi istediğiniz zaman değiştirebilir ve verdiğiniz açık rızaları geri alabilirsiniz.
 
 **Başvuru:** Diğer talepleriniz için, Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ uyarınca:
 - availo hesabınıza kayıtlı e-posta adresinden [iletişim e-postası] adresine,
@@ -180,7 +177,7 @@ başvurabilirsiniz. Başvurunuz en geç 30 gün içinde sonuçlandırılır. İ�
 
 Mobil uygulama reklam veya izleme amaçlı çerez ya da benzeri teknoloji kullanmaz. Oturumunuzun açık kalması ve ayarlarınızın hatırlanması için cihazınızda zorunlu bilgiler saklanır.
 
-Web sitemiz analiz veya reklam çerezi kullanmaz. Yazı tipleri (Google Fonts) ve simgeler (jsDelivr) üçüncü taraf sunuculardan yüklenir; bu sırada IP adresiniz bu sağlayıcılara iletilebilir.
+Web sitemiz çerez, analiz veya reklam aracı kullanmaz; yazı tipleri ve simgeler de kendi sunucumuzdan yüklenir, bu nedenle ziyaretiniz üçüncü taraflara iletilmez. Formlara yazdığınız bilgiler yalnızca formu gönderdiğinizde sunucumuza iletilir.
 
 ## 11. Değişiklikler
 

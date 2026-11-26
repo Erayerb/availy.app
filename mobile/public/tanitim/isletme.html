@@ -15,10 +15,7 @@
 <meta property="og:description" content="Kafe ve restoranlar için availo: mekanın sakinleşince haber al, yakındakilere kampanya gönder, kalıcı ödülle yeni müşteri kazan. Ücretsiz başla; Aylık paketi 15 gün ücretsiz dene.">
 <meta property="og:url" content="https://erayerb.github.io/availy.app/v2/tanitim/isletme.html">
 <meta name="twitter:card" content="summary">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Tinos:wght@400;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.50.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="assets/site.css">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -69,7 +66,7 @@
       <div class="perk"><i class="ti ti-rosette"></i><div><b>"Kurucu mekan" rozeti</b><span>Mekan sayfanda ve haritada kalıcı olarak görünür.</span></div></div>
       <div class="perk"><i class="ti ti-qrcode"></i><div><b>Kapı çıkartması</b><span>"availo'da · QR ile check-in": müşterilerin tek dokunuşla doluluk bildirir.</span></div></div>
       <div class="perk"><i class="ti ti-camera"></i><div><b>Ücretsiz fotoğraf çekimi</b><span>Ekibimiz gelip mekanının kapak fotoğrafını çeker.</span></div></div>
-      <div class="perk"><i class="ti ti-speakerphone"></i><div><b>Açılışta öne çıkma</b><span>Uygulamada ve Instagram'da "Moda'nın kurucu mekanları" tanıtımında yer alırsın.</span></div></div>
+      <div class="perk"><i class="ti ti-speakerphone"></i><div><b>Açılışta öne çıkma</b><span>Uygulamada ve Instagram'da "İstanbul'un kurucu mekanları" tanıtımında yer alırsın.</span></div></div>
       <div class="perk"><i class="ti ti-clock-hour-4"></i><div><b>Ölü saatlerini doldur</b><span>Mekanın sakinleşince haber al, tek dokunuşla yakındakilere kampanya gönder.</span></div></div>
       <div class="perk"><i class="ti ti-coin"></i><div><b>Kalıcı ödülle müşteri kazan</b><span>"200 puan = %10 indirim": availo'nun en aktif kullanıcıları puanlarını sende harcar.</span></div></div>
     </div>
@@ -104,6 +101,7 @@
         <tr><td>Kampanya</td><td class="val">Doğrulayınca ayda 3</td><td class="val plus">Sınırsız</td></tr>
         <tr><td>İstatistikler: bugün</td><td class="val">Check-in ve yeni müşteri</td><td class="val plus">Saat saat</td></tr>
         <tr><td>Son 7 gün, haftanın günleri, en sakin saatler, geçen ayla kıyas</td><td class="no">—</td><td class="yes">✓</td></tr>
+        <tr><td>Yakındaki benzer mekanların anlık doluluğu</td><td class="no">—</td><td class="yes">✓</td></tr>
         <tr><td>Zamanlanmış ve otomatik ölü saat kampanyaları</td><td class="no">—</td><td class="yes">✓</td></tr>
         <tr><td>Görsel aylık özet</td><td class="no">—</td><td class="yes">✓</td></tr>
       </tbody>
@@ -147,9 +145,10 @@
         <input id="b-contact" name="contact" placeholder="isletme@mail.com ya da @mekan" required>
         <label for="b-district">Semt</label>
         <select id="b-district" name="district">
-          <option>Kadıköy</option><option>Beşiktaş</option><option>Üsküdar</option><option>Şişli</option><option>Beyoğlu</option><option>Ataşehir</option><option>Diğer</option>
+          <option>Kadıköy</option><option>Beşiktaş</option><option>Üsküdar</option><option>Şişli</option><option>Beyoğlu</option><option>Ataşehir</option><option>Bakırköy</option><option>Bilgi santral</option><option>Diğer</option>
         </select>
         <label class="check"><input type="checkbox" name="founder" value="1" checked> Kurucu mekan programına başvuruyorum</label>
+        <label class="check"><input type="checkbox" name="consent" value="1" required> Bilgilerimin uygulama ve kurucu mekan programı hakkında benimle iletişime geçilmesi için işlenmesine açık rıza veriyorum (<a href="gizlilik.html" target="_blank">Aydınlatma Metni</a>).</label>
         <button class="cta" type="submit"><i class="ti ti-building-store"></i> Mekanımı ekleyin</button>
         <p class="note" role="status"></p>
         <p class="fine">İlk 10 mekan kurucu mekan olur: 3 ay ücretsiz Aylık paket (istatistikler, sınırsız kampanya), "Kurucu mekan" rozeti, kapıya "availo'da · QR ile check-in" çıkartması, fotoğraf çekimi ve açılışta öne çıkma.</p>
@@ -175,9 +174,10 @@
     </div>
     <nav class="links" aria-label="Yasal ve iletişim">
       <a href="index.html">Kullanıcılar için</a>
-      <a href="hazirlaniyor.html?belge=gizlilik">Gizlilik Politikası</a>
-      <a href="hazirlaniyor.html?belge=kosullar">Kullanım Koşulları</a>
-      <a href="hazirlaniyor.html?belge=kvkk">KVKK Aydınlatma Metni</a>
+      <a href="gizlilik.html">Gizlilik Politikası</a>
+      <a href="kosullar.html">Kullanım Koşulları</a>
+      <a href="gizlilik.html">KVKK Aydınlatma Metni</a>
+      <a href="hesap-silme.html">Hesap silme</a>
       <a href="#sss">Sıkça sorulanlar</a>
       <span>İletişim: uygulamada Daha fazla › Hata bildir ve iletişim</span>
     </nav>
@@ -197,6 +197,7 @@
       event.preventDefault();
       const data = Object.fromEntries(new FormData(form));
       if (form.dataset.kind === 'business') data.founder = data.founder === '1';
+      data.consent = data.consent === '1';
       note.className = 'note';
       note.textContent = 'Gönderiliyor…';
       button.disabled = true;

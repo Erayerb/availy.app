@@ -14,7 +14,8 @@ import { ProfileEditor } from '../components/business/ProfileEditor';
 import { CoverPhoto } from '../components/business/CoverPhoto';
 import { BackButton } from '../components/BackButton';
 import { useVenuesByIds } from '../hooks/useVenuesByIds';
-import {  MIN_PASSWORD_LENGTH, normalizeUsername, type User } from '../lib/auth';
+import { normalizeUsername, passwordProblem, type User } from '../lib/auth';
+import { PasswordRules } from '../components/PasswordRules';
 import { downloadMyData } from '../lib/dataExport';
 import { colors, themed } from '../theme';
 
@@ -245,8 +246,9 @@ export function AccountSettings({
   const [usernameMessage, setUsernameMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   const savePassword = async () => {
-    if (newPassword.length < MIN_PASSWORD_LENGTH) {
-      setMessage({ ok: false, text: `Yeni şifre en az ${MIN_PASSWORD_LENGTH} karakter olmalı.` });
+    const problem = passwordProblem(newPassword);
+    if (problem) {
+      setMessage({ ok: false, text: problem });
       return;
     }
     const error = await onChangePassword(oldPassword, newPassword);
@@ -314,6 +316,7 @@ export function AccountSettings({
           secureTextEntry
           style={styles.input}
         />
+        {newPassword.length > 0 && <PasswordRules password={newPassword} />}
         <Pressable style={styles.secondary} onPress={savePassword}>
           <Text style={styles.secondaryText}>Şifreyi değiştir</Text>
         </Pressable>

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>availo · Hesap silme</title>
+<meta name="description" content="availo hesabını ve verilerini nasıl silersin.">
+<link rel="canonical" href="https://erayerb.github.io/availy.app/v2/tanitim/hesap-silme.html">
+<meta name="theme-color" content="#17110E">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .legal { max-width: 720px; }
+  .legal h1 { font-size: 34px; }
+  .legal h2 { font-size: 22px; margin-top: 28px; }
+  .legal p, .legal li { line-height: 1.6; }
+  .legal form { margin-top: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap legal">
+  <header><a class="logo" href="index.html"><svg class="mark" viewBox="0 17 100 70" aria-hidden="true"><path d="M18 78 L35.19 35.95 A16 16 0 0 1 64.81 35.95 L82 78"/><circle cx="50" cy="60" r="8"/></svg>Availo</a></header>
+  <section>
+    <h1>Hesap silme</h1>
+
+    <h2>Uygulamadan silmek (en hızlısı)</h2>
+    <ul>
+      <li><strong>Bireysel hesap:</strong> Daha fazla › Profil ayarları › Hesabı sil.</li>
+      <li><strong>İşletme hesabı:</strong> Daha fazla › Ayarlar › Hesabı sil.</li>
+    </ul>
+    <p>Onaylamak için kullanıcı adını yazman istenir. Silmeden önce Profil ayarları'ndaki "Verilerimi indir" ile verilerinin bir kopyasını alabilirsin.</p>
+
+    <h2>Neler silinir, neler kalır?</h2>
+    <ul>
+      <li><strong>Silinenler:</strong> hesabın, profil fotoğrafın, yorumların ve yanıtların, arkadaşlıkların, listelerin, favorilerin, puanların ve kullanılmamış kuponların.</li>
+      <li><strong>Anonim kalanlar:</strong> check-in'lerin, kim olduğun bilinmeden yalnızca mekan doluluğu istatistiği olarak kalır.</li>
+      <li><strong>Yasal olarak saklananlar:</strong> ücretli bir hizmet aldıysan fatura kayıtları, vergi mevzuatının öngördüğü süre boyunca saklanır.</li>
+    </ul>
+    <p>Silme talebin en geç 30 gün içinde tamamlanır. Ayrıntılar: <a href="gizlilik.html">Gizlilik Politikası ve Aydınlatma Metni</a>.</p>
+
+    <h2>Uygulama telefonunda yoksa</h2>
+    <p>Aşağıdaki formu doldur. Hesabın sana ait olduğunu, hesabına kayıtlı e-posta adresine yazarak doğrularız; ardından hesabını sileriz.</p>
+    <form class="card" id="silme">
+      <label for="d-email">Hesabına kayıtlı e-posta adresi</label>
+      <input id="d-email" name="email" type="email" autocomplete="email" placeholder="ornek@mail.com" required>
+      <label for="d-username">Kullanıcı adın (biliyorsan)</label>
+      <input id="d-username" name="username" placeholder="@kullaniciadi">
+      <label for="d-note">Eklemek istediğin bir not (isteğe bağlı)</label>
+      <input id="d-note" name="note" placeholder="ör. işletme hesabımı da silin">
+      <button class="cta" type="submit">Hesabımın silinmesini istiyorum</button>
+      <p class="note" role="status"></p>
+    </form>
+    <p class="fine">Bu formdaki bilgiler yalnızca silme talebini sonuçlandırmak için kullanılır.</p>
+    <p style="margin-top:24px"><a class="cta secondary" href="index.html">Ana sayfaya dön</a></p>
+  </section>
+</div>
+<script>
+  // The app's server: on this computer while developing, otherwise the online one (Render may need ~1 min to wake up)
+  const local = ['localhost', '127.0.0.1'].includes(location.hostname);
+  const API = local ? `http://${location.hostname}:8000` : 'https://availy-api.onrender.com';
+  const form = document.getElementById('silme');
+  const note = form.querySelector('.note');
+  const button = form.querySelector('button');
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(form));
+    const username = data.username.trim().replace(/^@/, '');
+    const body = `Hesap silme talebi (web). Kullanıcı adı: ${username ? '@' + username : 'belirtilmedi'}.${data.note.trim() ? ' Not: ' + data.note.trim() : ''}`;
+    note.className = 'note';
+    note.textContent = 'Gönderiliyor…';
+    button.disabled = true;
+    try {
+      const response = await fetch(`${API}/v1/support`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'contact', topic: 'Hesap', body, email: data.email.trim(), app_info: 'hesap-silme sayfası' }),
+        signal: AbortSignal.timeout(90000),
+      });
+      if (!response.ok) {
+        const detail = (await response.json().catch(() => ({}))).detail;
+        throw new Error(typeof detail === 'string' ? detail : 'Gönderilemedi, bilgileri kontrol et.');
+      }
+      form.reset();
+      note.className = 'note ok';
+      note.textContent = 'Talebini aldık. Kayıtlı e-posta adresine yazıp doğruladıktan sonra hesabını sileceğiz.';
+    } catch (error) {
+      note.className = 'note err';
+      note.textContent = error.name === 'TimeoutError' ? 'Sunucu yanıt vermedi, birazdan tekrar dene.' : error.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

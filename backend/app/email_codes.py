@@ -10,8 +10,7 @@ from datetime import datetime, timedelta
 import psycopg
 
 from app.accounts import (
-    MAX_PASSWORD_LENGTH,
-    MIN_PASSWORD_LENGTH,
+    password_problem,
     USER_COLUMNS,
     AccountError,
     hash_password,
@@ -91,8 +90,9 @@ def request_reset(conn: psycopg.Connection, email: str, now: datetime) -> None:
 
 
 def reset_password(conn: psycopg.Connection, email: str, code: str, password: str, now: datetime) -> None:
-    if not MIN_PASSWORD_LENGTH <= len(password) <= MAX_PASSWORD_LENGTH:
-        raise AccountError(f"Şifre en az {MIN_PASSWORD_LENGTH} karakter olmalı.")
+    problem = password_problem(password)
+    if problem:
+        raise AccountError(problem)
     user = conn.execute("SELECT id FROM users WHERE email = %s", (normalize_email(email),)).fetchone()
     if user is None or not _use_code(conn, user["id"], "reset", code, now):
         raise AccountError(WRONG_CODE)

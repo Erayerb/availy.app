@@ -21,6 +21,7 @@ export const PLANS: Record<PlanId, { name: string; price: string; features: stri
     features: [
       'Sınırsız kampanya',
       'İstatistikler: saat saat bugün, son 7 gün, haftanın günleri, geçen ayla karşılaştırma, en sakin saatler',
+      'Yakındaki benzer mekanların anlık doluluğu',
       'Zamanlanmış haftalık kampanyalar',
       'Otomatik ölü saat kampanyası',
     ],

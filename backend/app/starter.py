@@ -8,7 +8,7 @@ TASK_POINTS = 10
 TASKS = [
     ("checkin", "İlk check-in'ini yap", "Mekandayken \"Şu an burası nasıl?\" sorusunu cevapla."),
     ("list", "Bir liste oluştur", "Favorilerim'de \"＋ Yeni liste\": ör. ders çalışılacak yerler."),
-    ("friend", "Bir arkadaş ekle", "Sosyal > Arkadaşlar: kullanıcı adıyla ya da rehberden."),
+    ("friend", "Bir arkadaş ekle", "Sosyal > Arkadaşlar: kullanıcı adıyla, QR'la ya da davet bağlantısıyla."),
     ("photo", "Profil fotoğrafı ekle", "Profil ayarları'nda fotoğrafına dokun."),
 ]
 

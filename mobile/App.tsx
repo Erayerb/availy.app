@@ -41,6 +41,7 @@ import { IntroOverlay } from './src/components/IntroOverlay';
 import { friendsApi, inviteFromQuery } from './src/lib/friends';
 import { venueIdFromDoorLink } from './src/lib/share';
 import { listCodeFromQuery } from './src/lib/lists';
+import { useHoldTips } from './src/lib/tips';
 import { ListScreen } from './src/screens/ListScreen';
 import { AdminScreen } from './src/screens/AdminScreen';
 import { SubscriptionScreen } from './src/screens/SubscriptionScreen';
@@ -250,6 +251,8 @@ function Main() {
   // Right after a new account: how-to slides, then (customers) "İlk check-in'in"
   // After sign-up: the intro, then (registered customers) inviting friends, then the first check-in
   const [onboarding, setOnboarding] = useState<'intro' | 'invite' | 'first' | null>(null);
+  // No tip bubbles over the intro slides and the sheets after it: they come once the user is on the pages
+  useHoldTips(onboarding !== null);
   // v2: "Mado yakınındasın, burası şu an nasıl?" (customers, after the onboarding)
   const { suggestion, dismiss: dismissSuggestion, checkedIn } = useCheckinSuggestion(
     point,
@@ -931,11 +934,6 @@ function Main() {
           {onboarding === 'invite' && auth.user?.username && (
             <InviteSheet
               username={auth.user.username}
-              onFindContacts={() => {
-                setOnboarding(null);
-                setSocialTab('friends');
-                goTo('friends');
-              }}
               onDone={() => setOnboarding('first')}
             />
           )}

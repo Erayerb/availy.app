@@ -139,6 +139,42 @@ export function HomeScreen({
     [venues, searching, point, listSort],
   );
 
+  // "Arkadaşların nerede?" is the first title for an account; a guest's first title is the first row's
+  // ("Ne arıyorsun?"): Konum and search sit on that line, so no empty line is left above it
+  const ownTitle = Boolean(token) && !searching;
+  const pageControls = (
+    <>
+      {/* Konum: next to search, for the whole page (every row and the list below); × clears it */}
+      <View style={[styles.place, hasPlaceFilter && styles.placeOn]}>
+        <Pressable onPress={() => setPlaceOpen(true)} style={styles.placeMain} accessibilityRole="button" accessibilityLabel="Konum seç">
+          <Icon name="map-pin" size={15} color={hasPlaceFilter ? colors.onPrimary : colors.primary} />
+          <Text style={[styles.placeText, hasPlaceFilter && styles.placeTextOn]} numberOfLines={1}>
+            {placeLabel(sides, districts)}
+          </Text>
+          {!hasPlaceFilter && <Text style={styles.placeChevron}>▾</Text>}
+        </Pressable>
+        {hasPlaceFilter && (
+          <Pressable
+            onPress={() => {
+              onSidesChange([]);
+              onDistrictsChange([]);
+            }}
+            hitSlop={8}
+            style={styles.placeClear}
+            accessibilityLabel="Konum filtresini temizle"
+          >
+            <Icon name="x" size={14} color={colors.onPrimary} />
+          </Pressable>
+        )}
+      </View>
+      <Tip id="homeSearch" after="campaignsButton" placement="below" radius={20} text="Mekan ara: adını yaz, sonuçlar burada listelenir.">
+        <Pressable onPress={() => toggleSearch(true)} style={styles.searchButton} hitSlop={8} accessibilityLabel="Mekan ara">
+          <TabIcon name="search" color={colors.onPrimary} active={false} size={20} />
+        </Pressable>
+      </Tip>
+    </>
+  );
+
   const header = (
     <View style={styles.header}>
       <View style={styles.topRow}>
@@ -148,39 +184,10 @@ export function HomeScreen({
 
       {/* Under the icons, at the right: search as an icon on the first section's title line (no row of its own);
           a tap opens the box in its place */}
-      {!searchVisible && (
+      {!searchVisible && ownTitle && (
         <View style={styles.titleRow}>
-          <Text style={styles.sectionTitle} numberOfLines={1}>
-            {token && !searching ? 'Arkadaşların nerede?' : ''}
-          </Text>
-          {/* Konum: next to search, for the whole page (every row and the list below); × clears it */}
-          <View style={[styles.place, hasPlaceFilter && styles.placeOn]}>
-            <Pressable onPress={() => setPlaceOpen(true)} style={styles.placeMain} accessibilityRole="button" accessibilityLabel="Konum seç">
-              <Icon name="map-pin" size={15} color={hasPlaceFilter ? colors.onPrimary : colors.primary} />
-              <Text style={[styles.placeText, hasPlaceFilter && styles.placeTextOn]} numberOfLines={1}>
-                {placeLabel(sides, districts)}
-              </Text>
-              {!hasPlaceFilter && <Text style={styles.placeChevron}>▾</Text>}
-            </Pressable>
-            {hasPlaceFilter && (
-              <Pressable
-                onPress={() => {
-                  onSidesChange([]);
-                  onDistrictsChange([]);
-                }}
-                hitSlop={8}
-                style={styles.placeClear}
-                accessibilityLabel="Konum filtresini temizle"
-              >
-                <Icon name="x" size={14} color={colors.onPrimary} />
-              </Pressable>
-            )}
-          </View>
-          <Tip id="homeSearch" after="campaignsButton" placement="below" radius={20} text="Mekan ara: adını yaz, sonuçlar burada listelenir.">
-            <Pressable onPress={() => toggleSearch(true)} style={styles.searchButton} hitSlop={8} accessibilityLabel="Mekan ara">
-              <TabIcon name="search" color={colors.onPrimary} active={false} size={20} />
-            </Pressable>
-          </Tip>
+          <Text style={styles.sectionTitle} numberOfLines={1}>Arkadaşların nerede?</Text>
+          {pageControls}
         </View>
       )}
 
@@ -211,7 +218,9 @@ export function HomeScreen({
       {!searching && <WhileAway token={token} onOpenVenue={onOpenVenue} onOpenNotifications={onOpenNotifications} />}
 
       {/* Sideways rows: Şu an sakin, yakınında · Ne arıyorsun? · Trend olanlar · Keşfedilmeyi bekleyenler */}
-      {!searching && <HomeRows venues={venues} onOpenVenue={onOpenVenue} placeChosen={hasPlaceFilter} />}
+      {!searching && (
+        <HomeRows venues={venues} onOpenVenue={onOpenVenue} placeChosen={hasPlaceFilter} aside={!ownTitle && !searchVisible ? pageControls : null} />
+      )}
 
       {/* Tüm mekanlar: the title and "Filtrele" (Ne arıyorsun?, Kapalıları gizle) */}
       <FilterBar

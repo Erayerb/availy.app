@@ -33,7 +33,7 @@ export const PRIVACY_POLICY: LegalDoc = {
         "Hesap — Hesap numarası, hesap türü (bireysel / işletme / misafir), oluşturma tarihi, şifrenin geri döndürülemez özeti, oturum anahtarlarının özeti, geçici doğrulama ve şifre sıfırlama kodları",
         "Lokasyon — Check-in ve yakındaki mekanlar / ödüller için anlık konum (saklanmaz); haritada seçtiğiniz nokta ve aradığınız yer adı",
         "Müşteri işlem — Check-in'ler (mekan, tarih-saat, doluluk bildirimi, gizlilik tercihi, not), yorumlar, puanlamalar, yanıtlar, beğeniler, favoriler, listeler, takipler, puan, puan harcamaları, rozet, seviye, seri, sıralama, müdavimlik, kupon ve sadakat kartı işlemleri, eklediğiniz mekanlar ve \"Bilgi yanlış mı?\" bildirimleri",
-        "Sosyal — Arkadaşlıklar, gruplar, engellenen ve sessize alınan kullanıcılar, sizi davet eden kullanıcı; \"Rehberden bul\" kullanılırsa telefon numaranızın anahtarlı özeti",
+        "Sosyal — Arkadaşlıklar, gruplar, engellenen ve sessize alınan kullanıcılar, sizi davet eden kullanıcı",
         "Görsel kayıt — Profil ve kapak fotoğrafı, \"Şu an burada\" fotoğrafları, işletmelerin yüklediği mekan fotoğrafları",
         "İşlem güvenliği — IP adresi, istek kayıtları, cihazın bildirim adresi (push token), işletim sistemi (iOS / Android), uygulama sürümü, hatalı giriş denemeleri, şikâyet ve moderasyon kayıtları",
         "Talep / şikâyet — Destek, hata bildirimi ve iletişim mesajları, kişisel veri başvuruları",
@@ -46,7 +46,6 @@ export const PRIVACY_POLICY: LegalDoc = {
         "• Konum, yalnızca uygulama açıkken ve cihaz izninizle kullanılır. Arka planda konum toplanmaz, konum geçmişiniz tutulmaz ve canlı konumunuz kimseyle paylaşılmaz.",
         "• Check-in önerileri telefonunuzda hesaplanır.",
         "Özel nitelikli veriler: availo, KVKK'nın 6. maddesindeki özel nitelikli kişisel verileri (sağlık, din, siyasi görüş vb.) işlemeyi amaçlamaz. Mekan türleri kafe, restoran, bar, kütüphane ve ortak çalışma alanı gibi yerlerle sınırlıdır; kullanıcılar da yalnızca bu türlerde mekan ekleyebilir. Yorum ve notlarınızda bu tür bilgileri paylaşmamanızı rica ederiz.",
-        "Rehberden bul (isteğe bağlı): Kendi telefon numaranız yalnızca geri döndürülemez, anahtarlı bir özet olarak saklanır ve kimseye gösterilmez. Rehberinizdeki numaralar, availo kullanan tanıdıklarınızı bulmak için bir defaya mahsus karşılaştırılır ve saklanmaz.",
         "\"Şu an burada\" fotoğrafları: Fotoğraf gönderilmeden önce telefonunuzda yeniden kodlanır; içindeki konum (GPS) ve cihaz (EXIF) bilgileri silinir.",
       ],
     },
@@ -68,7 +67,6 @@ export const PRIVACY_POLICY: LegalDoc = {
         "Check-in'in mekanda yapıldığının doğrulanması ve doluluğun hesaplanıp gösterilmesi — Lokasyon, müşteri işlem — Sözleşmenin ifası (m.5/2-c)",
         "Puan, rozet, seviye, seri, sıralama, kupon, ödül ve sadakat kartlarının yönetimi — Müşteri işlem — Sözleşmenin ifası (m.5/2-c)",
         "Arkadaşlık, akış, gruplar ve sosyal bildirimler — Kimlik, sosyal, müşteri işlem, görsel — Sözleşmenin ifası (m.5/2-c)",
-        "\"Rehberden bul\" — Sosyal — Açık rıza (m.5/1)",
         "Hizmetle ilgili telefon bildirimleri (arkadaş etkinliği, takip ettiğiniz mekan vb.) — İşlem güvenliği (push token), müşteri işlem — Sözleşmenin ifası (m.5/2-c)",
         "Mekanların kampanyalarına ilişkin ticari bildirimler — İletişim, pazarlama, müşteri işlem — Ticari elektronik ileti onayı (6563 sayılı Kanun); açık rıza (m.5/1)",
         "Sahte check-in, puan ve kampanya istismarının, dolandırıcılığın önlenmesi; güvenlik — Lokasyon, müşteri işlem, işlem güvenliği — Meşru menfaat (m.5/2-f)",
@@ -105,7 +103,7 @@ export const PRIVACY_POLICY: LegalDoc = {
         "Altyapı ve barındırma hizmet sağlayıcıları (Render Services, Inc.; Neon, Inc.; GitHub, Inc.) — Hizmet kapsamındaki tüm veriler — Uygulama sunucusu, veritabanı, web sitesi — Sözleşmenin ifası (m.5/2-c); meşru menfaat (m.5/2-f)",
         "E-posta hizmet sağlayıcısı (Resend, Inc.) — E-posta adresi, doğrulama kodu — Doğrulama ve şifre sıfırlama e-postaları — Sözleşmenin ifası (m.5/2-c)",
         "Bildirim altyapısı (Expo / 650 Industries, Inc.; Apple Inc.; Google LLC) — Push token, bildirim içeriği — Telefon bildirimlerinin iletilmesi — Sözleşmenin ifası (m.5/2-c)",
-        "Harita ve adres hizmetleri (Apple Inc.; Google LLC; OpenStreetMap Vakfı – Nominatim) — Haritada görüntülenen alan, seçilen nokta, aranan yer adı — Harita gösterimi, adres ve yer bulma — Sözleşmenin ifası (m.5/2-c)",
+        "Harita ve adres hizmetleri (Apple Inc.; Google LLC; OpenStreetMap Vakfı – Nominatim; komoot GmbH – Photon) — Haritada görüntülenen alan, seçilen nokta, aranan yer adı (Photon'a sunucumuz üzerinden, kimliğiniz ve IP adresiniz olmadan; yaklaşık bölge ile) — Harita gösterimi, adres ve yer bulma — Sözleşmenin ifası (m.5/2-c)",
         "Uygulama mağazaları (Apple Inc.; Google LLC) — Abonelik durumu — availo+ aboneliğinin yönetimi — Sözleşmenin ifası (m.5/2-c)",
         "Ödeme kuruluşu ([ödeme kuruluşu]) — Fatura ve ödeme bilgileri — İşletme paketlerinin ödemesi — Sözleşmenin ifası (m.5/2-c); hukuki yükümlülük (m.5/2-ç)",
         "Yetkili kamu kurum ve kuruluşları, adli makamlar — Talep edilen veriler — Hukuki yükümlülüklerin yerine getirilmesi — Kanunlarda öngörülme (m.5/2-a); hukuki yükümlülük (m.5/2-ç)",
@@ -120,7 +118,7 @@ export const PRIVACY_POLICY: LegalDoc = {
       paragraphs: [
         "Hesap, sosyal ve müşteri işlem verileri — Hesap açık olduğu sürece; hesap silinince en geç 30 gün içinde silinir veya anonim hale getirilir",
         "Check-in'ler — Hesap silinince kimliğinizden ayrılarak yalnızca anonim doluluk istatistiği olarak kalır",
-        "Check-in sırasındaki konum, rehberdeki numaralar — Saklanmaz",
+        "Check-in sırasındaki konum — Saklanmaz",
         "\"Şu an burada\" fotoğrafları — Mekan kapandıktan 1 saat sonra; 24 saat açık mekanlarda 24 saat sonra silinir",
         "Oturum anahtarları — En fazla 30 gün; misafir hesapta 365 gün",
         "Doğrulama ve şifre sıfırlama kodları — 15 dakika",
@@ -136,7 +134,7 @@ export const PRIVACY_POLICY: LegalDoc = {
       title: "7. Veri Güvenliği",
       paragraphs: [
         "Kişisel verilerinizin güvenliği için aşağıdaki teknik ve idari tedbirleri alıyoruz:",
-        "• Şifreleri, oturum anahtarlarını ve telefon numaralarını özetleyerek saklıyoruz.",
+        "• Şifreleri ve oturum anahtarlarını özetleyerek saklıyoruz.",
         "• Sunucuyla iletişim şifreli (HTTPS) yapılır.",
         "• Fotoğraflardaki konum ve cihaz bilgileri gönderilmeden önce silinir.",
         "• Verilere yalnızca yetkili kişiler erişebilir.",
@@ -164,7 +162,7 @@ export const PRIVACY_POLICY: LegalDoc = {
         "• Münhasıran otomatik sistemlerle analiz edilmesi sonucu aleyhinize bir sonuç çıkmasına itiraz etme,",
         "• Kanuna aykırı işleme nedeniyle zarara uğramanız halinde zararın giderilmesini talep etme",
         "haklarına sahipsiniz.",
-        "Uygulama içinden: Profil ayarları'ndan verilerinizin bir kopyasını indirebilir, bilgilerinizi düzeltebilir, hesabınızı dondurabilir veya silebilirsiniz. Gizlilik, bildirim ve konum izinlerinizi istediğiniz zaman değiştirebilir, \"Rehberden bul\" için verdiğiniz numarayı kaldırabilir ve verdiğiniz açık rızaları geri alabilirsiniz.",
+        "Uygulama içinden: Profil ayarları'ndan verilerinizin bir kopyasını indirebilir, bilgilerinizi düzeltebilir, hesabınızı dondurabilir veya silebilirsiniz. Gizlilik, bildirim ve konum izinlerinizi istediğiniz zaman değiştirebilir ve verdiğiniz açık rızaları geri alabilirsiniz.",
         "Başvuru: Diğer talepleriniz için, Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ uyarınca:",
         "• availo hesabınıza kayıtlı e-posta adresinden [iletişim e-postası] adresine,",
         "• KEP adresiniz üzerinden [KEP adresi] adresine,",
@@ -176,7 +174,7 @@ export const PRIVACY_POLICY: LegalDoc = {
       title: "10. Çerezler ve Benzeri Teknolojiler",
       paragraphs: [
         "Mobil uygulama reklam veya izleme amaçlı çerez ya da benzeri teknoloji kullanmaz. Oturumunuzun açık kalması ve ayarlarınızın hatırlanması için cihazınızda zorunlu bilgiler saklanır.",
-        "Web sitemiz analiz veya reklam çerezi kullanmaz. Yazı tipleri (Google Fonts) ve simgeler (jsDelivr) üçüncü taraf sunuculardan yüklenir; bu sırada IP adresiniz bu sağlayıcılara iletilebilir.",
+        "Web sitemiz çerez, analiz veya reklam aracı kullanmaz; yazı tipleri ve simgeler de kendi sunucumuzdan yüklenir, bu nedenle ziyaretiniz üçüncü taraflara iletilmez. Formlara yazdığınız bilgiler yalnızca formu gönderdiğinizde sunucumuza iletilir.",
       ],
     },
     {
@@ -306,7 +304,7 @@ export const TERMS: LegalDoc = {
       title: "12. Fikri Mülkiyet",
       paragraphs: [
         "12.1. availo adı, logosu, uygulamanın tasarımı, yazılımı ve içeriği (Kullanıcı İçeriği ve üçüncü taraf verileri hariç) availo'ya aittir. Hizmeti yalnızca kişisel ve ticari olmayan amaçlarla kullanmanız için size kişisel, münhasır olmayan, devredilemez ve geri alınabilir bir kullanım hakkı tanınır.",
-        "12.2. Harita ve mekan verilerinin bir kısmı OpenStreetMap katkıcılarına aittir ve Open Database License (ODbL) kapsamında kullanılır.",
+        "12.2. Harita ve mekan verilerinin bir kısmı OpenStreetMap katkıcılarına aittir ve Open Database License (ODbL) kapsamında kullanılır. Önerilen yerler ve işletme doğrulamasında kullanılan iletişim bilgilerinin bir kısmı Overture Maps Foundation (Community Data License Agreement – Permissive 2.0) ve Foursquare Open Source Places (Apache License 2.0; Copyright 2024 Foursquare Labs, Inc.) kaynaklarından alınır. Bu lisansların metinleri uygulamada Hakkında > Lisanslar ve veri kaynakları bölümündedir.",
       ],
     },
     {
@@ -384,8 +382,7 @@ export const TERMS: LegalDoc = {
       title: "22. Sosyal Özellikler",
       paragraphs: [
         "22.1. Arkadaşlarınız, gizlilik ayarlarınıza göre gizli olmayan check-in'lerinizi ve profil bilgilerinizi görebilir. Bir mekanda son 30 günde en çok check-in yapan kullanıcı o mekanın müdavimi olarak gösterilir; adınızın herkese görünüp görünmeyeceğini Gizlilik ayarlarından seçebilirsiniz.",
-        "22.2. \"Rehberden bul\" isteğe bağlıdır. Bu özelliği kullanırken, rehberinizdeki numaraların availo kullanan kişileri bulmak için karşılaştırılmasında gerekli yetkiye sahip olduğunuzu beyan edersiniz. [Hukukçu: üçüncü kişilerin verisi açısından değerlendirilmeli.]",
-        "22.3. Davet bağlantınızla katılan kişi ilk check-in'ini yaptığında her iki taraf da Hizmette belirtilen puanı kazanır. Davet puanları belirli bir süre içinde sınırlı sayıda verilir.",
+        "22.2. Davet bağlantınızla katılan kişi ilk check-in'ini yaptığında her iki taraf da Hizmette belirtilen puanı kazanır. Davet puanları belirli bir süre içinde sınırlı sayıda verilir.",
       ],
     },
     {

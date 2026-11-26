@@ -95,7 +95,7 @@ def test_month_report_and_sales_numbers(client, conn, clock):
 
 
 def test_founder_applications(client, conn):
-    body = {"kind": "business", "contact": "kafe@example.test", "venue_name": "Moda Kahve", "founder": True}
+    body = {"kind": "business", "contact": "kafe@example.test", "venue_name": "Moda Kahve", "founder": True, "consent": True}
     assert client.post("/v1/waitlist", json=body).status_code == 204
     row = conn.execute("SELECT founder FROM waitlist WHERE contact = 'kafe@example.test'").fetchone()
     assert row["founder"] is True

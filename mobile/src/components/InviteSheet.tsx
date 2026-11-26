@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Text } from './Text';
 import { Pressable } from './Pressable';
 
@@ -10,14 +10,12 @@ import { InlineIcon } from './Icon';
 
 type Props = {
   username: string;
-  // "Rehberden bul": Sosyal > Arkadaşlar, where the contacts are matched
-  onFindContacts: () => void;
   // Next step ("Devam" / "Şimdilik geç")
   onDone: () => void;
 };
 
 /** Right after sign-up: invite friends (both become friends when they sign up through the link). */
-export function InviteSheet({ username, onFindContacts, onDone }: Props) {
+export function InviteSheet({ username, onDone }: Props) {
   const [note, setNote] = useState<string | null>(null);
   const [shared, setShared] = useState(false);
 
@@ -40,11 +38,6 @@ export function InviteSheet({ username, onFindContacts, onDone }: Props) {
         >
           <Text style={styles.primaryText}>Davet bağlantısını paylaş</Text>
         </Pressable>
-        {Platform.OS !== 'web' && (
-          <Pressable style={styles.secondary} onPress={onFindContacts}>
-            <Text style={styles.secondaryText}>Rehberimdekileri bul</Text>
-          </Pressable>
-        )}
         {note && <Text style={styles.muted}>{note}</Text>}
         <Pressable onPress={onDone} hitSlop={10}>
           <Text style={styles.skip}>{shared ? 'Devam' : 'Şimdilik geç'}</Text>
@@ -74,7 +67,5 @@ const styles = themed(() => StyleSheet.create({
   muted: { fontSize: 13, color: colors.textMuted, textAlign: 'center' },
   primary: { alignSelf: 'stretch', paddingVertical: 15, borderRadius: 14, backgroundColor: colors.primary, alignItems: 'center' },
   primaryText: { color: colors.onPrimary, fontSize: 16, fontWeight: '700' },
-  secondary: { alignSelf: 'stretch', paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center' },
-  secondaryText: { color: colors.primary, fontSize: 16, fontWeight: '700' },
   skip: { color: colors.textMuted, fontSize: 15, fontWeight: '700' },
 }));

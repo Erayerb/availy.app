@@ -1,7 +1,9 @@
 import { SocialSignIn } from '../components/SocialSignIn';
 import type { SocialProvider } from '../lib/accountApi';
 import { ForgotPasswordScreen } from './ForgotPasswordScreen';
-import { LegalScreen } from './LegalScreen';
+import { PasswordRules } from '../components/PasswordRules';
+import * as WebBrowser from 'expo-web-browser';
+import { SITE_URL } from './AboutScreen';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Text, TextInput } from '../components/Text';
@@ -30,6 +32,9 @@ type Props = {
 };
 
 /** Sign in / sign up form (accounts on the server, v2). */
+// Kullanım koşulları / Gizlilik politikası from the sign-up form: the pages on our website, in the in-app browser
+const openSitePage = (page: string) => WebBrowser.openBrowserAsync(SITE_URL + page).catch(() => {});
+
 export function AuthScreen({ mode, initialRole = 'personal', onBack, onSwitchMode, onLogin, onRegister, onSocial }: Props) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -44,8 +49,6 @@ export function AuthScreen({ mode, initialRole = 'personal', onBack, onSwitchMod
     loadJson<string>(KEYS.lastLogin).then((last) => last && setEmail((typed) => typed || last));
   }, [mode]);
   const isRegister = mode === 'register';
-  // Gizlilik politikası / kullanım koşulları opened from the sign-up form
-  const [legal, setLegal] = useState<'privacy' | 'terms' | null>(null);
   const [forgot, setForgot] = useState(false);
   // "Şifren değişti" after "Şifremi unuttum"
   const [notice, setNotice] = useState<string | null>(null);
@@ -65,7 +68,6 @@ export function AuthScreen({ mode, initialRole = 'personal', onBack, onSwitchMod
     }
   };
 
-  if (legal) return <LegalScreen initial={legal} onBack={() => setLegal(null)} />;
   if (forgot) {
     return (
       <ForgotPasswordScreen
@@ -143,6 +145,7 @@ export function AuthScreen({ mode, initialRole = 'personal', onBack, onSwitchMod
           textContentType={isRegister ? 'newPassword' : 'password'}
           onSubmitEditing={submit}
         />
+        {isRegister && <PasswordRules password={password} />}
 
         {!isRegister && (
           <View style={styles.loginRow}>
@@ -175,11 +178,11 @@ export function AuthScreen({ mode, initialRole = 'personal', onBack, onSwitchMod
         {isRegister && (
           <Text style={styles.legal}>
             Kayıt olarak{' '}
-            <Text style={styles.legalLink} onPress={() => setLegal('terms')}>
+            <Text style={styles.legalLink} onPress={() => openSitePage('kosullar.html')}>
               Kullanım koşullarını
             </Text>{' '}
             kabul etmiş ve{' '}
-            <Text style={styles.legalLink} onPress={() => setLegal('privacy')}>
+            <Text style={styles.legalLink} onPress={() => openSitePage('gizlilik.html')}>
               Gizlilik politikasını
             </Text>{' '}
             okumuş olursun.

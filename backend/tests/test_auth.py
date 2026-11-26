@@ -12,7 +12,7 @@ from app.accounts import (
 )
 
 EMAIL = "test.kullanici@example.test"
-PASSWORD = "gizli123"
+PASSWORD = "Gizli.123"
 
 
 def username_for(email):
@@ -43,7 +43,7 @@ def test_password_hash_round_trip():
     [
         ("A", EMAIL, PASSWORD, "personal", "Ad en az 2 karakter olmalı."),
         ("Ayşe", "eposta-degil", PASSWORD, "personal", "Geçerli bir e-posta gir."),
-        ("Ayşe", EMAIL, "123", "personal", "Şifre en az 6 karakter olmalı."),
+        ("Ayşe", EMAIL, "123", "personal", "Şifre en az 8 karakter olmalı."),
         ("Ayşe", EMAIL, PASSWORD, "admin", "Hesap türü bireysel ya da işletme olmalı."),
     ],
 )
@@ -71,7 +71,7 @@ def test_register_twice_is_rejected(client):
 def test_register_validation_error_in_turkish(client):
     response = register(client, password="123")
     assert response.status_code == 400
-    assert response.json()["detail"] == "Şifre en az 6 karakter olmalı."
+    assert response.json()["detail"] == "Şifre en az 8 karakter olmalı."
 
 
 def test_login_and_me(client):
@@ -189,19 +189,19 @@ def test_rename(client):
 
 def test_change_password(client):
     token = register(client).json()["token"]
-    wrong = client.post("/v1/me/password", json={"old_password": "yanlis1", "new_password": "yeni1234"}, headers=auth(token))
+    wrong = client.post("/v1/me/password", json={"old_password": "yanlis1", "new_password": "Yeni.1234"}, headers=auth(token))
     assert wrong.status_code == 403 and wrong.json()["detail"] == "Mevcut şifre hatalı."
     short = client.post("/v1/me/password", json={"old_password": PASSWORD, "new_password": "123"}, headers=auth(token))
     assert short.status_code == 400
-    ok = client.post("/v1/me/password", json={"old_password": PASSWORD, "new_password": "yeni1234"}, headers=auth(token))
+    ok = client.post("/v1/me/password", json={"old_password": PASSWORD, "new_password": "Yeni.1234"}, headers=auth(token))
     assert ok.status_code == 204
-    assert client.post("/v1/auth/login", json={"email": EMAIL, "password": "yeni1234"}).status_code == 200
+    assert client.post("/v1/auth/login", json={"email": EMAIL, "password": "Yeni.1234"}).status_code == 200
     assert client.post("/v1/auth/login", json={"email": EMAIL, "password": PASSWORD}).status_code == 401
 
 
 def test_guest_has_no_password_to_change(client):
     token = client.post("/v1/auth/guest").json()["token"]
-    response = client.post("/v1/me/password", json={"old_password": "x", "new_password": "yeni1234"}, headers=auth(token))
+    response = client.post("/v1/me/password", json={"old_password": "x", "new_password": "Yeni.1234"}, headers=auth(token))
     assert response.status_code == 409
 
 
@@ -280,10 +280,21 @@ def test_change_email(client):
 
 
 def test_export_my_data(client, conn):
-    token = client.post("/v1/auth/register", json={"email": "t_veri@example.test", "password": "gizli123", "username": "t_veri"}).json()["token"]
+    token = client.post("/v1/auth/register", json={"email": "t_veri@example.test", "password": "Gizli.123", "username": "t_veri"}).json()["token"]
     data = client.get("/v1/me/export", headers={"Authorization": f"Bearer {token}"}).json()
     assert data["account"]["username"] == "t_veri" and data["account"]["email"] == "t_veri@example.test"
     assert {"checkins", "reviews", "friends", "points", "groups"} <= data.keys()
     # No secrets in it
     text = str(data)
     assert "password" not in text and "phone_hash" not in text and token not in text
+
+
+def test_new_passwords_need_upper_lower_digit_and_punctuation():
+    from app.accounts import password_problem
+
+    assert password_problem("Kısa.1") == "Şifre en az 8 karakter olmalı."
+    assert password_problem("gizlisifre") == "Şifrede bir büyük harf, bir rakam ve bir noktalama işareti (. ! ? gibi) olmalı."
+    assert password_problem("Gizlisifre1") == "Şifrede bir noktalama işareti (. ! ? gibi) olmalı."
+    assert password_problem("İSTANBUL.34") == "Şifrede bir küçük harf olmalı."
+    assert password_problem("Gizli.123") is None
+    assert password_problem("Çok güzel 1") is None  # a space counts as a sign

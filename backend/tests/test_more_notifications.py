@@ -39,7 +39,7 @@ def test_personal_events(client, conn, clock):
     # Signed up through my link
     client.post(
         "/v1/auth/register",
-        json={"email": "t_yeni@example.test", "password": "gizli123", "username": "t_yeni", "role": "personal", "invited_by": "t_ali"},
+        json={"email": "t_yeni@example.test", "password": "Gizli.123", "username": "t_yeni", "role": "personal", "invited_by": "t_ali"},
     )
     conn.execute("INSERT INTO weekly_winners (week_start, user_id, points) VALUES (%s, %s, 40)", ((clock.now - timedelta(days=10)).date(), me))
     conn.execute(

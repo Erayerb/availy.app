@@ -12,6 +12,7 @@ import { LEVELS } from '../lib/occupancy';
 import { colors, themed } from '../theme';
 import { InlineIcon } from '../components/Icon';
 import { Pressable } from '../components/Pressable';
+import { Licenses } from '../components/Licenses';
 
 // The Tanıtım sayfası (mobile/public/tanitim), published with the web version
 export const SITE_URL = 'https://erayerb.github.io/availy.app/v2/tanitim/';
@@ -67,22 +68,14 @@ export function AboutScreen({ role, onBack }: { role: Role; onBack: () => void }
         </View>
       ))}
 
-      {/* Required by the data licences: name every source of venue data */}
-      <View style={styles.sources}>
-        <Text style={styles.sourcesTitle}>Veri kaynakları</Text>
-        <Text style={styles.sourceLine}>• Foursquare OS Places (Apache 2.0)</Text>
-        <Text style={styles.sourceLine}>• Overture Maps Foundation (CDLA Permissive 2.0)</Text>
-        <Text style={styles.sourceLine}>• © OpenStreetMap katkıcıları (ODbL)</Text>
-        <Text style={styles.note}>Doluluk yalnızca kullanıcıların check-in'lerinden hesaplanır. Prototip sürüm.</Text>
-      </View>
+      {/* Required by the data, map and software licences: all of it in one place */}
+      <Licenses />
+      <Text style={styles.note}>Prototip sürüm.</Text>
     </ScrollView>
   );
 }
 
 const styles = themed(() => StyleSheet.create({
-  sources: { padding: 14, borderRadius: 14, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 4 },
-  sourcesTitle: { fontSize: 15, fontWeight: '800', color: colors.text, marginBottom: 2 },
-  sourceLine: { fontSize: 14, color: colors.text },
   page: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, paddingTop: 60, paddingBottom: TAB_BAR_SPACE, gap: 14 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },

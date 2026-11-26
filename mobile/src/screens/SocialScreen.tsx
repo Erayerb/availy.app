@@ -15,7 +15,6 @@ import QRCode from 'react-native-qrcode-svg';
 import { VenuePhoto } from '../components/VenuePhoto';
 import { Avatar } from '../components/Avatar';
 import { LevelMark } from '../components/LevelCard';
-import { ContactsFinder } from '../components/ContactsFinder';
 import { HeaderButtons } from '../components/HeaderButtons';
 import { Icon, InlineIcon, type IconName } from '../components/Icon';
 import { PostSkeleton } from '../components/Skeleton';
@@ -503,8 +502,6 @@ export function SocialScreen({
             ))}
             {query.trim().length >= 2 && results.length === 0 && <Text style={styles.muted}>Bu adla kimse bulunamadı.</Text>}
           </View>
-
-          <ContactsFinder token={token} me={user.username!} onAdd={add} onOpenUser={onOpenUser} />
 
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Beni ekle</Text>

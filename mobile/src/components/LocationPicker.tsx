@@ -42,18 +42,18 @@ export function LocationPicker({ start, onBack, onPick }: Props) {
   const [results, setResults] = useState<Place[] | null>(null); // null: no search going on
   const [focus, setFocus] = useState<{ lat: number; lon: number; key: number; zoom: number } | null>(null);
 
-  // Results as the user types (a short pause first: the address service allows about one request a second)
+  // Results as the user types, after a short pause (near the map's middle first)
   useEffect(() => {
     const q = query.trim();
     if (q.length < 3) return setResults(null);
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       setSearching(true);
-      const found = await searchPlaces(q, controller.signal);
+      const found = await searchPlaces(q, controller.signal, { lat: initial.latitude, lon: initial.longitude });
       if (controller.signal.aborted) return;
       setSearching(false);
       setResults(found);
-    }, 600);
+    }, 400);
     return () => {
       clearTimeout(timer);
       controller.abort();

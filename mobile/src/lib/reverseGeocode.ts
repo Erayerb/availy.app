@@ -1,7 +1,7 @@
 /**
  * Turn a picked map point into "district / neighbourhood" for the new-venue
- * form. Uses OpenStreetMap's free Nominatim service; if that fails, falls back
- * to the nearest known venue's district.
+ * form, and a typed address into a point: OpenStreetMap's Nominatim, one request when the user picks a point
+ * or taps the button (its policy allows that, not search-as-you-type; that is searchPlaces, via our server).
  */
 import {  type LatLon } from './geo.ts';
 
@@ -62,30 +62,21 @@ export async function geocodeAddress(address: string, district: string, signal?:
 export type Place = { label: string; detail: string; lat: number; lon: number };
 
 /**
- * Places for the map's search box (street, neighbourhood, district, landmark) in Istanbul, best first:
- * "Moda Caddesi" with "Caferağa, Kadıköy" under it.
+ * Places for the map's search box while typing (street, neighbourhood, district, landmark) in Istanbul, best
+ * first: "Moda Caddesi" with "Caferağa, Kadıköy" under it. Through our server (backend/app/places_api.py: Photon,
+ * kept for a day, bus stops left out); empty when the service is busy, so the venue results still show.
  */
-export async function searchPlaces(query: string, signal?: AbortSignal): Promise<Place[]> {
-  const params = new URLSearchParams({
-    format: 'jsonv2',
-    q: `${query}, İstanbul`,
-    limit: '10',
-    countrycodes: 'tr',
-    addressdetails: '1',
-    'accept-language': 'tr',
-  });
+export async function searchPlaces(query: string, signal?: AbortSignal, near?: LatLon | null): Promise<Place[]> {
+  const api = process.env.EXPO_PUBLIC_API_URL;
+  if (!api) return [];
+  const params = new URLSearchParams({ q: query });
+  if (near) {
+    params.set('lat', near.lat.toFixed(2));
+    params.set('lon', near.lon.toFixed(2));
+  }
   try {
-    const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, { signal });
-    if (!response.ok) return [];
-    const hits: { lat: string; lon: string; name?: string; display_name: string; address?: NominatimAddress }[] = await response.json();
-    const places = hits.map((hit) => {
-      const place = parseNominatimAddress(hit.address);
-      const label = hit.name || hit.display_name.split(',')[0];
-      const detail = [place?.neighborhood, place?.district].filter((x) => x && x !== label).join(', ');
-      return { label, detail, lat: Number(hit.lat), lon: Number(hit.lon) };
-    });
-    // A long street comes in pieces: one row per name and neighbourhood
-    return places.filter((p, i) => places.findIndex((q) => q.label === p.label && q.detail === p.detail) === i);
+    const response = await fetch(`${api}/v1/places?${params}`, { signal });
+    return response.ok ? await response.json() : [];
   } catch {
     return [];
   }

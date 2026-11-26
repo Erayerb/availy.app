@@ -51,11 +51,14 @@ def test_unapproved_venues_go_after_30_days_and_limits(client, conn, clock):
     for i in range(3):
         spot = {"lat": SPOT["lat"] + i * 0.01, "lon": SPOT["lon"], "user_lat": SPOT["lat"] + i * 0.01}
         assert client.post("/v1/venues", json={**NEW, "name": f"Mekan {i}", **spot}, headers=auth(ali)).status_code == 201
-    # No limit on venues waiting for approval for now
-    assert client.post("/v1/venues", json={**NEW, "name": "Dördüncü", "confirm_near": True}, headers=auth(ali)).status_code == 201
+    # At most three waiting for approval at once
+    fourth = client.post("/v1/venues", json={**NEW, "name": "Dördüncü", "confirm_near": True}, headers=auth(ali))
+    assert fourth.status_code == 429 and "Onay bekleyen 3" in fourth.json()["detail"]
     conn.execute("UPDATE venues SET created_at = now() - interval '31 days' WHERE name = 'Mekan 0'")
     names = {v["name"] for v in client.get("/v1/venues/search", params={"q": "mekan"}).json()}
     assert names == {"Mekan 1", "Mekan 2"}
+    # The hidden one no longer counts: a new one can be added
+    assert client.post("/v1/venues", json={**NEW, "name": "Dördüncü", "confirm_near": True}, headers=auth(ali)).status_code == 201
 
 
 def test_a_business_adds_its_own_venue_from_anywhere(client, conn):

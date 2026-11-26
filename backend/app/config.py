@@ -25,9 +25,12 @@ class Settings(BaseSettings):
     # E-mail (codes for "Şifremi unuttum" and verification) via Resend; without a key the
     # e-mail is only written to the server log (local development)
     resend_api_key: str = ""
-    # Secret mixed into phone-number hashes ("Rehberden bul"); set PHONE_PEPPER on the server
+    # Was the secret for "Rehberden bul" phone hashes (removed 2026-11-26); kept so the server's PHONE_PEPPER setting stays valid
     phone_pepper: str = "availy-dev-pepper"
     mail_from: str = "availo <onboarding@resend.dev>"
+    # Place suggestions while typing (places_api.py): komoot's free public Photon; our own Photon server's
+    # address (…/api/) when that one is not enough (PHOTON_URL on Render)
+    photon_url: str = "https://photon.komoot.io/api/"
     # Bug reports and contact messages are also e-mailed here (empty: only kept in the database)
     support_email: str = ""
 

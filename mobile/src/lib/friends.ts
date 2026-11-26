@@ -23,10 +23,6 @@ export const friendQrPayload = (username: string) => `${QR_PREFIX}${username}`;
 /** Link that adds me as a friend when opened (web demo); also inside the shared message. */
 export const inviteLink = (username: string) => `${WEB_APP_URL}?invite=${encodeURIComponent(username)}`;
 
-// The SMS sent with "Davet et" from the contacts list
-export const smsInviteMessage = (username: string) =>
-  `Arkadaşın seni availo'ya davet ediyor. Katıl, ilk check-in'ini yap: ikinize de 50 puan. ${inviteLink(username)}`;
-
 export const inviteMessage = (username: string) =>
   `availo'da beni arkadaş olarak ekle: @${username}. Katılıp ilk check-in'ini yapınca ikimize de 50 puan. ${inviteLink(username)}`;
 
@@ -58,12 +54,6 @@ export const friendsApi = {
   // Seri kurtarma: cover a friend's day without a check-in (2 a month, availo+ 10)
   saveStreak: (token: string, username: string) =>
     send<{ username: string; streak: number }>('POST', `/v1/friends/${encodeURIComponent(username)}/save-streak`, undefined, token),
-  // "Rehberden bul": my number (kept only as a hash), then the contacts' numbers (compared, not stored)
-  setPhone: (token: string, phone: string) => send<void>('PUT', '/v1/me/phone', { phone }, token),
-  removePhone: (token: string) => send<void>('DELETE', '/v1/me/phone', undefined, token),
-  // availo users among the contacts, each with the number it matched (as sent)
-  matchContacts: (token: string, phones: string[]) =>
-    send<(Person & { relation: Relation; phone: string })[]>('POST', '/v1/friends/contacts', { phones }, token),
   // "👥 @ayse burada": friends who checked in at the venue in the last 90 minutes
   here: (token: string, venueId: number) =>
     send<{ username: string; at: string }[]>('GET', `/v1/venues/${venueId}/friends-here`, undefined, token),

@@ -1,5 +1,5 @@
 def account(client, username):
-    body = {"name": username.title(), "email": f"{username}@example.test", "password": "gizli123", "username": username}
+    body = {"name": username.title(), "email": f"{username}@example.test", "password": "Gizli.123", "username": username}
     return client.post("/v1/auth/register", json=body).json()["token"]
 
 

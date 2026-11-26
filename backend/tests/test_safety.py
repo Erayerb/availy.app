@@ -1,5 +1,5 @@
 def account(client, username):
-    body = {"email": f"{username}@example.test", "password": "gizli123", "username": username}
+    body = {"email": f"{username}@example.test", "password": "Gizli.123", "username": username}
     return client.post("/v1/auth/register", json=body).json()["token"]
 
 
@@ -118,7 +118,7 @@ def test_frozen_account_is_hidden_until_the_next_sign_in(client, conn, visit):
     assert client.get(f"/v1/venues/{kafe(conn)}/reviews").json()["count"] == 0
     assert client.get("/v1/users/search", params={"q": "t_ay"}, headers=auth(ali)).json() == []
     # Signing in again opens it, with everything still there
-    login = client.post("/v1/auth/login", json={"login": "t_ayse", "password": "gizli123"})
+    login = client.post("/v1/auth/login", json={"login": "t_ayse", "password": "Gizli.123"})
     assert login.status_code == 200
     assert client.get("/v1/users/t_ayse", headers=auth(ali)).status_code == 200
     assert client.get(f"/v1/venues/{kafe(conn)}/reviews").json()["count"] == 1

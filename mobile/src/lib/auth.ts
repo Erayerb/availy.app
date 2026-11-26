@@ -49,7 +49,7 @@ export const isRegistered = (user: User | null) => user !== null && !user.isGues
 export const accountKey = (user: User): string => user.email ?? `guest-${user.id}`;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-export const MIN_PASSWORD_LENGTH = 6;
+export const MIN_PASSWORD_LENGTH = 8; // same rule as the server (backend/app/accounts.py password_problem)
 // Same rule as the server: 3-20 of a-z, 0-9, "." and "_", starting with a letter or digit
 const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._]{2,19}$/;
 
@@ -61,19 +61,40 @@ export function validateUsername(username: string): string | null {
     : 'Kullanıcı adı 3–20 karakter olmalı; yalnızca harf (a-z), rakam, nokta ve alt çizgi.';
 }
 
-const validatePassword = (password: string): string | null =>
-  password.length < MIN_PASSWORD_LENGTH ? `Şifre en az ${MIN_PASSWORD_LENGTH} karakter olmalı.` : null;
+// By case, not by regular-expression classes (some phones' JS engines lack \p{…}); Turkish İ / ı work too
+const isLetter = (c: string) => c.toLowerCase() !== c.toUpperCase();
+const isUpper = (c: string) => isLetter(c) && c === c.toUpperCase();
+const isLower = (c: string) => isLetter(c) && c === c.toLowerCase();
+const isSign = (c: string) => !isLetter(c) && !/[0-9]/.test(c);
 
-/** Sign-in takes the e-mail or the user name. */
+/** What a new password needs (sign-up, change, reset), each shown with a ✓ while typing. Old passwords keep working. */
+export const PASSWORD_RULES: { label: string; missing: string; ok: (password: string) => boolean }[] = [
+  { label: `En az ${MIN_PASSWORD_LENGTH} karakter`, missing: '', ok: (p) => p.length >= MIN_PASSWORD_LENGTH },
+  { label: 'Büyük harf', missing: 'bir büyük harf', ok: (p) => [...p].some(isUpper) },
+  { label: 'Küçük harf', missing: 'bir küçük harf', ok: (p) => [...p].some(isLower) },
+  { label: 'Rakam', missing: 'bir rakam', ok: (p) => /[0-9]/.test(p) },
+  { label: 'Noktalama (. ! ? gibi)', missing: 'bir noktalama işareti (. ! ? gibi)', ok: (p) => [...p].some(isSign) },
+];
+
+/** The server's message for a new password that is not strong enough; null when it is. */
+export function passwordProblem(password: string): string | null {
+  if (password.length < MIN_PASSWORD_LENGTH) return `Şifre en az ${MIN_PASSWORD_LENGTH} karakter olmalı.`;
+  const missing = PASSWORD_RULES.slice(1).filter((r) => !r.ok(password)).map((r) => r.missing);
+  if (missing.length === 0) return null;
+  const listed = missing.length === 1 ? missing[0] : `${missing.slice(0, -1).join(', ')} ve ${missing[missing.length - 1]}`;
+  return `Şifrede ${listed} olmalı.`;
+}
+
+/** Sign-in takes the e-mail or the user name; any password (older ones may be shorter than today's rule). */
 export function validateLogin(login: string, password: string): string | null {
   const value = login.trim();
   if (!EMAIL_PATTERN.test(value) && validateUsername(value)) return 'Kullanıcı adını ya da e-postanı gir.';
-  return validatePassword(password);
+  return password ? null : 'Şifreni gir.';
 }
 
 /** Sign-up asks only for a user name (no separate name), e-mail and password. */
 export function validateRegister(email: string, password: string, username: string): string | null {
   if (validateUsername(username)) return validateUsername(username);
   if (!EMAIL_PATTERN.test(email.trim())) return 'Geçerli bir e-posta gir.';
-  return validatePassword(password);
+  return passwordProblem(password);
 }
