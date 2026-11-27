@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Switch, View } from 'react-native';
+import { View } from 'react-native';
 
 import { businessApi, type StandingReward } from '../../lib/business';
 import { DISCOUNT_STEP, MAX_POINTS, POINT_STEPS, POINTS_STEP } from '../../lib/campaigns';
 import { colors } from '../../theme';
 import { Pressable } from '../Pressable';
 import { Stepper } from '../Stepper';
+import { ThemedSwitch } from '../ThemedSwitch';
 import { Text } from '../Text';
 import { panel } from './panelStyles';
 
@@ -44,7 +45,7 @@ export function RewardSetup({ token }: { token: string }) {
     <View style={panel.card}>
       <View style={panel.row}>
         <Text style={[panel.sectionTitle, { flex: 1 }]}>Kalıcı ödül</Text>
-        {saved && <Switch value={saved.active} onValueChange={save} trackColor={{ true: colors.primary }} />}
+        {saved && <ThemedSwitch value={saved.active} onValueChange={save} />}
       </View>
       <Text style={panel.muted}>
         Mekan sayfanda hep durur: müşteri availo puanıyla alır, kasada gösterir. Kişi başı haftada bir. Ücretsiz, aylık kampanya

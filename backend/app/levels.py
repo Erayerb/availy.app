@@ -143,7 +143,9 @@ def reward_levels(conn: psycopg.Connection, user_id: int, now: datetime) -> list
                 (user_id, level_id, now),
             )
             conn.execute(
-                "INSERT INTO points (user_id, amount, reason, created_at) VALUES (%s, %s, 'level', %s)", (user_id, LEVEL_POINTS, now)
+                # task names the level, for "Seviye: Mahalleli" in Puanların
+                "INSERT INTO points (user_id, amount, reason, task, created_at) VALUES (%s, %s, 'level', %s, %s)",
+                (user_id, LEVEL_POINTS, f"level:{level_id}", now),
             )
             icon, days, gift = LEVEL_GIFTS[level_id]
             if days:

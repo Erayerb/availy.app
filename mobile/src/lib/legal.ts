@@ -120,7 +120,7 @@ export const PRIVACY_POLICY: LegalDoc = {
         "Check-in'ler — Hesap silinince kimliğinizden ayrılarak yalnızca anonim doluluk istatistiği olarak kalır",
         "Check-in sırasındaki konum — Saklanmaz",
         "\"Şu an burada\" fotoğrafları — Mekan kapandıktan 1 saat sonra; 24 saat açık mekanlarda 24 saat sonra silinir",
-        "Oturum anahtarları — En fazla 30 gün; misafir hesapta 365 gün",
+        "Oturum anahtarları — Son kullanımdan itibaren 90 gün; misafir hesapta 365 gün (çıkış yapınca hemen silinir)",
         "Doğrulama ve şifre sıfırlama kodları — 15 dakika",
         "Uygulama içi bildirimler — 30 gün",
         "İşlem güvenliği kayıtları — [5651 sayılı Kanun ve ilgili mevzuata göre belirlenecek süre]",

@@ -42,6 +42,7 @@ import { friendsApi, inviteFromQuery } from './src/lib/friends';
 import { venueIdFromDoorLink } from './src/lib/share';
 import { listCodeFromQuery } from './src/lib/lists';
 import { useHoldTips } from './src/lib/tips';
+import { FriendsHereProvider } from './src/context/FriendsHereContext';
 import { ListScreen } from './src/screens/ListScreen';
 import { AdminScreen } from './src/screens/AdminScreen';
 import { SubscriptionScreen } from './src/screens/SubscriptionScreen';
@@ -180,6 +181,11 @@ function Main() {
   const [favoritesTab, setFavoritesTab] = useState<FavoritesTab>('saved');
   // Kampanyalar opened on one of its tabs (Müşteriler > "Sadakat programı oluştur")
   const [campaignsTab, setCampaignsTab] = useState<CampaignsTab | null>(null);
+  // Kampanyalar opened from the top icon: no "Daha fazla" lit in the tab bar (it was not opened from there)
+  const [campaignsFromHeader, setCampaignsFromHeader] = useState(false);
+  useEffect(() => {
+    if (screen !== 'campaigns') setCampaignsFromHeader(false);
+  }, [screen]);
   // Seviyeler: whose level to mark (the profile it was opened from)
   const [levelsFor, setLevelsFor] = useState<Level | null>(null);
   const role: Role = isBusiness(auth.user) ? 'business' : 'personal';
@@ -565,7 +571,14 @@ function Main() {
               inviteName={auth.user?.username ?? null}
               onOpenProfile={openMyProfile}
               onOpenNotifications={() => goTo('notifications')}
-              onOpenScreen={(next) => goTo(next)}
+              onRegister={
+                isRegistered(auth.user)
+                  ? undefined
+                  : () => {
+                      setAuthRole('personal');
+                      setAuthForm('register');
+                    }
+              }
             />
           )}
           {screen === 'map' && (
@@ -684,7 +697,6 @@ function Main() {
               initialTab={campaignsTab ?? undefined}
               onTabChange={setCampaignsTab}
               signedIn={isRegistered(auth.user)}
-              serverPoints={auth.user?.points ?? 0}
               customerCode={auth.user?.customerCode ?? null}
               business={
                 isBusiness(auth.user) && auth.user?.venueId
@@ -698,6 +710,7 @@ function Main() {
               }
               onLogin={() => setAuthForm('login')}
               onOpenVenue={(c) => openVenueOnMap({ id: c.venueId, lat: c.lat, lon: c.lon })}
+              onOpenVenuePage={openDetails}
               onBack={isBusiness(auth.user) ? undefined : goBack}
             />
           )}
@@ -874,15 +887,18 @@ function Main() {
         token={isRegistered(auth.user) ? (auth.user?.token ?? null) : null}
         accountKey={auth.user ? accountKey(auth.user) : null}
       >
+      {/* Friends at a venue now, for every venue card (one friends list, refreshed every two minutes) */}
+      <FriendsHereProvider token={isRegistered(auth.user) && !isBusiness(auth.user) ? (auth.user?.token ?? null) : null} onOpenUser={openProfile}>
       <HeaderActionsContext.Provider
         value={{
           onOpenProfile: openMyProfile,
           onOpenNotifications: () => goTo('notifications'),
-          // Coupons and loyalty cards: one tap to Kampanyalar > Kuponlarım (registered customers)
+          // One tap to Kampanyalar (campaigns nearby first; coupons and loyalty in its tabs), registered customers
           onOpenWallet:
             isRegistered(auth.user) && !isBusiness(auth.user)
               ? () => {
-                  setCampaignsTab('coupons');
+                  setCampaignsTab('campaigns');
+                  setCampaignsFromHeader(true);
                   goTo('campaigns');
                 }
               : undefined,
@@ -904,6 +920,7 @@ function Main() {
           <TabBar
             tabs={tabs}
             current={screen}
+            noHighlight={screen === 'campaigns' && campaignsFromHeader}
             onSelect={(next) => {
               // The tab already open: back to the top of its list
               if (next === screen) setTopTick((n) => n + 1);
@@ -949,6 +966,7 @@ function Main() {
           <StatusBar style={statusBar} />
         </View>
       </HeaderActionsContext.Provider>
+      </FriendsHereProvider>
       </NotificationsProvider>
       </FavoritesProvider>
       </LoyaltyProvider>

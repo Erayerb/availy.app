@@ -56,3 +56,9 @@ test('🔔: Bugün, Bu hafta, Daha eski', async () => {
   const groups = groupByAge([{ at: at(24) }, { at: at(23) }, { at: at(18) }, { at: at(17) }, { at: at(1) }], now);
   assert.deepEqual(groups.map((g) => [g.title, g.items.length]), [['Bugün', 1], ['Bu hafta', 2], ['Daha eski', 2]]);
 });
+
+test('"Buradayım, gel!" reads "…mekanındaydı" after two hours', () => {
+  const call = { kind: 'come_here', at: '2026-11-27T12:00:00Z', username: 'ayse', venue_id: 1, venue_name: 'Mado', body: null, done: false } as unknown as AppNotification;
+  assert.equal(notificationText(call, new Date('2026-11-27T13:00:00Z')), '@ayse şu an Mado mekanında: "Buradayım, gel!"');
+  assert.equal(notificationText(call, new Date('2026-11-27T14:30:00Z')), '@ayse Mado mekanındaydı.');
+});

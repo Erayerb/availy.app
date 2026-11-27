@@ -18,7 +18,7 @@ const UNKNOWN_STYLE = { color: '#8a8a8a', label: 'Bilinmiyor', glyph: '?' };
 export const CLOSED_STYLE = { color: '#A39E97', label: 'Kapalı', glyph: '×' };
 
 // v2: venues without fresh check-ins
-export const STALE_STYLE = { color: '#C9C2B8', label: 'Bilgi yok', glyph: '?' };
+export const STALE_STYLE = { color: '#C9C2B8', label: 'Şu an bildirim yok', glyph: '?' };
 export const UNEXPLORED_STYLE = { color: '#7B5EA7', label: 'Keşfedilmedi', glyph: '✨' };
 
 export type LevelLook = { color: string; label: string; glyph: string | null };

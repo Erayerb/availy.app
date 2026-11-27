@@ -16,8 +16,9 @@ import psycopg
 ROLES = ("personal", "business")
 MIN_PASSWORD_LENGTH = 8  # same rule as the app (mobile/src/lib/auth.ts)
 MAX_PASSWORD_LENGTH = 200
-SESSION_DAYS = 30
-# Guests have no password to sign in again, so their session lasts much longer
+# Sign-in lasts while the app is used: each day of use moves the end this far ahead, so only this many days
+# without opening the app sign the user out. Guests have no password to sign in again, so theirs is longer
+SESSION_DAYS = 90
 GUEST_SESSION_DAYS = 365
 # A guest's check-ins count less until they sign up (abuse: guests are free to create)
 GUEST_TRUST = 0.5
@@ -363,6 +364,16 @@ def user_for_token(conn: psycopg.Connection, token: str, now: datetime | None = 
         WHERE s.user_id = u.id AND s.token_hash = %s AND u.plus_until IS NOT NULL AND u.plus_until <= %s
         """,
         (hash_token(token), now),
+    )
+    # Used today: the session runs on from now (written at most once a day)
+    conn.execute(
+        """
+        UPDATE sessions s SET expires_at = %(now)s + make_interval(days => CASE WHEN u.is_guest THEN %(guest)s ELSE %(days)s END)
+        FROM users u
+        WHERE u.id = s.user_id AND s.token_hash = %(token)s AND s.expires_at > %(now)s
+          AND s.expires_at < %(now)s + make_interval(days => CASE WHEN u.is_guest THEN %(guest)s ELSE %(days)s END - 1)
+        """,
+        {"now": now, "token": hash_token(token), "days": SESSION_DAYS, "guest": GUEST_SESSION_DAYS},
     )
     return conn.execute(
         f"""

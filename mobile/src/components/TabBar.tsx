@@ -68,10 +68,13 @@ type Props = {
   tabs: Tab[];
   current: Screen;
   onSelect: (screen: Screen) => void;
+  noHighlight?: boolean; // a page opened from a header icon (no tab is "where" it is)
 };
 
-export function TabBar({ tabs, current, onSelect }: Props) {
-  const active = tabs.some((t) => t.screen === current)
+export function TabBar({ tabs, current, onSelect, noHighlight = false }: Props) {
+  const active = noHighlight
+    ? null
+    : tabs.some((t) => t.screen === current)
     ? current
     : MORE_PAGES.includes(current)
       ? 'more'

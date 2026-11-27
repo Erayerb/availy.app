@@ -4,6 +4,9 @@ from datetime import datetime
 
 import psycopg
 
+from app.checkins import BADGES
+from app.levels import LEVELS
+
 REASONS = {
     "checkin": "Check-in",
     "first_checkin": "Keşif (ilk check-in)",
@@ -25,6 +28,9 @@ TASK_LABELS = {
     "list": "İlk adım: ilk listen",
     "friend": "İlk adım: ilk arkadaşın",
     "photo": "İlk adım: profil fotoğrafın",
+    # Badges and levels name themselves (points.task "badge:night_owl" / "level:local")
+    **{f"badge:{b[0]}": f"Rozet: {b[1]}" for b in BADGES},
+    **{f"level:{lvl[0]}": f"Seviye atladın: {lvl[1]}" for lvl in LEVELS},
 }
 
 

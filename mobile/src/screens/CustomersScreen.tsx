@@ -18,7 +18,7 @@ type Props = {
   venueId: number;
   user: User;
   onOpenUser: (username: string) => void;
-  onOpenLoyalty: () => void; // Kampanyalar > Sadakat programım
+  onOpenLoyalty: () => void; // Kampanyalar > Ödüller
 };
 
 /** Business "Müşteriler" tab: how often people come (anonymous), loyalty members and the reviews to answer. */

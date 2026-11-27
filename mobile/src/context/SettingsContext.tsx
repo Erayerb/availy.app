@@ -103,9 +103,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
  * Registered users: the settings follow the account. The server's copy wins when signing in; with none
  * yet, this phone's settings are saved; later changes are saved a moment after they are made.
  */
+// availo+ is the account's plan on the server (App.tsx follows users.plan), not a saved setting: an old saved
+// "premium: false" must not switch a subscriber (or a level's gift) off again
+const SYNCED_KEYS = (Object.keys(DEFAULTS) as (keyof Settings)[]).filter((k) => k !== 'premium');
+
 export function SettingsSync({ token }: { token: string | null }) {
   const value = useSettings();
-  const current = Object.fromEntries((Object.keys(DEFAULTS) as (keyof Settings)[]).map((k) => [k, value[k]])) as Settings;
+  const current = Object.fromEntries(SYNCED_KEYS.map((k) => [k, value[k]])) as Settings;
   const json = JSON.stringify(current);
   // What the server has for this account (null: not known yet, nothing is saved until it is)
   const synced = useRef<string | null>(null);
@@ -122,8 +126,8 @@ export function SettingsSync({ token }: { token: string | null }) {
       .then((server) => {
         if (stale) return;
         if (server) {
-          const next = parse(server);
-          synced.current = JSON.stringify(next);
+          const { premium: _plan, ...next } = parse(server); // eslint-disable-line @typescript-eslint/no-unused-vars
+          synced.current = JSON.stringify(Object.fromEntries(SYNCED_KEYS.map((k) => [k, (next as Settings)[k]])));
           update(next);
         } else {
           synced.current = JSON.stringify(latest.current);

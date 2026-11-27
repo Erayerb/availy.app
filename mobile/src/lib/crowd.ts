@@ -82,7 +82,7 @@ export function shortDate(iso: string, now: Date): string {
 /** Second line under the level: who reported and when. */
 export function crowdSummary(crowd: Crowd, now: Date): string {
   if (crowd.state === 'unexplored') return 'Buraya daha önce kimse gitmedi, sen keşfet.';
-  if (!crowd.last_report_at) return 'Bilgi yok';
+  if (!crowd.last_report_at) return 'Henüz bildirim yok';
   const ago = timeAgo(crowd.last_report_at, now);
   if (crowd.state === 'stale') return `Son bildirim ${ago}`;
   return `Son bildirim ${ago} · ${crowd.reporters} kişi`;

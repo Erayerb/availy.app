@@ -91,3 +91,19 @@ export function placesFromFriends(friends: Friend[], now: Date): FriendPlace[] {
   return [...byVenue.values()].sort((a, b) => b.at.localeCompare(a.at)).slice(0, MAX_PLACES);
 }
 
+
+// A friend "is there" for an hour after their (shared) check-in, like the venue page's "burada"
+export const HERE_MINUTES = 60;
+
+/** Friends at each venue now (checked in there within the hour), latest first: the venue cards' photos. */
+export function friendsHereByVenue(friends: Friend[], now: number): Map<number, Friend[]> {
+  const since = now - HERE_MINUTES * 60_000;
+  const map = new Map<number, Friend[]>();
+  for (const friend of friends) {
+    const visit = friend.last_checkin;
+    if (!visit || new Date(visit.at).getTime() < since) continue;
+    map.set(visit.venue_id, [...(map.get(visit.venue_id) ?? []), friend]);
+  }
+  for (const list of map.values()) list.sort((a, b) => (b.last_checkin?.at ?? '').localeCompare(a.last_checkin?.at ?? ''));
+  return map;
+}

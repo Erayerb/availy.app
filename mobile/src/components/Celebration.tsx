@@ -3,12 +3,11 @@ import { Animated, Easing, StyleSheet, View } from 'react-native';
 
 import { colors, themed } from '../theme';
 import { Icon, type IconName } from './Icon';
-import { Text } from './Text';
 
 const SPARKS = 10;
 
 /** Right after a check-in or a new badge: the icon (or the badge's emoji) pops in and small dots burst out around it once. */
-export function Celebration({ icon, emoji, first }: { icon?: IconName; emoji?: string; first: boolean }) {
+export function Celebration({ icon, first, medal = false }: { icon?: IconName; first: boolean; medal?: boolean }) {
   const pop = useRef(new Animated.Value(0)).current;
   const burst = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -43,7 +42,14 @@ export function Celebration({ icon, emoji, first }: { icon?: IconName; emoji?: s
         );
       })}
       <Animated.View style={{ transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) }] }}>
-        {emoji ? <Text style={styles.emoji}>{emoji}</Text> : icon && <Icon name={icon} size={48} color={first ? colors.discovery : colors.primary} />}
+        {/* A new badge: the same gold medal as on the profile */}
+        {icon && medal ? (
+          <View style={styles.medal}>
+            <Icon name={icon} size={40} color={colors.gold} />
+          </View>
+        ) : (
+          icon && <Icon name={icon} size={48} color={first ? colors.discovery : colors.primary} />
+        )}
       </Animated.View>
     </View>
   );
@@ -51,6 +57,6 @@ export function Celebration({ icon, emoji, first }: { icon?: IconName; emoji?: s
 
 const styles = themed(() => StyleSheet.create({
   box: { width: 120, height: 90, alignItems: 'center', justifyContent: 'center' },
-  emoji: { fontSize: 48, lineHeight: 58 },
+  medal: { width: 76, height: 76, borderRadius: 38, borderWidth: 3, borderColor: colors.gold, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
   spark: { position: 'absolute', width: 8, height: 8, borderRadius: 4 },
 }));

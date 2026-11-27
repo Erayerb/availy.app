@@ -394,7 +394,9 @@ def reward_badges(conn: psycopg.Connection, user_id: int, now: datetime) -> list
             continue
         points = BADGE_POINTS_BY_ID.get(badge["id"], BADGE_POINTS)
         conn.execute(
-            "INSERT INTO points (user_id, amount, reason, created_at) VALUES (%s, %s, 'badge', %s)", (user_id, points, now)
+            # task names the badge, for "Rozet: Gece kuşu" in Puanların (each badge pays once)
+            "INSERT INTO points (user_id, amount, reason, task, created_at) VALUES (%s, %s, 'badge', %s, %s)",
+            (user_id, points, f"badge:{badge['id']}", now),
         )
         new.append({"id": badge["id"], "name": badge["name"], "icon": badge["icon"], "points": points})
     if first_look:

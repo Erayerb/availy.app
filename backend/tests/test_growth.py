@@ -186,3 +186,12 @@ def test_the_bell_is_read_on_every_phone(client, conn, clock):
     client.put("/v1/me/notifications-seen", json={"at": later}, headers=auth(ali))
     client.put("/v1/me/notifications-seen", json={"at": earlier}, headers=auth(ali))  # an older phone, late
     assert client.get("/v1/me/notifications-seen", headers=auth(ali)).json()["at"].startswith(clock.now.strftime("%Y-%m-%dT%H:%M"))
+
+
+def test_wallet_names_the_badge_and_the_level(client, conn):
+    ali = account(client, "t_ali")
+    user_id = conn.execute("SELECT id FROM users WHERE username = 't_ali'").fetchone()["id"]
+    for reason, task in (("badge", "badge:night_owl"), ("level", "level:local"), ("badge", None)):
+        conn.execute("INSERT INTO points (user_id, amount, reason, task) VALUES (%s, 10, %s, %s)", (user_id, reason, task))
+    labels = {m["label"] for m in client.get("/v1/me/wallet", headers=auth(ali)).json()["moves"]}
+    assert {"Rozet: Gece kuşu", "Seviye atladın: Mahalleli", "Rozet"} <= labels

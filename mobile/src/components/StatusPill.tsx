@@ -12,11 +12,13 @@ type Props = {
   maxWidth?: number;
 };
 
-/** "● Sakin", "✨ Keşfet" (no check-ins yet) or "Kapalı · 09:00", as a small pill. */
+/** "● Sakin", "✨ Keşfet" (no check-ins yet) or "Kapalı · 09:00", as a small pill; nothing when no report is recent. */
 export function StatusPill({ venue, onPhoto = false, maxWidth }: Props) {
   const { crowdLook } = useSettings();
   const status = crowdLook(venue);
   const sparkle = venue.open_now && status.glyph === '✨';
+  // No recent report: no grey pill on every card (the venue page says it once, in its status card)
+  if (venue.open_now && venue.crowd?.state === 'stale') return null;
   const text = !venue.open_now
     ? venue.opens_at ? `Kapalı · ${venue.opens_at}` : 'Kapalı'
     : sparkle

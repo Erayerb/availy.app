@@ -168,12 +168,18 @@ const ISSUES: Record<string, string> = {
   offensive_name: 'adının uygunsuz olduğu',
 };
 
+// "Buradayım, gel!" is about now: after this long it reads "…mekanındaydı" (the server drops it after a day)
+export const COME_HERE_FRESH_MS = 2 * 60 * 60 * 1000;
+
 /** One line for a notification (the 🔔 list shows its icon next to it). */
-export function notificationText(n: AppNotification): string {
+export function notificationText(n: AppNotification, now: Date = new Date()): string {
   const who = n.username ? `@${n.username}` : 'Biri';
   if (n.kind === 'friend_request')
     return n.done ? `${who} ile artık arkadaşsınız.` : `${who} seni arkadaş olarak eklemek istiyor.`;
-  if (n.kind === 'come_here') return `${who} şu an ${n.venue_name} mekanında: "Buradayım, gel!"`;
+  if (n.kind === 'come_here')
+    return now.getTime() - Date.parse(n.at) > COME_HERE_FRESH_MS
+      ? `${who} ${n.venue_name} mekanındaydı.`
+      : `${who} şu an ${n.venue_name} mekanında: "Buradayım, gel!"`;
   if (n.kind === 'friend_accepted') return `${who} arkadaşlık isteğini kabul etti.`;
   if (n.kind === 'checkin_like') return `${who} ${n.venue_name} check-in'ini beğendi.`;
   if (n.kind === 'checkin_comment') return `${who} ${n.venue_name} check-in'ine yorum yaptı: "${n.body}"`;

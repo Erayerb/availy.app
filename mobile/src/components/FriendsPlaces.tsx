@@ -83,6 +83,7 @@ export function FriendsPlaces({ token, onOpenVenue, onAddFriends, inviteName = n
               <View key={place.venueId} style={{ width: TILE }}>
                 <VenueTile
                   venue={venue}
+                  hideFriends
                   size={TILE}
                   distance={point ? formatDistance(distanceKm(point, venue)) : null}
                   onPress={() => onOpenVenue(venue)}
@@ -104,7 +105,7 @@ export function FriendsPlaces({ token, onOpenVenue, onAddFriends, inviteName = n
 
 const styles = themed(() => StyleSheet.create({
   section: { gap: 10, marginTop: 6 },
-  untitled: { marginTop: -4 }, // right under the home page's own title line
+  untitled: { marginTop: 0 }, // right under the home page's own title line (title → content: 12, like every row)
   title: { fontSize: 17, fontWeight: '700', color: colors.text },
   empty: { padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 10 },
   emptyText: { fontSize: 14, color: colors.textMuted, lineHeight: 20 },

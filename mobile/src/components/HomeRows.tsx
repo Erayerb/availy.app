@@ -5,7 +5,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useLocation } from '../context/LocationContext';
 import type { Venue } from '../lib/api';
 import { liveLevel } from '../lib/crowd';
-import { TAG_OPTIONS, type Tag } from '../lib/filters';
+import { TAG_OPTIONS, tagForTime, type Tag } from '../lib/filters';
 import { distanceKm, formatDistance, sortByDistance } from '../lib/geo';
 import { colors, themed } from '../theme';
 import { Chip } from './TagChips';
@@ -19,7 +19,7 @@ const DISCOVER_KM = 2;
 const DISCOVER_MAX = 6;
 // "Şu an sakin, yakınında": the nearest quiet one is this close
 const NEAR_KM = 2;
-// "Ne arıyorsun?": in this order (the first is chosen at the start); no Wi-Fi chip here
+// "Ne arıyorsun?": in this order, the one for this hour first and chosen (tagForTime); no Wi-Fi chip here
 const ROW_TAGS: Tag[] = ['quiet', 'socializing', 'food', 'nightlife', 'coworking', 'entertainment'];
 
 /** Sponsored venues first in a row they fit (option A: "Sponsorlu" on the card), the rest as given. */
@@ -36,7 +36,10 @@ export function HomeRows({ venues, onOpenVenue, placeChosen = false, aside = nul
   aside?: ReactNode; // the page's Konum + search, on the first row's title line when the page has no title of its own
 }) {
   const { point } = useLocation();
-  const [tag, setTag] = useState<Tag>('quiet');
+  // Chosen by the hour when the page opens; the chips keep that order while the page is open
+  const [first] = useState<Tag>(() => tagForTime(new Date()));
+  const [tag, setTag] = useState<Tag>(first);
+  const chips = useMemo(() => [first, ...ROW_TAGS.filter((t) => t !== first)], [first]);
   const near = useMemo(() => (point ? sortByDistance(venues, point) : venues), [venues, point]);
 
   const quiet = useMemo(
@@ -95,7 +98,7 @@ export function HomeRows({ venues, onOpenVenue, placeChosen = false, aside = nul
           text="Satırları sağa kaydır. Ne arıyorsun? Bir etikete dokun, uyan mekanlar hemen altında, sakin olanlar önde sıralansın."
         >
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-          {ROW_TAGS.map((t) => (
+          {chips.map((t) => (
             <Chip key={t} label={TAG_OPTIONS.find((o) => o.tag === t)?.label ?? t} active={tag === t} onPress={() => setTag(t)} />
           ))}
         </ScrollView>
@@ -142,11 +145,13 @@ function Row({ title, subtitle, aside, children }: { title: string; subtitle?: s
 }
 
 const styles = themed(() => StyleSheet.create({
-  rows: { gap: 18, marginTop: 6 },
-  titleLine: { flexDirection: 'row', alignItems: 'center', gap: 8, zIndex: 15, elevation: 15 },
+  // Ana sayfa spacing, the same for every section: title → content 12, section → section 24 (the page's
+  // header already puts 12 between its parts, so 12 more here)
+  rows: { gap: 24, marginTop: 12 },
+  titleLine: { height: 22, flexDirection: 'row', alignItems: 'center', gap: 8, zIndex: 15, elevation: 15 },
   flex: { flex: 1 },
-  section: { gap: 10 },
-  title: { fontSize: 17, fontWeight: '700', color: colors.text },
+  section: { gap: 12 },
+  title: { fontSize: 17, lineHeight: 22, fontWeight: '700', color: colors.text }, // same as Ana sayfa's own titles
   subtitle: { fontSize: 13, color: colors.textMuted, marginTop: -6 },
   row: { gap: 12, paddingRight: 16 },
   chips: { gap: 8, paddingRight: 16 },

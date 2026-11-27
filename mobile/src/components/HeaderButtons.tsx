@@ -11,11 +11,13 @@ import { Icon } from './Icon';
 import { useCampaigns } from '../context/CampaignsContext';
 import { useLoyalty } from '../context/LoyaltyContext';
 import { couponValid } from '../lib/coupons';
+import { visibleCampaigns } from '../lib/campaigns';
+import { useLocation } from '../context/LocationContext';
 
 type Actions = {
   onOpenProfile: () => void;
   onOpenNotifications: () => void;
-  // Customers: coupons and loyalty cards (Kampanyalar > Kuponlarım); absent for businesses and guests
+  // Customers: Kampanyalar (campaigns nearby, coupons, loyalty cards); absent for businesses and guests
   onOpenWallet?: () => void;
 };
 
@@ -29,11 +31,14 @@ export function HeaderButtons(props: Partial<Actions>) {
   const onOpenNotifications = props.onOpenNotifications ?? actions.onOpenNotifications;
   const { unread } = useNotifications();
   const onOpenWallet = actions.onOpenWallet;
-  const { coupons, now } = useCampaigns();
+  const { campaigns, coupons, now } = useCampaigns();
   const { programs } = useLoyalty();
-  // A red dot when something is ready to use at the counter
+  const { point } = useLocation();
+  // A red dot when there is something to look at: a campaign running nearby, or a coupon / reward ready at the counter
   const ready =
-    coupons.some((c) => !c.redeemedAt && couponValid(c, now)) || programs.some((p) => (p.member?.rewards ?? 0) > 0);
+    visibleCampaigns(campaigns, point, now).length > 0 ||
+    coupons.some((c) => !c.redeemedAt && couponValid(c, now)) ||
+    programs.some((p) => (p.member?.rewards ?? 0) > 0);
   return (
     <View style={styles.row}>
       {onOpenWallet && (
@@ -47,7 +52,8 @@ export function HeaderButtons(props: Partial<Actions>) {
             onPress={onOpenWallet}
             style={styles.button}
             hitSlop={8}
-            accessibilityLabel={ready ? 'Kuponların ve kartların, kullanılabilir var' : 'Kuponların ve kartların'}
+            accessibilityRole="button"
+            accessibilityLabel={ready ? 'Kampanyalar, yeni var' : 'Kampanyalar'}
           >
             <Icon name="ticket" size={21} color={colors.text} />
             {ready && <View style={styles.dot} />}
@@ -58,6 +64,7 @@ export function HeaderButtons(props: Partial<Actions>) {
         onPress={onOpenNotifications}
         style={styles.button}
         hitSlop={8}
+        accessibilityRole="button"
         accessibilityLabel={unread ? `Bildirimler, ${unread} yeni` : 'Bildirimler'}
       >
         <TabIcon name="bell" color={colors.text} active={false} />
@@ -67,7 +74,7 @@ export function HeaderButtons(props: Partial<Actions>) {
           </View>
         )}
       </Pressable>
-      <Pressable onPress={onOpenProfile} style={styles.button} hitSlop={8} accessibilityLabel="Profil">
+      <Pressable onPress={onOpenProfile} style={styles.button} hitSlop={8} accessibilityRole="button" accessibilityLabel="Profil">
         <TabIcon name="person" color={colors.text} active={false} />
       </Pressable>
     </View>

@@ -1,6 +1,7 @@
 import { BackButton } from '../components/BackButton';
 import { Tip } from '../components/Tip';
 import { confirmAction } from '../lib/confirm';
+import { send } from '../lib/accountApi';
 import { RewardSetup } from '../components/business/RewardSetup';
 import { useUpgrade } from '../context/UpgradeContext';
 import { HeaderButtons } from '../components/HeaderButtons';
@@ -10,6 +11,7 @@ import { TAB_BAR_SPACE } from '../components/TabBar';
 import { usePageTop } from '../context/PageContext';
 import { Text } from '../components/Text';
 import { Pressable } from '../components/Pressable';
+import { Icon } from '../components/Icon';
 
 import { CampaignBox } from '../components/CampaignBox';
 import { CampaignForm } from '../components/business/CampaignForm';
@@ -45,9 +47,9 @@ const CUSTOMER_TABS: { tab: Tab; label: string }[] = [
 
 // A business sees its own campaigns, coupons and loyalty program
 const BUSINESS_TABS: { tab: Tab; label: string }[] = [
-  { tab: 'myCampaigns', label: 'Kampanyalarım' },
+  { tab: 'myCampaigns', label: 'Kampanyalar' },
   { tab: 'venueCoupons', label: 'Kuponlar' },
-  { tab: 'myPrograms', label: 'Sadakat programım' },
+  { tab: 'myPrograms', label: 'Ödüller' }, // the standing reward and the stamp card
 ];
 
 export type BusinessInfo = {
@@ -59,11 +61,11 @@ export type BusinessInfo = {
 
 type Props = {
   signedIn: boolean;
-  serverPoints: number; // v2: points from check-ins
   customerCode: string | null; // loyalty QR ("M-123456", from the server)
   business: BusinessInfo | null; // set for business accounts
   onLogin: () => void;
   onOpenVenue: (campaign: Pick<Campaign, 'venueId' | 'lat' | 'lon'>) => void;
+  onOpenVenuePage?: (venue: { id: number }) => void; // a reward bought with points: its venue page
   onOpenPoints?: () => void; // customers: Puanların
   // Set when opened from "Daha fazla" (customers); businesses have it as a tab
   onBack?: () => void;
@@ -71,7 +73,7 @@ type Props = {
   onTabChange?: (tab: Tab) => void; // remembered, so back from a venue returns to this tab
 };
 
-export function CampaignsScreen({ signedIn, serverPoints, customerCode, business, onLogin, onOpenVenue, onBack, initialTab, onTabChange, onOpenPoints }: Props) {
+export function CampaignsScreen({ signedIn, customerCode, business, onLogin, onOpenVenue, onOpenVenuePage, onBack, initialTab, onTabChange, onOpenPoints }: Props) {
   const { points } = useCampaigns();
   const tabs = business ? BUSINESS_TABS : CUSTOMER_TABS;
   const [tab, setTabState] = useState<Tab>(initialTab && tabs.some((t) => t.tab === initialTab) ? initialTab : tabs[0].tab);
@@ -118,7 +120,7 @@ export function CampaignsScreen({ signedIn, serverPoints, customerCode, business
         radius={16}
         text={
           business
-            ? 'Kampanyalarım: yeni kampanya ve kalıcı ödül. Kuponlar: kasada müşterinin kodunu ya da QR\'ını okut.'
+            ? 'Kampanyalar: yeni ve haftalık kampanyalar. Kuponlar: kasada müşterinin kodunu ya da QR\'ını okut. Ödüller: kalıcı ödül ve damga kartı.'
             : 'Kampanyalar: yakındaki indirimler. Kuponlarım: aldığın kuponlar, kasada QR\'ı göster. Sadakat: damga kartların.'
         }
       >
@@ -128,19 +130,27 @@ export function CampaignsScreen({ signedIn, serverPoints, customerCode, business
         ))}
       </View>
       </Tip>
-      {tab === 'campaigns' && <CampaignList onOpenVenue={onOpenVenue} />}
+      {tab === 'campaigns' && <CampaignList onOpenVenue={onOpenVenue} onOpenVenuePage={onOpenVenuePage} />}
       {tab === 'coupons' && <MyCoupons />}
-      {tab === 'loyalty' && <Loyalty signedIn={signedIn} serverPoints={serverPoints} customerCode={customerCode} onLogin={onLogin} />}
+      {tab === 'loyalty' && <Loyalty signedIn={signedIn} customerCode={customerCode} onLogin={onLogin} />}
       {tab === 'myCampaigns' && business && <MyCampaigns business={business} />}
-      {tab === 'myPrograms' && business && <MyPrograms />}
+      {tab === 'myPrograms' && business && <MyPrograms token={business.token ?? null} />}
       {tab === 'venueCoupons' && business && <VenueCoupons venueId={business.venueId} />}
     </ScrollView>
   );
 }
 
-function CampaignList({ onOpenVenue }: Pick<Props, 'onOpenVenue'>) {
+type Offer = { campaign_id: number; standing: boolean; points: number; discount: number | null; venue_id: number; venue_name: string; district: string | null; distance_m: number | null };
+
+function CampaignList({ onOpenVenue, onOpenVenuePage }: Pick<Props, 'onOpenVenue' | 'onOpenVenuePage'>) {
   const { campaigns, now, recordView } = useCampaigns();
   const location = useLocation();
+  // No campaign nearby: what points buy instead (the venues' standing rewards and special coupons)
+  const [offers, setOffers] = useState<Offer[]>([]);
+  useEffect(() => {
+    const at = location.point ? `?lat=${location.point.lat}&lon=${location.point.lon}` : '';
+    send<Offer[]>('GET', `/v1/rewards${at}`).then(setOffers).catch(() => {});
+  }, [location.point?.lat, location.point?.lon]); // eslint-disable-line react-hooks/exhaustive-deps
   // Campaigns of v1 demo venues stay stored on the phone but are not shown in v2
   const { venues: shownVenues } = useVenuesByIds([...new Set(campaigns.map((c) => c.venueId))]);
   const shownIds = new Set(shownVenues.map((v) => v.id));
@@ -164,6 +174,26 @@ function CampaignList({ onOpenVenue }: Pick<Props, 'onOpenVenue'>) {
         <Text style={styles.empty}>
           Yakınında şu an aktif kampanya yok. Mekanlar kampanya başlatınca burada görünür.
         </Text>
+      )}
+      {nearby.length === 0 && offers.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Puanla alabileceklerin</Text>
+          {offers.slice(0, 5).map((o) => (
+            <Pressable key={o.campaign_id} style={styles.offer} onPress={() => onOpenVenuePage?.({ id: o.venue_id })} accessibilityRole="button">
+              <Icon name={o.standing ? 'gift' : 'ticket'} size={20} color={colors.gold} />
+              <View style={styles.flex}>
+                <Text style={styles.venue} numberOfLines={1}>
+                  {o.discount ? `%${o.discount} indirim` : 'Özel kupon'} · {o.venue_name}
+                </Text>
+                <Text style={styles.muted}>
+                  {o.standing ? 'Kalıcı ödül, haftada bir' : 'Özel kupon'}
+                  {o.distance_m !== null ? ` · ${formatDistance(o.distance_m / 1000)}` : o.district ? ` · ${o.district}` : ''}
+                </Text>
+              </View>
+              <Text style={styles.offerPoints}>{o.points} puan</Text>
+            </Pressable>
+          ))}
+        </>
       )}
       {nearby.map(({ campaign, distanceKm }) => (
         <View key={campaign.id} style={styles.card}>
@@ -239,12 +269,10 @@ function MyCoupons() {
 
 function Loyalty({
   signedIn,
-  serverPoints,
   customerCode,
   onLogin,
 }: {
   signedIn: boolean;
-  serverPoints: number;
   customerCode: string | null;
   onLogin: () => void;
 }) {
@@ -268,12 +296,7 @@ function Loyalty({
   return (
     <View style={styles.list}>
       <View style={styles.pointsCard}>
-        <Text style={styles.pointsLabel}>Kazandığın toplam puan</Text>
-        <Text style={styles.points}>{serverPoints}</Text>
-        <Text style={styles.muted}>
-          Her damga 5, kullandığın her kupon 10 puan. Seviyen ve sıralaman bu toplamla hesaplanır; harcanabilir puanın üstteki
-          "Puanların" kartında.
-        </Text>
+        <Text style={styles.pointsLabel}>Sadakat kartın</Text>
         {customerCode && (
           <>
             <View style={styles.qr}>
@@ -399,7 +422,7 @@ function MyCampaigns({ business }: { business: BusinessInfo }) {
         </View>
       )}
       {note && <Text style={styles.success}>✓ {note}</Text>}
-      {/* Running now first; the weekly ones and the standing reward; the ended ones at the very bottom */}
+      {/* Running now first, then the weekly ones; the ended ones at the very bottom (the standing reward is in Ödüller) */}
       <Text style={styles.sectionTitle}>Aktif kampanyaların</Text>
       {running.length === 0 && <Text style={styles.muted}>Şu an aktif kampanyan yok. "Yeni kampanya"ya dokun, boş masaları doldur.</Text>}
       {running.map((c) => campaignCard(c, true))}
@@ -413,7 +436,6 @@ function MyCampaigns({ business }: { business: BusinessInfo }) {
               setSheet('schedule');
             }}
           />
-          {business.token && <RewardSetup token={business.token} />}
         </>
       )}
       {ended.length > 0 && (
@@ -465,10 +487,11 @@ function MyCampaigns({ business }: { business: BusinessInfo }) {
   );
 }
 
-/** Business: set up the loyalty program, switch it on/off and stamp members. */
-function MyPrograms() {
+/** Business "Ödüller": the standing reward ("200 puan = %10") and the stamp card, set up and switched on/off here. */
+function MyPrograms({ token }: { token: string | null }) {
   return (
     <View style={styles.list}>
+      {token && <RewardSetup token={token} />}
       <LoyaltySetup />
     </View>
   );
@@ -499,12 +522,14 @@ function VenueCoupons({ venueId }: { venueId: number }) {
 }
 
 const styles = themed(() => StyleSheet.create({
+  offer: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  offerPoints: { fontSize: 13, fontWeight: '800', color: colors.gold },
   newRow: { flexDirection: 'row', gap: 10 },
-  newButton: { flex: 1, paddingVertical: 13, borderRadius: 14, alignItems: 'center' },
+  newButton: { flex: 1, paddingVertical: 13, paddingHorizontal: 8, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   newPrimary: { backgroundColor: colors.primary },
-  newPrimaryText: { color: colors.onPrimary, fontWeight: '800', fontSize: 15 },
+  newPrimaryText: { color: colors.onPrimary, fontWeight: '800', fontSize: 14, textAlign: 'center' },
   newSecondary: { borderWidth: 1.5, borderColor: colors.primary },
-  newSecondaryText: { color: colors.primary, fontWeight: '800', fontSize: 15 },
+  newSecondaryText: { color: colors.primary, fontWeight: '800', fontSize: 14, textAlign: 'center' },
   success: { color: colors.success, fontWeight: '700', fontSize: 14 },
   walletCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.gold },
   pointsEmoji: { fontSize: 26 },
@@ -547,8 +572,7 @@ const styles = themed(() => StyleSheet.create({
   qr: { alignItems: 'center', paddingVertical: 10 },
   centered: { textAlign: 'center' },
   pointsCard: { padding: 16, borderRadius: 16, backgroundColor: colors.cream, gap: 4 },
-  pointsLabel: { fontSize: 14, color: colors.textMuted },
-  points: { fontSize: 36, fontWeight: '800', color: colors.primary },
+  pointsLabel: { fontSize: 15, fontWeight: '700', color: colors.text, textAlign: 'center' },
   stamps: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   stamp: {
     width: 30,

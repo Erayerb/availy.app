@@ -14,17 +14,16 @@ export const FREE_FEATURES = [
   'Kuponları al; mekanların ödüllerini puanla aç',
   `Sakinleşince haber al: aynı anda ${FREE_WATCH_LIMIT} mekan`,
   'Serini kurtar: ayda 2 kez',
-  'Konuma göre reklamlar',
+  'Reklamlı',
 ];
 
-export const PREMIUM_FEATURES = [
-  'Profilini güzelleştir: kapak fotoğrafı, renkli çerçeveler ve availo+ rozeti',
-  'Aylık özetini gör: en çok gittiğin yerler, semtlerin, arkadaşlarınla kıyas',
-  'Favorilerin sakinleşince haber al (zil açmadan)',
-  'Sakinleşince haber al: sınırsız mekan',
-  'Serini kurtar: ayda 10 kez',
-  'Reklamsız kullan',
-  'Ücretsiz plandaki her şey',
+// availo+ on the Abonelik page: an icon, a short title and one line each
+export const PREMIUM_PERKS: { icon: string; title: string; text: string }[] = [
+  { icon: 'bell-ringing', title: 'Sınırsız "sakinleşince haber ver"', text: 'Favorilerin sakinleşince zil açmadan haber al' },
+  { icon: 'chart-bar', title: 'Aylık özet', text: 'En çok gittiğin yerler, semtlerin, arkadaşlarınla kıyas' },
+  { icon: 'flame', title: 'Serini kurtar: ayda 10 kez', text: 'Ücretsizde ayda 2 kez' },
+  { icon: 'sparkles', title: 'Profilini öne çıkar', text: 'Kapak fotoğrafı, renkli çerçeve ve availo+ rozeti' },
+  { icon: 'ad-off', title: 'Reklamsız', text: 'Ücretsiz plandaki her şey, reklamsız' },
 ];
 
 export const canAddWatch = (watchCount: number, premium: boolean) => premium || watchCount < FREE_WATCH_LIMIT;

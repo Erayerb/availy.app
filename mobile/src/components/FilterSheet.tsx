@@ -8,6 +8,7 @@ import { Chip, TagChips } from './TagChips';
 import { ThemedSwitch } from './ThemedSwitch';
 import { TAG_OPTIONS, toggleTag, type Tag } from '../lib/filters';
 import { SORT_OPTIONS, SORT_RESET_MS, type SortMode } from '../lib/sort';
+import { useLocation } from '../context/LocationContext';
 import { colors, themed } from '../theme';
 import { useHoldTips } from '../lib/tips';
 
@@ -59,7 +60,8 @@ export function FilterBar(props: Props) {
       },
     }),
   ).current;
-  const active = tags.length + (hideClosed ? 1 : 0);
+  const { point } = useLocation();
+  const active = tags.length + (hideClosed ? 1 : 0) + (sortMode !== 'recommended' ? 1 : 0);
 
   return (
     <>
@@ -112,6 +114,9 @@ export function FilterBar(props: Props) {
             <Applied key={tag} label={TAG_OPTIONS.find((t) => t.tag === tag)?.label ?? tag} onRemove={() => onTagsChange(toggleTag(tags, tag))} />
           ))}
           {hideClosed && <Applied label="Açık olanlar" onRemove={() => onHideClosedChange(false)} />}
+          {sortMode !== 'recommended' && (
+            <Applied label={SORT_OPTIONS.find((o) => o.mode === sortMode)?.label ?? ''} onRemove={() => onSortChange('recommended')} />
+          )}
         </View>
       )}
 
@@ -128,6 +133,23 @@ export function FilterBar(props: Props) {
           </View>
           </View>
           <ScrollView contentContainerStyle={styles.sheetBody}>
+            {/* The order of the list ("Tüm mekanlar" has no sort chips on the page) */}
+            <Text style={styles.heading}>Sırala</Text>
+            <View style={styles.sortRow}>
+              {[{ mode: 'recommended' as SortMode, label: 'Önerilen' }, ...SORT_OPTIONS].map(({ mode, label }) => (
+                <Chip
+                  key={mode}
+                  label={label}
+                  active={shownSort === mode}
+                  onPress={() => {
+                    setShownSort(mode);
+                    startTransition(() => onSortChange(mode));
+                  }}
+                />
+              ))}
+            </View>
+            {shownSort === 'nearest' && !point && <Text style={styles.muted}>Konumun kapalı: önerilen sırayla gösteriliyor.</Text>}
+
             <Text style={styles.heading}>Ne arıyorsun?</Text>
             <TagChips selected={tags} onToggle={(tag) => onTagsChange(toggleTag(tags, tag))} />
 
@@ -169,9 +191,12 @@ function Applied({ label, onRemove }: { label: string; onRemove: () => void }) {
 }
 
 const styles = themed(() => StyleSheet.create({
+  sortRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
-  barTitle: { fontSize: 17, fontWeight: '700', color: colors.text },
+  // 24 from the section above and 12 to the cards (the list adds 16 itself), like every Ana sayfa section;
+  // as tall as the title, "Filtreler" sticks out
+  titleRow: { height: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, marginBottom: -4 },
+  barTitle: { fontSize: 17, lineHeight: 22, fontWeight: '700', color: colors.text },
   bar: { gap: 8, alignItems: 'center' },
   appliedRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
   button: {

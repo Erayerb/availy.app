@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { categoryLabel, foldTr, TAG_OPTIONS, toggleSingle, toggleTag } from '../src/lib/filters.ts';
+import { categoryLabel, foldTr, TAG_OPTIONS, tagForTime, toggleSingle, toggleTag } from '../src/lib/filters.ts';
 
 test('filter chips are the purposes in Turkish', () => {
   assert.deepEqual(
@@ -41,4 +41,17 @@ test('trending: venues with check-ins in the last 24 hours, most people first', 
   const { trending } = await import('../src/lib/sort.ts');
   const list = [{ id: 1, trend: 2 }, { id: 2, trend: 0 }, { id: 3, trend: 5 }, { id: 4 }];
   assert.deepEqual(trending(list).map((v) => v.id), [3, 1]);
+});
+
+test('"Ne arıyorsun?" opens on what fits the hour', () => {
+  const at = (day: number, hour: number) => tagForTime(new Date(2026, 10, 23 + day, hour)); // 23 Nov 2026: Monday
+  assert.equal(at(0, 9), 'coworking'); // Monday morning
+  assert.equal(at(5, 9), 'food'); // Saturday breakfast
+  assert.equal(at(0, 12), 'food');
+  assert.equal(at(0, 15), 'coworking');
+  assert.equal(at(6, 15), 'socializing'); // Sunday afternoon
+  assert.equal(at(0, 19), 'food');
+  assert.equal(at(0, 21), 'socializing');
+  assert.equal(at(0, 23), 'nightlife');
+  assert.equal(at(0, 2), 'nightlife');
 });

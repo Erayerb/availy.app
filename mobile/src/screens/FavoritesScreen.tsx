@@ -73,8 +73,8 @@ export function FavoritesScreen({ onOpenVenue, visits, signedIn, token, onLogin,
         {(
           [
             { id: 'saved', label: `Favoriler${savedIds.length ? ` (${savedIds.length})` : ''}` },
-            { id: 'lists', label: `Listelerim${lists?.length ? ` (${lists.length})` : ''}` },
-            { id: 'visited', label: `Ziyaret edilenler${visitedIds.length ? ` (${visitedIds.length})` : ''}` },
+            { id: 'lists', label: `Listeler${lists?.length ? ` (${lists.length})` : ''}` },
+            { id: 'visited', label: `Gittiklerim${visitedIds.length ? ` (${visitedIds.length})` : ''}` },
           ] as const
         ).map(({ id, label }) => (
           <Pressable

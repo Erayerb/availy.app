@@ -10,6 +10,7 @@ import { sentence, timeAgo } from '../lib/crowd';
 import { author, MAX_REPLIES_PER_PERSON, MAX_REVIEW, reviewsApi, type Review, type Reviews } from '../lib/reviews';
 import { REPORT_REASONS, safetyApi, type ReportReason } from '../lib/safety';
 import { colors, themed } from '../theme';
+import { Icon } from './Icon';
 
 // Reviews shown before "Tümünü göster"
 const FIRST_REVIEWS = 5;
@@ -205,16 +206,29 @@ function ReviewItem({
   );
 }
 
-/** "Şikâyet et": pick a reason; the review / reply is hidden for me right away. */
+/** "⋯" at the end of a review / reply: "Şikâyet et" in it, then a reason; it is hidden for me right away. */
 function ReportButton({ onReport, onDone }: { onReport: (reason: ReportReason) => Promise<void>; onDone: () => void }) {
-  const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<'closed' | 'menu' | 'reasons'>('closed');
   const [error, setError] = useState<string | null>(null);
 
-  if (!open) {
+  if (step === 'closed') {
     return (
-      <Pressable onPress={() => setOpen(true)} hitSlop={6}>
-        <Text style={styles.report}>Şikâyet et</Text>
+      <Pressable onPress={() => setStep('menu')} hitSlop={10} style={styles.more} accessibilityRole="button" accessibilityLabel="Diğer seçenekler">
+        <Icon name="dots" size={16} color={colors.textMuted} />
       </Pressable>
+    );
+  }
+  if (step === 'menu') {
+    return (
+      <View style={styles.menu}>
+        <Pressable onPress={() => setStep('reasons')} style={styles.menuItem} accessibilityRole="button">
+          <Icon name="flag" size={14} color={colors.danger} />
+          <Text style={styles.menuDanger}>Şikâyet et</Text>
+        </Pressable>
+        <Pressable onPress={() => setStep('closed')} style={styles.menuItem} accessibilityRole="button">
+          <Text style={styles.muted}>Vazgeç</Text>
+        </Pressable>
+      </View>
     );
   }
   return (
@@ -237,7 +251,7 @@ function ReportButton({ onReport, onDone }: { onReport: (reason: ReportReason) =
             <Text style={styles.reasonText}>{label}</Text>
           </Pressable>
         ))}
-        <Pressable onPress={() => setOpen(false)} style={styles.reason}>
+        <Pressable onPress={() => setStep('closed')} style={styles.reason}>
           <Text style={styles.muted}>Vazgeç</Text>
         </Pressable>
       </View>
@@ -270,7 +284,10 @@ const styles = themed(() => StyleSheet.create({
   action: { color: colors.primary, fontWeight: '600', fontSize: 13 },
   delete: { color: colors.danger, fontSize: 13, fontWeight: '600' },
   deleteButton: { paddingVertical: 4, paddingHorizontal: 8, marginHorizontal: -8 },
-  report: { color: colors.textMuted, fontSize: 13 },
+  more: { marginLeft: 'auto', paddingHorizontal: 4 },
+  menu: { marginLeft: 'auto', flexDirection: 'row', gap: 6 },
+  menuItem: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 10, backgroundColor: colors.cream },
+  menuDanger: { color: colors.danger, fontSize: 13, fontWeight: '600' },
   businessTag: { color: colors.onPrimary, backgroundColor: colors.primary, fontSize: 11, fontWeight: '700', borderRadius: 6, overflow: 'hidden' },
   reportBox: { gap: 6, padding: 10, borderRadius: 12, backgroundColor: colors.cream, width: '100%' },
   reasons: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

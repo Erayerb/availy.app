@@ -61,6 +61,8 @@ def discovered_venues(conn: psycopg.Connection, lat: float | None, lon: float | 
                round({distance})::int AS distance_m
         FROM checkins c JOIN venues v ON v.id = c.venue_id LEFT JOIN users u ON u.id = c.user_id
         WHERE c.is_first AND NOT c.is_demo AND c.created_at > %(since)s
+          -- Not the ones closed or hidden since (they are off the map too)
+          AND v.closed_at IS NULL AND v.hidden_at IS NULL
         ORDER BY {distance} NULLS LAST, c.created_at DESC
         LIMIT %(limit)s
         """,

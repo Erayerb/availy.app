@@ -1,7 +1,5 @@
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { Tip } from '../components/Tip';
-import { StarterTasks } from '../components/StarterTasks';
-import type { Screen } from '../components/TabBar';
 import { WhileAway } from '../components/WhileAway';
 import { LayoutAnimation, Modal,  StyleSheet, View } from 'react-native';
 import { useOnPageFocus } from '../context/PageContext';
@@ -64,7 +62,7 @@ type Props = {
   // 🔔 and profile icons at the top right
   onOpenProfile: () => void;
   onOpenNotifications: () => void;
-  onOpenScreen?: (screen: Screen) => void; // "İlk adımlar": where each task is done
+  onRegister?: () => void; // a guest: "Arkadaşların nerede?" asks them to sign up
 };
 
 export function HomeScreen({
@@ -86,7 +84,7 @@ export function HomeScreen({
   inviteName,
   onOpenProfile,
   onOpenNotifications,
-  onOpenScreen,
+  onRegister,
 }: Props) {
   const visibleDistricts = districtsForSides(useDistricts(), sides);
   const { venues: found, loading, error, refreshing, refresh, update } = useSearch(query, null, tags);
@@ -127,6 +125,9 @@ export function HomeScreen({
   };
 
   // "Önerilen": open places first, nearest first; without a location a mixed order (search results by name)
+  const [shown, setShown] = useState(PAGE);
+  // A new filter, place or order starts the list short again
+  useEffect(() => setShown(PAGE), [tags, sides, districts, listSort, hideClosed]);
   const items = useMemo(
     () => {
       const sorted = sortVenues(venues, listSort, point, (list) => {
@@ -139,9 +140,10 @@ export function HomeScreen({
     [venues, searching, point, listSort],
   );
 
-  // "Arkadaşların nerede?" is the first title for an account; a guest's first title is the first row's
-  // ("Ne arıyorsun?"): Konum and search sit on that line, so no empty line is left above it
-  const ownTitle = Boolean(token) && !searching;
+  // "Arkadaşların nerede?" is the first title (a guest sees it with a sign-up card under it); without it the
+  // first row's title ("Ne arıyorsun?") takes Konum and search, so no empty line is left above it
+  const guestCard = !token && Boolean(onRegister);
+  const ownTitle = (Boolean(token) || guestCard) && !searching;
   const pageControls = (
     <>
       {/* Konum: next to search, for the whole page (every row and the list below); × clears it */}
@@ -169,7 +171,7 @@ export function HomeScreen({
       </View>
       <Tip id="homeSearch" after="campaignsButton" placement="below" radius={20} text="Mekan ara: adını yaz, sonuçlar burada listelenir.">
         <Pressable onPress={() => toggleSearch(true)} style={styles.searchButton} hitSlop={8} accessibilityLabel="Mekan ara">
-          <TabIcon name="search" color={colors.onPrimary} active={false} size={20} />
+          <TabIcon name="search" color={colors.onPrimary} active={false} size={18} />
         </Pressable>
       </Tip>
     </>
@@ -210,11 +212,24 @@ export function HomeScreen({
         </View>
       )}
 
+      {!searching && guestCard && (
+        <View style={styles.guest}>
+          <View style={styles.guestIcon}>
+            <Icon name="users" size={20} color={colors.primary} />
+          </View>
+          <View style={styles.guestBody}>
+            <Text style={styles.guestText}>Arkadaşlarının şu an nerede olduğunu görmek için kayıt ol. Check-in'lerin ve puanların seninle gelir.</Text>
+            <Pressable onPress={onRegister} style={styles.guestButton} accessibilityRole="button">
+              <Text style={styles.guestButtonText}>Kayıt ol</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
       {!searching && (
         <FriendsPlaces token={token} onOpenVenue={onOpenVenue} onAddFriends={onOpenFriends} inviteName={inviteName} hideTitle />
       )}
 
-      {!searching && <StarterTasks token={token} onOpen={onOpenScreen} />}
       {!searching && <WhileAway token={token} onOpenVenue={onOpenVenue} onOpenNotifications={onOpenNotifications} />}
 
       {/* Sideways rows: Şu an sakin, yakınında · Ne arıyorsun? · Trend olanlar · Keşfedilmeyi bekleyenler */}
@@ -294,11 +309,22 @@ export function HomeScreen({
     </Modal>
   );
 
+  // "Tüm mekanlar": a short list (sponsored first, then mixed); more on request. A search shows every result
+  const shownItems = searching ? items : items.slice(0, shown);
+  const more = items.length - shownItems.length;
+
   return (
     <>
     {placeSheet}
     <VenueGrid
-      venues={items}
+      venues={shownItems}
+      footer={
+        more > 0 ? (
+          <Pressable onPress={() => setShown((n) => n + PAGE)} style={styles.more} accessibilityRole="button">
+            <Text style={styles.moreText}>Daha fazla göster</Text>
+          </Pressable>
+        ) : null
+      }
       header={header}
       emptyText="Sonuç bulunamadı"
       loading={loading}
@@ -318,16 +344,28 @@ function placeLabel(sides: Side[], districts: string[]): string {
   return 'İstanbul';
 }
 
+const PAGE = 20;
+
 const styles = themed(() => StyleSheet.create({
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, zIndex: 15, elevation: 15 },
-  sectionTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: colors.text },
+  more: { alignSelf: 'center', marginTop: 4, marginBottom: 12, paddingVertical: 11, paddingHorizontal: 22, borderRadius: 14, backgroundColor: colors.cream },
+  moreText: { color: colors.text, fontWeight: '700', fontSize: 14 },
+  // As tall as the title text: Konum and search stick out above and below, so the title → content gap is the
+  // same 12 as every other section's (the row with its buttons was 20 px taller)
+  titleRow: { height: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, zIndex: 15, elevation: 15 },
+  sectionTitle: { flex: 1, fontSize: 17, lineHeight: 22, fontWeight: '700', color: colors.text },
   // Search stands out: filled with the brand colour
-  searchButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  searchButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  guest: { flexDirection: 'row', gap: 12, padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  guestIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
+  guestBody: { flex: 1, gap: 10, alignItems: 'flex-start' },
+  guestText: { fontSize: 14, lineHeight: 20, color: colors.text },
+  guestButton: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 12, backgroundColor: colors.primary },
+  guestButtonText: { color: colors.onPrimary, fontSize: 14, fontWeight: '700' },
   soon: { gap: 4, padding: 14, borderRadius: 14, backgroundColor: colors.cream, marginTop: 4 },
   soonTitle: { fontSize: 15, fontWeight: '800', color: colors.text },
   soonText: { fontSize: 14, lineHeight: 20, color: colors.textMuted },
   soonBold: { fontWeight: '700', color: colors.text },
-  header: { gap: 10 },
+  header: { gap: 12 },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6, zIndex: 20, elevation: 20 },
   place: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, backgroundColor: colors.cream, maxWidth: 120 },
   placeOn: { backgroundColor: colors.primary },

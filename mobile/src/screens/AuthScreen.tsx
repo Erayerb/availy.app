@@ -114,7 +114,7 @@ export function AuthScreen({ mode, initialRole = 'personal', onBack, onSwitchMod
             <TextInput
               value={username}
               onChangeText={(text) => setUsername(normalizeUsername(text))}
-              placeholder="Kullanıcı adı (ör. eray)"
+              placeholder="Kullanıcı adı"
               placeholderTextColor={colors.placeholder}
               style={styles.input}
               autoCapitalize="none"

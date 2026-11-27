@@ -48,7 +48,7 @@ Ekteki üç taslağın (Gizlilik Politikası ve Aydınlatma Metni, Kullanım Ko�
 
 9. **İşletmelere gösterilen istatistikler:** İşletmeler kimlik içermeyen sayılar görüyor. Küçük bir mekanda "bugün 1 kişi geldi" gibi bir bilgi kişiyi tanınır kılabilir mi? Bir alt sınır koymalı mıyız?
 
-10. **Reklam ve yorumlar:** Ücretli öne çıkarılan mekanlar "Sponsorlu" etiketiyle gösteriliyor. Bu yeterli mi? Kullanıcı yorumlarıyla ilgili (sahte yorum, işletmenin yorum kaldırtması) uymamız gereken bir düzenleme var mı?
+10. **Reklam ve yorumlar:** Ücretli öne çıkarılan mekanlar "Sponsorlu" etiketiyle gösteriliyor. Bu yeterli mi? Ayrıca uygulamaya bir reklam ağının (ör. Google AdMob) banner ve kapatılabilir tam ekran reklamlarını koymayı planlıyoruz: bunun için ayrı açık rıza ekranı ve metinlerde neler gerekir? (Taslak rıza metni: Açık Rıza ve Onay Metinleri, 4. madde.) Kullanıcı yorumlarıyla ilgili (sahte yorum, işletmenin yorum kaldırtması) uymamız gereken bir düzenleme var mı?
 
 11. **Planlanan çekiliş:** Puanla katılınan, ödülü bir kafe ikramı olan haftalık bir çekiliş düşünüyoruz. İzin gerekir mi? (Henüz yapılmadı.)
 

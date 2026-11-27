@@ -80,7 +80,10 @@ export function SocialScreen({
   const [feedLoading, setFeedLoading] = useState(true);
   // Mine: the last 7 days ("Daha eski" up to 30); friends: 3 (up to 7)
   const recentDays = (t: SocialTab) => (t === 'feed' ? 7 : 3);
+  const olderDays = (t: SocialTab) => (t === 'feed' ? 30 : 7);
   const [days, setDays] = useState(recentDays(initialTab));
+  // Nothing recent: the older posts were opened by themselves (no "Daha eski" / "gizle" buttons then)
+  const [widened, setWidened] = useState(false);
   const feedRequest = useRef(0);
   const setTab = (next: SocialTab) => {
     if (next === tab) return;
@@ -89,6 +92,7 @@ export function SocialScreen({
     setFeed([]);
     setFeedLoading(true);
     setDays(recentDays(next));
+    setWidened(false);
   };
   // Shown while Akış is empty: "Önerilen kişiler" and "Yakında yeni keşfedilen mekanlar"
   const [suggestions, setSuggestions] = useState<Suggestions | null>(null);
@@ -103,10 +107,17 @@ export function SocialScreen({
       reviewsApi
         .feed(token, days, mine ? 'me' : 'friends')
         .then((items) => {
-          if (request === feedRequest.current) setFeed(items);
+          if (request !== feedRequest.current) return;
+          // Nothing in the last days: the latest older posts instead of an empty page
+          if (items.length === 0 && days === recentDays(tab)) {
+            setWidened(true);
+            setDays(olderDays(tab));
+            return;
+          }
+          setFeed(items);
+          setFeedLoading(false);
         })
-        .catch(() => {})
-        .finally(() => {
+        .catch(() => {
           if (request === feedRequest.current) setFeedLoading(false);
         });
     }
@@ -308,6 +319,9 @@ export function SocialScreen({
                   <Text style={styles.bold}>Önerilen kişiler</Text>
                   {suggestions.people.map((p) => (
                     <View key={p.username} style={styles.suggestRow}>
+                      <Pressable onPress={() => onOpenUser(p.username)} accessibilityLabel={`@${p.username} profili`}>
+                        <Avatar username={p.username} size={40} />
+                      </Pressable>
                       <Pressable style={styles.flex} onPress={() => onOpenUser(p.username)}>
                         <Text style={styles.bold}>@{p.username}</Text>
                         <Text style={styles.muted}>
@@ -378,12 +392,12 @@ export function SocialScreen({
           ))}
           {/* Older posts on request (friends' bare check-ins leave after 2 days anyway) */}
           {/* Also with nothing recent: older posts may still be there */}
-          {days === recentDays(tab) && !feedLoading && (
-            <Pressable onPress={() => setDays(mine ? 30 : 7)} style={styles.older}>
+          {days === recentDays(tab) && !feedLoading && feed.length > 0 && (
+            <Pressable onPress={() => setDays(olderDays(tab))} style={styles.older}>
               <Text style={styles.olderText}>Daha eski gönderileri göster</Text>
             </Pressable>
           )}
-          {days > recentDays(tab) && (
+          {days > recentDays(tab) && !widened && (
             <Pressable onPress={() => setDays(recentDays(tab))} style={styles.older}>
               <Text style={styles.olderText}>Eski gönderileri gizle</Text>
             </Pressable>

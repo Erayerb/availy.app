@@ -27,10 +27,11 @@ type Props = {
   refreshing?: boolean;
   onRefresh?: () => void;
   tileExtra?: (venue: Venue) => ReactNode; // under each tile's heart (Favoriler: the zil)
+  footer?: ReactElement | null; // under the tiles (Ana sayfa: "Daha fazla göster")
 };
 
 /** Two-column grid of square venue tiles with a scrolling header above it. */
-export function VenueGrid({ venues, header, emptyText, empty, loading = false, error, onOpenVenue, refreshing = false, onRefresh, tileExtra }: Props) {
+export function VenueGrid({ venues, header, emptyText, empty, loading = false, error, onOpenVenue, refreshing = false, onRefresh, tileExtra, footer = null }: Props) {
   const { width } = useWindowDimensions();
   const tileSize = (width - PADDING * 2 - GAP) / 2;
   const { point } = useLocation();
@@ -51,6 +52,7 @@ export function VenueGrid({ venues, header, emptyText, empty, loading = false, e
       removeClippedSubviews={Platform.OS !== 'web'}
       columnWrapperStyle={styles.columns}
       ListHeaderComponent={header}
+      ListFooterComponent={footer ?? undefined}
       ListEmptyComponent={
         loading && !error ? (
           <View style={styles.skeletons}>

@@ -135,10 +135,11 @@ def notifications(conn: psycopg.Connection, me: dict, now: datetime) -> list[dic
             JOIN venues v ON v.id = c.venue_id
             WHERE c.user_id = %(me)s AND k.user_id <> %(me)s AND k.created_at > %(since)s AND k.user_id NOT IN {BLOCKED}
             UNION ALL
-            -- A friend at a venue: "Buradayım, gel" (not the ones I muted)
+            -- A friend at a venue: "Buradayım, gel" (not the ones I muted). Only for a day: the app says
+            -- "…mekanındaydı" after a couple of hours, then it goes
             SELECT 'come_here', k.created_at, u.username, v.id, v.name, NULL, false
             FROM come_calls k JOIN users u ON u.id = k.user_id JOIN venues v ON v.id = k.venue_id
-            WHERE k.created_at > %(since)s AND NOT u.frozen AND k.user_id NOT IN {BLOCKED}
+            WHERE k.created_at > GREATEST(%(since)s, %(now)s - interval '1 day') AND NOT u.frozen AND k.user_id NOT IN {BLOCKED}
               AND k.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id = %(me)s)
               AND k.user_id IN (
                   SELECT CASE WHEN requester_id = %(me)s THEN addressee_id ELSE requester_id END

@@ -11,6 +11,7 @@ import { StatusPill } from './StatusPill';
 import { categoryLabel } from '../lib/filters';
 import { sponsorsApi } from '../lib/sponsors';
 import { VenuePhoto } from './VenuePhoto';
+import { FriendsHereBadge } from './FriendsHereBadge';
 import { GradientFill } from './GradientFill';
 import { Icon, InlineIcon } from './Icon';
 
@@ -20,12 +21,13 @@ type Props = {
   distance?: string | null; // e.g. "850 m", shown when the user's location is known
   onPress: () => void;
   extra?: ReactNode; // under the heart (Favoriler: the zil)
+  hideFriends?: boolean; // "Arkadaşların nerede?" says who is there under the card already
 };
 
 // The photo is a little shorter than it is wide, so more venues fit on the screen
 export const TILE_RATIO = 0.78;
 
-function Tile({ venue, size, distance, onPress, extra }: Props) {
+function Tile({ venue, size, distance, onPress, extra, hideFriends = false }: Props) {
   // Sponsored cards count their views and taps for the business's numbers
   useEffect(() => {
     if (venue.sponsored) sponsorsApi.view(venue.id);
@@ -57,6 +59,12 @@ function Tile({ venue, size, distance, onPress, extra }: Props) {
             {venue.name}
           </Text>
         </View>
+        {/* Friends there now: their photos on the bottom right; a tap lists them */}
+        {!hideFriends && (
+          <View style={styles.friends}>
+            <FriendsHereBadge venue={venue} />
+          </View>
+        )}
         {!!venue.moments && (
           <View style={styles.moments}>
             <Icon name="camera" size={12} color="#fff" />
@@ -113,7 +121,8 @@ const styles = themed(() => StyleSheet.create({
     fontWeight: '700',
   },
   favorite: { position: 'absolute', top: 6, right: 6, gap: 6 },
+  friends: { position: 'absolute', right: 8, bottom: 8 },
   distance: { marginTop: 6, fontSize: 12, color: colors.textMuted },
   sponsored: { color: colors.gold, fontWeight: '700' },
-  name: { fontSize: 15, fontWeight: '800', color: '#fff', lineHeight: 18 },
+  name: { fontSize: 14, fontWeight: '800', color: '#fff', lineHeight: 17 },
 }));

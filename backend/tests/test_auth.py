@@ -119,6 +119,16 @@ def test_sessions_expire(client, conn):
     assert client.get("/v1/me", headers=auth(token)).status_code == 401
 
 
+def test_using_the_app_keeps_the_session_going(client, conn):
+    user_id = register(client).json()["user"]["id"]
+    start = datetime.now(timezone.utc) - timedelta(days=SESSION_DAYS - 2)
+    token = create_session(conn, user_id, now=start)
+    # Two days before the end it is used: it runs on for SESSION_DAYS from today
+    assert client.get("/v1/me", headers=auth(token)).status_code == 200
+    end = conn.execute("SELECT expires_at FROM sessions WHERE user_id = %s ORDER BY created_at LIMIT 1", (user_id,)).fetchone()["expires_at"]
+    assert end > datetime.now(timezone.utc) + timedelta(days=SESSION_DAYS - 1)
+
+
 def test_only_the_token_hash_is_stored(client, conn):
     token = register(client).json()["token"]
     stored = [r["token_hash"] for r in conn.execute("SELECT token_hash FROM sessions").fetchall()]

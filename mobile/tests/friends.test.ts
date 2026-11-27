@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { friendQrPayload, inviteFromQuery, inviteLink, inviteMessage, parseFriendCode, placesFromFriends } from '../src/lib/friends.ts';
+import { friendQrPayload, inviteFromQuery, inviteLink, inviteMessage, parseFriendCode, placesFromFriends, friendsHereByVenue } from '../src/lib/friends.ts';
 
 test('friend QR codes, invite links and typed names all give the user name', () => {
   assert.equal(parseFriendCode(friendQrPayload('eray')), 'eray');
@@ -37,4 +37,13 @@ test('places friends went lately: one per place, newest first, old visits left o
     [10, 2, '2026-11-14T11:00:00Z'],
     [20, 1, '2026-11-13T09:00:00Z'],
   ]);
+});
+
+test('friends at a venue now: checked in there within the hour, latest first', () => {
+  const now = Date.parse('2026-11-27T12:00:00Z');
+  const friend = (username: string, venue_id: number, minutesAgo: number) =>
+    ({ id: username.length, username, last_checkin: { venue_id, venue_name: 'x', at: new Date(now - minutesAgo * 60_000).toISOString(), is_first: false, points: 10 } }) as never;
+  const here = friendsHereByVenue([friend('ali', 1, 50), friend('ayse', 1, 10), friend('can', 1, 70), friend('deniz', 2, 5)], now);
+  assert.deepEqual(here.get(1)?.map((f) => f.username), ['ayse', 'ali']);
+  assert.deepEqual(here.get(2)?.map((f) => f.username), ['deniz']);
 });

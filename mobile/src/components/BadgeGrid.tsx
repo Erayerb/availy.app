@@ -3,9 +3,10 @@ import { Text } from './Text';
 
 import type { Badge } from '../lib/auth';
 import { colors, themed } from '../theme';
-import { InlineIcon } from './Icon';
+import { Icon, InlineIcon } from './Icon';
+import { badgeIcon } from '../lib/badgeIcons';
 
-/** Round badges: earned ones in the brand red, locked ones faded with a progress bar ("1/5"). */
+/** Gold medals: earned ones with a gold ring and icon, locked ones grey with a progress bar ("1/5"). */
 export function BadgeGrid({ badges }: { badges: Badge[] }) {
   const earned = badges.filter((b) => b.earned).length;
   return (
@@ -17,7 +18,7 @@ export function BadgeGrid({ badges }: { badges: Badge[] }) {
         {badges.map((badge) => (
           <View key={badge.id} style={styles.item} accessibilityLabel={`${badge.name}: ${badge.description}`}>
             <View style={[styles.circle, badge.earned ? styles.earned : styles.locked]}>
-              <Text style={[styles.icon, !badge.earned && styles.iconLocked]}>{badge.icon}</Text>
+              <Icon name={badgeIcon(badge.id)} size={28} color={badge.earned ? colors.gold : colors.textMuted} />
               {!badge.earned && <Text style={styles.lock}><InlineIcon name="lock" /></Text>}
             </View>
             <Text style={[styles.name, !badge.earned && styles.muted]} numberOfLines={1}>
@@ -51,10 +52,8 @@ const styles = themed(() => StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 16 },
   item: { width: '33.33%', alignItems: 'center', gap: 4, paddingHorizontal: 4 },
   circle: { width: SIZE, height: SIZE, borderRadius: SIZE / 2, alignItems: 'center', justifyContent: 'center' },
-  earned: { backgroundColor: colors.primary, borderWidth: 2, borderColor: 'rgba(255,255,255,0.5)' },
-  locked: { backgroundColor: colors.background, borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed' },
-  icon: { fontSize: 30 },
-  iconLocked: { opacity: 0.25 },
+  earned: { backgroundColor: colors.background, borderWidth: 2.5, borderColor: colors.gold },
+  locked: { backgroundColor: colors.background, borderWidth: 2, borderColor: colors.border, opacity: 0.6 },
   lock: { position: 'absolute', right: -2, bottom: -2, fontSize: 16 },
   name: { fontSize: 13, fontWeight: '700', color: colors.text, textAlign: 'center' },
   muted: { color: colors.textMuted },

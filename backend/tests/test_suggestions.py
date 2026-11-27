@@ -24,6 +24,10 @@ def test_people_and_venues_for_an_empty_feed(client, conn, clock):
     assert found["people"][0]["username"] == "t_can" and found["people"][0]["mutual"] == 1
     assert found["venues"][0]["name"] == "Test Kafe A" and found["venues"][0]["username"] == "t_ayse"
     assert found["venues"][0]["distance_m"] < 100
+    # A venue closed since (or a test venue taken off) is not suggested any more
+    conn.execute("UPDATE venues SET closed_at = now() WHERE name = 'Test Kafe A'")
+    again = client.get("/v1/suggestions", params=NEAR, headers=auth(new)).json()
+    assert "Test Kafe A" not in [v["name"] for v in again["venues"]]
 
 
 def test_friends_here_and_regulars(client, conn, clock):

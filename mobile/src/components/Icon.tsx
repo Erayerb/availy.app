@@ -19,14 +19,14 @@ const OUTLINE: Record<string, string> = outlinePaths;
 const FILLED: Record<string, string> = filledPaths;
 
 /** A stand-alone icon, drawn: exactly in the middle of its box on every phone. */
-export function Icon({ name, size = 22, color, filled = false }: { name: IconName; size?: number; color: string; filled?: boolean }) {
+export function Icon({ name, size = 22, color, filled = false, strokeWidth = 2 }: { name: IconName; size?: number; color: string; filled?: boolean; strokeWidth?: number }) {
   const solid = filled && FILLED[name];
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
       {solid ? (
         <Path d={FILLED[name]} fill={color} />
       ) : (
-        <Path d={OUTLINE[name]} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        <Path d={OUTLINE[name]} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
       )}
     </Svg>
   );

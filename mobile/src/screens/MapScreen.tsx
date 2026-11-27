@@ -34,7 +34,7 @@ import { colors, themed } from '../theme';
 // Fetch an area twice the visible size so small pans don't trigger a new request
 const QUERY_PADDING = 2;
 // "Konumuma git" and "+" are the same size
-const MAP_BUTTON = 52;
+const MAP_BUTTON = 48;
 const PLACE_ZOOM = 15; // a neighbourhood fills the screen
 type Props = {
   onShowVenue: (venue: Venue) => void; // a searched venue: the map opens again around it, its card open
@@ -176,7 +176,7 @@ export function MapScreen({
 
       {/* Jump to the user's own position; asks for permission again if it was not given */}
       <Pressable
-        style={[styles.locate, { bottom: (showPopup ? popupHeight : legendHeight) + TAB_BAR_HEIGHT + 20 }]}
+        style={[styles.locate, { bottom: (showPopup ? popupHeight : legendHeight) + TAB_BAR_HEIGHT + 14 }]}
         onPress={goToMyLocation}
         accessibilityLabel="Konumuma git"
       >
@@ -189,7 +189,7 @@ export function MapScreen({
         radius={22}
         text="Bir mekandaysan Check-in'e bas: 10 saniye sürer, puan kazanırsın ve herkes oranın doluluğunu görür."
         action={{ label: 'Check-in yap', onPress: onOpenCheckin }}
-        style={[styles.checkinPlace, { bottom: (showPopup ? popupHeight : legendHeight) + TAB_BAR_HEIGHT + 20 }]}
+        style={[styles.checkinPlace, { bottom: (showPopup ? popupHeight : legendHeight) + TAB_BAR_HEIGHT + 14 }]}
       >
         <Pressable style={styles.checkinButton} onPress={onOpenCheckin} accessibilityLabel="Check-in yap">
           <Icon name="map-pin" size={17} color={colors.onPrimary} />
@@ -256,7 +256,7 @@ export function MapScreen({
           <View style={styles.modeRow}>
             {[
               { visited: false, label: 'Tümü' },
-              { visited: true, label: `Ziyaret ettiklerim${visitedIds.size ? ` (${visitedIds.size})` : ''}` },
+              { visited: true, label: `Gittiklerim${visitedIds.size ? ` (${visitedIds.size})` : ''}` },
             ].map(({ visited, label }) => (
               <Pressable
                 key={label}
@@ -407,10 +407,10 @@ const styles = themed(() => StyleSheet.create({
     elevation: 3,
   },
   clearText: { color: colors.onPrimary, fontWeight: '700', fontSize: 13 },
-  modeRow: { width: '100%', flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 2 },
-  mode: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: 14, backgroundColor: colors.cream },
+  modeRow: { width: '100%', flexDirection: 'row', justifyContent: 'center', gap: 6 },
+  mode: { paddingVertical: 5, paddingHorizontal: 13, borderRadius: 13, backgroundColor: colors.cream },
   modeActive: { backgroundColor: colors.primary },
-  modeText: { fontSize: 13, fontWeight: '600', color: colors.text },
+  modeText: { fontSize: 12.5, fontWeight: '600', color: colors.text },
   modeTextActive: { color: colors.onPrimary },
   cardContainer: { position: 'absolute' },
   cardMeasuring: { left: 0, top: 0, opacity: 0 },
@@ -422,12 +422,12 @@ const styles = themed(() => StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    rowGap: 6,
+    rowGap: 4,
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 18,
+    gap: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 11,
+    borderRadius: 17,
     backgroundColor: colors.surface,
   },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -449,9 +449,9 @@ const styles = themed(() => StyleSheet.create({
   checkinPlace: { position: 'absolute', right: 14 },
   legendTip: { width: '100%' },
   checkinButton: {
-    height: 44,
-    paddingHorizontal: 14,
-    borderRadius: 22,
+    height: 41,
+    paddingHorizontal: 13,
+    borderRadius: 21,
     flexDirection: 'row',
     gap: 5,
     backgroundColor: colors.primary,
@@ -463,7 +463,7 @@ const styles = themed(() => StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 6,
   },
-  checkinText: { fontSize: 14, fontWeight: '700', color: colors.onPrimary },
+  checkinText: { fontSize: 13.5, fontWeight: '700', color: colors.onPrimary },
   locateNote: {
     position: 'absolute',
     left: 14 + MAP_BUTTON + 8,

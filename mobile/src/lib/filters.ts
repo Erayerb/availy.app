@@ -10,6 +10,21 @@ export const TAG_OPTIONS: { tag: Tag; label: string }[] = [
   // 'wifi' is no filter any more (it still shows on the venue page as a feature)
 ];
 
+/**
+ * "Ne arıyorsun?" opens on what people usually look for at this hour: work in the morning and afternoon on
+ * weekdays (breakfast / going out on weekends), food at lunch and dinner, going out in the evening, nightlife late.
+ */
+export function tagForTime(now: Date): Tag {
+  const hour = now.getHours();
+  const weekend = now.getDay() === 0 || now.getDay() === 6;
+  if (hour < 6 || hour >= 22) return 'nightlife';
+  if (hour < 11) return weekend ? 'food' : 'coworking';
+  if (hour < 14) return 'food';
+  if (hour < 18) return weekend ? 'socializing' : 'coworking';
+  if (hour < 20) return 'food';
+  return 'socializing';
+}
+
 /** Add the tag if missing, remove it if present; result is sorted for stable query keys. */
 export function toggleTag(selected: Tag[], tag: Tag): Tag[] {
   const next = selected.includes(tag) ? selected.filter((t) => t !== tag) : [...selected, tag];

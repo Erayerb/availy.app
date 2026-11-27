@@ -25,3 +25,11 @@ Gösterileceği yer: kayıt düğmesinin altında, kutusuz.
 > Kayıt olarak Kullanım Koşulları'nı kabul etmiş olursun. Kişisel verilerinin nasıl işlendiğini Gizlilik Politikası ve Aydınlatma Metni'nde okuyabilirsin.
 
 Not: Aydınlatma metni "okudum, kabul ediyorum" şeklinde onaylatılmamalıdır; aydınlatma ile açık rıza ayrı tutulmalıdır.
+
+## 4. Reklam ağı için açık rıza (planlanıyor, henüz kullanılmıyor)
+
+Gösterileceği yer: reklam ağı (ör. Google AdMob) uygulamaya eklendiğinde, ilk reklam gösterilmeden önce ayrı bir ekranda; "Kabul ediyorum" ve "Kabul etmiyorum" düğmeleri eşit görünürlükte. iPhone'da ardından Apple'ın takip izni (App Tracking Transparency) sorulur. Kabul edilmezse yalnızca kişiselleştirilmemiş reklam gösterilir. Profil ayarları > Gizlilik'ten istenildiği zaman değiştirilebilir. availo+ abonelerine reklam gösterilmez. 18 yaşından küçük kullanıcılara bu ekran gösterilmez ve kişiselleştirilmiş reklam sunulmaz.
+
+> Bana ilgi alanlarıma göre reklam gösterilebilmesi için cihaz reklam kimliğimin, yaklaşık konumumun (şehir düzeyinde) ve reklamlarla etkileşimimin, reklam hizmeti sağlayıcısı [Google Ireland Limited / Google LLC] tarafından işlenmesine ve bu amaçla yurt dışına aktarılmasına açık rıza veriyorum. Rıza vermezsem de uygulamayı kullanabilirim; bu durumda bana ilgi alanlarıma göre olmayan reklamlar gösterilir. Rızamı Profil ayarları > Gizlilik'ten dilediğim zaman geri alabilirim. Ayrıntılar: Gizlilik Politikası ve Aydınlatma Metni.
+
+[Hukukçu: Reklam ağı henüz eklenmedi; eklenmeden önce bu metin, aydınlatma metnine eklenecek "Reklam hizmeti sağlayıcıları" bölümü, yurt dışı aktarım ve reşit olmayanlar için kişiselleştirilmiş reklam yasağı birlikte değerlendirilmeli. Reklam türleri: banner ve kapatılabilir tam ekran reklam, video yok.]

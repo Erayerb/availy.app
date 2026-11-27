@@ -1,480 +1,230 @@
 # availo (v2)
 
-**Ad:** Uygulamanın adı Availo (eski adı availy). Depo adı, sunucu ve site adresleri (availy-api, erayerb.github.io/availy.app), telefondaki kayıt anahtarları, QR önekleri ve test hesapları eski adla kalıyor. Logo: kemer ve nokta (components/Logo, simgeler scripts/build-logo.py), yazı Figtree; renkler temadan
+İstanbul'daki kafe, restoran, bar, kütüphane ve ortak çalışma alanlarının **şu an ne kadar dolu** olduğunu gösteren mobil uygulama. Doluluğu mekandaki kullanıcılar check-in ile bildirir: "Şu an burası nasıl? Sakin / Orta / Kalabalık". Sahte ya da tahmini doluluk yok; her şey gerçek check-in'lerden.
 
-İstanbul'daki kafe, restoran, bar, kütüphane ve ortak çalışma alanlarının şu an ne kadar dolu
-olduğunu gösteren mobil uygulama. Doluluğu mekanda olan kullanıcılar check-in yaparak bildirir
-(Swarm / Foursquare benzeri): "Şu an burası nasıl? Sakin / Orta / Kalabalık". Kullanıcı "şu an
-nerede yer var?" sorusuna cevap bulur, check-in yaparak puan ve rozet kazanır, ilk check-in'i
-yapan mekanı "keşfeder", arkadaşlarının nereye gittiğini ve yorumlarını görür.
-İşletmeler (B2B) kendi mekanlarının check-in istatistiklerini görür, yorumlara yanıt verir ve boş
-saatlerde yakındaki kullanıcılara kampanya / kupon gönderir.
+- **Kullanıcı:** "Şu an nerede yer var?" sorusuna cevap bulur; check-in yapıp puan, rozet, seviye kazanır; bir mekanın ilk check-in'ini yapıp orayı "keşfeder"; arkadaşlarının nereye gittiğini görür; puanını kafelerin indirimlerinde harcar.
+- **İşletme:** Kendi mekanının check-in istatistiklerini görür, yorumlara yanıt verir, boş saatlerde yakındakilere kampanya ve kupon gönderir, sadakat kartı ve kalıcı ödül kurar.
 
-v2 `v2-checkin` dalında geliştirilir ve `main`'e hiç alınmaz. v1 (sahte doluluklu ilk sürüm) `main`
-dalında ve `v1` etiketinde olduğu gibi durur (bkz. en alttaki "v1" bölümü).
-
-## Teknoloji
-- Mobil: React Native 0.88 + Expo SDK 58 (TypeScript); telefonda Expo Go ile çalışır. Uygulama yalnızca mobil (iOS / Android) yayınlanacak; web derlemesi yalnızca geliştirmede önizleme için, web'e özel iş yapılmaz (tanıtım sitesi ayrı)
-  - Harita: telefonda react-native-maps (Apple Haritalar), web'de Leaflet + OpenStreetMap (VenueMap.web.tsx)
-  - Tema: açık / koyu (mobile/src/theme.ts: `colors` ve `themed(...)` o anki temayı okur)
-  - Telefonda saklanan küçük veriler: AsyncStorage (web'de localStorage)
-- Backend: Python FastAPI + psycopg 3 (bağlantı havuzu)
-- Veritabanı: PostgreSQL 18 + PostGIS 3.6; şema her açılışta backend/app/sql/schema.sql'den uygulanır (tekrar çalıştırılabilir)
-- E-posta: Resend (şifre sıfırlama ve e-posta doğrulama kodları); anahtar yoksa yalnızca sunucu kaydına yazılır
-- Testler: backend pytest (`docker compose run --rm backend pytest -q`), mobil node test runner (`npm test`) + `npx tsc --noEmit`
-- Yerel geliştirme: Docker Compose (db + backend); `docker compose run` sonrası backend durursa `docker compose up -d backend`
-
-## Ortamlar
-- Yerel: backend http://localhost:8000; telefon Mac'in yerel IP'siyle bağlanır (mobile/.env `EXPO_PUBLIC_API_URL`, aynı Wi-Fi), `npx expo start`
-- İnternet (deneme ortamı, Mac kapalıyken de çalışır):
-  - Backend: Render ücretsiz web servisi `availy-api` (render.yaml, Docker, Frankfurt, `v2-checkin` dalından, her push'ta kendiliğinden yayınlanır): https://availy-api.onrender.com. 15 dk boşta kalınca uyur, ilk istek ~1 dk sürer
-  - Veritabanı: Neon ücretsiz PostgreSQL (Frankfurt). Bağlantı adresi gizli: yalnızca Render'daki DATABASE_URL'de, koda ve sohbete yazılmaz
-  - Render'daki diğer ayarlar: RESEND_API_KEY (henüz girilmedi), isteğe bağlı MAIL_FROM
-- Web: GitHub Pages (.github/workflows/pages.yml, iki dalda da aynı dosya; her çalışmada ikisini birden derler): v1 https://erayerb.github.io/availy.app/, v2 https://erayerb.github.io/availy.app/v2/ (repo değişkeni V2_API_URL = Render adresi)
-- Test hesapları (silinmez; şifre backend/app/seed_test_account.py'de): @availy_deneme (bireysel: check-in'ler, yorum, eray'a arkadaşlık isteği) ve @availy_isletme (Alfa Glory Coffee'nin işletmesi). Kurulum: `docker compose run --rm backend python -m app.seed_test_account`
-
-## Veri kaynakları
-- Mekanlar: OpenStreetMap (Overpass API; backend/app/import_osm.py, `venues.source = 'osm'`, `osm_id` ile tekrar çalıştırılabilir; OSM çalışma saati varsa o, yoksa türe göre varsayılan). Pilot bölgeler: Nişantaşı, Caddebostan, Yeditepe kampüsü çevresi (282 mekan). backend/app/copy_venues.py mekanları Neon'a kopyalar. ODbL: uygulamada "© OpenStreetMap katkıcıları" yazar
-- Kullanıcıların eklediği mekanlar (`source = 'user'`, onay bekler; bkz. Durum > Mekanlar)
-- Doluluk: yalnızca kullanıcıların check-in'leri (bkz. "Doluluk modeli"). Sahte doluluk yok
-- Semt / mahalle adı: OpenStreetMap Nominatim (mobile/src/lib/reverseGeocode.ts)
-- Alternatif mekan kaynakları (kullanılmıyor): Foursquare Open Source Places, Overture Maps Places. Google Places verisini kopyalamak kullanım şartlarına aykırı
-
-## Klasörler
-- backend/app/ : FastAPI (her konu bir modül + `*_api.py` uçları); backend/app/sql/schema.sql : şema
-- backend/tests/ : pytest; backend/scripts/ : v1 web demo verisini dışa aktarma
-- mobile/App.tsx : ekranlar arası gezinme ve sağlayıcılar; mobile/src/{screens,components,context,hooks,lib} ; mobile/tests/
-- docker/ : backend.Dockerfile, db/ ; docker-compose.yml : yerel db + backend
-- render.yaml : Render servisi; .github/workflows/pages.yml : web yayını
-- docs/ : architecture.md (v1), v2-architecture.md (v2 planı)
+**Ad:** Availo (eski adı availy). Depo, sunucu ve site adresleri (availy-api, erayerb.github.io/availy.app), telefondaki kayıt anahtarları, QR önekleri ve test hesapları eski adla kalıyor. Logo: kemer ve nokta (components/Logo, scripts/build-logo.py); logo yazısı Tinos.
 
 ## Kurallar
-- v1 asla silinmez: `main` ve `v1` etiketi olduğu gibi kalır; v2 `main`'e alınmaz (yalnızca Pages iş akışı dosyası iki dalda ortak)
+- v2 `v2-checkin` dalında geliştirilir, `main`'e hiç alınmaz. `main` ve `v1` etiketi (ilk, sahte doluluklu sürüm) olduğu gibi kalır, silinmez (yalnızca Pages iş akışı dosyası iki dalda ortak)
 - Commit ve push yalnızca istendiğinde
-- Kullanıcı verisi silinmez (gerçek hesaplar eray, availo, isletme ve onların check-in / yorumları; test hesapları availy_deneme, availy_isletme). Kullanılmayan veri silinmeden önce sorulur
-- Gizli anahtarlar (.env, Render ayarları) koda ve sohbete yazılmaz
-- Mekan kapak fotoğrafını yalnızca o mekanın doğrulanmış (ya da kurucu) işletmesi yükler; kullanıcılar mekan fotoğrafı seçemez
-- Bildirimler olay olunca gelir (zamanlı bildirim yok). Tek istisna (istendi, 2026-11-23): 4 gün check-in yapmayana bir kez, gündüz (10:00–21:00) "Arkadaşların bu arada N yere gitti" hatırlatması (backend/app/reminders.py)
-- Kod yorumları ve değişken adları İngilizce, açıklamalar ve arayüz Türkçe; her değişikliğe kısa test
+- Kullanıcı verisi silinmez: gerçek hesaplar eray, availo, isletme, kafe ve test hesapları availy_deneme, availy_isletme. Kullanılmayan veriyi silmeden önce sorulur
+- Gizli anahtarlar (Neon DATABASE_URL, RESEND_API_KEY, HF_TOKEN, .env, Render ayarları) koda ve sohbete yazılmaz
+- Bildirimler olay olunca gelir. Yalnızca iki zamanlı istisna var: 4 gün check-in yapmayana bir kez hatırlatma (backend/app/reminders.py) ve favori mekanın kampanyasının son saati
+- Kod yorumları ve değişken adları İngilizce; arayüz ve açıklamalar Türkçe. Düğme ve başlıklarda yalnızca ilk kelime büyük ("Giriş yap"). Her değişikliğe kısa test
 - Emin olunmayan paket / sürüm bilgisi varsayılmaz, kontrol edilir
-- ⚠️ GEÇİCİ: check-in mesafesi denemeler için 1 km (backend/app/checkins.py `CHECKIN_RADIUS_M`, mobile/src/lib/nearby.ts `CHECKIN_RADIUS_KM`); yayından önce 150 m'ye geri alınacak
+- Uygulama yalnızca mobil (iOS / Android) yayınlanır; web derlemesi yalnızca önizleme içindir. Tanıtım sitesi ayrı
+- ⚠️ **GEÇİCİ:** check-in mesafesi denemeler için 1 km (backend/app/checkins.py `CHECKIN_RADIUS_M`, mobile/src/lib/nearby.ts `CHECKIN_RADIUS_KM`); yayından önce 150 m'ye geri alınacak
 
-## Paketler: ücretsiz ve ücretli (son hali)
-Ödeme altyapısı yok: paketler seçilince açılır ("Prototip"). Sunucu sınırları kendisi kontrol eder (backend/app/plans.py, users.plan); Premium bir şey denenince uygulama uyarı gösterip Abonelik'e yönlendirir (mobile/src/context/UpgradeContext.tsx).
+## Teknoloji ve ortamlar
+- **Mobil:** React Native 0.88 + Expo SDK 58 (TypeScript), Expo Go ile çalışır. Harita: telefonda react-native-maps (iPhone Apple Haritalar, Android Google Haritalar), web önizlemede Leaflet + OSM (VenueMap.web.tsx). Tema açık / koyu (theme.ts `colors`, `themed(...)`). Telefonda küçük veriler AsyncStorage'da
+- **Backend:** FastAPI + psycopg 3; PostgreSQL 18 + PostGIS 3.6. Şema backend/app/sql/schema.sql (her açılışta tekrar çalışır), değişiklikler backend/app/sql/migrations/ (numaralı, açılışta bir kez; son: 037)
+- **Yerel:** Docker Compose (db + backend), backend http://localhost:8000. Telefon Mac'in yerel IP'siyle bağlanır (mobile/.env `EXPO_PUBLIC_API_URL`, aynı Wi-Fi); `npx expo start` (mobile/)
+- **İnternet (deneme ortamı):** backend Render ücretsiz servis `availy-api` (Docker, Frankfurt, `v2-checkin`'den her push'ta yayınlanır; https://availy-api.onrender.com, 15 dk boşta uyur). Veritabanı Neon ücretsiz (Frankfurt; adres yalnızca Render'daki DATABASE_URL'de). Render'da RESEND_API_KEY var, isteğe bağlı MAIL_FROM, SUPPORT_EMAIL, PHOTON_URL
+- **Web:** GitHub Pages (.github/workflows/pages.yml): v2 uygulama https://erayerb.github.io/availy.app/v2/, tanıtım sitesi …/v2/tanitim/
+- **Testler:** backend `docker compose run --rm backend pytest -q` (310) ve sonra `docker compose restart backend`; mobil `npm test` (131) + `npx tsc --noEmit`. pytest ara sıra kilitlenirse yeniden çalıştırmak yeter
+- **Test hesapları** (silinmez; şifre backend/app/seed_test_account.py'de, sohbete yazılmaz): @availy_deneme (bireysel) ve @availy_isletme (Alfa Glory Coffee'nin işletmesi). Kurulum: `docker compose run --rm backend python -m app.seed_test_account`
+
+### Klasörler ve üretilen dosyalar
+- backend/app/ (her konu bir modül + `*_api.py`), backend/tests/, backend/scripts/ (veri içe aktarma)
+- mobile/App.tsx (gezinme ve sağlayıcılar), mobile/src/{screens,components,context,hooks,lib}, mobile/tests/
+- mobile/public/tanitim/ tanıtım sitesi; docs/hukuk/ yasal taslaklar; docs/social-sign-in.md
+- Üretilen dosyalar (elle düzenlenmez, komutla yenilenir):
+  - İkonlar: yeni bir ikon adı kullanınca `<iconvenv>/bin/python scripts/build-icons.py` (mobile/; fontTools). Kodda tırnak içinde geçen Tabler adları alınır
+  - Lisans listesi: paket ekleyip güncelleyince `node scripts/build-licenses.js` (mobile/) → src/lib/licenses.json
+  - Yasal metinler: `python3 mobile/scripts/build-legal.py docs/hukuk/gizlilik-politikasi.md docs/hukuk/kullanim-kosullari.md > mobile/src/lib/legal.ts` ve `python3 mobile/scripts/build-legal-web.py` (tanitim/gizlilik.html, kosullar.html; hukukçu notları dışarıda kalır)
+  - Site yazı tipleri ve ikonları: sayfaya yeni `ti ti-…` ikonu eklenince `<iconvenv>/bin/python mobile/scripts/build-site-assets.py`
+
+## Paketler (ücretsiz ve ücretli)
+Ödeme altyapısı henüz yok: paketler seçilince açılır ("Prototip"). Sınırları sunucu kontrol eder (backend/app/plans.py, users.plan); ücretli bir şey denenince uygulama Abonelik'e yönlendirir (UpgradeContext).
 
 **Bireysel**
-- Ücretsiz: harita, anlık doluluk, filtreler; check-in, puan, seviye, rozet, sıralama; "İlk adımlar" kartı (ilk check-in, liste, arkadaş, profil fotoğrafı; her biri +10, hepsi "Hızlı başlangıç" rozeti +20); ilk check-in kutlaması; mekanların kalıcı ödülleri (ör. 200 puan = %10, haftada bir); arkadaşlar, akış, beğeni (yalnızca sayı), yorum, tüm bildirimler (uygulama kapalıyken de); "Şu an burada" fotoğrafları, listeler; kampanya kuponları (ücretsiz; işletme isterse "puanla açılan özel kupon": 50/100/200/400 puan), sadakat damga kartı; "Sakin olunca haber ver" aynı anda 1 mekan; ayda 2 seri kurtarma (günlük seri); konuma göre reklam (henüz yok)
-- availo+ (Premium, ₺79/ay): availo+ rozeti; reklamsız; "Sakin olunca haber ver" sınırsız; favoriler sakinleşince zil açmadan haber (Bildirim ayarlarından açılıp kapanır; her favori kendiliğinden dahil, Favoriler'de kartın zili tek bir mekanı kapatır: favorites.quiet_alert); aylık özet (en çok gidilen mekanlar ve semtler, geçen ayla ve arkadaşlarla kıyas); profilde kapak fotoğrafı ve renkli çerçeve; ayda 10 seri kurtarma
-- Puanların sayfası (Daha fazla ve Kampanyalar'ın üstü): harcanabilir puan (kazanılan − harcanan; seviye ve sıralama kazanılan toplamla), yakında puanla alınabilecekler (GET /v1/rewards), puan geçmişi (GET /v1/me/wallet). Haritada kalıcı ödülü olan mekanın noktasında 🎁
-- Puan: kazanılır (check-in 10, günün ilki 20, keşif 50, rozet, fotoğraf 5, birlikte check-in 10, davet 50, mekan onayı 50); düzenli kullanıcı haftada ~50–70. Yalnızca özel kuponlarda harcanır (point_spends; seviye ve sıralama harcamadan etkilenmez; kampanya erken biterse kullanılmamış kuponun puanı geri gelir)
+- **Ücretsiz:** harita ve anlık doluluk, filtreler; check-in, puan, seviye, rozet, sıralama; arkadaşlar, akış, yorumlar, listeler, fotoğraflar; kuponlar, sadakat kartları, mekanların puanla alınan ödülleri; "Sakin olunca haber ver" aynı anda 1 mekan; ayda 2 seri kurtarma; reklamlı (reklam ağı henüz yok)
+- **availo+ (₺79/ay):** sınırsız "Sakin olunca haber ver" ve favoriler sakinleşince zilsiz haber; aylık özet (en çok gidilen yerler, semtler, arkadaşlarla kıyas); ayda 10 seri kurtarma; profilde kapak fotoğrafı, renkli çerçeve, availo+ rozeti; reklamsız
 
 **İşletme**
-- Ücretsiz: mekan doğrulanınca (ücretsiz) ayda 3 kampanya, doğrulanmadan kampanya yok; kalıcı ödül ("200 puan = %10 indirim", mekan sayfasında hep durur, kişi başı haftada bir, kampanya hakkından düşmez); "availo ile" ay kartı (tek ay seçici; kişi, ilk kez gelen, check-in, kupon, kampanya; Aylık pakette altında geçen ayla karşılaştırma ve "Ayın özetini aç") ve ayın 1'inde geçen ayın rapor bildirimi; mekan profili, fotoğraf, saatler; doğrulama (ücretsiz); yorumlara yanıt ve şikâyet; sadakat damga kartı; kupon doğrulama; ölü saat bildirimi ("Mekanın sakin görünüyor, kampanya başlat"); bildirimler (yeni yorum, "Bilgi yanlış mı?", kupon kullanıldı, kuponların %80'i doldu, kampanya bitti ve sonuçları, "Öne çık" başladı / bitti)
-- Aylık paket (₺599/ay): sınırsız kampanya; istatistikler (saat saat bugün, son 7 gün, haftanın günleri, geçen ayla karşılaştırma, en sakin saatler); zamanlanmış haftalık kampanyalar; otomatik ölü saat kampanyası
-- Ayrıca ücretli: "Öne çık" (sponsorlu, ₺300/hafta, ₺1.000/ay; yönetici açar)
-- Aylık paket 15 gün ücretsiz denenebilir (mekan başına bir kez; bitince bildirim)
-- Kurucu mekanlar: Aylık paket 3 ay ücretsiz (venue_profiles.founder_until; bitince bildirim, rozet kalır; "Öne çık" hariç). Başvuru: tanıtım sayfasındaki işletme formunda "Kurucu mekan programına başvuruyorum" (Yönetici > Bekleme listesinde ⭐)
-- Yönetici: mekan sayfasında "Satış özeti" (son 7 gün kişi ve check-in, en kalabalık saat, favori, yorum, 1 km'de availo'daki mekan sayısı): henüz katılmamış mekana gösterilecek rakamlar
+- **Ücretsiz:** mekan profili, fotoğraf, saatler; yorumlara yanıt; sadakat damga kartı; kalıcı ödül ("200 puan = %10", kampanya hakkından düşmez); kupon doğrulama; ölü saat bildirimi; aylık "availo ile" kartı; mekan doğrulanınca ayda 3 kampanya
+- **Aylık paket (₺599/ay):** sınırsız kampanya; istatistikler (saat saat bugün, son 7 gün, haftanın günleri, geçen ayla kıyas, en sakin saatler); yakındaki benzer mekanların doluluğu; zamanlanmış haftalık ve otomatik ölü saat kampanyaları. Ücretsiz planda bu kartlar örnek sayılarla bulanık ve kilitli görünür ("Aylık pakete dahil"). 15 gün ücretsiz deneme (mekan başına bir kez)
+- **"Öne çık" (Sponsorlu):** ₺300/hafta, ₺1.000/ay; şimdilik yönetici açar. Ana sayfa listelerinde önde ve "Sponsorlu" etiketiyle
+- **Kurucu mekanlar:** ilk 10 mekana 3 ay ücretsiz Aylık paket, "Kurucu mekan" rozeti, kapı çıkartması (yönetici verir; venue_profiles.founder)
 
 ## Doluluk modeli
-Kod: backend/app/crowd.py (`crowd_from_checkins`, `report_score`, `age_weight`), backend/app/checkins.py (`update_trust`, `load_crowds`).
-1. Pencere: yalnızca son 90 dakikanın check-in'leri (tek kişi bildirdiyse 60 dakika); her kişinin yalnızca son bildirimi sayılır.
-2. Bildirim puanı: Sakin 0.20, Orta 0.55, Kalabalık 0.90. Takip sorusu kaydırır: Kalabalık + Sıra var 0.98, Kalabalık + Sıra yok 0.82, Orta + Oturacak yer yok 0.70, Orta + Oturacak yer var 0.48.
-3. Ağırlık = tazelik × güven.
-   - Tazelik (`AGE_WEIGHTS`): 0 dk 1.0, 30 dk 0.65, 60 dk 0.35, 90 dk 0.15; arası doğrusal.
-   - Güven (users.trust): herkes 1.0'dan başlar, misafir en fazla 0.5. Yeni bildirim, aynı mekana son 30 dakikada bildirimde bulunan en az 2 kişinin ortalamasıyla karşılaştırılır (tazelikten bağımsız, ağırlıksız ortalama): fark ≥ 0.5 (ör. diğerleri Kalabalık derken Sakin) → −0.1 (alt sınır 0.2); fark ≤ 0.2 → +0.02 (üst sınır 1.0, misafirde 0.5); arası değişmez. Kayıt olan misafirin güveni ikiye katlanır (en fazla 1).
-   - Örnek: sürekli çelişen biri 5 bildirimde 0.5'e, 8 bildirimde 0.2'ye düşer; geri 1.0'a çıkması için 40 uyumlu bildirim gerekir.
-4. Sonuç: ağırlıklı ortalama < 0.40 Sakin, 0.40–0.75 Orta, > 0.75 Kalabalık. En az 5 kişi bildirdiyse "~%60" oranı da gösterilir; tek kişi bildirdiyse soluk renkte ve "1 kişiye göre Kalabalık".
-5. "Sıra var mı?" / "Oturacak yer var mı?" cevapları yalnızca puanı kaydırır; uygulamada ayrıca gösterilmez (sunucu `crowd.queue` / `crowd.seats` olarak yine hesaplıyor).
-6. İşletme hesapları check-in yapamaz (kendi mekanını boş gösteremesin).
-7. Bilgi yoksa: son 90 dk boşsa "🕘 Dün bu saatlerde …" (dünün aynı saatindeki check-in'lerle aynı hesap); hiç check-in yoksa ✨ Keşfedilmedi.
-8. Trend (🔥 Trendler): son 24 saatte check-in yapan farklı kişi sayısı.
-9. Hile koruması: mekana yakın olmak (GPS; konum yalnızca o an kontrol edilir, saklanmaz), aynı mekana 90 dakikada bir check-in, kayan 60 dakikada en fazla 10 check-in, giriş ya da misafir hesabı zorunlu, güven puanı.
+Kod: backend/app/crowd.py, checkins.py (`update_trust`, `load_crowds`).
+1. Son 90 dakikanın check-in'leri (tek kişiyse 60 dk); her kişinin yalnızca son bildirimi
+2. Puan: Sakin 0.20, Orta 0.55, Kalabalık 0.90. Takip sorusu kaydırır: Kalabalık + sıra var 0.98 / yok 0.82; Orta + oturacak yer yok 0.70 / var 0.48
+3. Ağırlık = tazelik × güven. Tazelik: 0 dk 1.0 → 30 dk 0.65 → 60 dk 0.35 → 90 dk 0.15. Güven (users.trust) 1.0'dan başlar (misafir en fazla 0.5); son 30 dakikada aynı mekana en az 2 kişinin ortalamasıyla çelişen bildirim −0.1 (alt sınır 0.2), uyumlu bildirim +0.02
+4. Sonuç: < 0.40 Sakin, 0.40–0.75 Orta, > 0.75 Kalabalık. 5+ kişi bildirdiyse "~%60"; tek kişiyse soluk ve "1 kişiye göre"
+5. Bilgi yoksa: "Dün bu saatlerde …" ya da mekanın geçmişinden "Genelde bu saatte sakin (tahmini)"; hiç check-in yoksa ✨ Keşfedilmedi. Güncel bildirim yoksa kartlarda etiket çıkmaz, mekan sayfasında "Şu an bildirim yok"
+6. İşletme hesapları check-in yapamaz. Hile koruması: mekana yakın olmak (konum o an kontrol edilir, saklanmaz), aynı mekana 90 dakikada bir, 60 dakikada en fazla 10 check-in, güven puanı
+7. Trend: son 24 saatte check-in yapan farklı kişi sayısı
 
-## Durum (v2)
-Testler: backend 217, mobil 124 (son ölçüm).
+## Özellikler
 
-### Bitti
-**Hesaplar**
-- Sunucuda hesaplar (backend/app/accounts.py): kayıt (kullanıcı adı zorunlu: 3–20, a-z 0-9 . _, büyük/küçük harf fark etmeden tekil), giriş (kullanıcı adı ya da e-posta), çıkış; şifre scrypt, oturum anahtarının yalnızca hash'i saklanır (30 gün); bilinmeyen e-posta ve yanlış şifre aynı mesajı alır
-- Misafir hesabı ("Kayıt olmadan devam et": otomatik id, 365 gün, güven 0.5, puanların yarısı); kayıt olunca aynı id kalır, puanlar korunur. İşletme için misafir yok
-- Profil ayarları: kullanıcı adı, şifre, e-posta değiştirme (mevcut şifreyle; telefondaki e-postaya bağlı veriler yeni adrese taşınır), hesabı geçici dondurma (tekrar girişte açılır, veri silinmez), hesabı silme (check-in'ler adsız kalır); dondurma ve silmede kullanıcı adını yazarak onay
-- Girişte "Beni hatırla" (kapalıysa oturum yalnızca bellekte; açıksa kullanıcı adı da hatırlanır) ve "Şifremi unuttum" (e-postaya 6 haneli kod: 15 dk, 5 deneme, dakikada bir yeni kod; şifre değişince tüm oturumlar kapanır)
-- E-posta doğrulama: kayıtta kod gider; Profil ayarları / İşletme profili'nde kalın "E-posta henüz doğrulanmadı" + Doğrula → e-posta (değiştirilirse şifre sorulur) → kod gönder → kodu yaz; e-posta değişince doğrulama sıfırlanır
-- Hesap ayarları (kullanıcı adı, e-posta, şifre, çıkış, dondur, sil): müşteride Profil ayarları'nda, işletmede Daha fazla > Ayarlar'da
+### Doluluk ve check-in
+- Mekan sayfasında "Şu an burası nasıl?" → (Kalabalık'ta "Sıra var mı?", Orta'da "Oturacak yer var mı?") → check-in. Gizli check-in doluluğa sayılır, ad görünmez. Kapalı mekanda check-in yok
+- Check-in sonrası kutlama, "Burası nasıl?" (yıldız + kısa yorum), "Arkadaşlarına paylaş" ve "Buradayım, gel!" (arkadaşlara bildirim; 2 saat sonra "…mekanındaydı" olur, 1 gün sonra düşer)
+- "Bugünün ilk bilgisini sen ver": o gün mekanın ilk check-in'i çift puan
+- Check-in önerisi: açık bir mekanın yakınında birkaç dakika kalınca (uygulama açıkken şerit, arka plandaysa bildirim; saatte en fazla bir)
+- "Sakin olunca haber ver": kalabalık mekana zil kur, Sakin bildirilince haber gelir (6 saat sonra kapanır)
+- "Daha boş alternatifler", "Şu an normalden daha sakin / kalabalık" (bu saatin olağan seviyesiyle), "Cumartesi genelde 18–20 kalabalık" (son 8 hafta; app/typical.py)
 
-**Check-in ve doluluk**
-- Mekan sayfasında "Şu an burası nasıl?" Sakin / Orta / Kalabalık → (Kalabalık'ta "Sıra var mı?", Orta'da "Oturacak yer var mı?") → Check-in. Gizli check-in (doluluğa sayılır, ad gösterilmez; Gizlilik'te varsayılan yapılabilir)
-- Kapalı mekanda check-in yok: kutuda "🔒 Şu an kapalı" ve kapalı "Kapalı · 08:00'de açılır" düğmesi (sunucu da reddeder)
-- Check-in sonrası "💬 Burası nasıl?": yıldız + birkaç kelime = mekan yorumu (reviews.checkin_id ile check-in'e bağlı); mekan sayfasında yorum, Akış'ta check-in'in altında görünür (ayrı yorum satırı çıkmaz), "Arkadaşlarına paylaş" metnine de eklenir; Düzenle (PATCH /v1/reviews/{id}) / Sil. Eski check-in notları (checkins.note) yalnızca gösterilir
-- 🔔 Bildirimler silinene kadar kalır (kabul edilen istek "artık arkadaşsınız", katılınan sadakat "Katıldın" olarak): her satırda 🗑 (notification_dismissals), üstte "Temizle" (users.notifications_cleared_at)
-- "Sakin olunca haber ver": yalnızca zil açıldıktan sonraki check-in'ler Sakin derse haber verir; 6 saat sonra kendiliğinden kapanır
-- Veritabanı değişiklikleri: backend/app/sql/migrations/ (numaralı dosyalar, açılışta bir kez; schema_migrations). schema.sql temel şema
-- İşletme otomasyonu sunucuda: mekan bilgileri (ad, saatler, amaçlar, özellikler, açıklama; PUT /v1/venues/{id}/details), ölü saat bildirimi ve otomatik kampanya (her check-in'den sonra, açık mekanda 2+ kişi Sakin: işletmenin 🔔'üne, 2 saatte bir; otomatik kampanya 3 saatte bir), zamanlanmış kampanyalar (kampanya listesi istenince ya da check-in olunca zamanı gelen başlar; günde bir). İşletmenin uygulaması kapalı olsa da çalışır (backend/app/automation.py)
-- Kayıttan sonra: tanıtım → "Arkadaşlarını davet et" (davet bağlantısı) → ilk check-in
-- Görünüm: her düğmede basma efekti (components/Pressable), ikonlar Ionicons (@expo/vector-icons; mekan görseli, favori, haber ver, paylaş, liste, geri, konum, bildirimler); profil fotoğrafı (Profil ayarları; PUT /v1/me/photo, GET /v1/users/{ad}/photo)
-- Yanlış şifre: 2. yanlışta uyarı, 3. yanlışta şifreyle giriş kilitlenir; "Şifremi unuttum" (e-posta kodu) ile yeni şifre belirleyince açılır (users.failed_logins / password_locked). Ayrıca bir IP adresinden 15 dakikada 20 yanlış girişten sonra o adres 15 dakika bekletilir, hesaplardan bağımsız (login_failures, migration 035; adres Render'ın vekil başlığından)
-- Verilerimi indir (KVKK): Profil ayarları'nda; sunucudaki her şey tek JSON dosyası (GET /v1/me/export; şifre, oturum, telefon özeti yok)
-- 📋 Listeler: Favoriler > Listelerim (istediğin kadar liste), listenin içinde "＋ Mekan ekle" araması ve mekan sayfasındaki liste simgesi; listede mekanlar satır olarak, sahibi "Çıkar" ile çıkarır; liste gizli / arkadaşlar (profilde görünür) / bağlantıyla herkes (?list=KOD); başkasının listesi "Listeyi kaydet" ile kopyalanır; listede "şu an N tanesi sakin" (backend/app/lists.py)
-- 🔥 Günlük seri: üst üste kaç gün (İstanbul saati) en az bir check-in; bugün henüz yoksa seri gün bitene kadar sürer. Check-in kutlamasında (2+ gün) ve profilde (backend/app/streaks.py `day_streak`). Seri kurtarma: arkadaşın, check-in yapmadığın bugünü kurtarır (streak_saves.day); kurtaran kişi 30 günde 2, availo+ 10 kez. Grup serisi haftalık kaldı (her üyenin her gün check-in yapması zor)
-- Müdavim (ev ikonu): mekanın tek müdavimi, herkes için aynı: son 30 günde en çok (en az 3) gizli olmayan check-in yapan, eşitlikte en son gelen (GET /v1/venues/{id}/regular). "Müdavimliğim herkese açık" kapalıysa yine müdavim olur ama arkadaşı olmayanlar "Gizli müdavim" görür. Her check-in'den sonra hesaplanır (venue_regulars); yeri kaptıran kişiye "Mado mekanındaki müdavimliğini @ayse aldı" bildirimi (regular_changes). Profilde "🏠 N mekanın müdavimi"
-- "Daha boş alternatifler": önce güncel check-in'lere göre daha boş benzer mekanlar, sonra yakındaki açık benzer mekanlardan bilgisi olmayanlar ("şu an bilgi yok")
-- Haritada gruplama: yakın noktalar sayılı tek daire (renk: açık / güncel noktaların çoğunluğu; hiç gri olmaz, yalnız kapalı / eski bilgili gruplar mor), dokununca en fazla 2 seviye yakınlaşır; 16. yakınlaştırmadan sonra grup yok (mobile/src/lib/clusters.ts, ek kütüphane yok)
-- "✨ Şu an normalden daha sakin (bu saatte genelde Kalabalık)" / "normalden daha kalabalık": canlı doluluk ile bu saatin önceki günlerdeki olağan seviyesi (typical usual_now) karşılaştırılır; mekan sayfasında
-- 👥 Gruplar (Sosyal > Sıralama > Gruplar): "＋ Grup oluştur" (ad + davet: arkadaşlar, çevrendekiler / öneriler, kullanıcı adıyla arama), davet 🔔'ye düşer, "Katıl" / "Reddet"; her grubun kendi haftalık / tüm zamanlar sıralaması; üyeler davet edebilir, son üye çıkınca grup silinir (backend/app/groups.py; en fazla 50 üye, kişi başı 20 grup)
-- Konum ve izinler > Konum: özelliklerin yanında tik kutuları; "Haritada konumum" (mavi nokta) ve "Check-in önerisi" kapatılabilir, check-in her zaman konum ister
-- Daha fazla > Destek: site açılana kadar "Yakında", basılmaz
-- Daha fazla: Profil ayarları (çıkış yok; Çıkış yap Daha fazla'nın altında), Bildirim ayarları, Görünüm (tema + renk körlüğü), Gizlilik ayarları; her satırda içinde ne olduğu yazar. Ana sayfada reklam yeri yok
-- Check-in sonrası kısa kutlama (🎉 "Check-in yapıldı!" / ✨ "Burayı sen keşfettin!" + "+10 puan · Buraya 3. check-in'in") ve "📣 Arkadaşlarına paylaş" (mekan, doluluk ve web bağlantısı); buton kapalı kalır, üstünde "Tekrar check-in: 17:47"
-- Haritada sağ altta "+" → Check-in yap: en yakın mekanlar ve arama; sağ üstte "➕ Mekan ekle"
-- Yazısız puanlar yalnızca ortalamaya girer: mekan sayfasında "N yorum" yazılı yorumları sayar (hiç yoksa "N puan"), işletmenin "yanıt bekliyor" sayısına girmez
-- Harita: konum biliniyorsa kullanıcının yanından, işletmede kendi mekanından açılır; ikisi de yoksa İstanbul
-- Misafirin Daha fazla menüsü: üstte Kayıt ol kartı; Abonelik, Gizlilik ve Profil ayarları yok (Puanın ve rozetlerin var); Bildirim ayarlarında Sosyal bölümü yok
-- Haftanın 1.si: geçen haftayı genel sıralamada 1. bitiren (eşitlikte hepsi; migration 015, ilk istekte bir kez yazılır, zamanlayıcı yok): profilde etiket (o hafta), sıralamada satır, kalıcı rozet (+50)
-- Damga (5 puan, günde en fazla 4 damga puanlı) ve kullanılan kupon (10 puan) sunucuda `points`'e yazılır; sıralamaya ve seviyeye girer (migration 014 eskileri de yazdı)
-- Misafirin rozeti yok: kazandıkları kayıt olunca rozet ve tam puan olarak gelir
-- Panel "Ölü saat": en az 2 kişi Sakin ya da açıldıktan sonra 2 saattir check-in yok → kampanya düğmesi; 1 kişi Sakin → yalnızca bilgi satırı. "Check-in yok" durumu telefona bildirim göndermez (olay yok, zamanlanmış bildirim yapılmaz)
-- Profil: tek liste "Gittiği mekanlar", keşfedilenlerde ✨, Tümü / Keşfettikleri seçimi
-- Mekan adı kontrolü: eklerken ve işletme adı değiştirirken app/name_check.py (bağlantı, telefon, 5+ harf tamamı büyük, küfür listesi); "Bilgi yanlış mı?" > Uygunsuz ad: 3 kayıtlı kişi bildirince kullanıcının eklediği mekan yönetici bakana dek gizlenir (hidden_at, migration 016; içe aktarılan mekanlar gizlenmez, yalnızca listeye düşer); Yönetici > Onay bekleyen mekanlar: adı düzelt ya da kaldır (kayıtlar kalır)
-- Kapı QR'ı: İşletme profili > Kapı QR'ı (yazdır / PDF, lib/doorPoster), link ?kapi=ID mekan sayfasını açar; telefon kamerasıyla okutulur. Check-in yine mekanda olmayı ister
-- Kurucu mekan: yönetici mekan sayfasından verir (venue_profiles.founder, migration 017, en fazla 10); mekan sayfasında ve harita kartında rozet
-- "Buradayım, gel" (check-in sonrası, Paylaş ile aynı boyda): sorar; availo'daki arkadaşlara bildirim (come_calls, check-in başına bir, 90 dk içinde; gizli check-in'de yok, sessize alanlara gitmez) ya da telefonun paylaş ekranı
-- Gezinme (components/ScreenStack, lib/navigation openPages, context/PageContext): açık sayfalar arkada kalır (sekmeler birer tane, geçmişten son 5 sayfa), kaydırma yeri ve verisi korunur; üstteki sayfa dışındakiler yeniden çizilmez, zamanlayıcıları çalışmaz, geri dönünce sessizce yenilenir (useOnPageFocus). Sol kenardan çekince altta gerçek sayfa görünür (ana sekmelerde ve haritada çekme yok). Açık sekmeye tekrar basınca listesi başa döner (usePageTop). Sekmeye basmak Sosyal / Kampanyalar'ı ilk sekmeye döndürmez
-- Panel "En sakin saatlerin": son 30 günde en az 30 check-in varsa haftanın en boş 2 saati, tek dokunuşla haftalık kampanya (Aylık paket)
-- Akıcılık (devam): açılan sayfa kayarak gelir, mekan listeleri bellekte (geri dönünce anında görünür, sessizce güncellenir), yüklenirken sayfa iskeleti, Sosyal / Bildirimler / Profil / Panel'de aşağı çekip yenileme, klavye açılınca sayfa kayar ve kaydırınca kapanır, sekme titreşimi, Android geri tuşu, fotoğraflar yumuşak gelir, sunucuya ulaşılamayınca üstte "İnternet yok"
-- Harita araması mekanların yanında yer de bulur ("Teşvikiye Mahallesi", OpenStreetMap Nominatim); seçince harita oraya gider
-- Aşağı çekip yenilemede yükleniyor işareti yalnızca 300 ms'den uzun sürerse çıkar
-- Sosyal akışta check-in'de bildirilen doluluk görünür (mekan adının yanında nokta ve "Sakin"; checkins.level, feed `reported`). Filtre çiplerinde titreşim yok; ana sayfadaki sıralama çipi anında değişir, sıralama düşük öncelikle gelir
-- Uygulama haritayla açılır (işletmede Panel); ilk sayfa haritaysa geri oku yok ve konum gelince harita oraya gider
-- Alt sekmeler yuvarlak, yüzen bir şerit; seçili sekme kendi hapı içinde
-- Sosyal: ilk sekme Akış (arkadaşlarınki), kendi gönderilerin Paylaşımlarım'da
-- Puan ve yorum: her check-in'de bir kez; verince mekan sayfasındaki form kalkar
-- Check-in yapınca açık öneri kapanır
-- Haritada kendi konumun mekanların üstünde, ortası boş halka (altındaki mekan görünür); mekan ekleyince ya da check-in yapınca açık harita ve listeler hemen yenilenir (lib/venueEvents)
-- Puan: mekanda son check-in'inin puanı yoksa verilebilir (eski check-in'ler birikip harcanamaz); puan o check-in'e bağlanır, Akış'ta onunla görünür, check-in akıştan düşünce tek başına görünür
-- Alt şerit sayfaların üstünde yüzer, buzlu ve yarı saydam (expo-blur); sayfalar altında TAB_BAR_SPACE kadar boşluk bırakır, haritanın alt öğeleri şeridin üstünde
-- Check-in önerisi uygulama açılınca ya da konum değişince hemen (bekleme yok); herhangi bir check-in'den sonra 1 saat yok
-- Check-in önerisi: açık bir mekanın 150 m yakınında 5 dk kalınca; uygulama önündeyse şerit, arka plandaysa telefon bildirimi (dokununca mekan sayfası); en fazla saatte bir, aynı mekan için günde iki kez (telefonda saklanır); son 90 dakikada orada check-in yaptıysan sormaz
-- Kayıt sonrası kısa tanıtım (müşteri 4, işletme 3 slayt; sağa / sola kaydırılır) ve "İlk check-in'in" (yakındaki en yakın açık mekan)
+### Harita ve ana sayfa
+- **Uygulama haritayla açılır** (işletmede Panel). Harita: renkli noktalar ve sayılı gruplar (lib/clusters.ts), yakınlaşınca adlar, mavi konum, filtre şeridi, Tümü / Gittiklerim, 🔥 Trendler, kalıcı ödülü olan mekanda 🎁, sağ altta Check-in
+- **Harita araması:** mekanlar (kendi sunucumuz) ve yer önerileri (sokak, mahalle) yazarken altta listelenir. Yer önerileri sunucumuz üzerinden Photon'dan gelir (bkz. Teknik notlar)
+- **Ana sayfa:** "Arkadaşların nerede?" (misafire kayıt kartı), İstanbul / semt seçici ve arama; yana kayan satırlar: "Şu an sakin, yakınında", "Ne arıyorsun?" (açılışta saate göre seçili: hafta içi sabah Ortak çalışma, öğle ve akşam Yemek, akşam Sosyalleşme, gece Gece hayatı; lib/filters.ts `tagForTime`), "Trend olanlar", "Keşfedilmeyi bekleyenler". Altında "Tüm mekanlar": ilk 20 (sponsorlu önce, sonra karışık; konum varsa yakından), "Daha fazla göster". Filtreler: Sırala (Önerilen / En yakın / En sakin), Ne arıyorsun?, Kapalıları gizle
+- **Mekan sayfası:** kapak fotoğrafı (yalnızca doğrulanmış işletme yükler), ✓ doğrulanmış, keşfeden, yıldız ortalaması, doluluk, saatler, Instagram / Ara, check-in, Haritada gör / Yol tarifi / Listeye ekle, kampanya, kalıcı ödül, sadakat, özellikler, yorumlar, "Bilgi yanlış mı?", "Şu an burada" fotoğrafları, burada olan arkadaşlar, müdavim
+- **Fotoğrafsız mekan kartı (G, 2026-11-27):** kategorinin koyu tonu (açık temada pasteli) ve köşeden taşan, kartın boyunda ince çizgili büyük kategori çizimi (%50 opak). Küçük önizlemelerde simge ortada. Renkler lib/visuals.ts `tile` / `accent` (doluluk renklerinden uzak tutulur), çizim components/VenuePhoto.tsx
+- **Kartta "arkadaşın burada":** son bir saatte orada check-in yapan arkadaşların fotoğrafları kartın sağ alt köşesinde (en fazla 2 + "+N"). Dokununca pencere: kimler, ne zaman check-in yaptı, dokununca profili; altta "Yanına git" (yol tarifi). Tek arkadaş listesinden (context/FriendsHereContext.tsx, 2 dakikada bir yenilenir; lib/friends.ts `friendsHereByVenue`), components/FriendsHereBadge.tsx. "Arkadaşların nerede?" satırında gösterilmez (orada zaten kartın altında yazıyor)
+- **Yönetici "Satış özeti"** mekan sayfasında kapalı gelir, dokununca açılır (components/SalesPitch.tsx)
 
-**Puan, rozet, keşif**
-- Puanlar (`points`): check-in 10, mekanın ilk check-in'i +50 (Kâşif), onaylanan mekan eklemesi +50, davet +50; misafire yarısı
-- Puan kasmaya karşı (dip dibe kafeler): başka bir mekanda check-in yaptıktan sonraki 30 dakika içinde yapılan check-in puan getirmez; günde en fazla 8 check-in puan getirir; doluluğa yine sayılır, mesajda neden puan olmadığı yazar (points_note)
-- "✨ Burayı @eray keşfetti" 30 gün; rozet kataloğu (İlk adım, Kâşif, Büyük kâşif, Gezgin, Müdavim, Gece kuşu, Yardımsever) ilerlemeyle
-- Sıralama (Sosyal > Sıralama): Bu hafta / Tüm zamanlar × Arkadaşlar / Herkes (hafta pazartesi 00:00'da başlar)
+### Puan, rozet, seviye
+- **Puan kazanma:** check-in 10 (günün ilki 20), keşif +50, rozet (zorluğa göre 5–50), seviye +30, fotoğraf 5, birlikte check-in 10, davet +50 (iki tarafa, davet eden 30 günde en fazla 5), eklenen mekan onaylanınca +50, damga 5, kullanılan kupon 10, haftalık seri +10, İlk adımlar görevleri +10 (hepsi "Hızlı başlangıç" rozeti). Misafire yarısı. Puan kasmaya karşı: başka mekandan sonraki 30 dk ve günde 8'den sonrası puansız
+- **Puan harcama:** mekanların kalıcı ödülleri ve puanla açılan özel kuponlar (point_spends). Seviye ve sıralama kazanılan toplamla hesaplanır, harcama etkilemez. Puanların sayfası: harcanabilir puan, puanla alınabilecekler, geçmiş (rozet ve seviye adıyla: "Rozet: Gece kuşu", "Seviye atladın: Mahalleli"; points.task)
+- **Seviyeler** (app/levels.py): Yeni gelen → Kâşif (100 puan ya da 1 keşif; hoş geldin hediyesi: bir ödülü puansız alma) → Mahalleli (500 puan, 3 mekanda 3+ check-in; 1 hafta availo+) → Semt elçisi (2.000 puan, bir semtte 10 mekan, bütün rozetler; 1 ay availo+, altın çerçeve)
+- **Rozetler** (10 tane: Tam profil, İlk adım, Kâşif, Büyük kâşif, Gezgin, Müdavim, Gece kuşu, Yardımsever, Haftanın 1.si, Hızlı başlangıç): altın madalya, çizgi ikonlar (lib/badgeIcons.ts; sunucunun gönderdiği emoji kullanılmıyor). "Yeni rozet!" kutlaması. Misafir rozetleri kayıt olunca gelir
+- **Günlük seri** ve seri kurtarma (arkadaşın kurtarır; ücretsiz 30 günde 2, availo+ 10). **Müdavim:** mekanda son 30 günde en çok check-in yapan (yeri kaptırana bildirim). **Haftanın 1.si:** geçen haftanın genel birincisi
+- **Sıralama** (Sosyal > Sıralama): Bu hafta / Tüm zamanlar × Arkadaşlar / Herkes / Gruplar; ilk üç podyumda (boş basamak silik)
 
-**Sosyal**
-- Arkadaşlar: kullanıcı adıyla arama, istek / kabul / reddet / çıkar (onaylı), QR'ım, QR okut, davet bağlantısı (?invite=ad). Davet bağlantısıyla kayıt olan davet edenle otomatik arkadaş olur, davet eden 50 puan alır (ayda en fazla 5 davet ödülü; users.invited_by). Canlı konum yok
-- "Rehberden bul" kaldırıldı (2026-11-26; ilk sürümde az işe yarar, hukuki yükü en büyük özellikti). Ayrıntı ve geri getirme: Yapılacaklar > "Rehberden bul (belki geri gelir)"
-- Akış (GET /v1/feed): arkadaşların ve kendi son 7 gündeki check-in'leri (keşif + puan + not), yorumları ve yanıtları, kişi başına ayrı bloklarda; Akış'tan yanıt. Check-in'lere ♡ beğeni ve yorum (checkin_likes, checkin_comments; kişi başı 5 yorum; yorumu yazan ya da check-in sahibi silebilir; yalnızca arkadaşlar) Akış boşken (arkadaşı yoksa en üstte "📨 Arkadaşlarını davet et") "Arkadaş ekle / Mekan keşfet / Check-in yap" kartları, "Önerilen kişiler" (ortak arkadaşı olanlar, aynı mekanlara gidenler (ikisi de izin verdiyse: Gizlilik > "Arkadaş olarak önerilmeye izin ver", users.suggest_by_venues, gizli check-in sayılmaz), sonra bu hafta en çok puan alanlar; Ekle) ve "✨ Yakında yeni keşfedilen mekanlar" (son 14 günün ilk check-in'leri, yakından uzağa) (GET /v1/suggestions)
-- "👥 @ayse ve @can burada · 20 dk önce check-in": mekan sayfasında ve haritadaki kartta, son 60 dakikada orada (gizli olmayan) check-in yapan arkadaşlar (GET /v1/venues/{id}/friends-here; check-in'lerini paylaşmayanlar görünmez). Arkadaşın profilinde en üstte son check-in'i ("📍 X'de check-in yaptı · 20 dk önce"). Haritada arkadaş işareti yok (istenmedi)
-- Kullanıcı profili: puan, check-in, keşif, rozetler, mekanlar (yalnızca kendin ve paylaşan arkadaşların); Arkadaş ekle / Sessize al / Arkadaşlıktan çıkar / Engelle
-- 🔔 Bildirimler (GET /v1/notifications, uygulama açıkken dakikada bir): arkadaşlık isteği, kabul, yorumuna yanıt, check-in'ine beğeni ve yorum (dokununca Akış), sadakat programı; arkadaşın check-in yaptı ("Sen de katıl!", son 24 saat) / yorum yazdı, birlikte check-in, eklediğin mekan onaylandı, davetinle katıldı, damga kartın doldu, haftanın 1.'si, destek yanıtı, fotoğraf / şikâyet kararları, sakinleşen takip ve (availo+) favori mekanlar, 4 gün check-in yapmayana hatırlatma; işletmeye yeni yorum, "Bilgi yanlış mı?", kupon kullanıldı / %80 doldu, kampanya bitti, "Öne çık", ölü saat. Uygulama 6 saatten uzun aradan sonra açılınca ana sayfada "Sen yokken" kartı (GET /v1/me/while-away). Ayarlar'da "Bildirimler" (check-in önerileri, sakin olunca haber ver) ve "Sosyal bildirimler" (arkadaşlık istekleri, arkadaşlık onayları, check-in yorumları, check-in beğenileri, yorumlarıma yanıtlar) ayrı; yenileri telefona bildirim olarak da gelir
+### Sosyal
+- **Arkadaşlar:** kullanıcı adıyla arama, istek / kabul, QR, davet bağlantısı (?invite=ad; kayıt olan otomatik arkadaş olur). Canlı konum ve rehber yok
+- **Sosyal sekmeleri:** Akış (arkadaşların check-in, yorum, fotoğrafları), Paylaşımlarım (kendininkiler; yakın zamanda yoksa son gönderiler), Sıralama. Check-in'lere beğeni ve yorum. Akış boşken önerilen kişiler ve yeni keşfedilen mekanlar
+- **Önerilen kişiler** (Akış boşken; profil fotoğraflı): önce ortak arkadaşı olanlar, sonra aynı mekanlara gidenler (iki taraf da izin verdiyse), sonra bu hafta en çok puan alanlar; en fazla 5 (app/suggestions.py)
+- **Gruplar:** kendi haftalık / tüm zamanlar sıralaması olan arkadaş grupları (en fazla 50 üye)
+- **Listeler:** Favoriler > Listeler; gizli / arkadaşlar / bağlantıyla herkes; başkasının listesini kaydetme; "şu an N tanesi sakin"
+- **Favoriler sekmeleri:** Favoriler, Listeler, Gittiklerim
+- **Kullanıcı profili:** puan, check-in, keşif, rozetler, gittiği mekanlar, seviye; arkadaş ekle / sessize al / engelle
+- **Yorumlar:** 1–5 yıldız + 280 karakter (check-in yapan yazar, check-in başına 2); yanıtlar; "Şikâyet et" üç nokta menüsünde (3 şikâyette gizlenir)
 
-**Yorumlar**
-- 1–5 yıldız + en fazla 280 karakter; her check-in o mekana 2 yorum hakkı verir; bir yoruma kişi başı en fazla 2 yanıt (check-in yoksa yorum yok); "Başkaları yanıt verebilsin" anahtarı; kendi yorumunu / yanıtını silme
-- Şikâyet (Hakaret / Spam / Yanlış bilgi / Diğer): şikâyet edene hemen, 3 şikâyette herkese gizlenir
+### Kampanya, kupon, sadakat
+- **Kampanya** (işletme): mesaj, indirim, 1/2/3 saat, 1/2/5 km, kişi sınırı; yakındaki müşteri görür, "Kuponu al" → AV-XXXX, kasada QR ya da kodla. "Yalnızca check-in yapanlara" seçeneği. Puanla açılan özel kupon (50–400 puan)
+- **Kampanya bildirimi:** favori mekanın ya da son 90 günde gidilen mekanın kampanyası başlayınca ve son saatinde (Bildirim ayarlarından kapanır; ticari ileti onayı hukukçuya soruldu)
+- **Kalıcı ödül:** "200 puan = %10", mekan sayfasında hep durur, kişi başı haftada bir
+- **Sadakat:** damga kartı (ör. 5 damga = 1 kahve); müşteri katılır, kasada sadakat QR'ı (M-123456) okutulur
+- **Müşteri tarafı:** Kampanyalar sayfası (Kampanyalar / Kuponlarım / Sadakat); yakında kampanya yoksa "Puanla alabileceklerin" (kalıcı ödüller ve özel kuponlar, dokununca mekan sayfası). Üstteki bilet simgesi doğrudan Kampanyalar'ı açar, yakında kampanya ya da kullanılabilir kupon / ödül varsa kırmızı nokta
 
-**Destek**
-- Daha fazla > "Destek" satırı kaldırıldı ("Hata bildir ve iletişim" yeter); tanıtım sitesinde destek sayfası olunca istenirse geri eklenir (MoreScreen'de `url` alanlı bir satır). İşletme Kampanyalar sayfası: aktif kampanyalar, haftalık kampanyalar (Düzenle: PUT /v1/business/schedules/{id}), kalıcı ödül, en altta geçmiş kampanyalar; yeni kampanyada kişi sınırı "Sınırlı" (20) açık gelir
-- "Hata bildir" / "İletişime geç" sunucuya gider (support_messages; POST /v1/support, giriş olmadan da; kişi başı günde 10); SUPPORT_EMAIL ayarlıysa oraya e-posta da gider (Render'da girilmeli)
+### İşletme
+- **Sekmeler:** Panel, Müşteriler, Harita, Kampanyalar, Daha fazla
+- **Panel:** "availo ile" ay kartı ve görsel aylık özet, profil tamamlama, şu an, Öne çık kartı, bugün / son 7 gün / haftanın günleri, en sakin saatler (tek dokunuşla haftalık kampanya), yakındaki benzer mekanlar, "Şimdi yap" (ölü saatte hazır kampanya)
+- **Müşteriler:** son 30 gün farklı kişi ve müdavimler (adsız), sadakat özeti, yanıt bekleyen yorumlar
+- **Kampanyalar:** Kampanyalar (yeni, haftalık, aktif, geçmiş) · Kuponlar (kupon doğrulama) · Ödüller (kalıcı ödül ve damga kartı)
+- **Otomasyon sunucuda** (app/automation.py; işletmenin uygulaması kapalıyken de): ölü saat bildirimi ve otomatik kampanya, zamanlanmış kampanyalar
+- **İşletme profili:** kapak fotoğrafı, ad, saatler, özellikler, adres ve konum, Instagram, telefon; Kapı QR'ı (yazdırılır). Mekan seçimi kayıtta (bir mekana tek işletme hesabı) ya da yeni mekan ekleyerek
 
-**Gizlilik ve güvenlik**
-- Gizlilik: arkadaşlar check-in'lerimi görsün, herkese açık sıralamada görüneyim, kullanıcı adımla aranabileyim, arkadaş olarak önerilmeye izin ver; Engellenenler
-- Konum erişimi (Konum ve izinler > Konum açılınca, ayrı sayfa yok): şimdiki izin (Kapalı / Uygulamayı kullanırken / Daima) + Düzenle, ve o izinle hangi özelliklerin çalıştığı (✓ / !): check-in, harita, check-in önerisi, kapalıyken check-in önerisi (yakında, "Daima" ister)
-- Konum ve izinler sayfası (konum / kamera / bildirim: ne için, izin vermezsen ne olur, durum ve "İzin ver"; izin verilmişse "Ayarlara git"; web'de tarayıcı ayarlarının yeri). İşletmede yalnızca kamera ve bildirim ("İzinler")
-- Gizlilik politikası ve kullanım koşulları taslağı (mobile/src/lib/legal.ts), kayıt ekranında onay satırı
+### Mekanlar
+- **Kaynaklar:** OpenStreetMap (app/import_osm.py; pilot: Nişantaşı, Caddebostan, Kayışdağı, Etiler, Beşiktaş, Bilgi santral, Bakırköy). Arka planda ~91 bin "aday" yer (Overture + Foursquare OS Places; place_candidates), haritada görünmez, aramada "Haritada yok mu?" ve "Mekan ekle"de "Bu mu?" ile eklenir. Yenileme ayda bir: backend/scripts/fetch_overture_places.py + fetch_foursquare_places.py → import_place_candidates.py
+- **Mekan ekle** (kayıtlı bireysel): ad, tür, konum (haritadan ya da şu anki), adres kendiliğinden dolar. Kişi başı en fazla 3 onay bekleyen. Ekleyen dışında 3 kişi 3 farklı günde check-in yapınca onaylanır; 30 günde onaylanmazsa listelerden kalkar
+- **"İşletmeye haber ver":** işletmesi olmayan mekanda; belli eşiklerde mekana sayıyı bildiren e-posta
+- **"Bilgi yanlış mı?":** kapanmış / saatler / konum / ad; 3 kişi bildirince yönetici listesine düşer. Uygunsuz mekan adı kontrolü (app/name_check.py)
 
-**Harita ve ana sayfa**
-- Ana sayfa: Konum (pilot semtler Ataşehir, Kadıköy, Şişli; diğerleri soluk), Ne arıyorsun (Sosyalleşme, Ortak çalışma, Eğlence, Sessizlik, Yemek, Gece hayatı; Ücretsiz Wi-Fi artık filtre değil, yalnızca mekan özelliği), arama (Türkçe karakterden bağımsız), Önerilen / En yakın / En sakin, Kapalıları gizle
-- Harita: üstte "🔍 Mekan ara" (seçilen mekanda harita yeniden açılır, kartı açık); renkli noktalar (soluk = tek kişi, gri ? = bilgi yok, mor ✨ = keşfedilmedi), yakınlaşınca mekan adları, mavi konum noktası, "Konumuma git", yana kayan filtre şeridi, Tümü / Ziyaret ettiklerim, 🔥 Trendler
-- Ücretsiz Wi-Fi: OSM'de Wi-Fi'ı olup ücreti olmayan (ya da müşteriye ücretsiz) mekanlar ve ortak çalışma alanları `wifi` amacı alır (pilot: 267 mekanın 22'si); filtrede ve mekan özelliklerinde "📶 Ücretsiz Wi-Fi" (artık tahmin edilmiyor). Parklar ve "Doğa" kaldırıldı: OSM'den çekilmiyor, eski park kayıtları gizli (check-in'leriyle duruyor). Neon'da Wi-Fi bilgisi için copy_venues yeniden çalıştırılmalı (mevcut mekanların amaçlarını günceller)
-- "📈 Cumartesi günleri genelde 18:00–20:00 kalabalık · En sakin: 10:00–11:00": son 8 haftanın check-in puanları gün ve saat başına ortalanır (en az 3 check-in olan saatler); bugünün gününde yeterli veri yoksa tüm günler birlikte (GET /v1/venues/{id}/typical, app/typical.py)
-- Mekan sayfası (✓ haritadaki kartta da): kapak fotoğrafı, ✓ Doğrulanmış işletme rozeti, ⏳ Onay bekliyor, keşfeden, yıldız ortalaması, doluluk, saatler, Instagram / Ara düğmeleri, check-in, Haritada gör / Yol tarifi, kampanya, özellikler, yorumlar; "Sakin olunca haber ver" (🔕)
-- Favoriler: yalnızca kayıtlı kullanıcılar (misafire "Kayıt ol / Giriş yap"); Kaydedilenler / Ziyaret edilenler (telefonda, hesap başına)
-- Ana sayfa: "Mekan ara"nın altında "Filtrele" (açılan alt menü: Ne arıyorsun?, Sırala: Önerilen / En yakın / En sakin, Kapalıları gizle; "N mekanı göster", "Sıfırla"); seçilenler düğmenin yanında ✕ ile kaldırılır; Konum > Temizle yalnızca konumu temizler
-- Hesapla taşınanlar (migration 008, /v1/me/favorites, /watches, /settings): favoriler, "Sakin olunca haber ver" zilleri ve ayarlar sunucuda; telefon kopya tutar, telefondaki eski liste ilk girişte bir kez yüklenir; ayarlarda sunucudaki kopya kazanır. Eski yerel mekan fotoğrafları (KEYS.photos) yalnızca telefonda kaldı (yeni fotoğraflar zaten sunucuda)
-- Akıcılık: önemli dokunuşlarda titreşim (lib/haptics: check-in, ♡, zil, beğeni), check-in kutlama animasyonu (components/Celebration), yüklenirken iskelet (components/Skeleton: ana sayfa kartları, Sosyal akış)
-- Yorum hakkı sayacı gösterilmez; sınır (check-in başına 2) aşılınca sunucunun uyarısı çıkar
-- Yazı tipleri: metinler Figtree, 20 pt ve üstü başlıklar Tinos (components/Text: React Native'de genel font olmadığı için tüm Text / TextInput buradan gelir, fontWeight doğru font dosyasını seçer)
-- İkonlar: uygulamanın çerçevesi (alt menü, üst düğmeler, geri oku, arama) kendi çizimimiz (components/TabIcon, SVG); içerikteki ikonlar Tabler (MIT; components/Icon SVG çizer, lib/tablerPaths.json + tablerFilledPaths.json); yazı içindeki InlineIcon font kullanır (assets/fonts/tabler-icons.ttf, lib/tablerGlyphs.json; yazının boyutunu ve rengini alır). Semt elçisi simgesi taç. Telefon bildirimi metinleri ve paylaşım mesajlarında emoji kaldı (uygulama dışı); rozet simgeleri (sunucudan) ve Keşfedilmedi noktası (✨) bilerek emoji
-- Veri yokken mekan sayfasında "Genelde bu saatte sakin (tahmini)" (mekanın kendi geçmiş check-in'leri, /typical usual_now)
-- "Bugünün ilk bilgisini sen ver": mekanda gece yarısından beri check-in yoksa (keşif hariç) check-in 2 kat puan (first_today)
-- Seviyeler (app/levels.py, saklanmaz, her seferinde hesaplanır): Yeni gelen → Kâşif (100 puan ya da 1 keşif) → Mahalleli (500 puan ve 3 mekanda 3+ check-in) → Semt elçisi (2.000 puan, bir semtte 10 farklı mekan ve bütün rozetler: ilk adım görevleri "Hızlı başlangıç" rozetiyle dahil); profilde LevelCard (kendi profilinde "Kâşif → Mahalleli", puan yok); basınca Seviyeler ekranı (LevelsScreen: sonraki seviyeye kalanlar, dört seviye, gereklilikler, avantajlar); istatistikler gizli olsa da seviye görünür
-- İşletme paneli: profil eksikse en üstte ProfileProgress (fotoğraf yoksa "Mekanının fotoğrafı yok" kartı ve tek dokunuşla yükleme; "Profilin %60 dolu" çubuğu ve eksikler: fotoğraf, adres, Instagram, telefon, özellikler; "Hakkımızda" yok). İşletme profili: kapak fotoğrafı, mekan bilgileri (ad, saatler, ne için uygun, özellikler; Ayarlar'dan taşındı), adres ve konum (adresten bul, haritadan seç, konumum), iletişim
-- Ana sayfa: "Filtrele"nin yanında sıralama çipleri (Önerilen / En yakın / En sakin), seçili filtreler altında; kart fotoğrafı genişliğin %78'i; yazısız puanlar (kendi puanın da) yorum listesinde görünmez
-- İkon fontları scripts/build-icons.py ile üretilir (yalnızca kodda geçen ikonlar, Tabler'ın kendi numaralarıyla, derlemeler arasında değişmez; font adı availy-icons; satır ölçüleri eşitlendi, ikonlar daire içinde ortalı; Tabler'ın hazır TTF'i iPhone'da yüklenmiyordu: bozuk post tablosu, U+FFFF üstü karakterler, iki fontta aynı iç ad). Yeni ikon adından sonra çalıştırılmalı (pip install fonttools)
-- Yazım: düğme ve başlıklarda yalnızca ilk kelime büyük ("Semt elçisi", "Giriş yap"); özel adlar hariç
-- Tanıtım sayfası (public/tanitim): harita ve Sosyal bölümleri, telefon çizimleri CSS/SVG (örnek veri)
-- Akış: mekan sayfasından verilen puan ya da yorum, son 24 saatteki check-in'in altında görünür (o check-in'de başka yorum yoksa; migration 013 eskileri de bağlar)
-- Seviye simgesi: sıralamada ve Arkadaşlarım akışında kullanıcı adının yanında (LevelMark; Yeni gelen'de yok); Semt elçisi'nin fotoğrafında altın çerçeve (Avatar framed: sıralama, akış, profil)
-- Kişisel profil doluluğu (Daha fazla'da ProfileCompletion): profil fotoğrafı, e-posta doğrulama, ilk check-in, ilk arkadaş, ilk yorum; hepsi tamamlanınca Tam profil rozeti (+20 puan); karta basınca Profil ayarları açılır
-- Rozetler puan kazandırır, zorluğa göre (İlk adım 5, Gece kuşu 10, Kâşif 15, Tam profil 20, Gezgin 20, Müdavim 25, Büyük kâşif 40, Yardımsever 50, Haftanın 1.si 50), bir kez (user_badges, migration 010; eski hesapların önceden kazandıkları puansız yazıldı); check-in yanıtında ve /v1/me'de new_badges → uygulamada "Yeni rozet!" penceresi (components/BadgeCelebration); rozet simgeleri Tabler (BadgeGrid)
-- Haritada işletmenin kendi mekanı (ownVenueId): nokta yerine kırmızı dükkan tabelası, köşesinde doluluk noktası, adı hep yazılı, gruplamaya girmez; Keşfedilmedi mekan adları temanın discovery renginde (koyu haritada okunur)
-- İşletme profili: kapak fotoğrafı en üstte mekan adının yanında (kalemli; components/business/CoverPhoto); "Mekan bilgilerini düzenle" ve "Adres ve konum" açılıp kapanır; panelde mekan adının yanında "Düzenle" (İşletme profili'ni açar)
-- Mekan iletişim bilgileri (migration 011: contact_phone, contact_website, contact_source; contact_email zaten vardı): Overture Maps'ten app/import_contacts.py ile (ad + 80 m eşleşme; semt adları yok sayılır); yalnızca işletme doğrulaması için, uygulamada gösterilmez. Yerelde 286 mekanın 191'i: 175 telefon, 96 e-posta, 124 web. Neon'da da yapıldı (285 mekanın 195'i: 179 telefon, 97 e-posta, 128 web); yeni mekanlar için yeniden çalıştırılabilir: backend/scripts/import-contacts-live.sh (adresi sorar, bağlantıyı dener, dosyayı indirir, ekler, siler)
-- Mekan eklerken "Adresi haritada bul" (yazılan adres haritada açılır, pin kapıya getirilir); konum seçme haritasında üstte arama, yazdıkça sonuçlar arama çubuğunun hemen altında küçük liste (Google Maps gibi; Nominatim searchPlaces)
-- Daha fazla > Hakkında: "Web sitemiz" (tanıtım sayfası)
-- Logo yazısı (Wordmark): "availo", Tinos (serif, @expo-google-fonts/tinos), temanın ana renginde; y altında kıvrım yok
-- Görünüm: Cihaz ayarı / Açık / Koyu (denenen Koyu mavi, Petrol ve Grafit kaldırıldı; kayıtlıysa Cihaz ayarına döner)
+### Hesap, gizlilik, güvenlik
+- **Hesap:** kullanıcı adı (3–20, a-z 0-9 . _) + e-posta + şifre; Google / Apple ile giriş kodu hazır (kimlikler girilince görünür). Misafir hesap ("Kayıt olmadan devam et"; güven 0.5, puanın yarısı; kayıt olunca aynı hesap devam eder)
+- **Şifre:** yeni şifrelerde en az 8 karakter, büyük ve küçük harf, rakam, noktalama (kayıtta canlı kontrol listesi). 3 yanlışta hesap kilitlenir, "Şifremi unuttum" (e-posta kodu) ile açılır; bir IP'den 15 dakikada 20 yanlış girişte o IP 15 dk bekletilir
+- **Oturum kullandıkça uzar:** kayıtlı hesap 90 gün, misafir 365 gün hiç açılmazsa kapanır
+- **Profil ayarları:** kullanıcı adı, e-posta (doğrulama kodu), şifre, profil fotoğrafı, Verilerimi indir (JSON), hesabı dondur, hesabı sil (check-in'ler adsız kalır)
+- **Gizlilik ayarları:** check-in'lerimi kim görsün, herkese açık sıralama, aranabilirlik, önerilme, müdavimlik görünürlüğü, istatistik görünürlüğü, engellenenler
+- **Konum ve izinler:** her iznin ne için olduğu, izin vermezsen ne olacağı; konum saklanmaz
+- **Kayıt ekranı:** "Kullanım koşulları" ve "Gizlilik politikası" bağlantıları sitedeki sayfaları uygulama içinde açar
+- **Hakkında > Lisanslar ve veri kaynakları:** OSM, Overture, Foursquare atıfları ve lisansları, harita / adres hizmetleri, yazı tipleri ve ikonlar, her açık kaynak paket (components/Licenses.tsx)
 
-**Mekanlar**
-- "🏪 İşletmesi henüz availo'ya katılmadı · İşletmeye haber ver": işletmesi olmayan mekanın sayfasında (mekan availo'da görünür, yalnızca işletmesi yok); kişi başı bir kez, "N kişi istedi"; 3 / 5 / 10 / 25 / 50 / 100 kişide mekanın e-postası biliniyorsa yalnızca sayıyı yazan bir e-posta gider, kimin istediği yazmaz (venue_requests, venues.contact_email)
-- "Mekan ekle" (giriş yapmış bireysel kullanıcı; Check-in yap ekranında sağ üstte; mobile/src/components/NewVenueForm.tsx): ad, tür, Konum seç (📍 şu anki konum ya da 🗺️ haritadan; harita çevredeki mekanları ve mavi noktanı gösterir), seçilen noktadan semt / mahalle / açık adres kendiliğinden dolar (Nominatim, değiştirilebilir), "Adresi doğrula" özeti → "Doğru, gönder". Kullanıcı seçtiği noktaya check-in mesafesinden yakın olmalı. Semt arama kutusuyla seçilir (yazınca altta liste). Yakında (60 m) aynı adlı mekan varsa eklenmez; 25 m içinde başka mekan varsa "haritada üst üste görünürler" uyarısı ve "Aynı mekan değil, yine de ekle"; kişi başı en fazla 3 onay bekleyen mekan. "⏳ Onay bekliyor" görünür, check-in alır; ekleyen dışında 3 farklı kişi en az 3 farklı günde check-in yapınca onaylanır, ekleyen 50 puan alır; 30 günde onaylanmazsa listelerden kalkar (veri silinmez)
+### Bildirimler
+- 🔔 listesi (silinene kadar kalır, "Temizle"): arkadaşlık, yanıt, beğeni ve yorum, arkadaşın check-in'i ve yorumu, birlikte check-in, sadakat, damga kartı doldu, mekan onayı, davet, müdavimlik, kampanya, favori sakinleşti (availo+), 4 gün hatırlatması; işletmeye yorum, kupon, kampanya sonucu, ölü saat, "Bilgi yanlış mı?"
+- Telefon bildirimi (push) kodu hazır (backend/app/push.py, Expo push); gerçek uygulama sürümü gerektirir. Metinler iki yerde: push.py `text` ve mobile/src/lib/social.ts `notificationText` (birlikte değişmeli)
+- Uygulama 6 saatten uzun aradan sonra açılınca "Sen yokken" kartı
 
-**İşletme**
-- Mekanı yalnızca telefonda kalmış (sunucu öncesi eklenmiş) işletme hesapları açılışta yeniden "Mekanını seç / ekle" ekranına gelir
-- İşletme hesabı: kayıtta mekan seçer (sunucuda: PUT /v1/me/venue; bir mekana tek işletme hesabı, başkasına bağlı mekanlar listede soluk; GET /v1/venues/taken) ya da listede yoksa aynı formla kendi mekanını ekler (her yerden, onay bekler, hesaba hemen bağlanır); check-in ve yorum yapamaz, aramada ve herkese açık sıralamada görünmez
-- Alt sekmeler: Panel (açılış), Müşteriler, Harita, Kampanyalar, Daha fazla (Ana sayfa yok)
-- Müşteriler: son 30 gün farklı kişi, müdavim (3+ check-in), en sık gelenlerin check-in sayıları (adsız), sadakat üye ve damga sayısı (program yoksa "Sadakat programı oluştur", varsa "Programı yönet" → Kampanyalar > Sadakat programım), "💬 N yorum yanıt bekliyor" ve yorumlar ("İşletme" etiketiyle yanıt)
-- Panel (GET /v1/venues/{id}/stats, check-in verisinden): şu an, bugün saat saat, son 7 gün (check-in, kişi, tekrar gelen), son 30 gün hafta günleri, yakındaki benzer mekanlar; ölü saat uyarısı (müşteriler açık mekanı Sakin bildiriyor) + hazır kampanya. İstatistikler ve yakındaki benzer mekanlar Aylık pakette. Ücretsiz pakette bu kartlar yerinde durur ama örnek sayılarla bulanık ve kilitli görünür, üstünde "Aylık pakete dahil" yazar (LockedPreview; gerçek veri gösterilmez). Keşfedene ödül kaldırıldı (2026-11-23; eski discoverer_rewards kayıtları duruyor)
-- Kendi mekanının yorumlarına "İşletme" etiketiyle yanıt (yanıtlar kapalı olsa da)
-- İşletme profili'nde üstte kalın "E-posta henüz doğrulanmadı" ve "Doğrulanmamış işletme" kartları, yanlarında Doğrula (ikincisi İşletme doğrulama'ya gider)
-- İşletme profili = mekan sayfası: sağ üstteki profil ikonu kendi mekan sayfasını "👁 Müşteriler mekanını böyle görüyor" olarak açar; sağ üstte "✏️ Düzenle" → Daha fazla > İşletme profili. Orada düzenlenenler sunucuda, herkese görünür: kapak fotoğrafı, adres ve konum (açık adres, mahalle, semt; yol tarifi noktası adresten bulunur ya da "Mekandayım: konumum"; en fazla 1 km kaydırılabilir, check-in mesafesi de bu noktaya göre; OSM yeniden içe aktarılınca korunur: `venues.edited_by_business`), Instagram, telefon. ✓ rozeti `venue_profiles.verified` ile (doğrulama henüz yok; elle açılır)
-- Daha fazla: İşletme profili, İşletme doğrulama ("Yakında"), Abonelik (kampanya başı ₺150 / SaaS ₺599/ay; ödeme yok), Ayarlar (hesap + mekan bilgileri + ölü saat / otomatik kampanya), Görünüm, İzinler
-- Kalıcı işletme test hesabı @availy_isletme
+### Arayüz
+- Alt şerit yüzen, buzlu (expo-blur); sayfalar arkada açık kalır, kaydırma yeri korunur (components/ScreenStack, PageContext); sol kenardan çekince geri
+- Yazı tipleri: metin Figtree, 20 pt üstü başlıklar Tinos (components/Text). İkonlar: çerçeve kendi çizimimiz (TabIcon), içerik Tabler (components/Icon, InlineIcon)
+- Tek seferlik ipucu baloncukları (components/Tip, lib/tips.ts); tanıtım ve kayıt sonrası pencereler açıkken çıkmaz
+- Görünüm: Cihaz ayarı / Açık / Koyu ve renk körü dostu renkler
+- Ana sayfa boşlukları her bölümde aynı: başlık → içerik 12, bölüm → bölüm 24; başlık satırları başlık yüksekliğinde (22), yanındaki düğmeler (Konum, arama, Filtreler) taşar. Bölüm başlıkları 17 punto kalın; kartta mekan adı 14 punto
+- Kayıt sonrası kısa tanıtım (müşteri 4, işletme 3 slayt), davet ekranı ve "İlk check-in'in"
+- Abonelik sayfası: availo+ altın vurgulu kartla üstte (ikonlu faydalar), ücretsiz plan altında sade
 
-**Sadakat** (sunucuda: loyalty_programs, loyalty_members; app/loyalty.py)
-- İşletme damga kartı ya da ücretli üyelik (gösterim, ödeme yok) kurar, açar / kapatır; müşteri Kampanyalar → Sadakat'ta ya da mekan sayfasında "Katıl" der (otomatik katılım yok), çıkabilir
-- Kasada müşterinin QR'ı / kodu (M-123456, sunucuda hesaba bağlı; GET /v1/me `customer_code`) okutulur: damga (kart dolunca ödül), ödülü kullandır; katılmamış müşteriye damga yok
-- O mekanda check-in yapmış (keşfetmiş, sık giden) ve katılmamış müşterilere 🔔 "⭐ … sadakat programı başlattı" bildirimi; program yeniden açılınca tekrar
-- Damga başına 5 availo puanı (uygulamada sayılır)
+### Tanıtım sitesi
+- mobile/public/tanitim (yayında …/v2/tanitim/): index.html (kullanıcılar), isletme.html (işletmeler, paketler, kurucu program, başvuru), gizlilik.html, kosullar.html (taslak), hesap-silme.html (Google Play hesap silme sayfası)
+- Bekleme listesi formları (zorunlu açık rıza kutusu; POST /v1/waitlist; Yönetici > Bekleme listesi)
+- Yazı tipleri ve ikonlar sitenin kendi klasöründe (tanitim/assets); Google Fonts / jsDelivr'e bağlanmaz. Çerez, analiz, reklam aracı yok (çerez bannerı gerekmez)
+- Mağaza linkleri gelince index.html'deki `STORES` doldurulur
 
-**Kampanya ve kupon** (sunucuda)
-- İşletme kampanya gönderir (mesaj, indirim, 1/2/3 saat, 1/2/5 km, kişi sınırı); her telefondaki müşteri yakınındaki aktif kampanyayı görür, "Kuponu al" → AV-XXXX (0/O, 1/I, 8/B yok; kişi başı bir; sınır kilitle korunur), kasada QR ya da elle; kampanya bitince kupon kullanılamaz
-- Kampanyalarım: son 7 gün sonuçları, gösterim (kişi başı bir) / kupon / kullanım; bitir, tekrar gönder, bitenleri sil (yalnızca listeden). "Rakipler" sekmesi kaldırıldı (Panel'de "Yakındaki benzer mekanlar" var)
-- "Check-in yapana kupon": kampanyada "Kupon kimlere? Yalnızca check-in yapanlar"; müşteride "📍 Check-in yap, kuponu kap", check-in yapınca kupon kendiliğinden verilir ve kutlamada görünür (campaigns.checkin_only; kampanya başladıktan sonraki check-in gerekir)
-- Zamanlanmış / haftalık kampanyalar işletmenin telefonunda tutulur, zamanı gelince (uygulama açıkken) sunucuya gönderilir
+### Yönetici
+- users.is_admin (elle verilir): Daha fazla > Yönetici: şikâyetler (kaldır / reddet), onay bekleyen ve kontrol edilecek mekanlar, bekleme listesi, kurucu mekan ve Öne çık verme, mekan sayfasında "Satış özeti"
 
-**Akış, gizlilik ve moderasyon**
-- Sosyal: Akış = kendi check-in ve yorumlarım, Arkadaşlarım = arkadaşlarınki (GET /v1/feed?who=me|friends); ikisi de zaman çizgisi: tarih başlıkları (Bugün / Dün / tarih), solda simge (bende) ya da kişinin fotoğrafı, çizgi yalnızca aynı günün paylaşımlarını bağlar; altında ↳ ile beğenenler, check-in yorumları ve yoruma gelen yanıtlar (son 3, "Önceki yanıtları gör"); sağdaki kişi+ simgesi arkadaş ekleme, istekler ve QR
-- Akış süreleri: bende son 7 gün açık, daha eskisi (30 güne kadar) "Daha eski" altında; arkadaşlarda son 3 gün, "Daha eski" ile 7; arkadaşların yazısız, beğenisiz, yorumsuz check-in'i 2 günde düşer
-- Profil istatistikleri: Gizlilik > "Arkadaşlarım / Sadece ben" (users.stats_visibility); gizliyse puan, check-in, rozet görünmez
-- Şikâyet: işletme ya da kullanıcı yorumu/yanıtı şikâyet eder; yönetici (users.is_admin, sunucuda elle verilir) Daha fazla > Yönetici'den "Kaldır" (removed_at) ya da "Şikâyeti reddet" (reports.dismissed_at); /v1/admin/*
-- Mekan yorumları: yazısız (yalnızca puan) yorumlar listede tek tek görünmez, ortalamaya sayılır (kendi puanın da)
-- Görünüm: Cihaz ayarı / Açık / Koyu / Petrol / Grafit (son ikisi deneme; theme.ts petrolColors: gece petrolü #061A1E + mercan #FF7A59; kaldırılan bir tema kayıtlıysa Cihaz ayarına döner; graphiteColors: koyu gri #111113 + indigo #8B7CFF, düğme yazısı koyu; ikisi de koyu tema gibi davranır: koyu harita, açık durum çubuğu)
-- "Bilgi yanlış mı?" (mekan adının sağında, pop-up): kapanmış / saatler / konum / ad + isteğe bağlı not (venue_issues); aynı şeyi 3 kişi bildirince Yönetici > Kontrol edilecek mekanlar: "Kapandı, kaldır" (venues.closed_at, haritadan ve aramadan çıkar), adı / saatleri kaydet, "Düzelttim" (konum), "Bildirim yanlış"
-- Konum ve izinler: konum özellikleri yalnızca ✓ / ! gösterir, seçilmez; Fotoğraflar izni listede yok; profil fotoğrafı menüsü (seç / çek / sil) iOS'ta menü kapandıktan sonra açılır
+## Teknik notlar
+- **Yer araması (Photon):** GET /v1/places (backend/app/places_api.py) → komoot'un ücretsiz Photon'u. Sunucu 1 gün önbellekte tutar, durak / peron ve İstanbul dışını atar, IP başına dakikada 40 istek; Photon meşgulse boş liste döner ve Render loguna "photon failed" yazar. Kapasite tahmini: günde birkaç yüz aktif kullanıcıya kadar sorun yok, ~1.000 ya da lansman anları riskli. Yetmezse (kolaydan zora): önbelleği büyüt (CACHE_SIZE / CACHE_SECONDS); kendi Photon sunucumuz (Hetzner ~5–10 €/ay, Türkiye dökümü, Render'da `PHOTON_URL`); Geoapify (places_api.py'de sağlayıcı değişir). Uygulama hep /v1/places'i çağırır, değişiklik sunucuda kalır
+- **Adres (pin → adres, adresten konum):** Nominatim, yalnızca kullanıcı nokta seçince / düğmeye basınca (lib/reverseGeocode.ts)
+- **Web önizleme haritası** tile.openstreetmap.org kullanıyor: yalnızca önizleme için; web gerçek kullanıcıya açılırsa başka tile sağlayıcı gerekir
+- **Android harita anahtarı:** mağaza sürümünde gerekli (Expo Go kendi anahtarını kullanır). Google Cloud'da "Maps SDK for Android", paket adı ve imzaya kısıtlı anahtar, EAS'ta `GOOGLE_MAPS_ANDROID_API_KEY` (mobile/app.config.js okur). Telefon haritası ücretsiz; özel map ID kullanılmamalı
+- **Lisans yükümlülükleri:** OSM atfı görünür kalmalı. Overture (CDLA) lisans metni ve Foursquare (Apache 2.0) telif satırı + değişiklik notu Hakkında'da (scripts/build-licenses.js `FOURSQUARE`; aday yerler yenilenince nottaki tarih güncellenmeli). Google Places verisi kopyalanmaz
+- **Puan geçmişi adları:** points.task "badge:…" / "level:…" (migration 037 eskileri doldurdu)
+- **availo+ bilgisi** yalnızca sunucudaki plandan gelir (users.plan; App.tsx telefondaki ayarı ona eşitler). Hesap ayarlarının sunucu yedeği (SettingsSync) `premium`'u taşımaz; taşıdığı dönemde eski yedek seviye hediyesi availo+'yı telefonda kapatıyordu
+- **Deneme mekanları** (eray'ın elle eklediği kafe3, ery, kafe34, dondurma evim, sevencan kafe, kafe2, orsp cafe) migration 038 / 039 ile kapatıldı (kayıtlar ve check-in'ler duruyor). Aday listesinden eklenen gerçek mekanlar (Poco, Soft Dondurma Tozu; source 'overture') kaldı. "Yeni keşfedilen mekanlar" kapalı ve gizli mekanları göstermez
+- **Rehberden bul** kaldırıldı (2026-11-26): kod git geçmişinde; users.phone_hash boş, config.py'de phone_pepper Render ayarı geçerli kalsın diye duruyor. Geri gelirse açık rıza ekranı, gizlilik maddesi ve PHONE_PEPPER gerekir
 
-**Yayın ve altyapı**
-- Render + Neon + GitHub Pages /v2/ (bkz. Ortamlar); şema Neon'da `CREATE EXTENSION postgis` ile başlar; bağlantı havuzu kopan bağlantıyı yeniler; CORS: localhost:8081, localhost:8765, erayerb.github.io
+## Yasal durum
+- **Taslaklar** (docs/hukuk/): gizlilik-politikasi.md, kullanim-kosullari.md, acik-riza-ve-onay-metinleri.md (ticari ileti, bekleme listesi, kayıt beyanı, reklam ağı rızası), hukukcu-icin-kontrol-listesi.md (12 soru, ilk dördü öncelikli), availo-yasal-metinler-taslak.docx. Paylaşılan sayfa: https://claude.ai/artifact/VoGRTD4HjEmUduG9AtUu1V (scratchpad'deki build_docx.js / build_page.py ile üretilir)
+- **Hukukçu bekleniyor:** ticari ileti onayı (kampanya bildirimleri şu an varsayılan açık; "ticari ileti" denirse varsayılan kapalı + İYS), yurt dışı aktarım, yaş sınırı (kayıtta yaş beyanı gerekebilir), kullanıcı içeriği ve 5651, puanlar, sınırlayıcı hükümler, abonelik, VERBİS ve belgeler, küçük sayılarda kişi tanınabilirliği, reklam ve yorumlar (reklam ağı rızası dahil), çekiliş, marka. Cevaplar gelince şirket bilgileri doldurulup metinler yayınlanır
+- **Reklam:** kendi reklamımız ("Sponsorlu") izin istemez, etiket her yerde kalmalı (tüm listeler VenueTile kullanıyor). Reklam ağı (AdMob; banner ve kapatılabilir tam ekran, video yok) henüz yok; Abonelik'te ücretsiz "Reklamlı", availo+ "Reklamsız" yazıyor
 
-### Yapılacaklar (v2)
-**Yayından önce** (özet: 150 m, push bildirimleri, migration, Sentry, KVKK bölümü)
-- Render ayarları (availy-api → Environment): isteğe bağlı `SUPPORT_EMAIL` = hata bildirimleri ve iletişim mesajlarının e-postayla da geleceği adres (Resend alan adı doğrulanana kadar yalnızca Resend hesabının adresine gider)
+## Yapılacaklar
+
+### Yayından önce
 - Check-in mesafesini 1 km'den 150 m'ye geri al
-- (Yapıldı) Güçlü şifre: yeni şifrelerde (kayıt, değiştirme, sıfırlama) en az 8 karakter, büyük harf, küçük harf, rakam ve noktalama (accounts.py `password_problem`, uygulamada lib/auth.ts `passwordProblem` ve ✓'li PasswordRules). Girişte eski şifreler çalışır. Test hesapları (seed_test_account.py) `check_password=False` ile eski şifresini korur
-- İşletme doğrulama: doğrulanmamış mekan kampanya gönderemiyor ve kapak fotoğrafı yükleyemiyor, ama doğrulama ekranı hâlâ "Yakında" ve "şimdilik her şey doğrulamasız açık" diyor. Ya doğrulamayı aç (SMS / belge) ya da şimdilik elle doğrula (isletme, kafe, sawa) ve ekrandaki yazıyı düzelt
-- Push bildirimleri (bkz. Bildirimler)
-- Deneme ve gerçek ortam ayrı: ikinci Render servisi + ikinci Neon veritabanı (gerçek ortam `main`'den, kod aynı)
-- Planlar: Render Starter (~7 $/ay, uyumaz), Neon ücretli plan (~19 $/ay; 7–30 gün yedek)
+- İşletme doğrulama: doğrulanmamış mekan kampanya gönderemiyor ve kapak yükleyemiyor ama ekran hâlâ "Yakında". Ya doğrulamayı aç (e-posta kodu / SMS / belge + yönetici onayı) ya da şimdilik elle doğrula (isletme, kafe, sawa) ve yazıyı düzelt
+- Push bildirimleri ve mağaza sürümü: Expo EAS Build (`eas init`, `eas build`), iPhone için Apple Developer, Android için Firebase (FCM)
+- Resend için alan adı (ör. availy.app) ve DNS doğrulaması; olmadan "Şifremi unuttum" e-postası yalnızca hesap sahibine gider (kilitlenen hesaplar açılamaz)
+- Deneme ve gerçek ortam ayrı: ikinci Render servisi + ikinci Neon veritabanı (gerçek ortam `main`'den değil, ayrı bir yayın dalından düşünülmeli)
+- Ücretli planlar: Render Starter (~7 $/ay, uyumaz), Neon ücretli (~19 $/ay, yedek)
 - Hata takibi: Sentry (backend + uygulama)
-- Hesap güvenliği (2026-11-26): Render, Neon, Resend, GitHub, Expo, Apple ve Google hesapları kişisel Gmail'de ya da okul e-postasında. Okul e-postası mezuniyette kapanabilir: hepsini projeye ait bir adrese taşı (önce ayrı bir Gmail, alan adı alınınca ekip@alanadı). Her hesapta iki adımlı doğrulama (geçiş anahtarı ya da Authenticator, SMS değil) ve yedek kodlar (çevrimdışı saklanır). Mümkün olanlara (GitHub, Render, Neon) ikinci bir güvenilir yönetici ekle. Gmail ele geçirilirse veritabanı (Neon), kod (GitHub) ve sunucu ayarları (Render: anahtarlar) ele geçer: o durumda şifreleri ve anahtarları (DATABASE_URL, RESEND_API_KEY, JWT / oturum, HF_TOKEN) değiştir, oturumları kapat
-- Mağaza sürümü: Expo EAS Build ile App Store / Google Play (Expo Go geliştirme modunda çalışır; yavaş sayfa geçişleri gerçek sürümde büyük ölçüde düzelir)
-- Android harita anahtarı: Android'de harita Google Haritalar (iPhone'da Apple Haritalar, ücretsiz). Google Cloud'da faturalandırması açık bir proje aç, "Maps SDK for Android"i etkinleştir, uygulamanın paket adı ve imzasına kısıtlı bir API anahtarı oluştur ve EAS'ta `GOOGLE_MAPS_ANDROID_API_KEY` ortam değişkeni olarak gir (mobile/app.config.js bunu `android.config.googleMaps.apiKey`'e koyar; koda yazılmaz, .env.example'da boş). Anahtarsız Android mağaza sürümünde harita boş görünür; Expo Go kendi anahtarını kullanır. Google logosu ve haritanın yasal yazısı kapatılmamalı (VenueMap'te legalLabelInsets / mapPadding tab çubuğunun üstünde tutuyor). Telefondaki harita gösterimi ücretsiz ve sınırsız; yalnızca map ID (Google panelinden özel stil) kullanılırsa ayda 10.000 açılıştan sonra ücretli olur, kullanma. Derlemeden önce resmi fiyat sayfasını bir kez kontrol et (developers.google.com/maps/billing-and-pricing/pricing)
-- Ödeme: Aylık paket, availo+ ve "Öne çık" için ödeme altyapısı yok; ekranlarda "Prototip" yazıyor (bkz. Paketler)
-  - availo+: App Store / Google Play aboneliği, RevenueCat ile (iki mağazayı tek yerden yönetir, belli bir gelire kadar ücretsiz). Sunucu "availo+ mı?" bilgisini RevenueCat'in bildiriminden (webhook) alıp users.plan'a yazar; Abonelik ekranındaki tek dokunuşla açılan prototip geçiş kalkar. Gerekenler: mağaza hesaplarında abonelik ürünleri, ödeme / vergi bilgileri
-  - İşletme (Aylık paket, "Öne çık"): web sitesinden (isletme.html#paketler) kartla, iyzico / PayTR / Param ile; sağlayıcının "ödendi" bildirimi (webhook) sunucuda paketi açar. Uygulamadaki Abonelik ekranı şimdilik siteye yönlendiriyor (mobile/src/lib/plans.ts `BUSINESS_PLANS_URL`). ⚠️ Mağaza kuralları: Apple (ABD dışı) ve Google uygulamadan dışarıdaki satın almaya link vermeyi kısıtlıyor; mağazaya göndermeden önce linki iOS'ta kapatmak (`SHOW_BUSINESS_PURCHASE_LINK`) ya da kurala uygun hâle getirmek gerekebilir
-  - İkisi için: şirket (şahıs şirketi olur), vergi levhası, e-arşiv / e-fatura, mesafeli satış sözleşmesi ve gizlilik metni (hukukçu)
-- E-posta: Resend hesabı açıldı, anahtar Render'da (`resend` ortam grubu, RESEND_API_KEY). Alan adı olmadan Resend yalnızca hesap sahibinin adresine gönderir; herkese gidebilmesi için alan adı al (ör. availy.app), Resend → Domains'te doğrula (DNS: SPF, DKIM) ve Render'da MAIL_FROM = "availo <no-reply@alanadı>" yap
-- Ücretli hesaplar ve giderler (2026-11-26 lisans incelemesi; fiyatları almadan önce resmi sayfalardan kontrol et):
-  - Apple Developer: yıllık 99 $ (TestFlight için de gerekir)
-  - Google Play geliştirici hesabı: tek seferlik 25 $
-  - Render: ücretsiz planda 15 dk boşta kalınca uyur; yayında Starter (~7 $/ay)
-  - Neon: yayında ücretli plan (~19 $/ay; yedekler)
-  - Resend: belli bir aylık kotaya kadar ücretsiz; asıl gereken alan adı (yıllık birkaç yüz TL)
-  - Expo push bildirimleri: ücretsiz
-  - Google Haritalar (Android, telefondaki harita): ücretsiz; faturalandırması açık Google Cloud projesi gerekir
-  - Lisans parası ödenecek kütüphane, yazı tipi veya ikon yok (hepsi MIT / BSD / ISC / Apache / OFL; liste: Hakkında > Lisanslar ve veri kaynakları)
-
-**KVKK ve hukuk** (hepsi hukukçuya sorulacak)
-- Gizlilik politikası ve kullanım koşulları: taslaklar docs/hukuk/ (2. taslak, Swarm/Foursquare, Getir ve Too Good To Go metinleriyle karşılaştırıldı: gizlilik-politikasi.md, kullanim-kosullari.md: genel, bireysel, işletme, ücretli hizmetler; acik-riza-ve-onay-metinleri.md: ticari ileti, bekleme listesi, kayıt ekranı beyanı) ve hukukçuya gösterilecek sorular (hukukcu-icin-kontrol-listesi.md: uygulama kısaca, sade Türkçe 12 soru, ilk dördü öncelikli; doldurulacak bilgiler; veri akışı tablosu. Teknik ve mağaza işleri listede değil, aşağıdaki "Yasal uyum yapılacakları"nda). Uygulamadaki metin (mobile/src/lib/legal.ts) bunlardan üretilir: `python3 mobile/scripts/build-legal.py docs/hukuk/gizlilik-politikasi.md docs/hukuk/kullanim-kosullari.md > mobile/src/lib/legal.ts`. Hukukçu kontrolü, köşeli parantezli şirket bilgileri, web'de yayın
-- Sunucular Frankfurt'ta: yurt dışına veri aktarım şartları
-
-**Yasal uyum yapılacakları** (2026-11-25 incelemesi; yayından önce, hukukçunun cevabını beklemeden yapılabilecekler ve yasak bir şey kullanmamak için)
-- (Yapıldı, 2026-11-26) Yazarken yer önerileri artık Nominatim'den değil, kendi sunucumuz üzerinden Photon'dan (komoot, OSM verisi, otomatik tamamlamaya izin veriyor): GET /v1/places?q=&lat=&lon= (backend/app/places_api.py). Sunucu tanıtıcı User-Agent ile sorar, cevabı 1 gün önbellekte tutar (3.000 arama, bellekte; sunucu yeniden başlayınca boşalır), durak / peron / metro girişi gibi satırları ve İstanbul dışını atar, aynı ad + semti tekrar göstermez, IP başına dakikada 40 istek sınırı koyar; Photon meşgulse boş liste döner (mekan sonuçları yine görünür) ve Render loguna "photon failed" yazar. Kapasite tahmini (komoot sınır yayınlamıyor; denemede tek IP'den art arda 8 hızlı istekte 503): bütün kullanıcılar sunucumuzun tek IP'sinden gider; yer araması yalnızca haritadaki 🔍'da ve mekan eklerken kullanılır, aramalar önbellekten de karşılanır. Günde birkaç yüz aktif kullanıcıya kadar büyük olasılıkla sorun çıkmaz; ~1.000 günlük aktif kullanıcı ya da aynı anda çok kişinin aradığı anlar (lansman günü, Instagram paylaşımı) riskli. Lansmandan önce 2. çözüm (kendi Photon sunucumuz) hazır tutulabilir. Uygulama konumu ~10 km'ye yuvarlayıp gönderir (yakındakiler önce). Denendi: "moda cad", "bağdat cad", "teşvikiye", "istiklal", "bebek", "kayışdağı" doğru sonuç veriyor; web önizlemede seçince harita oraya gidiyor. Dikkat: herkese açık Photon sunucusu hızlı art arda 8 istekten sonra 503 verdi (kısıtlıyor, garanti yok). Lisans: Photon yazılımı Apache 2.0, verisi OSM (ODbL); atıf Hakkında > Lisanslar'da ("© OpenStreetMap katkıcıları" zaten var), ayrıca bir şey gerekmiyor.
-  Photon yetmezse (belirti: Render loglarında /v1/places boş dönüyor, kullanıcılar "öneri çıkmıyor" diyor; places_api.py hatayı sessizce boş listeye çeviriyor) hızlı çözümler, kolaydan zora:
-  1. Önbelleği büyüt / uzat (CACHE_SIZE, CACHE_SECONDS): aynı aramalar çok tekrarlanıyorsa yeter, 5 dakika.
-  2. Kendi Photon sunucumuz: küçük bir sunucu (ör. Hetzner, 4 GB RAM, ~5–10 €/ay), Türkiye verisiyle hazır Photon dökümü (GraphHopper / komoot'un ülke dosyaları) ve `java -jar photon.jar`. Render'da `PHOTON_URL=https://sunucu/api/` girilir; kod ve uygulama değişmez. Yarım gün.
-  3. Geoapify (ücretsiz planda otomatik tamamlama var, sonra ücretli; atıf ister): places_api.py'de `fetch_photon` + `to_places` yerine Geoapify'ın autocomplete ucu ve anahtar (Render'da ortam değişkeni). 1–2 saat; uygulama değişmez.
-  Uygulama her durumda yalnızca /v1/places'i çağırır; sağlayıcı değişikliği sunucu tarafında kalır. Ters geocoding (pin → adres) ve yazılan adresi bulma Nominatim'de kaldı: kullanıcı nokta seçince ya da düğmeye basınca tek istek, kurala uygun. Seçenekler (2026-11-26): ters geocoding (haritadaki noktanın adresi) için telefonun kendi servisi (expo-location `reverseGeocodeAsync`, ücretsiz, anahtarsız); yazarken öneri için Photon (komoot, OSM tabanlı, ücretsiz, ölçülü kullanım) ya da LocationIQ (ücretsiz plan günde 5.000 istek ama otomatik tamamlama yok; otomatik tamamlama en ucuz ~49 $/ay). Bizim mekan araması (kendi sunucumuz) bundan etkilenmez
-- Web önizlemesindeki harita tile.openstreetmap.org kullanıyor (VenueMap.web.tsx): yalnızca önizleme için kabul edilebilir; web'de gerçek kullanıcıya açılırsa OSM tile politikası gereği başka bir tile sağlayıcısı gerekir
-- OpenStreetMap atfı (ODbL): mekan sayfasında ve haritada "© OpenStreetMap katkıcıları" görünür kalmalı (şu an var)
-- İzin metinleri (mobile/app.json) gerçeği yansıtmalı (Apple yanlış veya eksik metni reddeder):
-  - (Yapıldı) Konum: check-in doğrulama ve yakındaki mekanlar, "saklanmaz ve kimseyle paylaşılmaz"; kamera: profil ve mekan fotoğrafı, kupon ve sadakat QR; fotoğraflar: profil ve mekan kapak fotoğrafı
-  - `usesAppleSignIn: true` doğru: Apple ile giriş kodu var (components/SocialSignIn.tsx, kimlikler girilince Google ile birlikte görünür). Google ile giriş sunulursa Apple ile giriş de şart (App Store kuralı 4.8); ikisi birlikte açılmalı
-- Yaş: App Store / Google Play yaş derecelendirme formları (kullanıcı içeriği, konum paylaşımı ve sosyal özellikler var: büyük olasılıkla 12+ / Teen). Hukukçunun cevabına göre kayıtta yaş beyanı (doğum yılı veya "13 yaşından büyüğüm" kutusu)
-- Mağaza formları: App Store "App Privacy" (gizlilik etiketleri) ve Google Play "Data safety" formu, aydınlatma metniyle birebir aynı doldurulmalı. İkisi de herkese açık bir gizlilik politikası adresi istiyor: tanitim/gizlilik.html (taslak ibareli; docs/hukuk'tan `python3 mobile/scripts/build-legal-web.py` ile gizlilik.html ve kosullar.html üretilir, hukukçu notları dışarıda kalır)
-- (Yapıldı) Google Play hesap silme sayfası: tanitim/hesap-silme.html (uygulama içi adımlar, neyin silinip neyin anonim kaldığı, uygulama yoksa form → POST /v1/support "Hesap" konusu; talep kayıtlı e-postadan doğrulanıp elle silinir)
-- Onay ve rıza ekranları (docs/hukuk/acik-riza-ve-onay-metinleri.md):
-  - Kampanya bildirimleri için ayrı, işaretlenmemiş ticari ileti onayı. Şu an `campaignNotifications` varsayılan açık; hukukçu "ticari ileti" derse varsayılan kapalı olmalı ve İYS kaydı yapılmalı. App Store kuralı 4.5.4 de pazarlama bildirimleri için açık onay istiyor.
-  - (Yapıldı) Bekleme listesi formlarında (index.html, isletme.html) zorunlu açık rıza kutusu ve aydınlatma bağlantısı; sunucu da onaysız kaydı reddeder (waitlist `consent`).
-- Şirket ve kayıtlar:
-  - Şirket kuruluşu ve KEP adresi.
-  - VERBİS kaydı gerekip gerekmediği.
-  - Yurt dışı aktarım için standart sözleşmeler ve Kurum'a bildirim.
-  - Hizmet sağlayıcılarla veri işleme sözleşmeleri (Render, Neon, Resend, Expo).
-  - Kişisel veri saklama ve imha politikası.
-  - Veri ihlali bildirim süreci.
+- Android harita anahtarı (bkz. Teknik notlar)
+- Hesap güvenliği: Render, Neon, Resend, GitHub, Expo, Apple, Google hesaplarını projeye ait bir adrese taşı (okul e-postası mezuniyette kapanabilir), her birinde iki adımlı doğrulama ve yedek kodlar, mümkünse ikinci yönetici. Ele geçirilirse anahtarlar ve şifreler değiştirilir
+- Mağaza formları: App Store "App Privacy" ve Google Play "Data safety" (gizlilik metniyle aynı), yaş derecelendirme (büyük olasılıkla 12+ / Teen), "reklam içerir"; gizlilik politikası adresi tanitim/gizlilik.html
+- Apple ile giriş ve Google ile giriş birlikte açılmalı (App Store 4.8; kod hazır, kimlikler girilecek)
 - Misafir hesaplar için saklama süresi ve otomatik silme (kodda yok)
-- Apple'ın özel kullanım koşulları (EULA) için asgari hükümleri: Apple'ın taraf olmadığı, bakım ve destek sorumluluğunun bizde olduğu, Apple'ın üçüncü kişi lehtarı olduğu; taslakta var, mağazaya gönderirken Apple'ın güncel listesiyle karşılaştırılmalı
-- İşletme doğrulaması (vergi levhası / SMS) yapılınca: alınan belgeler için aydınlatma metnine satır ve saklama süresi eklenmeli
-- İşletme istatistiklerinde küçük sayılar ("bugün 1 kişi") kişiyi tanınır kılabilir: hukukçu isterse bir eşik konmalı
-- Çekiliş (planlı): Milli Piyango İdaresi izni olmadan yapılmamalı
-- Puanlar: nakde çevrilebilir veya devredilebilir hale getirilmemeli (elektronik para ve hediye çeki mevzuatı)
-- "Sponsorlu" etiketi her sponsorlu görünümde açıkça kalmalı (ticari reklam mevzuatı)
-- Ödeme: mesafeli satış sözleşmesi, ön bilgilendirme formu, e-arşiv / e-fatura; uygulamadan siteye satın alma yönlendirmesi mağaza kurallarına göre kontrol edilmeli (bkz. Ödeme)
+- Kapı QR'ı şimdilik GitHub Pages adresine gidiyor: alan adı alınmadan çok basılmamalı
+
+### Ödeme
+- availo+: App Store / Google Play aboneliği, RevenueCat ile; sunucu webhook'la users.plan'ı günceller, prototip geçiş kalkar
+- İşletme (Aylık paket, Öne çık): web sitesinden kartla (iyzico / PayTR / Param), webhook paketi açar. Uygulamadan siteye satın alma linki mağaza kurallarına göre iOS'ta kapatılabilir (`SHOW_BUSINESS_PURCHASE_LINK`)
+- İkisi için: şirket (şahıs şirketi), vergi levhası, e-arşiv / e-fatura, mesafeli satış sözleşmesi, ön bilgilendirme formu
+
+### Reklam ağı (hukukçu cevabından sonra)
+- AdMob hesabı, sitede app-ads.txt (alan adı gerekir)
+- iPhone ATT izni ve `NSUserTrackingUsageDescription`; izin yoksa kişiselleştirilmemiş reklam
+- Onay ekranı (hukukçunun metniyle) ve Gizlilik ayarlarında "Kişiselleştirilmiş reklam" anahtarı; 18 yaş altına kişiselleştirilmiş reklam yok
+- Pop-up kuralları: uygulama açılırken ya da check-in, kupon, ödeme sırasında yok; kapatma düğmesi hemen görünür; oturumda en fazla bir kez; banner haritayı ve tab çubuğunu kapatmaz. availo+'ya reklam yok
+- Gizlilik politikasına reklam sağlayıcıları ve yurt dışı aktarım, mağaza formlarına reklam verileri
+
+### Şirket ve kayıtlar
+- Şirket kuruluşu, KEP adresi, VERBİS gerekip gerekmediği, yurt dışı aktarım sözleşmeleri, hizmet sağlayıcılarla veri işleme sözleşmeleri (Render, Neon, Resend, Expo), saklama ve imha politikası, veri ihlali süreci
 - Marka: "availo" adı ve logosu için TÜRKPATENT araması ve tescil
-- (Yapıldı) Lisanslar: Hakkında > "Lisanslar ve veri kaynakları" (components/Licenses.tsx): mekan verisi atıfları (OSM ODbL, Overture CDLA, Foursquare Apache), harita ve adres hizmetleri, Figtree / Tinos (OFL, tam metin), Tabler ikonları (MIT, tam metin) ve uygulamadaki her açık kaynak paketin telif satırı ve lisans metni. Liste mobile/src/lib/licenses.json'da; paket ekleyip güncelleyince `node scripts/build-licenses.js` (mobile/ içinden)
-- Google Places verisi kopyalanmıyor (kullanım şartlarına aykırı). Foursquare OS Places (Apache 2.0) ve Overture (CDLA) kullanılıyor: aday yerler (place_candidates; "Haritada yok mu?" / "Mekan ekle" ile gerçek mekana dönüşür) ve işletme doğrulaması için iletişim bilgileri (Overture). Atıfları Hakkında'da ve web sitesinin altında; kalmalı. Lisans şartları (2026-11-26): Overture'ın CDLA-Permissive-2.0 kayıtlarında veri paylaşılırken lisans metni verilmeli (mobile/assets/licenses/CDLA-Permissive-2.0.txt, Hakkında'da açılıyor); Foursquare kaynaklı kayıtlar Apache 2.0: lisans metni, "Copyright 2024 Foursquare Labs, Inc. All rights reserved." satırı ve verinin değiştirildiğini, ne zaman değiştirildiğini anlatan not (Hakkında'da, scripts/build-licenses.js `FOURSQUARE`). Kullanım koşulları 12.2'de de geçiyor. Aday yerler yenilenince tarih nottaki "Kasım 2026" güncellenmeli
-- (Yapıldı) Kayıt ekranındaki "Kullanım koşulları" ve "Gizlilik politikası" bağlantıları web sitesindeki sayfaları (tanitim/kosullar.html, gizlilik.html) uygulama içi tarayıcıda açar (expo-web-browser). Daha fazla > Kullanım koşulları uygulamadaki metni gösterir. Sayfaların çalışması için sitenin yayında olması gerekir
-- Bekleme listesi: tanıtım sayfasında toplanan iletişim bilgileri için aydınlatma metni
-- Son konum (yakındaki kampanya için): "konum kaydedilmez" metni değişir, ayrı açık izin alınır
-- "Daima" konum izni (uygulama kapalıyken öneri): izin metni ve Konum ve izinler sayfası güncellenir
-- Kullanıcı fotoğrafları: fotoğrafta başkalarının yüzü çıkabilir; şikâyet, kaldırma, saklama süresi
-- "Şu an burada" fotoğrafları (check-in'de çekilen, 24 saat görünen): fotoğraf telefonda yeniden kodlanır, içindeki konum (GPS) ve cihaz bilgileri (EXIF) sunucuya gönderilmeden silinir; 24 saat sonra fotoğraf sunucudan silinir. Bu "konum silinir" beyanı gizlilik politikasında yer alıyor (legal.ts "Ne kadar saklıyoruz?"); doğruluğu ve yeterliliği, başkalarının yüzü (açık rıza gerekir mi), şikâyet/kaldırma süreci ve 2 şikâyette gizleme kuralı hukukçuya sorulacak
-- "Check-in" kelimesinin kullanımı: genel bir terim (havayolları, oteller, Facebook, Swarm kullanıyor); yine de TÜRKPATENT'te uygulama sınıfında tescil araması yapılsın. "availo" adı ve logosu için de marka tescili
+- Giderler: Apple Developer 99 $/yıl, Google Play 25 $ (bir kez), Render ve Neon ücretli planlar, alan adı; Expo push ve telefon haritaları ücretsiz; lisans parası ödenecek kütüphane yok
 
-**Gerçek uygulama sürümü gerektirenler** (Apple Developer hesabı, EAS Build; Expo Go'da olmaz)
-- Instagram / TikTok'ta Paylaş'a basınca listede availo çıkması, mekanın favorilere girmesi
-- Kapı QR'ının telefon kamerasıyla doğrudan uygulamayı açması (universal link; kod hazır, alan adı gerekir)
-- Telefon bildirimleri ve ana ekran widget'ı (bkz. Bildirimler)
+### Arayüz (karar bekleyen)
+- Erişilebilirlik (yayından önce): bütün basılabilir öğelere ekran okuyucu rolü ve kısa adı ("Alfa Glory Coffee, kafe, Sakin"), çiplerin seçili durumu, en az 44 px dokunma alanı, büyük yazı ayarında taşma kontrolü. Üstteki simge düğmeleri yapıldı
 
-**"Arkadaşların buraya gitti"** (sonra)
-- Mekan sayfasında doluluk satırının altında üst üste binmiş 2–3 küçük profil fotoğrafı ve "@eray ve @ayse son 30 günde buraya gitti"; dokununca kim, ne zaman gitti listesi (gizli check-in'ler ve check-in'lerini paylaşmayanlar sayılmaz). Şu an sayfada yalnızca "şu an burada olan arkadaşlar" var
+### Sonra yapılacak özellikler
+- **Arkadaşların buraya gitti:** mekan sayfasında üst üste 2–3 profil fotoğrafı ve "@eray ve @ayse son 30 günde buraya gitti"
+- **Sürpriz paket** (Too Good To Go benzeri): gün sonu indirimli paket, adetli ayırma, kodla teslim; kampanya / kupon altyapısıyla
+- **Yakındaki kampanya bildirimi** (konuma göre, isteğe bağlı): son konum ~1 km'ye yuvarlanıp 24 saat tutulur; gizlilik metni ve ayrı izin gerekir
+- **Uygulama kapalıyken check-in önerisi:** geofencing ("Her zaman" konum izni); izin metinleri güncellenir
+- **Toplu olay bildirimi:** "Moda'da 3 kafe şu an sakinleşti"
+- **Ana ekran widget'ı:** favori mekanın anlık doluluğu
+- **Instagram / TikTok paylaşımından availo'ya** ve kapı QR'ının doğrudan uygulamayı açması (universal link; alan adı gerekir)
+- **Puan:** availo+ indirimi puanla (ör. 1.000 puan = bir ay %50), haftalık çekiliş (izin gerekir, hukukçuya soruldu), yorum ve sakin saatte gitme için ek puan. Puan nakde çevrilemez ve devredilemez kalmalı
+- **availo+'ya teşvik:** sınıra takılınca yerinde gösterim, kapatılabilir küçük kart, 7 gün deneme, seri ödülü
+- **İşletme:** kendi doluluğunu bildirme ("işletme bildirdi", Aylık paket), birden fazla şube, çalışan hesapları (kod git geçmişinde: app/staff.py, migration 012), "Hakkımızda" / menü / fiyat aralığı, geçen haftayla karşılaştırma, etkinlik duyurusu, hazır yorum yanıtları
+- **Hile:** aynı telefondan açılan birden çok hesap aynı mekanda tek kişi sayılsın; işletme sahibinin bireysel hesapla kendi mekanını "Sakin" göstermesine karşı önlem
+- **Check-in sonrası tek soru** (priz, Wi-Fi, sessizlik) ile mekan özelliklerini kullanıcıların doldurması
+- **Öneri şeridinden tek dokunuşla check-in** ve "Geri al"
 
-**Arkadaşlarla buluş** (sonra)
-- Ana sayfa "Arkadaşların nerede?" kartında arkadaş bir mekandaysa (taze check-in) "Yanına git" butonu: yol tarifi açılır, arkadaşa "Geliyorum" gider; arkadaşın "Buradayım, gel!" çağrısına da tek dokunuşla "Geliyorum" yanıtı
+### Tanıtım ve büyüme
+- Instagram / TikTok serileri: "Kadıköy'de şu an sakin 3 yer", "Çalışmaya uygun" listeleri, kurucu kafe tanıtımları, haftanın kâşifi
+- Tek bölgede yoğun başlangıç; ekip ve elçi kullanıcılar ilk haftalarda düzenli bildirim
+- Ölçüm: bekleme listesine yazılan ve check-in yapan kişi sayısı
+- İsim kesinleşince alan adı ve sitenin kök adrese taşınması
 
-**Sürpriz paket** (Too Good To Go benzeri)
-- İşletme gün sonunda satılmayan ürünlerden indirimli "sürpriz paket" açar: fiyat, normal değeri, adet, teslim saati (ör. 18:00–19:00), kabaca içerik
-- Kullanıcı uygulamadan ayırır (kişi başı bir; adet bitince kapanır), saatinde kod / QR ile alır; ödeme önce kasada, sonra uygulamada
-- Mevcut kampanya ve kupon altyapısı kullanılır (kişi sınırı = adet, kupon = ayırma kodu); ölü saatte ya da kapanışa yakın "paket aç" önerisi
-
-**Puan ve seviyeler**
-- (Yapıldı) Seviye ödülleri: her seviye bir kez +30 puan ve kutlama (rozet gibi); Kâşif: bir mekanın kalıcı ödülünü bir kez puansız alma ("hoş geldin hediyen", level_rewards.welcome_used_at); Mahalleli: 1 hafta availo+; Semt elçisi: 1 ay availo+ (+ sıralamadaki altın çerçeve). Hediye availo+ users.plus_until ile, süresi bitince oturumda kendiliğinden kapanır; satın alınmış availo+'a dokunulmaz (backend/app/levels.py)
-- (Yapıldı) Davet: davet edilen kişi ilk check-in'ini yapınca ikisine de +50 (davet eden 30 günde en fazla 5 kez); davet mesajında yazıyor
-- (Yapıldı) Seri: günlük serinin her tam haftası (7, 14, 21… gün) +10
-- "Bugünün ilk bilgisi" zaten var: o gün mekanın ilk check-in'i çift puan (+10 fazladan)
-- availo+ indirimi puanla: ör. 1.000 puan = bir ay availo+ %50 indirimli (ödeme altyapısı gelince)
-- Haftalık çekiliş: 100 puanla katıl, kazanana kafe ikramı (işletme sponsorlu); kurallar ve yasal izin (çekiliş mevzuatı) hukukçuya sorulmalı
-
-**Tanıtım (reklam)**
-- Tanıtım sitesi: mobile/public/tanitim (yayında https://erayerb.github.io/availy.app/v2/tanitim/): index.html (kullanıcılar: hero, özellikler, nasıl çalışır, puanlar, Ücretsiz/availo+ tablosu, SSS, indirme), isletme.html (işletmeler: paketler tablosu, kurucu program, SSS, başvuru), gizlilik.html ve kosullar.html (taslak yasal metinler, docs/hukuk'tan üretilir), hesap-silme.html, ortak styles.css. Yazı tipleri (Figtree, Tinos; OFL) ve ikonlar (Tabler, yalnızca sayfalarda kullanılan ~40 ikon; MIT) sitenin kendi klasöründe (tanitim/assets: site.css, woff2 dosyaları, lisans metinleri; ~190 KB); ziyaretçinin tarayıcısı Google Fonts'a ve jsDelivr'e bağlanmaz (IP adresi gitmez). Sayfaya yeni bir `ti ti-…` ikonu eklenince: `<iconvenv>/bin/python mobile/scripts/build-site-assets.py` (fontTools + brotli). Pilot semtler sitede: Nişantaşı, Beşiktaş, Etiler, Caddebostan, Kayışdağı, Bakırköy, santralistanbul (2026-11-26; "Moda ve Kadıköy" yazısı kaldırıldı; bekleme listesi semt seçiminde Bakırköy ve "Bilgi santral" var). Çerez yok: site çerez, analiz, reklam aracı ve üçüncü taraf kaynak kullanmıyor (çerez bannerı gerekmez; gizlilik politikası 10. bölüm). Web uygulamasının cihazda tuttuğu oturum ve ayarlar zorunlu sayılır; ileride analiz (Google Analytics vb.) eklenirse çerez onayı ve politika güncellemesi gerekir. Mağaza linkleri gelince index.html'deki `STORES` doldurulur ("Yakında" rozetleri gerçek butona döner); masaüstünde sayfanın QR'ı; bekleme listesi (kullanıcı / işletme, POST /v1/waitlist, Yönetici > Bekleme listesi). İsim kesinleşince alan adı ve kök adrese taşıma; haritadan kısa video / gif eklenebilir
-- Instagram ve TikTok serileri (haftada 2–3): "Moda'nın en sakin 5 kafesi" (her kafe 3 sn, "Salı 15:00 · sakin · priz var", sonda "Şu an hangisi sakin? Uygulamada canlı"); gün içinde "Kadıköy'de şu an sakin 3 yer" hikâyeleri (uygulamadan ekran görüntüsü); "Çalışmaya uygun" ve "Sınav haftası" listeleri (priz, Wi-Fi, sessizlik; uygulamadaki listelerden); kurucu kafelerin kısa tanıtımları; haftanın kâşifi ve "Burayı sen keşfettin" paylaşımları (paylaşana bonus puan)
-- Kurucu mekan programı (tanıtım sayfasında): ilk 10 mekana 3 ay ücretsiz Aylık paket, "Kurucu mekan" rozeti, kapıya "availo'da · QR ile check-in" çıkartması, ekipten biri fotoğraf çeker, açılışta öne çıkma
-- Tek semtte yoğun başlangıç (Moda / Kadıköy): ekip ve elçi kullanıcılar ilk haftalarda düzenli bildirim
-- Ölçüm: takipçi değil; bekleme listesine yazılan ve check-in yapan kişi sayısı
-
-**Mekan verisi (yayında çok mekan için)**
-- Foursquare OS Places (Apache 2.0, ücretsiz; tel / website / e-posta / Instagram alanları var ama çoğu boş) ve Overture Maps Places (çoğu CDLA-Permissive-2.0; telefon, web, e-posta, sosyal alanları) OSM'ye ek olarak içe aktarılabilir; Google Places verisi saklanamaz (yalnızca place_id)
-
-**Premium'a teşvik** (ana sayfadaki "REKLAM" yeri kaldırıldı)
-- Premium'un ne kazandırdığını yerinde göster: ikinci mekanı takip etmeye çalışınca ("Sakin olunca haber ver" sınırı), geçmiş doluluk / tipik saatler ayrıntısında, haftalık özet kartında
-- Ana sayfada küçük, kapatılabilir bir kart (ör. haftada bir): "Premium ile sınırsız takip ve reklamsız kullanım"
-- Deneme süresi (7 gün ücretsiz) ve seri ödülü: ör. 4 haftalık seriye 1 hafta Premium
-- Gerçek reklamlar gelince: yakındaki mekanların kampanyaları, Premium'da gizli
-
-**Bildirimler** (olay olunca, uygulama kapalıyken de)
-- Kampanya bildirimi (yapıldı, konumsuz): bir mekan kampanya başlatınca (zamanlanmış da) o mekanı favorilemiş ya da son 90 günde orada check-in yapmış kişilere 🔔 + push gelir ("venue_campaign"; kalıcı ödül hariç; Bildirim ayarları > Kampanya bildirimleri ile kapanır)
-- Yakındaki kampanya bildirimi (konuma göre, sonraya): isteğe bağlı; son konum yaklaşık 1 km'ye yuvarlanıp tutulur, 24 saatte silinir (bkz. KVKK)
-- Telefon bildirimi (push): kod hazır. Uygulama bildirim adresini kaydeder (PUT /v1/me/push-token, push_tokens), sunucu yeni 🔔 öğelerini ~30 sn'de bir Expo push ile gönderir (backend/app/push.py; PUSH_INTERVAL_SECONDS, 0 = kapalı), Bildirim ayarlarına uyar. Çalışması için: `eas login` → `eas init` (projectId) → `eas build:configure`; iPhone: Apple Developer + `eas build -p ios`; Android: Firebase projesi, google-services.json, `eas credentials` ile FCM V1 anahtarı. Bildirim metinleri iki yerde: backend/app/push.py `text` ve mobile/src/lib/social.ts `notificationText` (birlikte değişmeli)
-- Kısıt: iPhone'da Expo Go ile çalışmaz; EAS Build ve Apple Developer hesabı (yıllık 99 $) gerekir. Android'de Expo Go ile de denenebilir
-- Uygulama kapalıyken check-in önerisi: geofencing (expo-location + TaskManager, "Her zaman" konum izni, en fazla ~20 bölge); Konum ve izinler metni o zaman güncellenmeli. Son konumla olmaz (kişinin şu anki yerini göstermez); sonraya
-- Olaya bağlı toplu bildirim: "Moda'da 3 kafe şu an sakinleşti" (favori semt / favori mekanlar sakinleşince; push gerekir)
-- iPhone ana ekran widget'ı: favori mekanın şu anki doluluğu (EAS Build + iOS widget eklentisi; Android widget'ı da düşünülebilir)
-
-**Güvenlik ve hile**
-- Mekan verisi: haritada OSM (pilot: Nişantaşı, Caddebostan, Kayışdağı, Etiler, Beşiktaş, Bilgi santral, Bakırköy); arka planda "aday" yerler (place_candidates): İstanbul'un Overture (güven ≥0.6) + Foursquare OS Places (açık, son 2 yılda güncellenmiş) kayıtları, ~91 bin, haritada görünmez; aramada "Haritada yok mu?" ve "Mekan ekle"de "Bu mu?" ile eklenir. Yenileme: backend/scripts/fetch_overture_places.py + fetch_foursquare_places.py (HF_TOKEN .env'de) → import_place_candidates.py; ayda bir yapılmalı
-- Reklam (AdMob): sadece Premium olmayanlara; gerçek uygulama derlemesi (EAS) ile kurulacak: AdMob hesabı ve ödeme/vergi bilgileri (kullanıcı), paket + Premium kontrolü + gizlilik onayı penceresi (ATT/GDPR) + gizlilik politikasına madde (kod)
-- Sponsorlu mekan ödemesi: şimdilik işletme talep eder, yönetici açar (7 gün ₺300 / 30 gün ₺1.000 gösteriliyor); ödeme altyapısı (iyzico vb.) gelince otomatik
-- Uygulama içi ödemeler: availo+ ₺79/ay (App Store / Google Play aboneliği), işletme Aylık paketi ₺599/ay
-- Google / Apple ile giriş: kod hazır (POST /v1/auth/oauth, user_identities); kimlikler girilince butonlar görünür. Kurulum: docs/social-sign-in.md
-- (Yapıldı) Onay bekleyen mekan sınırı: kişi başı aynı anda en fazla 3 (user_venues.py `MAX_PENDING`; 30 günde onaylanmayıp gizlenenler sayılmaz)
-- Aynı IP'den çok sayıda giriş denemesine sınır (hesap kilidi var, IP sınırı yok)
-- Yanlış şifre kilidi: Resend alan adı doğrulanmadan "Şifremi unuttum" e-postası yalnızca hesap sahibine gider; yayından önce alan adı şart. Başkası bilerek yanlış şifre girip bir hesabı kilitleyebilir (e-postayla açılır)
-- İşletme sahibinin bireysel hesabıyla kendi mekanını "Sakin" göstermesi: "aynı telefon kuralı" (bir telefonda işletme hesabı açıldıysa o telefondaki bireysel hesapların o mekana check-in'i sayılmaz) denendi ve kaldırıldı (sahibin kendi denemelerini de engelliyordu); yayına yakın yeniden düşünülecek
-- Aynı telefondan açılan birden çok bireysel hesap aynı mekanda tek kişi sayılsın (sahte hesapla doluluk şişirme)
-
-**İşletme**
-- İşletmenin kendi doluluğunu bildirmesi ("işletme bildirdi" etiketiyle): yalnızca Aylık paket için
-- Kapı QR'ı şimdilik GitHub Pages adresine gidiyor: kesin alan adı alınmadan çok sayıda basılmamalı
-- ~~Kurucu mekan avantajı: "Mahalleli'ye çift damga"~~ (2026-11-25: yapılmayacak)
-- Birden fazla mekan: tek hesapta mekan seçici ("Moda Şube ▾"; şimdi users.venue_id tek mekan), doğrulama ve Aylık paket şube başına
-- Çalışan hesapları (bir kez yapılıp kaldırıldı; kod git geçmişinde: `v2: seviye simgesi...` commit'i, app/staff.py, CounterScreen, StaffSection, migration 012): işletme kısa kodla davet eder, çalışan kendi hesabıyla kasada kupon ve sadakat QR'ı okutur, sahip kimin ne yaptığını görür ve çıkarır. Üstüne iki yetki düşünüldü: Kasa (yalnızca QR) ve Yönetici (panel, kampanya, yorum yanıtı; ödeme, doğrulama ve yönetici ekleme yalnızca sahipte; kampanyayı kimin oluşturduğu kayıtlı). Geri eklerken: DELETE /v1/staff/me yolu /{staff_id}'den önce tanımlanmalı; yeni migration numarası 014
-- Mekan sahipliği doğrulaması (✓ rozeti; şimdi ekran "Yakında", `venue_profiles.verified` elle): OSM'den telefon / e-posta içe aktar (pilot: 282 mekanın 32'sinde telefon, 7'sinde e-posta) → e-postası varsa kod, telefonu varsa SMS (ücretli) ya da arama → yoksa vergi levhası / ruhsat + mekandayken konum + yönetici onayı → ✓, kampanya ve sadakat açılır; başkasına bağlı mekan için "Bu mekan benim" aynı yolla
-- "Check-in yapana %10" gibi check-in'e bağlı kampanyalar
-- İşletme profiline belki: "Hakkımızda", menü / fiyat aralığı, genelde en sakin saatler
-
-**Rehberden bul (belki geri gelir)**
-- 2026-11-26'da kaldırıldı: uygulamada (ContactsFinder, izinler ekranındaki Rehber satırı, davet ekranındaki "Rehberimdekileri bul", expo-contacts ve app.json izni), sunucuda (app/contacts.py, PUT/DELETE /v1/me/phone, POST /v1/friends/contacts) ve hukuki metinlerde (gizlilik, koşullar 22.2, açık rıza 1, hukukçu sorusu 3). Kod git geçmişinde (kaldırma commit'inden önceki sürüm)
-- Neden: kullanıcı az olunca rehberde kimse çıkmaz; açık rıza ve rehberdeki üçüncü kişilerin verisi yüzünden hukuki yükü en büyük özellikti. Davet bağlantısı, kullanıcı adıyla arama ve QR aynı işi görüyor
-- Geri gelirse: ayrı açık rıza ekranı (eski metin git geçmişinde, docs/hukuk/acik-riza-ve-onay-metinleri.md), gizlilik politikasına madde, hukukçu sorusu, Render'da PHONE_PEPPER (uzun rastgele metin; numaraların özetinin geri çevrilememesi için)
-- Duranlar: users.phone_hash sütunu boş duruyor; kaydedilmiş numara özetleri migration 036 ile silindi (istendi, 2026-11-26; yerelde zaten yoktu, Neon'da bir sonraki yayında kendiliğinden çalışır). config.py'deki phone_pepper ayarı Render'daki değer geçerli kalsın diye duruyor; Verilerimi indir hâlâ "numara kayıtlı mı" bilgisini veriyor
-
-**availo puanı** (kullanıcı "puan ne işe yarar?" diye soracak: yayından önce bir karşılığı olmalı ve uygulamada anlatılmalı)
-- Puan harcama: ör. 200 puan = katılan bir kafede %10 kupon (işletme ödülü kendisi belirler, sponsor olur), Premium indirimi, ortak kuponlar (Getir / Trendyol); işletmeleri sisteme bağlamanın da yolu. Puan kasmaya karşı kurallar (başka mekandan sonra 30 dk / günde 8) ödül verilmeden önce yeniden gözden geçirilmeli (ör. aynı sokakta art arda check-in'lere bakmak, hesap yaşı)
-- Ek kazanım: yorum yazmak, Sakin saatte gitmek
-
-**Fikirler (karar bekliyor)**
-- Ana sayfa sağa kaydırmalı satırlar (yapıldı, deneniyor; beğenilmezse eski tek listeye dönülür; mobile/src/components/HomeRows.tsx): sırasıyla "Arkadaşların nerede?", "Şu an sakin, yakınında", "Ne arıyorsun?" (tek satır, seçilebilir etiket çipleri), "Trend olanlar", "Keşfedilmeyi bekleyenler" (yalnızca konum varken, 2 km içi, en fazla 6). Boş satırlar gizlenir; altında filtreli "Tüm mekanlar" listesi kalır. "Öne çık": sponsorlu mekan uyduğu satırların başında "Sponsorlu" etiketiyle (seçenek A)
-- Ödeme altyapısı: availo+ App Store / Google Play aboneliği (RevenueCat); işletme paketi ve "Öne çık" web sitesinden kartla (iyzico / PayTR / Param) + sunucuya "ödendi" bildirimi. Şirket, e-arşiv / e-fatura, mesafeli satış sözleşmesi gerekir
-- Öneri şeridinden tek dokunuşla bildirim: şeritte Sakin / Orta / Kalabalık, basınca check-in ve "Geri al"
-- Check-in sonrası tek soru: priz, Wi-Fi, sessizlik; özellikleri kullanıcılar doldurur, çalışma filtresini besler
-- Kullanıcı fotoğrafı: check-in'de mekan fotoğrafı; 24 saat görünen "şu an burası" fikri (galeriden seçilemez), şikâyet ve kaldırma gerekir (bkz. KVKK)
-- Saat saat doluluk grafiği, yürüme süresi, fiyat aralığı, haftalık özet kartı (bildirimsiz), semt rozetleri
-- İşletme: geçen haftayla karşılaştırma, takipçi sayısı, etkinlik duyurusu, hazır yorum yanıtları, yeni / geri gelen müşteri
-- Veri olanları ana sayfada üstte göster; harita çipleri ile "Filtrele" birleşsin; Daha fazla menüsünü kısalt
-
-**İşletmeye haber ver / işletme bildirimi**
-- Mekanların e-postasını (ve telefonunu) OpenStreetMap'ten içe aktarmak (venues.contact_email); yoksa ekip arar
-- İşletme katılınca haber veren müşterilere bildirim
-
-**Belki yaparız**
-- Mekanların aylık üyelik programı (ör. "₺300/ay → her gün bir filtre kahve"): kaldırıldı (ücret hiç tahsil edilmiyordu). Geri gelirse availo ödemeyi alıp komisyon keser (iyzico vb., hukuk) ya da ödeme mekanda kalır. Tablo ve alanlar duruyor (loyalty_programs.kind = 'membership', price, perk); sunucu yeni üyelik programını kabul etmiyor
-- Kuponun parayla satılması (Groupon gibi): ödeme, iade, fatura ve hukuk yükü; şimdilik yok
-
-**Belki (v1'de vardı, sahte veriye dayanıyordu)**
-- Tahmini boşalma ("~15:20"), geçmiş haftaların check-in'lerine göre
-- "Bölge: Yoğun" satırı, semtteki mekanların check-in ortalamasıyla
-
-### Kaldırılan kalıntılar
-- v1'in sahte doluluğu (backend `occupancy` alanı, /hourly, /history, /forecast, demo_data.py, seed.py; uygulamada gömülü demo veri, statik mod, telefonda mekan ekleme ve mekan düzenlemeleri), `device_accounts` tablosu ve `checkins.counts` sütunu (migration 003). v1 web demosu `main` dalından derlendiği için etkilenmez
-- Telefonda kalan v1 verileri (availy.venueOverrides, availy.schedules, availy.localVenues, availy.photos, eski ortak favori listesi) uygulama açılınca siliniyor (mobile/src/lib/cleanup.ts; istendi, 2026-11-23)
-
----
-
-## v1 (main dalı, `v1` etiketi)
-İlk sürüm: doluluk backend'de sahte üretilirdi; hesaplar, kampanyalar, sadakat ve işletme mekanları
-yalnızca telefonda (AsyncStorage) tutulurdu. Web demosu (https://erayerb.github.io/availy.app/) backend
-olmadan, uygulamaya gömülü demo veriyle çalışır. v2'de olmayan ya da değişen kısımlar:
-
-**v1'de bitenler (v2'de kaldırıldı ya da değişti)**
-- Sahte doluluk (app/occupancy.py; aynı algoritma web demosunda), %oran, 30 sn yenileme, "Test için her saat kalabalık"
-- Hesaplar telefonda (tuzlu SHA-256), misafir de favorileyebilir
-- İşletme paneli sahte doluluktan: anlık doluluk, ölü saat (<%40), bugünkü saatlik grafik, semt ortalaması, haftalık / aylık istatistik (/v1/venues/{id}/history)
-- "⏳ Tahmini boşalma: ~15:20" (/v1/venues/{id}/forecast), "Bölge: Yoğun" satırı
-- "%70 altına düşünce haber ver" (v2'de "Sakin olunca haber ver")
-- Geri bildirim: 1–5 puan + yorum kişi başı bir, telefonda (v2'de sunucuda yorumlar)
-- İşletme yeni mekan ekleyebilirdi (yalnızca o telefonda; adres Nominatim ile)
-- Kampanya, kupon, sadakat telefonda; kampanya başına gösterim / kupon / kullanım
-- 43 demo mekan (backend/app/demo_data.py; web JSON'u backend/scripts/export_demo_venues.py)
-- Mimari: docs/architecture.md
-
-**v1 kararları ve notları**
-- Kişi sayısı gösterilmez, yalnızca oran; sessizlik mekan türüne göre etiket; bölge yoğunluğu semt bazlı
-- Harita kartı callout değil normal view (iOS'ta pin atlaması); kendi çizdiğimiz yuvarlak pinler
-- Sahte doluluk tüm mekanlarda aynı saat eğrisini kullanıyordu (kategoriye göre eğri daha gerçekçi olurdu)
-- Proje dokümanı ("Tenha Nerede") Flutter / AWS / Redis diyor; prototip React Native (Expo) + FastAPI + PostGIS
-
-**Rafa kaldırıldı (v1'in veri toplama ve diğer planları)**
-- Wi-Fi cihaz sayımı (Cisco Meraki, Ubiquiti API / webhook), MAC adresleri anında hash'lenir, yalnızca sayı; sahte Wi-Fi simülatörü; iki kaynağı birleştirme modeli
-- Google Maps "Popular Times" ile başlangıç
-- Redis (cache, rate limit), WebSocket ile anlık güncelleme
-- Yayında favoriler yalnızca giriş yapanlara (`FAVORITES_REQUIRE_LOGIN`)
-- Birden fazla şube, personel hesapları (kasiyer / garson)
-- Hata bildirimleri ve iletişim mesajları sunucuya / destek e-postasına
-- İşletme premium aboneliğine "hesap yönetimi"
-- Katılmamış işletmeler için "İşletmeye haber ver"
-- Gerçek ödeme (SaaS ₺599/ay, kampanya başı ₺150, B2C Premium ₺79/ay), mikro rezervasyon (masa + ön sipariş, %15 komisyon)
-- Tanıtım sitesi (özellikler, işletme başvurusu, fiyatlar, işbirlikleri, KVKK)
+### Belki
+- Mekanların aylık üyelik programı (tablo ve alanlar duruyor, sunucu kabul etmiyor), kuponun parayla satılması
+- Tahmini boşalma saati ve "Bölge: Yoğun" satırı (geçmiş check-in'lerle)

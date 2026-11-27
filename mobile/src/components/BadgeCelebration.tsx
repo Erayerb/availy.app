@@ -1,8 +1,10 @@
 import type { NewBadge } from '../lib/badgeEvents';
-import { Modal, StyleSheet } from 'react-native';
+import { Modal, StyleSheet, View } from 'react-native';
 
 import { useBadgeCelebration } from '../lib/badgeEvents';
 import { Celebration } from './Celebration';
+import { Icon } from './Icon';
+import { badgeIcon } from '../lib/badgeIcons';
 import { haptics } from '../lib/haptics';
 import { colors, themed } from '../theme';
 import { Pressable } from './Pressable';
@@ -19,7 +21,7 @@ export function BadgeCelebration() {
     <Modal visible={badges.length > 0} transparent animationType="fade" onRequestClose={close}>
       <Pressable style={styles.backdrop} onPress={close}>
         <Pressable style={styles.box} onPress={() => {}}>
-          <Celebration emoji={badges[0]?.icon} first={badges[0]?.id === 'explorer'} />
+          {badges[0] && <Celebration icon={badgeIcon(badges[0].id)} medal first={badges[0].id === 'explorer'} />}
           <Text style={styles.title}>{title(badges)}</Text>
           {badges.map((b) =>
             b.kind === 'first' ? (
@@ -31,10 +33,13 @@ export function BadgeCelebration() {
             b.kind === 'streak' && badges.length === 1 ? (
               <Text key={b.id} style={styles.total}>Her hafta en az bir check-in yap, seri sürsün.</Text>
             ) : (
-              <Text key={b.id} style={styles.line}>
-                {b.icon} {b.name}
-                {b.points > 0 ? ` · +${b.points} puan` : ''}
-              </Text>
+              <View key={b.id} style={styles.lineRow}>
+                <Icon name={badgeIcon(b.id)} size={16} color={colors.gold} />
+                <Text style={styles.line}>
+                  {b.name}
+                  {b.points > 0 ? ` · +${b.points} puan` : ''}
+                </Text>
+              </View>
             ),
           )}
           {badges.filter((b) => b.points > 0 && b.kind !== 'first').length > 1 && <Text style={styles.total}>Toplam +{total} puan</Text>}
@@ -48,13 +53,14 @@ export function BadgeCelebration() {
 }
 
 function title(badges: NewBadge[]): string {
-  if (badges[0]?.kind === 'first') return "🎉 İlk check-in'in!";
+  if (badges[0]?.kind === 'first') return "İlk check-in'in!";
   const real = badges.filter((b) => b.kind !== 'streak');
-  if (!real.length) return `${badges[0]?.icon ?? ''} ${badges[0]?.name ?? ''}`.trim();
+  if (!real.length) return badges[0]?.name ?? '';
   return real.length > 1 ? `${real.length} yeni rozet!` : 'Yeni rozet!';
 }
 
 const styles = themed(() => StyleSheet.create({
+  lineRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   backdrop: { flex: 1, backgroundColor: colors.backdrop, justifyContent: 'center', padding: 28 },
   box: { alignItems: 'center', gap: 8, padding: 22, borderRadius: 22, backgroundColor: colors.surface, maxWidth: 380, width: '100%', alignSelf: 'center' },
   title: { fontSize: 22, fontWeight: '700', color: colors.text },

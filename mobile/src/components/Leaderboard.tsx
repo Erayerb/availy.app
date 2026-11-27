@@ -12,7 +12,7 @@ import { GroupForm } from './GroupForm';
 
 import { socialApi, type Leaderboard as Board, type Scope } from '../lib/social';
 import { colors, themed } from '../theme';
-import { InlineIcon } from './Icon';
+import { Icon, InlineIcon } from './Icon';
 
 // Gold, silver, bronze medals for the top three
 const MEDALS = ['#D4A017', '#A8A9AD', '#B87333'];
@@ -300,7 +300,17 @@ function Podium({ rows, onOpenUser }: { rows: Row[]; onOpenUser: (username: stri
             </View>
           </Pressable>
         ) : (
-          <View key={`empty${i}`} style={styles.podiumCol} />
+          // A free place: a faint step, so the podium stays balanced and says the spot is open
+          <View key={`empty${i}`} style={styles.podiumCol}>
+            <View style={[styles.podiumEmpty, { width: sizes[i] + 8, height: sizes[i] + 8, borderRadius: (sizes[i] + 8) / 2 }]}>
+              <Icon name="user" size={sizes[i] * 0.45} color={colors.textMuted} />
+            </View>
+            <Text style={styles.podiumPoints} numberOfLines={1}>Boş</Text>
+            <Text style={styles.podiumPoints}> </Text>
+            <View style={[styles.podiumStep, styles.podiumStepEmpty, { height: heights[i] }]}>
+              <Text style={[styles.podiumRank, styles.podiumRankEmpty]}>{[2, 1, 3][i]}</Text>
+            </View>
+          </View>
         ),
       )}
     </View>
@@ -341,6 +351,9 @@ const styles = themed(() => StyleSheet.create({
   podiumPoints: { fontSize: 12, color: colors.textMuted },
   podiumStep: { alignSelf: 'stretch', borderTopLeftRadius: 10, borderTopRightRadius: 10, alignItems: 'center', justifyContent: 'center', marginTop: 4, opacity: 0.9 },
   podiumRank: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  podiumEmpty: { borderWidth: 2, borderStyle: 'dashed', borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  podiumStepEmpty: { backgroundColor: colors.cream, opacity: 1 },
+  podiumRankEmpty: { color: colors.textMuted },
   card: {
     padding: 16,
     borderRadius: 16,
